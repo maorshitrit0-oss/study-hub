@@ -60,6 +60,8 @@ export default async function Settings() {
         <form action={signOut}><button className="btn-ghost w-full">התנתקות</button></form>
       </section>
 
+      <p className="text-center text-xs text-muted">Study Hub · פותח על ידי Maor Shitrit</p>
+
       <p className="text-center text-xs text-muted">
         Study Hub · פותח על ידי <span dir="ltr">Maor Shitrit</span>
       </p>

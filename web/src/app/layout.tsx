@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "לומדים מקריאה: הרצאות, תרגולים, שאלונים ומעקב",
   authors: [{ name: "Maor Shitrit" }],
   creator: "Maor Shitrit",
+  authors: [{ name: "Maor Shitrit" }],
+  creator: "Maor Shitrit",
   appleWebApp: { capable: true, title: "Study Hub", statusBarStyle: "default" },
 };
 
