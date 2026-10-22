@@ -7,6 +7,7 @@ import { dispatchLesson, dispatchNotify } from "@/lib/github";
 import { parseIcs } from "@/lib/ics";
 import { israelLocalToIso } from "@/lib/format";
 import { extractSyllabus, looksLikeSyllabus } from "@/lib/syllabus";
+import { DRIVE_PREFIX, cleanTitle, driveId, materialBlob } from "@/lib/files";
 
 const str = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? "").trim();
@@ -142,13 +143,30 @@ export async function answerQuestion(questionId: string, chosen: number) {
 
 export async function addMaterial(courseId: string, m: { title: string; kind: string; path: string; mime: string; size: number }) {
   const { sb } = await requireUser();
+  const title = cleanTitle(m.title);
   // A file named like a syllabus is treated as one even if another type was picked.
-  const kind = m.kind === "other" || m.kind === "slides" ? (looksLikeSyllabus(m.title) ? "syllabus" : m.kind) : m.kind;
+  const kind = (m.kind === "other" || m.kind === "slides") && looksLikeSyllabus(title) ? "syllabus" : m.kind;
   const { data } = await sb.from("materials").insert({
-    course_id: courseId, title: m.title, kind, storage_path: m.path, mime: m.mime, size_bytes: m.size,
+    course_id: courseId, title, kind, storage_path: m.path, mime: m.mime, size_bytes: m.size,
   }).select("id").single();
   revalidatePath(`/courses/${courseId}`);
   return kind === "syllabus" && data ? readSyllabus(data.id) : null;
+}
+
+/** Big files: a shared Google Drive link instead of an upload (Supabase free allows 50 MB per file). */
+export async function addDriveMaterial(courseId: string, url: string, kind: string, title: string) {
+  const id = driveId(url);
+  if (!id) return "זה לא קישור לקובץ בדרייב. בדרייב: שיתוף ← 'כל מי שיש לו את הקישור' ← העתקת קישור";
+  const name = title.trim() || "קובץ מהדרייב";
+  const mime = /\.docx$/i.test(name) ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : "application/pdf";
+  return (await addMaterial(courseId, { title: name, kind, path: `${DRIVE_PREFIX}${id}`, mime, size: 0 })) ?? "✓ נוסף";
+}
+
+export async function setMaterialKind(id: string, kind: string) {
+  const { sb } = await requireUser();
+  const { data } = await sb.from("materials").update({ kind }).eq("id", id).select("course_id").single();
+  if (data) revalidatePath(`/courses/${data.course_id}`);
+  return kind === "syllabus" ? readSyllabus(id) : null;
 }
 
 /** (Re)reads a syllabus file into the course info. Returns a status line for the user. */
@@ -157,10 +175,9 @@ export async function readSyllabus(materialId: string): Promise<string> {
   const { data: m } = await sb.from("materials").select("*").eq("id", materialId).single();
   if (!m) return "הקובץ לא נמצא";
   if (m.kind !== "syllabus") await sb.from("materials").update({ kind: "syllabus" }).eq("id", materialId);
-  const { data: file, error } = await sb.storage.from("study").download(m.storage_path);
-  if (!file) return `לא הצלחתי להוריד את הקובץ: ${error?.message ?? ""}`;
   try {
-    return await extractSyllabus(sb, m.course_id, file, m.mime ?? "", m.title);
+    const file = await materialBlob(sb, m);
+    return await extractSyllabus(sb, m.course_id, file, m.mime ?? file.type, m.title);
   } catch (e) {
     return `קריאת הסילבוס נכשלה: ${(e as Error).message}`;
   } finally {
@@ -171,7 +188,7 @@ export async function readSyllabus(materialId: string): Promise<string> {
 export async function deleteMaterial(id: string, courseId: string) {
   const { sb } = await requireUser();
   const { data } = await sb.from("materials").select("storage_path").eq("id", id).single();
-  if (data) await sb.storage.from("study").remove([data.storage_path]);
+  if (data && !data.storage_path.startsWith(DRIVE_PREFIX)) await sb.storage.from("study").remove([data.storage_path]);
   await sb.from("materials").delete().eq("id", id);
   revalidatePath(`/courses/${courseId}`);
 }

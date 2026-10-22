@@ -1,11 +1,12 @@
 import { GoogleGenAI, ThinkingLevel, type Content, type Part } from "@google/genai";
 import { supabaseServer } from "@/lib/supabase/server";
+import { DRIVE_PREFIX, geminiFilePart, materialBlob } from "@/lib/files";
 import { EXAM_LABEL, lessonName, type Course, type Lesson } from "@/lib/types";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const MAX_CONTEXT_CHARS = 400_000;
-const MAX_FILE_BYTES = 15 * 1024 * 1024;
+const MAX_FILE_BYTES = 250 * 1024 * 1024;
 // Course files (PDFs etc.) are big and slow to send; attach them only when the question needs them.
 const NEEDS_FILES = /מבחן|בחינ|עבר|סילבוס|מצגת|שקפ|קובץ|קבצ|pdf|חוברת|דוח|מטל|תרגיל בית/i;
 
@@ -66,10 +67,12 @@ export async function POST(req: Request) {
   context += kept.join("");
 
   const contextParts: Part[] = [{ text: `=== חומר הקורס ===\n${context}` }];
+  // Big files (e.g. scanned quizzes) go through the Gemini Files API; cap the total per message.
   let bytes = 0;
   const files = attachFiles
     ? (materials ?? []).filter((m) => {
-        const ok = m.mime === "application/pdf" || m.mime?.startsWith("image/") || m.mime?.startsWith("text/");
+        const ok = m.mime === "application/pdf" || m.mime?.startsWith("image/") || m.mime?.startsWith("text/")
+          || m.storage_path.startsWith(DRIVE_PREFIX);
         if (!ok || bytes + (m.size_bytes ?? 0) > MAX_FILE_BYTES) return false;
         bytes += m.size_bytes ?? 0;
         return true;
@@ -80,15 +83,22 @@ export async function POST(req: Request) {
     contextParts[0] = { text: `=== חומר הקורס ===\n${context}` };
   }
   // Download course files and chat images in parallel.
-  const [fileBlobs, imageBlobs] = await Promise.all([
-    Promise.all(files.map((m) => sb.storage.from("study").download(m.storage_path))),
+  const [fileParts, imageBlobs] = await Promise.all([
+    Promise.all(files.map(async (m) => {
+      try {
+        const blob = await materialBlob(sb, m);
+        return await geminiFilePart(m.storage_path, blob, m.mime || blob.type || "application/pdf");
+      } catch {
+        return null;
+      }
+    })),
     Promise.all(imagePaths.map((p) => sb.storage.from("study").download(p))),
   ]);
   for (const [i, m] of files.entries()) {
-    const blob = fileBlobs[i].data;
-    if (!blob) continue;
+    const part = fileParts[i];
+    if (!part) continue;
     contextParts.push({ text: `קובץ: ${m.title} (${m.kind})` });
-    contextParts.push({ inlineData: { mimeType: m.mime!, data: Buffer.from(await blob.arrayBuffer()).toString("base64") } });
+    contextParts.push(part);
   }
 
   const userParts: Part[] = [{ text: message }];

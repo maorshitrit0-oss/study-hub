@@ -47,6 +47,8 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Still unknown: מבוא לבקרה exam date (semester ב; deferred until semester ב).
 
 ## Free-tier limits (watch these)
+- Supabase allows 50 MB per uploaded file: bigger course files are added as a shared Google Drive link
+  (`materials.storage_path = "drive:<id>"`); files over 15 MB reach Gemini through its Files API (`web/src/lib/files.ts`).
 - Supabase storage 1 GB: lecture snapshots are pruned to the ones a chapter shows (`worker/cleanup.py`, after each
   chapter and daily in `notify.yml`). Big uploads (PDFs) also count; Google Drive links (lessons) avoid that.
 - Supabase DB 500 MB: text only, ~15 MB per semester. Free projects pause after 7 idle days; the daily cron touches the DB.

@@ -1,4 +1,5 @@
 import { generateJson } from "./gemini";
+import { geminiFilePart } from "./files";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const SCHEMA = {
@@ -41,8 +42,8 @@ async function documentPart(file: Blob, mime: string, name: string) {
     const { value } = await mammoth.extractRawText({ buffer: bytes });
     return { text: `=== תוכן המסמך ===\n${value}` };
   }
-  if (ext === "pdf" || mime === "application/pdf") return { inlineData: { mimeType: "application/pdf", data: bytes.toString("base64") } };
-  if (mime.startsWith("image/")) return { inlineData: { mimeType: mime, data: bytes.toString("base64") } };
+  if (ext === "pdf" || mime === "application/pdf") return geminiFilePart(`syllabus:${name}:${file.size}`, file, "application/pdf");
+  if (mime.startsWith("image/")) return geminiFilePart(`syllabus:${name}:${file.size}`, file, mime);
   if (["txt", "md"].includes(ext) || mime.startsWith("text/")) return { text: `=== תוכן המסמך ===\n${bytes.toString("utf8")}` };
   throw new Error(`אי אפשר לקרוא קובץ מסוג ${ext || mime} - העלה את הסילבוס כ-PDF או Word (docx)`);
 }
