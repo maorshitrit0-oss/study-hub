@@ -1,9 +1,10 @@
 import type { Course } from "@/lib/types";
 
-export default function CourseForm({ action, course, submit }: {
+export default function CourseForm({ action, course, submit, defaultKind }: {
   action: (f: FormData) => Promise<void>;
   course?: Course;
   submit: string;
+  defaultKind?: Course["kind"];
 }) {
   const weights = course?.grade_weights?.map((w) => `${w.name} ${w.weight}%`).join(", ") ?? "";
   return (
@@ -15,7 +16,7 @@ export default function CourseForm({ action, course, submit }: {
       <div className="grid grid-cols-3 gap-3">
         <div>
           <label className="label" htmlFor="kind">סוג</label>
-          <select className="input" id="kind" name="kind" defaultValue={course?.kind ?? "course"}>
+          <select className="input" id="kind" name="kind" defaultValue={course?.kind ?? defaultKind ?? "course"}>
             <option value="course">קורס</option>
             <option value="lab">מעבדה</option>
             <option value="project">פרויקט</option>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import AddLesson from "@/components/AddLesson";
 import DeadlineRow from "@/components/DeadlineRow";
@@ -44,6 +44,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
   ]);
   if (!course) notFound();
   const c = course as Course;
+  if (c.kind === "self") redirect(`/self/${id}`); // self-study has its own page
   const plan = (await weeklyPlan(sb)).find((p) => p.course.id === id);
   const ls = (lessons ?? []) as Lesson[];
   const nextNumber = Math.max(0, ...ls.filter((l) => l.kind === (c.kind === "lab" ? "lab" : "lecture")).map((l) => l.number ?? 0)) + 1;

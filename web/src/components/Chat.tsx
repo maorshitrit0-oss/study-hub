@@ -14,6 +14,13 @@ const LAB_STARTERS = [
   "השווה את הדוח המסכם הקודם (של שיראל / יהונתן) לניסוי הזה לפי החוברת העדכנית - מה בדיוק לשנות?",
 ];
 
+const SELF_STARTERS = [
+  "יש לי 20 דקות - בוא נמשיך מהנושא הבא במפה",
+  "יש לי 10 דקות - שאלה אחת על נקודה שטעיתי בה",
+  "שעה מול המחשב - בוא נתקדם בפרויקט",
+  "תבחן אותי: שאלת ראיון סטודנט על מה שכבר למדתי",
+];
+
 const STARTERS = [
   "תלמד אותי את ההרצאה האחרונה שלב אחרי שלב",
   "תן לי שאלון אמריקאי של 5 שאלות על כל החומר",
@@ -23,8 +30,8 @@ const STARTERS = [
   "תתרגם לי לעברית את המצגת / הקובץ באנגלית, עם המונחים באנגלית בסוגריים",
 ];
 
-export default function Chat({ courseId, userId, initial, isLab = false }: {
-  courseId: string; userId: string; initial: Msg[]; isLab?: boolean;
+export default function Chat({ courseId, userId, initial, isLab = false, isSelf = false }: {
+  courseId: string; userId: string; initial: Msg[]; isLab?: boolean; isSelf?: boolean;
 }) {
   const [msgs, setMsgs] = useState<Msg[]>(initial);
   const [text, setText] = useState("");
@@ -77,7 +84,7 @@ export default function Chat({ courseId, userId, initial, isLab = false }: {
     <div className="flex flex-col gap-3">
       {msgs.length === 0 && (
         <div className="grid gap-2">
-          {(isLab ? LAB_STARTERS : STARTERS).map((s) => <button key={s} className="card text-start text-sm" onClick={() => send(s)}>{s}</button>)}
+          {(isSelf ? SELF_STARTERS : isLab ? LAB_STARTERS : STARTERS).map((s) => <button key={s} className="card text-start text-sm" onClick={() => send(s)}>{s}</button>)}
         </div>
       )}
       {msgs.map((m, k) => (
@@ -100,7 +107,7 @@ export default function Chat({ courseId, userId, initial, isLab = false }: {
         onSubmit={(e) => { e.preventDefault(); send(text); }}
         className="sticky bottom-20 card p-2 flex flex-col gap-2 shadow-lg"
       >
-        <label className="flex items-center gap-2 text-xs text-muted px-1">
+        <label className={`flex items-center gap-2 text-xs text-muted px-1 ${isSelf ? "hidden" : ""}`}>
           <input type="checkbox" checked={withFiles} onChange={(e) => setWithFiles(e.target.checked)} />
           עם קבצי הקורס (מבחני עבר, מצגות) - איטי יותר
         </label>
@@ -116,7 +123,7 @@ export default function Chat({ courseId, userId, initial, isLab = false }: {
             <input type="file" accept="image/*" multiple className="hidden"
               onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
           </label>
-          <textarea className="input flex-1 min-h-11 max-h-40" rows={1} value={text} placeholder="שאל כל דבר על הקורס..."
+          <textarea className="input flex-1 min-h-11 max-h-40" rows={1} value={text} placeholder={isSelf ? "התשובה שלך + הנימוק..." : "שאל כל דבר על הקורס..."}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !("ontouchstart" in window)) { e.preventDefault(); send(text); } }} />
           <button className="btn px-4" disabled={busy || !text.trim()}>שלח</button>

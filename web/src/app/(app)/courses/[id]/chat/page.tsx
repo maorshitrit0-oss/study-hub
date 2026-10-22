@@ -11,9 +11,9 @@ export default async function ChatPage({ params }: PageProps<"/courses/[id]/chat
   ]);
   return (
     <div className="space-y-3">
-      <Link href={`/courses/${id}`} className="text-sm text-accent">→ {course?.name}</Link>
-      <h1 className="text-xl font-bold">צ&apos;אט · {course?.name}</h1>
-      <Chat courseId={id} userId={userId} initial={(history ?? []).reverse()} isLab={course?.kind === "lab"} />
+      <Link href={course?.kind === "self" ? `/self/${id}` : `/courses/${id}`} className="text-sm text-accent">→ {course?.name}</Link>
+      <h1 className="text-xl font-bold">{course?.kind === "self" ? "מפגש" : "צ'אט"} · {course?.name}</h1>
+      <Chat courseId={id} userId={userId} initial={(history ?? []).reverse()} isLab={course?.kind === "lab"} isSelf={course?.kind === "self"} />
     </div>
   );
 }

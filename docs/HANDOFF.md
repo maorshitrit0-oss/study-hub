@@ -101,6 +101,14 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   course facts with category `industry` ("💼 מהתעשייה ולראיונות עבודה" on the course page).
 - He wants lectures and practices shown **separately** everywhere (except the lab).
 
+## Self-study: digital design / VLSI / SystemVerilog (2026-10-22)
+- He studies RTL/VLSI on his own (aiming at student hardware jobs; mentor at NVIDIA). Tab "לימוד עצמי" (`/self`).
+- A track is a course with kind `self`; its `notes` hold his context and teaching rules (verbatim, they bind the tutor).
+  `skills` table = roadmap topics + project steps with his levels 0-4 (`web/src/lib/skills.ts`).
+- The course chat becomes a tutor (`TUTOR` in `api/chat/route.ts`): one topic, one MCQ, wait, demand reasoning,
+  no flattery, ASCII waveforms; it ends with "📈 התקדמות: <title> → <0-4> | note" lines that update `skills`.
+- Seed: `supabase/self_study.sql` + `supabase/self_study_vlsi.sql`. Exam freeze 10-25/1/2027 (no new development).
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so

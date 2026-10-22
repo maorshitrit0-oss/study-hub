@@ -8,6 +8,7 @@ const items = [
   { href: "/schedule", label: "מערכת", icon: "M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" },
   { href: "/exams", label: "מבחנים", icon: "M9 4h6M9 4a2 2 0 0 0-2 2v0H5v15h14V6h-2a2 2 0 0 0-2-2M9 12l2 2 4-4" },
   { href: "/courses", label: "קורסים", icon: "M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2zM4 21V5M8 7h6" },
+  { href: "/self", label: "לימוד עצמי", icon: "M12 3l9 4.5-9 4.5-9-4.5zM6 9.5V15c0 1.7 2.7 3 6 3s6-1.3 6-3V9.5M21 7.5V13" },
   { href: "/words", label: "אנגלית", icon: "M4 5h7M7.5 3v2c0 4-2 7-4.5 8.5M5 9c1.5 2.5 4 4 6 4.5M13 21l4-9 4 9M14.3 18h5.4" },
   { href: "/deadlines", label: "משימות", icon: "M8 3v3M16 3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM9 14l2 2 4-4" },
 ];
@@ -16,12 +17,12 @@ export default function Nav() {
   const path = usePathname();
   return (
     <nav className="fixed bottom-0 inset-x-0 z-20 border-t border-line bg-[#06142a]/90 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
-      <ul className="mx-auto max-w-3xl grid grid-cols-6">
+      <ul className="mx-auto max-w-3xl grid grid-cols-7">
         {items.map((it) => {
           const active = it.href === "/" ? path === "/" : path.startsWith(it.href);
           return (
             <li key={it.href}>
-              <Link href={it.href} className={`flex flex-col items-center gap-0.5 py-2 text-xs ${active ? "text-accent" : "text-muted"}`}>
+              <Link href={it.href} className={`flex flex-col items-center gap-0.5 py-2 text-[11px] whitespace-nowrap ${active ? "text-accent" : "text-muted"}`}>
                 <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d={it.icon} />
                 </svg>

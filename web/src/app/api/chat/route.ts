@@ -3,6 +3,7 @@ import { friendlyGeminiError, withGemini } from "@/lib/gemini";
 import { supabaseServer } from "@/lib/supabase/server";
 import { DRIVE_PREFIX, geminiFilePart, materialBlob } from "@/lib/files";
 import { EXAM_LABEL, lessonName, type Course, type Lesson } from "@/lib/types";
+import { applyProgress, roadmapText, type Skill } from "@/lib/skills";
 
 export const maxDuration = 300;
 
@@ -38,6 +39,30 @@ const SYSTEM = `אתה המרצה והמתרגל הפרטי של סטודנט ל
 - אם אינך בטוח ב-100% - אמור זאת במפורש ("כדאי לוודא מול המרצה/הספר") ואל תנחש.
 - אם הסטודנט טוען משהו שגוי - תקן אותו בעדינות, גם אם הוא מתעקש.`;
 
+// Self-study tracks: a private tutor that follows the student's own rules (in the track's notes) and keeps the roadmap.
+const TUTOR = `אתה מורה פרטי קפדן במסלול לימוד עצמי של סטודנט להנדסת חשמל (מחוץ לאוניברסיטה). ענה תמיד בעברית; מונחים וקוד - באנגלית.
+ההקשר שלו, המטרות, הכללים איך ללמד אותו ואיפה הוא עומד - מופיעים למטה תחת "ההקשר והכללים". הם מחייבים, ועדיפים על כל הנחיה כללית.
+מפת הלימוד ושלבי הפרויקט מופיעים עם הרמה הנוכחית בכל נושא. אם הוא לא ביקש משהו אחר - המשך מהנושא הראשון לפי הסדר שעוד לא ברמה 3.
+
+מהלך מפגש:
+- אם לא ציין כמה זמן יש לו - שאל בשורה אחת. התאם את כמות החומר לזמן.
+- נושא אחד: הסבר קצר מהבסיס, דוגמה, ואז שאלה אמריקאית אחת עם 4 אפשרויות (1-4). בקש גם נימוק. עצור וחכה לתשובה - אל תענה בשבילו.
+- כשהוא עונה: בדוק גם את התשובה וגם את הנימוק. טעה - הסבר בדיוק מאיפה הטעות במודל שלו, ותן שאלה חדשה על אותה נקודה. בלי מחמאות אוטומטיות ובלי להקל.
+- גלי שעון, D ו-Q: צייר בבלוק קוד (טקסט באנגלית בלבד, משמאל לימין), עמודה לכל רגע זמן ושורה לכל אות. למשל:
+\`\`\`
+clk : __/‾‾\\__/‾‾\\__/‾‾\\__/‾‾\\__
+D   : ______/‾‾‾‾‾‾‾‾‾‾‾\\_______
+Q   : ________/‾‾‾‾‾‾‾‾‾‾‾\\_____
+\`\`\`
+  (כאן Q מעתיק את D רק בעליות השעון: D עלה בין עליות, ו-Q עלה רק בעלייה הבאה.) סמן במילים את הרגעים החשובים: עליות שעון, שינוי ב-D, איפוס.
+- SystemVerilog: קוד קצר ונכון שאפשר להריץ (למשל ב-EDA Playground), עם הסבר שורה-שורה כשזה חדש לו.
+- דיוק: כל טענה טכנית - ודא לפני שאתה כותב. אל תמציא מקור, חברה או תאריך לשאלות ראיון; אם אינך בטוח - אמור.
+
+רמות (0 עוד לא התחלתי, 1 נחשפתי, 2 פותר עם הכוונה, 3 פותר ומסביר לבד, 4 מיישם ומדבג במקרה חדש). נושא עולה ל-3 רק אחרי שתי שאלות חדשות שפתר והסביר בעצמו.
+בסוף תשובה שבה בדקת תשובה שלו - הוסף שורה לכל נושא שהרמה בו נקבעה או השתנתה, בדיוק בפורמט (עם שם הנושא כמו במפה):
+📈 התקדמות: <שם הנושא> → <0-4> | <משפט קצר: מה הוא יודע עכשיו ומה עוד חסר>
+לפרויקט (0 לא התחלתי, 1 התחלתי, 2 באמצע, 3 עובד, 4 נבדק ומוכן להצגה) - אותו פורמט עם שם השלב.`;
+
 export async function POST(req: Request) {
   const sb = await supabaseServer();
   const { data: auth } = await sb.auth.getClaims();
@@ -63,9 +88,13 @@ export async function POST(req: Request) {
   ]);
   if (!course) return new Response("course not found", { status: 404 });
   const c = course as Course;
+  const isSelf = c.kind === "self";
+  const skills = isSelf ? (((await sb.from("skills").select("*").eq("course_id", courseId)).data ?? []) as Skill[]) : [];
 
   // Course context: info + reading chapters (newest kept if over budget) + PDFs/images.
-  let context = `קורס: ${c.name}\nמרצה: ${c.lecturer ?? "-"}\nסוג מבחן: ${c.exam_type ? EXAM_LABEL[c.exam_type] : "לא ידוע"}\n` +
+  let context = isSelf
+    ? `מסלול: ${c.name}\nתאריך היום: ${new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" })}\n\n=== ההקשר והכללים ===\n${c.notes ?? "-"}\n\n=== ${roadmapText(skills)}\n`
+    : `קורס: ${c.name}\nמרצה: ${c.lecturer ?? "-"}\nסוג מבחן: ${c.exam_type ? EXAM_LABEL[c.exam_type] : "לא ידוע"}\n` +
     `משקלים: ${c.grade_weights.map((w) => `${w.name} ${w.weight}%`).join(", ") || "-"}\nהערות: ${c.notes ?? "-"}\n` +
     `הסטודנט ${settings?.is_reservist ? "משרת מילואים בסמסטר הזה - התחשב בהקלות למילואימניקים" : "לא מסומן כמשרת מילואים כרגע"}.\n` +
     (facts?.length ? `\nמה שהמרצה אמר על הקורס (מבחן, ציון, מילואים, מטלות):\n${facts.map((f) => `- [${f.category}] ${f.text}`).join("\n")}\n` : "");
@@ -129,7 +158,7 @@ export async function POST(req: Request) {
   const saveUser = sb.from("chat_messages").insert({ course_id: courseId, role: "user", content: message, image_paths: imagePaths });
 
   // Small talk needs almost no reasoning; explanations and problems get a bit more.
-  const light = message.length < 80 && !imagePaths.length && !attachFiles;
+  const light = message.length < 80 && !imagePaths.length && !attachFiles && !isSelf;
   const started = Date.now();
   let stream;
   try {
@@ -138,7 +167,7 @@ export async function POST(req: Request) {
         model,
         contents,
         config: {
-          systemInstruction: SYSTEM,
+          systemInstruction: isSelf ? TUTOR : SYSTEM,
           ...(thinking ? { thinkingConfig: { thinkingLevel: light ? ThinkingLevel.MINIMAL : ThinkingLevel.LOW } } : {}),
         },
       });
@@ -173,6 +202,10 @@ export async function POST(req: Request) {
           controller.enqueue(encoder.encode(msg));
         }
         if (full) await sb.from("chat_messages").insert({ course_id: courseId, role: "model", content: full });
+        if (isSelf && full) {
+          const n = await applyProgress(sb, courseId, full).catch(() => 0);
+          if (n) controller.enqueue(encoder.encode(`\n\n_(מפת הלימוד עודכנה)_`));
+        }
         controller.close();
       },
     }),

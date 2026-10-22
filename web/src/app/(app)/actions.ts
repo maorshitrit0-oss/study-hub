@@ -44,9 +44,10 @@ function courseFields(f: FormData) {
 
 export async function createCourse(f: FormData) {
   const { sb } = await requireUser();
-  const { data, error } = await sb.from("courses").insert(courseFields(f)).select("id").single();
+  const fields = courseFields(f);
+  const { data, error } = await sb.from("courses").insert(fields).select("id").single();
   if (error) throw new Error(error.message);
-  redirect(`/courses/${data.id}`);
+  redirect(fields.kind === "self" ? `/self/${data.id}` : `/courses/${data.id}`);
 }
 
 export async function updateCourse(id: string, f: FormData) {
@@ -187,6 +188,24 @@ export async function readSyllabus(materialId: string): Promise<string> {
   } finally {
     revalidatePath(`/courses/${m.course_id}`);
   }
+}
+
+// ---------- self-study roadmap ----------
+
+export async function setSkillLevel(id: string, level: number) {
+  const { sb } = await requireUser();
+  const { data } = await sb.from("skills").update({ level: Math.max(0, Math.min(4, level)), updated_at: new Date().toISOString() })
+    .eq("id", id).select("course_id").single();
+  if (data) revalidatePath(`/self/${data.course_id}`);
+}
+
+export async function addSkill(courseId: string, f: FormData) {
+  const { sb } = await requireUser();
+  const kind = str(f, "kind") === "project" ? "project" : "topic";
+  const { data: last } = await sb.from("skills").select("ord").eq("course_id", courseId).eq("kind", kind)
+    .order("ord", { ascending: false }).limit(1).maybeSingle();
+  await sb.from("skills").insert({ course_id: courseId, kind, title: str(f, "title") ?? "נושא", ord: (last?.ord ?? 0) + 1 });
+  revalidatePath(`/self/${courseId}`);
 }
 
 // ---------- English words ----------
