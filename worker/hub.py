@@ -50,7 +50,7 @@ class Job:
         self.update(progress=msg)
 
     def label(self):
-        kinds = {"lecture": "הרצאה", "practice": "תרגול", "lab": "מעבדה", "web": "מאמר", "other": "חומר"}
+        kinds = {"lecture": "הרצאה", "practice": "תרגול", "lab": "ניסוי", "web": "מאמר", "other": "חומר"}
         num = f" {self.lesson['number']}" if self.lesson.get("number") else ""
         return f"{kinds.get(self.lesson['kind'], '')}{num} · {self.course['name']}"
 
@@ -99,12 +99,28 @@ def cmd_process(lesson_id, do_author=True):
     work = Path(tempfile.mkdtemp(prefix="hub_"))
     try:
         job.update(status="processing", error=None)
-        slides = []
-        if job.lesson["kind"] == "web":
+        slides, docs = [], []
+        url = job.lesson.get("source_url") or ""
+        source = None
+        if job.lesson.get("source_path"):  # a file uploaded in the app (lab booklet, prelab...)
+            job.log("מוריד את הקובץ...")
+            source = work / Path(job.lesson["source_path"]).name
+            source.write_bytes(job.sb.storage.from_(BUCKET).download(job.lesson["source_path"]))
+        elif media.is_drive(url):
+            source = media.download_drive(url, work, log=job.log)
+
+        if source is not None and not media.is_video(source):
+            docs = [(source.read_bytes(), media.mime_of(source))]
+            transcript = ""
+        elif job.lesson["kind"] == "web":
             job.log("קורא את הדף...")
-            transcript = fetch_web(job.lesson["source_url"])
+            transcript = fetch_web(url)
         else:
-            video, audio, title = media.download(job.lesson["source_url"], work, log=job.log)
+            if source is not None:
+                video = audio = source
+                title = source.stem
+            else:
+                video, audio, title = media.download(url, work, log=job.log)
             job.log("מזהה שקפים / מצבי לוח...")
             scenes = media.detect_slides(video, log=job.log)
             slides = media.save_slides(video, scenes, work)
@@ -122,7 +138,7 @@ def cmd_process(lesson_id, do_author=True):
 
         if do_author and os.environ.get("GEMINI_API_KEY"):
             ch = author.author_with_gemini(job.course, job.lesson, transcript,
-                                           [(n, p) for n, _, p in slides], job.previous_topics(), log=job.log)
+                                           [(n, p) for n, _, p in slides], job.previous_topics(), log=job.log, docs=docs)
             save_chapter(job, ch, "gemini")
         else:
             job.log("התמלול מוכן - מחכה לכתיבת הפרק (Claude)")

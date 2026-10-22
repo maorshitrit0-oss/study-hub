@@ -81,13 +81,23 @@ exam_type ו-grade_weights: רק אם נאמרו במפורש בחומר הזה,
 KIND_TASK = {
     "lecture": "זו הרצאה. כתוב פרק קריאה מלא שמחליף צפייה בהרצאה.",
     "practice": "זה תרגול. בפרק: רשימת התרגילים שנפתרו, ולכל תרגיל - השאלה, ופתרון מלא שלב אחרי שלב עם הסבר למה עושים כל צעד, טריקים וטעויות נפוצות. השאלות האמריקאיות יבדקו הבנת שיטות הפתרון.",
-    "lab": "זה מפגש מעבדה. כתוב: מטרת הניסוי, רקע תיאורטי, מהלך, מה מודדים ולמה, תוצאות צפויות, וטעויות נפוצות. השאלות - בסגנון בוחן כניסה.",
+    "lab": """זה ניסוי במעבדה (חוברת ניסוי / דוח מכין). הסטודנט צריך: להבין את הניסוי, להכין את הדוח המכין, לעבור בוחן כניסה,
+ולהיות מוכן שיעלו אותו ללוח להסביר את הניסוי לכיתה. **הישאר רק בגבולות החומר של הדוח המכין וחוברת הניסוי - לא מעבר.**
+מבנה הפרק:
+## מטרת הניסוי - בשתיים-שלוש שורות.
+## הרקע התיאורטי הנדרש - רק מה שצריך לניסוי הזה, עם נוסחאות; שרטוטים מהחוברת - תאר במילים.
+## שאלות הדוח המכין - כל שאלה, ופתרון מלא שלב אחרי שלב עם הסבר למה. אם יש חישוב - כל הצבה.
+## מהלך הניסוי - מה מחברים, מה מודדים בכל שלב ולמה, ומה התוצאה הצפויה.
+## הסבר ללוח (3-5 דקות) - תסריט של מה להגיד לכיתה, בנקודות, בסדר הגיוני: מטרה ← עיקרון פעולה ← המעגל ← מה מודדים ← מה מצפים לראות.
+## שאלות שהמדריך עלול לשאול - 8-12 שאלות עם תשובה קצרה וברורה לכל אחת.
+## טעויות נפוצות במעבדה.
+השאלות האמריקאיות - בסגנון בוחן כניסה, רק על החומר של הניסוי.""",
     "web": "זה חומר מאתר אינטרנט שהסטודנט רוצה ללמוד בעצמו. כתוב פרק קריאה מסודר ומלמד על בסיס התוכן.",
     "other": "כתוב פרק קריאה מסודר על בסיס החומר.",
 }
 
 
-KIND_NAME = {"lecture": "הרצאה", "practice": "תרגול", "lab": "מעבדה", "web": "מאמר מהאינטרנט", "other": "חומר"}
+KIND_NAME = {"lecture": "הרצאה", "practice": "תרגול", "lab": "ניסוי", "web": "מאמר מהאינטרנט", "other": "חומר"}
 EXAM_NAME = {"mcq": "אמריקאי", "open": "פתוח", "mixed": "משולב", "none": "ללא מבחן"}
 
 
@@ -106,18 +116,24 @@ def build_prompt(course, lesson, transcript, slide_count, previous_topics):
     ]
     if slide_count:
         lines.append(f"מצורפים {slide_count} צילומי לוח/שקפים, ממוספרים 1..{slide_count} לפי הסדר. בתמלול מסומן מתי כל אחד הופיע.")
-    lines += ["", "=== התמלול / התוכן ===", transcript]
+    if transcript:
+        lines += ["", "=== התמלול / התוכן ===", transcript]
+    else:
+        lines += ["", "המקור לפרק הוא הקובץ המצורף. קרא אותו כולו."]
     return "\n".join(lines)
 
 
-def author_with_gemini(course, lesson, transcript, slides, previous_topics, log=print):
-    """slides: list of (number, Path). Returns the parsed chapter dict."""
+def author_with_gemini(course, lesson, transcript, slides, previous_topics, log=print, docs=()):
+    """slides: list of (number, Path); docs: list of (bytes, mime) files to read. Returns the chapter dict."""
     from google import genai
     from google.genai import types
 
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     model = os.environ.get("GEMINI_MODEL") or "gemini-flash-latest"
     parts = [types.Part.from_text(text=build_prompt(course, lesson, transcript, len(slides), previous_topics))]
+    for data, mime in docs:
+        parts.append(types.Part.from_text(text="הקובץ המצורף (המקור לפרק):"))
+        parts.append(types.Part.from_bytes(data=data, mime_type=mime))
     for n, path in slides:
         parts.append(types.Part.from_text(text=f"שקף {n}:"))
         parts.append(types.Part.from_bytes(data=Path(path).read_bytes(), mime_type="image/webp"))

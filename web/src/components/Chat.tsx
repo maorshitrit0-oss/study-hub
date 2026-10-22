@@ -6,6 +6,13 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 
 type Msg = { role: "user" | "model"; content: string; images?: string[] };
 
+const LAB_STARTERS = [
+  "בוא נלמד את הניסוי הבא לפי הדוח המכין",
+  "תעזור לי לפתור את שאלות הדוח המכין, שאלה אחרי שאלה",
+  "תכין אותי ללוח: אני מסביר את הניסוי ואתה שואל כמו המדריך",
+  "בוחן כניסה על הניסוי - שאלה אחת בכל פעם",
+];
+
 const STARTERS = [
   "תלמד אותי את ההרצאה האחרונה שלב אחרי שלב",
   "תן לי שאלון אמריקאי של 5 שאלות על כל החומר",
@@ -13,7 +20,9 @@ const STARTERS = [
   "מה הנושאים שהכי כדאי לחזור עליהם?",
 ];
 
-export default function Chat({ courseId, userId, initial }: { courseId: string; userId: string; initial: Msg[] }) {
+export default function Chat({ courseId, userId, initial, isLab = false }: {
+  courseId: string; userId: string; initial: Msg[]; isLab?: boolean;
+}) {
   const [msgs, setMsgs] = useState<Msg[]>(initial);
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -65,7 +74,7 @@ export default function Chat({ courseId, userId, initial }: { courseId: string; 
     <div className="flex flex-col gap-3">
       {msgs.length === 0 && (
         <div className="grid gap-2">
-          {STARTERS.map((s) => <button key={s} className="card text-start text-sm" onClick={() => send(s)}>{s}</button>)}
+          {(isLab ? LAB_STARTERS : STARTERS).map((s) => <button key={s} className="card text-start text-sm" onClick={() => send(s)}>{s}</button>)}
         </div>
       )}
       {msgs.map((m, k) => (

@@ -73,13 +73,19 @@ export type AddLessonState = { error?: string; ok?: boolean };
 export async function addLesson(courseId: string, _: AddLessonState, f: FormData): Promise<AddLessonState> {
   const { sb } = await requireUser();
   const url = str(f, "url");
+  const sourcePath = str(f, "source_path");
   const kind = str(f, "kind") ?? "lecture";
-  if (!url) return { error: "צריך קישור" };
-  if (kind !== "web" && !/zoom\.us\//.test(url)) return { error: "זה לא נראה כמו קישור להקלטת זום" };
+  if (!url && !sourcePath) return { error: "צריך קישור או קובץ" };
+  if (url && kind !== "web" && !/zoom\.us\/|drive\.google\.com|docs\.google\.com/.test(url)) {
+    return { error: "צריך קישור להקלטת זום או לקובץ בגוגל דרייב" };
+  }
+  if (url && /drive\.google\.com\/drive\/folders/.test(url)) {
+    return { error: "זה קישור לתיקייה - צריך קישור לקובץ עצמו (פותחים את הקובץ ← שיתוף ← העתקת קישור)" };
+  }
 
   const { data, error } = await sb
     .from("lessons")
-    .insert({ course_id: courseId, kind, number: int(f, "number"), title: str(f, "title"), source_url: url })
+    .insert({ course_id: courseId, kind, number: int(f, "number"), title: str(f, "title"), source_url: url, source_path: sourcePath })
     .select("id")
     .single();
   if (error) return { error: error.message };

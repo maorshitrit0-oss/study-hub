@@ -1,5 +1,6 @@
 """Media steps: download a Zoom recording, snapshot the slides/board, transcribe Hebrew audio."""
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -136,3 +137,42 @@ def save_slides(video, scenes, out_dir):
         if p.exists():
             paths.append((n, start, p))
     return paths
+
+
+# ---------- Google Drive files (recordings and PDFs from the department Drive) ----------
+
+VIDEO_EXT = {".mp4", ".mkv", ".mov", ".webm", ".m4a", ".mp3", ".wav", ".m4v"}
+MIME = {".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+        ".webp": "image/webp", ".txt": "text/plain", ".md": "text/plain"}
+
+
+def is_drive(url):
+    return "drive.google.com" in url or "docs.google.com" in url
+
+
+def is_video(path):
+    return Path(path).suffix.lower() in VIDEO_EXT
+
+
+def mime_of(path):
+    return MIME.get(Path(path).suffix.lower(), "application/pdf")
+
+
+def download_drive(url, work_dir, log=print):
+    """Download a shared Drive file ('anyone with the link'). Google Docs are exported as PDF."""
+    import gdown
+
+    log("מוריד מהדרייב...")
+    m = re.search(r"/d/([-\w]{20,})", url) or re.search(r"[?&]id=([-\w]{20,})", url)
+    if not m:
+        raise RuntimeError("זה לא קישור לקובץ בדרייב (צריך קישור לקובץ, לא לתיקייה)")
+    file_id = m.group(1)
+    if "docs.google.com/document" in url or "docs.google.com/presentation" in url:
+        kind = "document" if "/document/" in url else "presentation"
+        url = f"https://docs.google.com/{kind}/d/{file_id}/export?format=pdf"
+        out = gdown.download(url, str(Path(work_dir) / "drive.pdf"), quiet=True)
+    else:
+        out = gdown.download(id=file_id, output=str(Path(work_dir)) + "/", quiet=True)
+    if not out:
+        raise RuntimeError("ההורדה מהדרייב נכשלה - ודא שהקובץ משותף עם 'כל מי שיש לו את הקישור'")
+    return Path(out)

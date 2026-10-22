@@ -56,7 +56,7 @@ export const KIND_LABEL: Record<Course["kind"], string> = {
   course: "קורס", lab: "מעבדה", project: "פרויקט", self: "לימוד עצמי",
 };
 export const LESSON_LABEL: Record<Lesson["kind"], string> = {
-  lecture: "הרצאה", practice: "תרגול", lab: "מעבדה", web: "מאמר מהאינטרנט", other: "חומר",
+  lecture: "הרצאה", practice: "תרגול", lab: "ניסוי", web: "מאמר מהאינטרנט", other: "חומר",
 };
 export const EXAM_LABEL: Record<string, string> = {
   mcq: "אמריקאי", open: "פתוח", mixed: "משולב", none: "ללא מבחן",

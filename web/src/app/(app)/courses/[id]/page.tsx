@@ -33,7 +33,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
   if (!course) notFound();
   const c = course as Course;
   const ls = (lessons ?? []) as Lesson[];
-  const nextNumber = Math.max(0, ...ls.filter((l) => l.kind === "lecture").map((l) => l.number ?? 0)) + 1;
+  const nextNumber = Math.max(0, ...ls.filter((l) => l.kind === (c.kind === "lab" ? "lab" : "lecture")).map((l) => l.number ?? 0)) + 1;
   const upcoming = ((deadlines ?? []) as Deadline[]).filter((d) => !d.done || !isPast(d.due_at));
   const answered = stats.reduce((a, s) => a + s.answered, 0);
   const readyCount = ls.filter((l) => l.status === "ready").length;
@@ -80,8 +80,8 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
         lessonNames={new Map(ls.map((l) => [l.id, lessonName(l)]))} />
 
       <section className="card scroll-mt-4" id="add">
-        <h2 className="font-semibold mb-3">הוספת הרצאה / תרגול</h2>
-        <AddLesson courseId={id} nextNumber={nextNumber} />
+        <h2 className="font-semibold mb-3">{c.kind === "lab" ? "הוספת ניסוי" : "הוספת הרצאה / תרגול"}</h2>
+        <AddLesson courseId={id} userId={userId} nextNumber={nextNumber} isLab={c.kind === "lab"} />
       </section>
 
       <section className="card">

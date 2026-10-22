@@ -231,3 +231,5 @@ create policy own_rows on recording_marks for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 grant select, insert, update, delete on table recording_marks to authenticated;
 grant all on table recording_marks to service_role;
+
+alter table lessons add column if not exists source_path text;

@@ -7,3 +7,4 @@ supabase>=2.30
 google-genai>=2.0
 trafilatura
 pywebpush
+gdown
