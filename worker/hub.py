@@ -165,7 +165,8 @@ def save_chapter(job, ch, by):
             "correct": q["correct"], "explanation": q.get("explanation"), "difficulty": q.get("difficulty", 2),
         } for q in ch["questions"]]).execute()
     save_course_facts(job, ch)
-    fields = dict(chapter_md=ch["chapter_md"], topics=ch["topics"], status="ready",
+    chapter_md = ch["chapter_md"] + (author.verification_md(ch) if ch.get("verification") else "")
+    fields = dict(chapter_md=chapter_md, topics=ch["topics"], status="ready",
                   progress=f"מוכן - {len(ch['questions'])} שאלות", author=by, error=None)
     if not job.lesson.get("title") or job.lesson["kind"] == "web":
         fields["title"] = ch.get("title")

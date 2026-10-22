@@ -123,33 +123,135 @@ def build_prompt(course, lesson, transcript, slide_count, previous_topics):
     return "\n".join(lines)
 
 
-def author_with_gemini(course, lesson, transcript, slides, previous_topics, log=print, docs=()):
-    """slides: list of (number, Path); docs: list of (bytes, mime) files to read. Returns the chapter dict."""
+def _gemini():
     from google import genai
+    return genai.Client(api_key=os.environ["GEMINI_API_KEY"]), os.environ.get("GEMINI_MODEL") or "gemini-flash-latest"
+
+
+def _generate_json(parts, system, schema, thinking="MEDIUM"):
+    """One structured-output call; retries without thinking_level for models that don't support it."""
     from google.genai import types
 
-    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-    model = os.environ.get("GEMINI_MODEL") or "gemini-flash-latest"
+    client, model = _gemini()
+
+    def call(with_thinking):
+        cfg = dict(system_instruction=system, response_mime_type="application/json",
+                   response_json_schema=schema, max_output_tokens=65536)
+        if with_thinking:
+            cfg["thinking_config"] = types.ThinkingConfig(thinking_level=thinking)
+        return client.models.generate_content(model=model, contents=[types.Content(role="user", parts=parts)],
+                                              config=types.GenerateContentConfig(**cfg))
+    try:
+        resp = call(True)
+    except Exception as e:  # noqa: BLE001
+        if "thinking" not in str(e).lower():
+            raise
+        resp = call(False)
+    return json.loads(resp.text)
+
+
+def _source_parts(course, lesson, transcript, slides, previous_topics):
+    from google.genai import types
     parts = [types.Part.from_text(text=build_prompt(course, lesson, transcript, len(slides), previous_topics))]
-    for data, mime in docs:
-        parts.append(types.Part.from_text(text="הקובץ המצורף (המקור לפרק):"))
-        parts.append(types.Part.from_bytes(data=data, mime_type=mime))
     for n, path in slides:
         parts.append(types.Part.from_text(text=f"שקף {n}:"))
         parts.append(types.Part.from_bytes(data=Path(path).read_bytes(), mime_type="image/webp"))
+    return parts
 
-    log(f"כותב פרק קריאה ושאלון ({model})...")
-    resp = client.models.generate_content(
-        model=model,
-        contents=[types.Content(role="user", parts=parts)],
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM,
-            response_mime_type="application/json",
-            response_json_schema=CHAPTER_SCHEMA,
-            max_output_tokens=65536,
-        ),
-    )
-    return validate(json.loads(resp.text))
+
+def author_with_gemini(course, lesson, transcript, slides, previous_topics, log=print):
+    """slides: list of (number, Path). Writes the chapter, then has it fact-checked. Returns the chapter dict."""
+    log("כותב פרק קריאה ושאלון...")
+    sources = _source_parts(course, lesson, transcript, slides, previous_topics)
+    draft = validate(_generate_json(sources, SYSTEM, CHAPTER_SCHEMA, "MEDIUM"))
+    log("בודק את הפרק והשאלון מול ההקלטה, השקפים והידע המקצועי...")
+    return verify_with_gemini(sources, draft, log)
+
+
+VERIFY_SYSTEM = """אתה בודק עובדות קפדן בהנדסת חשמל. הסטודנט ייבחן על החומר, ולכן אסור שתישאר בפרק או בשאלון אף טעות.
+קיבלת את המקור (תמלול + צילומי לוח/שקפים) וטיוטה של פרק קריאה ושאלון. עבור על הכל, פריט אחרי פריט:
+
+1. כל הגדרה, נוסחה, יחידה, סימן, מספר, קוד ודוגמה בפרק:
+   - בדוק שהם תואמים למה שנאמר/נכתב במקור, ושהם נכונים מבחינה מקצועית.
+   - שגיאת תמלול או העתקה - תקן.
+   - המרצה עצמו טעה - השאר את מה שהמרצה אמר רק אם זה מה שייבדק, והוסף > ⚠️ עם הגרסה הנכונה וההסבר. אם זו פליטת פה ברורה - תקן ישירות וציין ב-fixes.
+   - טענה שאי אפשר לאמת מהמקור ואינך בטוח בה ב-100% - נסח בזהירות או הסר, ורשום ב-uncertain.
+   - נוסחאות: בדוק ממדים/יחידות ומקרי קצה. חישובים בדוגמאות: חשב מחדש.
+2. כל שאלה בשאלון: פתור אותה בעצמך מאפס, בלי להסתכל על correct. ודא ש:
+   - התשובה המסומנת היא הנכונה, ושהיא היחידה הנכונה (אין שתי תשובות שאפשר להגן עליהן).
+   - השאלה מבוססת על החומר, חד-משמעית, ובלי מלכודות ניסוח.
+   - ההסבר נכון.
+   תקן מה שצריך. שאלה שאי אפשר לתקן בוודאות - הסר.
+3. course_facts / exam_type / grade_weights: השאר רק מה שנאמר במפורש במקור, מדויק.
+
+החזר את הפרק המתוקן המלא באותו מבנה, ובנוסף verification:
+- fixes: רשימה קצרה של כל מה שתיקנת (משפט לכל תיקון).
+- uncertain: טענות שנשארו ושכדאי לוודא מול המרצה/הספר.
+אל תקצר את הפרק ואל תשמיט תוכן נכון."""
+
+VERIFY_SCHEMA = {
+    **CHAPTER_SCHEMA,
+    "properties": {
+        **CHAPTER_SCHEMA["properties"],
+        "verification": {
+            "type": "object",
+            "properties": {
+                "fixes": {"type": "array", "items": {"type": "string"}},
+                "uncertain": {"type": "array", "items": {"type": "string"}},
+            },
+            "required": ["fixes", "uncertain"],
+        },
+    },
+    "required": CHAPTER_SCHEMA["required"] + ["verification"],
+}
+
+
+def verify_with_gemini(sources, draft, log=print):
+    """Second, independent pass: fact-check the chapter and re-solve every quiz question."""
+    from google.genai import types
+    parts = list(sources) + [types.Part.from_text(text="=== הטיוטה לבדיקה (JSON) ===\n" + json.dumps(draft, ensure_ascii=False))]
+    try:
+        checked = validate(_generate_json(parts, VERIFY_SYSTEM, VERIFY_SCHEMA, "HIGH"))
+    except Exception as e:  # noqa: BLE001 - keep the draft rather than lose the lesson, but say so
+        log(f"הבדיקה נכשלה ({e}); נשמרת הטיוטה עם סימון")
+        draft["verification"] = {"fixes": [], "uncertain": ["הבדיקה האוטומטית לא רצה על הפרק הזה - כדאי לבדוק אותו בזהירות."]}
+        return draft
+    v = checked.get("verification") or {}
+    if v.get("uncertain"):
+        v["uncertain"] = _search_check(v["uncertain"])
+    log(f"נבדק: {len(v.get('fixes', []))} תיקונים, {len(v.get('uncertain', []))} נקודות לבדיקה")
+    return checked
+
+
+def _search_check(claims):
+    """Best effort: check the remaining doubtful claims against Google Search."""
+    try:
+        from google.genai import types
+        client, model = _gemini()
+        listing = "\n".join(f"{i + 1}. {c}" for i, c in enumerate(claims[:8]))
+        resp = client.models.generate_content(
+            model=model,
+            contents=f"בדוק בחיפוש כל טענה, וענה לכל אחת בשורה אחת בעברית בפורמט: <הטענה> - נכון / לא נכון / לא חד-משמעי: <הסבר קצר>\n{listing}",
+            config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())]),
+        )
+        lines = [l.strip(" -*") for l in (resp.text or "").splitlines() if l.strip()]
+        return lines or claims
+    except Exception:  # noqa: BLE001
+        return claims
+
+
+def verification_md(ch):
+    v = ch.get("verification") or {}
+    fixes, unsure = v.get("fixes") or [], v.get("uncertain") or []
+    out = ["", "---", "### ✅ בדיקת עובדות",
+           "הפרק והשאלון נבדקו בבדיקה נפרדת מול ההקלטה, צילומי הלוח והידע המקצועי, וכל שאלה נפתרה מחדש."]
+    if fixes:
+        out += ["", "**תוקן בבדיקה:**"] + [f"- {f}" for f in fixes]
+    if unsure:
+        out += ["", "**כדאי לוודא מול המרצה / הספר:**"] + [f"- {u}" for u in unsure]
+    if not fixes and not unsure:
+        out.append("לא נמצאו טעויות.")
+    return "\n".join(out)
 
 
 def validate(ch):
