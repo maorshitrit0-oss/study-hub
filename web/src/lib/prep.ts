@@ -62,6 +62,11 @@ export async function syncPrepTasks(sb: SupabaseClient) {
  * spelled "לינאריים", so they were left without a course. Attach them (and any like them) to the right course.
  */
 export async function attachOrphanTasks(sb: SupabaseClient) {
+  // Readable Moodle screenshot (22/10/2026): linear circuits assignments 1-5 all close Fri 08/01/2027 23:00.
+  await sb.from("deadlines").update({
+    due_at: "2027-01-08T23:00:00+02:00", check_due: false,
+    notes: "לפי המודל: נפתחה 21/10/2026, נסגרת יום שישי 08/01/2027 בשעה 23:00 (כל 5 המטלות באותו מועד).",
+  }).like("external_uid", "moodle-shot-linear-%").eq("check_due", true);
   const { data: orphans } = await sb.from("deadlines").select("id, external_uid").is("course_id", null).like("external_uid", "moodle-shot-%");
   if (!orphans?.length) return;
   const { data: courses } = await sb.from("courses").select("id, name, kind").neq("kind", "lab");
