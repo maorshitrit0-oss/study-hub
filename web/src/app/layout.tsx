@@ -5,6 +5,8 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Study Hub",
   description: "לומדים מקריאה: הרצאות, תרגולים, שאלונים ומעקב",
+  authors: [{ name: "Maor Shitrit" }],
+  creator: "Maor Shitrit",
   appleWebApp: { capable: true, title: "Study Hub", statusBarStyle: "default" },
 };
 

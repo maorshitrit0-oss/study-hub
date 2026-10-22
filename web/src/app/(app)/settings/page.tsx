@@ -59,6 +59,10 @@ export default async function Settings() {
         <p className="text-sm text-muted" dir="ltr">{user.user?.email}</p>
         <form action={signOut}><button className="btn-ghost w-full">התנתקות</button></form>
       </section>
+
+      <p className="text-center text-xs text-muted">
+        Study Hub · פותח על ידי <span dir="ltr">Maor Shitrit</span>
+      </p>
     </div>
   );
 }

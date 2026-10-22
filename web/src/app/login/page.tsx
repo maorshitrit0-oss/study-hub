@@ -32,6 +32,7 @@ export default function LoginPage() {
         <button className="mt-4 text-sm text-accent" onClick={() => setMode(mode === "signin" ? "signup" : "signin")}>
           {mode === "signin" ? "אין לך משתמש? להרשמה" : "יש לך משתמש? להתחברות"}
         </button>
+        <p className="mt-6 text-center text-xs text-muted" dir="ltr">Developed by Maor Shitrit</p>
       </div>
     </main>
   );
