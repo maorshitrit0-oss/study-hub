@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { authenticate, type AuthState } from "./actions";
+import Credit from "@/components/Credit";
 
 export default function LoginPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -32,8 +33,7 @@ export default function LoginPage() {
         <button className="mt-4 text-sm text-accent" onClick={() => setMode(mode === "signin" ? "signup" : "signin")}>
           {mode === "signin" ? "אין לך משתמש? להרשמה" : "יש לך משתמש? להתחברות"}
         </button>
-        <p className="mt-6 text-center text-xs text-muted">פותח על ידי Maor Shitrit</p>
-        <p className="mt-6 text-center text-xs text-muted" dir="ltr">Developed by Maor Shitrit</p>
+        <Credit className="mt-6" />
       </div>
     </main>
   );
