@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import { dispatchLesson, dispatchNotify } from "@/lib/github";
 import { parseIcs } from "@/lib/ics";
+import { israelLocalToIso } from "@/lib/format";
 
 const str = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? "").trim();
@@ -148,19 +149,31 @@ export async function deleteMaterial(id: string, courseId: string) {
 
 // ---------- deadlines ----------
 
-export async function addDeadline(f: FormData) {
-  const { sb } = await requireUser();
-  const due = str(f, "due_at");
-  if (!due) return;
-  await sb.from("deadlines").insert({
+function deadlineFields(f: FormData) {
+  return {
     title: str(f, "title") ?? "משימה",
     kind: str(f, "kind") ?? "assignment",
     course_id: str(f, "course_id"),
-    due_at: new Date(`${due}${due.length <= 10 ? "T23:59" : ""}:00+03:00`).toISOString(),
+    due_at: israelLocalToIso(str(f, "due_at")!),
     notes: str(f, "notes"),
-  });
+  };
+}
+
+export async function addDeadline(f: FormData) {
+  const { sb } = await requireUser();
+  if (!str(f, "due_at")) return;
+  await sb.from("deadlines").insert(deadlineFields(f));
   revalidatePath("/deadlines");
   revalidatePath("/");
+}
+
+export async function updateDeadline(id: string, f: FormData) {
+  const { sb } = await requireUser();
+  if (!str(f, "due_at")) return;
+  await sb.from("deadlines").update(deadlineFields(f)).eq("id", id);
+  revalidatePath("/deadlines");
+  revalidatePath("/");
+  redirect("/deadlines");
 }
 
 export async function toggleDeadline(id: string, done: boolean) {
@@ -173,7 +186,8 @@ export async function toggleDeadline(id: string, done: boolean) {
 export async function deleteDeadline(id: string) {
   const { sb } = await requireUser();
   await sb.from("deadlines").delete().eq("id", id);
-  revalidatePath("/deadlines");
+  revalidatePath("/");
+  redirect("/deadlines");
 }
 
 // ---------- settings / Moodle sync ----------

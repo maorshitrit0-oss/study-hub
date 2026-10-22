@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/supabase/server";
 import DeadlineRow from "@/components/DeadlineRow";
+import DeadlineForm from "@/components/DeadlineForm";
 import { addDeadline } from "../actions";
 import type { Course, Deadline } from "@/lib/types";
 
@@ -18,6 +19,7 @@ export default async function Deadlines({ searchParams }: PageProps<"/deadlines"
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold">משימות ומבחנים</h1>
+      <p className="text-sm text-muted -mt-3">לחיצה על משימה פותחת עריכה. העיגול מסמן שבוצעה.</p>
 
       <section className="card">
         {open.length ? (
@@ -29,24 +31,7 @@ export default async function Deadlines({ searchParams }: PageProps<"/deadlines"
 
       <section className="card">
         <h2 className="font-semibold mb-3">הוספה</h2>
-        <form action={addDeadline} className="space-y-3">
-          <input className="input" name="title" required placeholder="מטלה 3 / מבחן מועד א / דוח מכין ניסוי 2" />
-          <div className="grid grid-cols-2 gap-3">
-            <select className="input" name="kind" defaultValue="assignment">
-              <option value="assignment">מטלה</option>
-              <option value="exam">מבחן</option>
-              <option value="quiz">בוחן</option>
-              <option value="lab_report">דוח מעבדה</option>
-              <option value="other">אחר</option>
-            </select>
-            <select className="input" name="course_id" defaultValue={preset ?? ""}>
-              <option value="">ללא קורס</option>
-              {(courses ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-          <input className="input" name="due_at" type="datetime-local" required />
-          <button className="btn w-full">הוספה</button>
-        </form>
+        <DeadlineForm action={addDeadline} courses={courses ?? []} presetCourse={preset} submit="הוספה" />
       </section>
 
       {closed.length > 0 && (
