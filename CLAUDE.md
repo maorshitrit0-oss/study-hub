@@ -3,6 +3,9 @@
 Personal study system for an electrical-engineering student who learns by reading, not by watching recordings.
 The user writes in Hebrew; answer in Hebrew.
 
+**Start every session by reading `docs/HANDOFF.md`** (who the user is, accounts, his semester, open items),
+and update it in the same commit whenever something is decided or built.
+
 - `web/` – Next.js 16 app (Vercel): courses, reading chapters, multiple-choice quizzes, per-topic progress, deadlines, course chat (Gemini). Read `web/AGENTS.md` before changing it.
 - `worker/` – Python: download a Zoom recording, snapshot the board, transcribe Hebrew audio (ivrit-ai Whisper), write the chapter + quiz.
 - `supabase/schema.sql` – database, row-level security, storage bucket `study` (files under `<user_id>/...`).
