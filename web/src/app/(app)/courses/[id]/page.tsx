@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/supabase/server";
 import AddLesson from "@/components/AddLesson";
 import DeadlineRow from "@/components/DeadlineRow";
 import Materials from "@/components/Materials";
+import CourseFacts, { type Fact } from "@/components/CourseFacts";
 import { isWeak, pct, topicStats } from "@/lib/progress";
 import { isPast } from "@/lib/format";
 import { EXAM_LABEL, KIND_LABEL, lessonName, type Course, type Deadline, type Lesson } from "@/lib/types";
@@ -19,12 +20,14 @@ const STATUS: Record<Lesson["status"], [string, string]> = {
 export default async function CoursePage({ params }: PageProps<"/courses/[id]">) {
   const { id } = await params;
   const { sb, userId } = await requireUser();
-  const [{ data: course }, { data: lessons }, { data: materials }, { data: deadlines }, stats] = await Promise.all([
+  const [{ data: course }, { data: lessons }, { data: materials }, { data: deadlines }, stats, { data: facts }, { data: settings }] = await Promise.all([
     sb.from("courses").select("*").eq("id", id).maybeSingle(),
     sb.from("lessons").select("id, kind, number, title, status, progress, read_at, created_at").eq("course_id", id).order("created_at"),
     sb.from("materials").select("id, title, kind, storage_path").eq("course_id", id).order("created_at"),
     sb.from("deadlines").select("*").eq("course_id", id).order("due_at"),
     topicStats(sb, id),
+    sb.from("course_facts").select("id, category, text, lesson_id").eq("course_id", id).order("created_at"),
+    sb.from("settings").select("is_reservist").eq("user_id", userId).maybeSingle(),
   ]);
   if (!course) notFound();
   const c = course as Course;
@@ -60,6 +63,9 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
         <Link href={`/courses/${id}/chat`} className="card text-center font-medium">💬 צ&apos;אט על הקורס</Link>
         <Link href={`/courses/${id}/practice`} className="card text-center font-medium">✍️ תרגול שאלות</Link>
       </div>
+
+      <CourseFacts facts={(facts ?? []) as Fact[]} reservist={!!settings?.is_reservist}
+        lessonNames={new Map(ls.map((l) => [l.id, lessonName(l)]))} />
 
       <section className="card">
         <h2 className="font-semibold mb-3">הוספת הרצאה / תרגול</h2>

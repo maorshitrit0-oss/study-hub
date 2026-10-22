@@ -144,6 +144,7 @@ def save_chapter(job, ch, by):
             "topic": q.get("topic"), "question": q["question"], "options": q["options"],
             "correct": q["correct"], "explanation": q.get("explanation"), "difficulty": q.get("difficulty", 2),
         } for q in ch["questions"]]).execute()
+    save_course_facts(job, ch)
     fields = dict(chapter_md=ch["chapter_md"], topics=ch["topics"], status="ready",
                   progress=f"מוכן - {len(ch['questions'])} שאלות", author=by, error=None)
     if not job.lesson.get("title") or job.lesson["kind"] == "web":
@@ -152,6 +153,29 @@ def save_chapter(job, ch, by):
     print(f"published: {len(ch['questions'])} questions", flush=True)
     notify.send(job.sb, job.lesson["user_id"], f"✅ {job.label()} מוכן לקריאה",
                 f"{ch.get('title') or ''}\n{len(ch['questions'])} שאלות בשאלון".strip(), f"/lessons/{job.lesson['id']}")
+
+
+def save_course_facts(job, ch):
+    """Admin info the lecturer mentioned (exam, grading, reservist rules...) collects on the course page."""
+    try:
+        job.sb.table("course_facts").delete().eq("lesson_id", job.lesson["id"]).execute()
+        facts = [f for f in ch.get("course_facts") or [] if f.get("text")]
+        if facts:
+            job.sb.table("course_facts").insert([{
+                "user_id": job.lesson["user_id"], "course_id": job.course["id"], "lesson_id": job.lesson["id"],
+                "category": f.get("category") or "other", "text": f["text"],
+            } for f in facts]).execute()
+        # Fill the course's exam type / weights only if the user hasn't set them.
+        update = {}
+        if not job.course.get("exam_type") and ch.get("exam_type") in ("mcq", "open", "mixed", "none"):
+            update["exam_type"] = ch["exam_type"]
+        weights = [w for w in ch.get("grade_weights") or [] if w.get("name") and w.get("weight")]
+        if not job.course.get("grade_weights") and weights:
+            update["grade_weights"] = weights
+        if update:
+            job.sb.table("courses").update(update).eq("id", job.course["id"]).execute()
+    except Exception as e:  # noqa: BLE001 - the chapter matters more than the facts
+        print(f"course facts not saved: {e}")
 
 
 def cmd_queued():

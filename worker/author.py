@@ -9,6 +9,24 @@ CHAPTER_SCHEMA = {
         "title": {"type": "string"},
         "chapter_md": {"type": "string"},
         "topics": {"type": "array", "items": {"type": "string"}},
+        "course_facts": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "category": {"type": "string", "enum": ["exam", "exam_hint", "grading", "reservist",
+                                                            "assignments", "attendance", "materials", "other"]},
+                    "text": {"type": "string"},
+                },
+                "required": ["category", "text"],
+            },
+        },
+        "exam_type": {"type": "string", "enum": ["mcq", "open", "mixed", "none", "unknown"]},
+        "grade_weights": {
+            "type": "array",
+            "items": {"type": "object", "properties": {"name": {"type": "string"}, "weight": {"type": "integer"}},
+                      "required": ["name", "weight"]},
+        },
         "questions": {
             "type": "array",
             "items": {
@@ -25,8 +43,11 @@ CHAPTER_SCHEMA = {
             },
         },
     },
-    "required": ["title", "chapter_md", "topics", "questions"],
+    "required": ["title", "chapter_md", "topics", "course_facts", "exam_type", "grade_weights", "questions"],
 }
+
+FACT_LABEL = {"exam": "המבחן", "exam_hint": "מה יהיה במבחן", "grading": "ציון ומשקלים", "reservist": "מילואים",
+              "assignments": "מטלות והגשות", "attendance": "נוכחות", "materials": "חומרים מותרים וספרות", "other": "כללי"}
 
 SYSTEM = """אתה מרצה ומתרגל מעולה בהנדסת חשמל. הסטודנט לא צפה בהקלטה ולומד רק מקריאה ומשאלונים.
 כתוב בעברית. מונחים טכניים - גם באנגלית בסוגריים בפעם הראשונה.
@@ -45,7 +66,17 @@ questions: 10-15 שאלות אמריקאיות, 4 תשובות בכל אחת, co
 - שאלות הבנה ויישום, לא רק שינון. מסיחים סבירים. פזר את מיקום התשובה הנכונה.
 - explanation: למה הנכונה נכונה ולמה כל אחת מהאחרות שגויה.
 - topic: אחד מהערכים ב-topics. difficulty: 1 קל, 2 בינוני, 3 קשה.
-topics: 3-8 נושאים קצרים שהפרק מכסה (ישמשו למעקב אחרי חוזקות וחולשות)."""
+topics: 3-8 נושאים קצרים שהפרק מכסה (ישמשו למעקב אחרי חוזקות וחולשות).
+
+course_facts: כל מידע מנהלי חשוב שנאמר (גם בפטפוט בתחילת השיעור!), משפט ברור אחד לכל פריט, עם מספרים ותאריכים מדויקים:
+- exam: מבנה המבחן (אמריקאי/פתוח, מקוון/בכתב, משך, חומר עזר מותר, מועדים).
+- exam_hint: כל אמירה של המרצה על מה יהיה או לא יהיה במבחן ("זה יופיע במבחן", "את זה לא צריך לדעת", "שאלה כזו תהיה").
+- grading: משקלים, ציון עובר, בונוסים, ציון מגן.
+- reservist: הקלות ונהלים למשרתי מילואים - פרט את כל האפשרויות ואת מה צריך לעשות ועד מתי (למשל לשלוח מייל עד תאריך).
+- assignments: מטלות, תדירות, אופן ההגשה, דדליינים, חובת הגשה.
+- attendance: חובת נוכחות. materials: סביבת עבודה, ספרים, דף נוסחאות. other: כל דבר מנהלי חשוב אחר.
+אם לא נאמר שום דבר מנהלי - רשימה ריקה. אל תמציא.
+exam_type ו-grade_weights: רק אם נאמרו במפורש בחומר הזה, אחרת "unknown" ורשימה ריקה."""
 
 KIND_TASK = {
     "lecture": "זו הרצאה. כתוב פרק קריאה מלא שמחליף צפייה בהרצאה.",

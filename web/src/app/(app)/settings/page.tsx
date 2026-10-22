@@ -1,18 +1,32 @@
 import { requireUser } from "@/lib/supabase/server";
 import SyncMoodle from "@/components/SyncMoodle";
 import PushToggle from "@/components/PushToggle";
-import { saveSettings } from "../actions";
+import { saveSettings, setReservist } from "../actions";
 import { signOut } from "@/app/login/actions";
 
 export default async function Settings() {
   const { sb, userId } = await requireUser();
   const [{ data: s }, { data: user }] = await Promise.all([
-    sb.from("settings").select("moodle_ics_url").eq("user_id", userId).maybeSingle(),
+    sb.from("settings").select("moodle_ics_url, is_reservist").eq("user_id", userId).maybeSingle(),
     sb.auth.getUser(),
   ]);
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold">הגדרות</h1>
+
+      <section className="card space-y-3">
+        <h2 className="font-semibold">מילואים</h2>
+        <p className="text-sm text-muted">
+          {s?.is_reservist
+            ? "מסומן שאתה משרת מילואים: ההקלות של כל קורס מודגשות בראש דף הקורס, והצ'אט מתחשב בזה."
+            : "ההקלות למילואימניקים שהמרצים מזכירים נשמרות בכל מקרה בדף הקורס."}
+        </p>
+        <form action={setReservist.bind(null, !s?.is_reservist)}>
+          <button className={s?.is_reservist ? "btn-ghost w-full" : "btn w-full"}>
+            {s?.is_reservist ? "אני כבר לא במילואים" : "אני משרת מילואים בסמסטר הזה"}
+          </button>
+        </form>
+      </section>
 
       <section className="card space-y-3">
         <h2 className="font-semibold">התראות</h2>

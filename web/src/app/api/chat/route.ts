@@ -29,18 +29,22 @@ export async function POST(req: Request) {
   };
   const attachFiles = withFiles || NEEDS_FILES.test(message);
 
-  const [{ data: course }, { data: lessons }, { data: materials }, { data: history }] = await Promise.all([
+  const [{ data: course }, { data: lessons }, { data: materials }, { data: history }, { data: facts }, { data: settings }] = await Promise.all([
     sb.from("courses").select("*").eq("id", courseId).single(),
     sb.from("lessons").select("kind, number, title, chapter_md, created_at").eq("course_id", courseId).eq("status", "ready").order("created_at"),
     sb.from("materials").select("title, kind, storage_path, mime, size_bytes").eq("course_id", courseId).order("created_at"),
     sb.from("chat_messages").select("role, content").eq("course_id", courseId).order("created_at", { ascending: false }).limit(20),
+    sb.from("course_facts").select("category, text").eq("course_id", courseId).order("created_at"),
+    sb.from("settings").select("is_reservist").eq("user_id", auth.claims.sub).maybeSingle(),
   ]);
   if (!course) return new Response("course not found", { status: 404 });
   const c = course as Course;
 
   // Course context: info + reading chapters (newest kept if over budget) + PDFs/images.
   let context = `קורס: ${c.name}\nמרצה: ${c.lecturer ?? "-"}\nסוג מבחן: ${c.exam_type ? EXAM_LABEL[c.exam_type] : "לא ידוע"}\n` +
-    `משקלים: ${c.grade_weights.map((w) => `${w.name} ${w.weight}%`).join(", ") || "-"}\nהערות: ${c.notes ?? "-"}\n`;
+    `משקלים: ${c.grade_weights.map((w) => `${w.name} ${w.weight}%`).join(", ") || "-"}\nהערות: ${c.notes ?? "-"}\n` +
+    `הסטודנט ${settings?.is_reservist ? "משרת מילואים בסמסטר הזה - התחשב בהקלות למילואימניקים" : "לא מסומן כמשרת מילואים כרגע"}.\n` +
+    (facts?.length ? `\nמה שהמרצה אמר על הקורס (מבחן, ציון, מילואים, מטלות):\n${facts.map((f) => `- [${f.category}] ${f.text}`).join("\n")}\n` : "");
   const chapters = ((lessons ?? []) as Lesson[]).map((l) => `\n\n######## ${lessonName(l)}${l.title ? ` - ${l.title}` : ""}\n${l.chapter_md}`);
   let budget = MAX_CONTEXT_CHARS - context.length;
   const kept: string[] = [];

@@ -198,6 +198,13 @@ export async function saveSettings(f: FormData) {
   revalidatePath("/settings");
 }
 
+export async function setReservist(on: boolean) {
+  const { sb, userId } = await requireUser();
+  await sb.from("settings").upsert({ user_id: userId, is_reservist: on, updated_at: new Date().toISOString() });
+  revalidatePath("/settings");
+  revalidatePath("/courses", "layout");
+}
+
 export async function syncMoodle(): Promise<string> {
   const { sb, userId } = await requireUser();
   const { data: s } = await sb.from("settings").select("moodle_ics_url").eq("user_id", userId).maybeSingle();
