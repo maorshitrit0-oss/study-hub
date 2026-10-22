@@ -57,7 +57,8 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
   const sofar = totals(gradeRows);
   const need90 = mine ? needed(90, sofar.sum, sofar.credits, open.reduce((a, r) => a + Number(r.credits), 0)) : null;
   const ls = (lessons ?? []) as Lesson[];
-  const nextNumber = Math.max(0, ...ls.filter((l) => l.kind === (c.kind === "lab" ? "lab" : "lecture")).map((l) => l.number ?? 0)) + 1;
+  const nextByKind = Object.fromEntries(["lecture", "practice", "lab", "other"]
+    .map((k) => [k, Math.max(0, ...ls.filter((l) => l.kind === k).map((l) => l.number ?? 0)) + 1]));
   const upcoming = ((deadlines ?? []) as Deadline[]).filter((d) => !d.done || !isPast(d.due_at));
   const answered = stats.reduce((a, s) => a + s.answered, 0);
   const readyCount = ls.filter((l) => l.status === "ready").length;
@@ -162,7 +163,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
 
       <section className="card scroll-mt-4" id="add">
         <h2 className="font-semibold mb-3">{c.kind === "lab" ? "הוספת ניסוי" : "הוספת הרצאה / תרגול"}</h2>
-        <AddLesson courseId={id} userId={userId} nextNumber={nextNumber} isLab={c.kind === "lab"} />
+        <AddLesson courseId={id} userId={userId} nextByKind={nextByKind} isLab={c.kind === "lab"} />
       </section>
 
       <section className="card">

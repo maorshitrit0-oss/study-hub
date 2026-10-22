@@ -6,10 +6,10 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 
 const KINDS = [["lecture", "הרצאה"], ["practice", "תרגול"], ["lab", "ניסוי במעבדה"], ["web", "קישור לאתר"]] as const;
 
-export default function AddLesson({ courseId, userId, nextNumber, isLab }: {
+export default function AddLesson({ courseId, userId, nextByKind, isLab }: {
   courseId: string;
   userId: string;
-  nextNumber: number;
+  nextByKind: Record<string, number>; // lectures and practices are numbered separately
   isLab: boolean;
 }) {
   const [state, action, pending] = useActionState<AddLessonState, FormData>(addLesson.bind(null, courseId), {});
@@ -54,7 +54,7 @@ export default function AddLesson({ courseId, userId, nextNumber, isLab }: {
       )}
       <div className="flex gap-3">
         {kind !== "web" && (
-          <input className="input w-24" name="number" type="number" min={1} defaultValue={nextNumber} aria-label="מספר" />
+          <input key={kind} className="input w-24" name="number" type="number" min={1} defaultValue={nextByKind[kind] ?? 1} aria-label="מספר" />
         )}
         <input className="input flex-1" name="title" placeholder={kind === "lab" ? "שם הניסוי (לא חובה)" : "כותרת (לא חובה)"} />
       </div>

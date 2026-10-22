@@ -31,7 +31,7 @@ export async function syncPrepTasks(sb: SupabaseClient) {
     sb.from("lessons").select("id, course_id, kind, number, title, read_at, created_at")
       .in("kind", ["lecture", "practice"]).gte("created_at", `${SEMESTER_START}T00:00:00+03:00`),
     sb.from("schedule_slots").select("*"),
-    sb.from("deadlines").select("id, external_uid, done").like("external_uid", `${PREFIX}%`),
+    sb.from("deadlines").select("id, external_uid, done, title").like("external_uid", `${PREFIX}%`),
     sb.from("courses").select("id, kind"),
   ]);
   const kinds = new Map((courses ?? []).map((c) => [c.id, c.kind]));
@@ -39,15 +39,17 @@ export async function syncPrepTasks(sb: SupabaseClient) {
   const add = [];
   for (const l of lessons ?? []) {
     if (!["course", "project"].includes(kinds.get(l.course_id) ?? "")) continue;
+    const title = `📖 ללמוד את ${lessonName(l)} לפני ${NEXT[l.kind as keyof typeof NEXT]}`;
     const t = have.get(PREFIX + l.id);
     if (t) {
-      if (l.read_at && !t.done) await sb.from("deadlines").update({ done: true }).eq("id", t.id);
+      // Follow the lesson: read -> done; renumbered -> new title.
+      if ((l.read_at && !t.done) || t.title !== title) await sb.from("deadlines").update({ done: t.done || !!l.read_at, title }).eq("id", t.id);
       continue;
     }
     add.push({
       course_id: l.course_id,
       kind: "other",
-      title: `📖 ללמוד את ${lessonName(l)} לפני ${NEXT[l.kind as keyof typeof NEXT]}`,
+      title,
       due_at: nextClass((slots ?? []) as Slot[], l.course_id, l.kind, new Date(l.created_at)),
       done: !!l.read_at,
       notes: "נוצר אוטומטית. נסגר לבד כשמסמנים את הפרק כנקרא.",
@@ -62,6 +64,12 @@ export async function syncPrepTasks(sb: SupabaseClient) {
  * spelled "לינאריים", so they were left without a course. Attach them (and any like them) to the right course.
  */
 export async function attachOrphanTasks(sb: SupabaseClient) {
+  // The add form numbered practices after the lectures, so the first waves practice became "תרגול 2" (fixed 22/10/2026).
+  const { data: waves } = await sb.from("courses").select("id").like("name", "%גלים ומערכות%");
+  for (const c of waves ?? []) {
+    const { data: pr } = await sb.from("lessons").select("id, number").eq("course_id", c.id).eq("kind", "practice");
+    if (pr?.length === 1 && pr[0].number === 2) await sb.from("lessons").update({ number: 1 }).eq("id", pr[0].id);
+  }
   // Readable Moodle screenshot (22/10/2026): linear circuits assignments 1-5 all close Fri 08/01/2027 23:00.
   await sb.from("deadlines").update({
     due_at: "2027-01-08T23:00:00+02:00", check_due: false,
