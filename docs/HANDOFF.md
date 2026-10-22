@@ -102,6 +102,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Prep tasks: every lecture/practice gets a task "📖 ללמוד את ... לפני ההרצאה/התרגול הבא" (`external_uid` prep:<lesson>),
   due at the course's next class of that kind; closed when the chapter is marked read (`web/src/lib/prep.ts`,
   synced when home or tasks load). His linear course is spelled "מעגלים לינאריים" (no second yod) - match both.
+- Target average (goal 90+): `GradeGoal` on /grades and a chip on each course page (`web/src/lib/gradeGoal.ts`).
+  Current courses are added to `grades` (academic year 'תשפ"ז', credits 0 until he fills them). 82.86 over 73.5 credits:
+  90 is out of reach this semester; ~96 on all remaining ~84 credits (if the degree is 160 - verify). Retaking
+  תורת החשמל (26, 3.5 credits) to 90 would lift the average to ~85.9 if the new grade replaces the old one (verify).
 - Spaced repetition (`/review`, `web/src/lib/review.ts`): computed from `attempts` only (Leitner: 1,3,7,14,30,60 days
   by correct streak; wrong -> next day). Home card + morning push count (`worker/notify.py` reviews_due).
 - He wants lectures and practices shown **separately** everywhere (except the lab).

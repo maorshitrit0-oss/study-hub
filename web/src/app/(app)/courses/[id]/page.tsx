@@ -7,6 +7,7 @@ import Materials from "@/components/Materials";
 import CourseFacts, { type Fact } from "@/components/CourseFacts";
 import { isWeak, pct, topicStats } from "@/lib/progress";
 import { isPast } from "@/lib/format";
+import { needed, pending, sameCode, totals, type GradeRow } from "@/lib/gradeGoal";
 import { LEVEL_LABEL, LEVEL_TONE, weeklyPlan } from "@/lib/plan";
 import { DAYS, EXAM_LABEL, KIND_LABEL, SLOT_LABEL, hhmm, type Slot, lessonName, type Course, type Deadline, type Lesson } from "@/lib/types";
 
@@ -45,7 +46,16 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
   if (!course) notFound();
   const c = course as Course;
   if (c.kind === "self") redirect(`/self/${id}`); // self-study has its own page
-  const plan = (await weeklyPlan(sb)).find((p) => p.course.id === id);
+  const [plan, { data: grades }] = await Promise.all([
+    weeklyPlan(sb).then((all) => all.find((p) => p.course.id === id)),
+    sb.from("grades").select("*"),
+  ]);
+  // Grade needed here for a 90 average, assuming the same grade in every course still without one.
+  const gradeRows = (grades ?? []) as GradeRow[];
+  const open = pending(gradeRows).filter((r) => Number(r.credits) > 0);
+  const mine = open.find((r) => sameCode(r.code, c.code) || r.name === c.name);
+  const sofar = totals(gradeRows);
+  const need90 = mine ? needed(90, sofar.sum, sofar.credits, open.reduce((a, r) => a + Number(r.credits), 0)) : null;
   const ls = (lessons ?? []) as Lesson[];
   const nextNumber = Math.max(0, ...ls.filter((l) => l.kind === (c.kind === "lab" ? "lab" : "lecture")).map((l) => l.number ?? 0)) + 1;
   const upcoming = ((deadlines ?? []) as Deadline[]).filter((d) => !d.done || !isPast(d.due_at));
@@ -72,6 +82,9 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
           {c.exam_type && <span className="chip">מבחן: {EXAM_LABEL[c.exam_type]}</span>}
           {c.grade_weights.map((w) => <span key={w.name} className="chip">{w.name} {w.weight}%</span>)}
           {c.archived && <span className="chip">בארכיון</span>}
+          {need90 !== null && (
+            <Link href="/grades" className="chip">🎯 לממוצע 90: {need90 > 100 ? "לא אפשרי השנה" : `צריך ${Math.ceil(need90)}`}</Link>
+          )}
         </div>
         {c.notes && <p className="text-sm text-muted mt-2 whitespace-pre-line">{c.notes}</p>}
         {(slots ?? []).length > 0 && (

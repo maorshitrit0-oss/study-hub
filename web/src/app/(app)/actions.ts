@@ -193,6 +193,14 @@ export async function readSyllabus(materialId: string): Promise<string> {
   }
 }
 
+// ---------- grades ----------
+
+export async function setGradeRow(id: string, fields: { credits?: number; grade?: string | null }) {
+  const { sb } = await requireUser();
+  await sb.from("grades").update(fields).eq("id", id);
+  revalidatePath("/grades");
+}
+
 // ---------- self-study roadmap ----------
 
 export async function setSkillLevel(id: string, level: number) {

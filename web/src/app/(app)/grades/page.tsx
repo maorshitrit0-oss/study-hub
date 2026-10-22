@@ -1,5 +1,19 @@
 import Link from "next/link";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireUser } from "@/lib/supabase/server";
+import GradeGoal from "@/components/GradeGoal";
+import { sameCode, type GradeRow } from "@/lib/gradeGoal";
+
+const CURRENT_YEAR = 'תשפ"ז'; // academic year of the courses now in the app - update each year
+
+/** Current courses get a grade row (no grade yet) so the target calculator includes them. */
+async function addCurrentCourses(sb: SupabaseClient, rows: GradeRow[]) {
+  const { data: courses } = await sb.from("courses").select("name, code, kind, semester").eq("archived", false).in("kind", ["course", "lab", "project"]);
+  const add = (courses ?? []).filter((c) => !rows.some((r) => sameCode(r.code, c.code) || r.name === c.name))
+    .map((c) => ({ academic_year: CURRENT_YEAR, semester: c.semester || "א", code: c.code ? c.code.slice(0, 11) : null, name: c.name, kind: c.kind === "lab" ? "מעבדה" : "הרצאה", credits: 0 }));
+  if (add.length) await sb.from("grades").insert(add);
+  return add.length;
+}
 
 type Grade = {
   id: string; academic_year: string; semester: string; code: string | null; name: string; kind: string | null;
@@ -27,7 +41,9 @@ function average(rows: Grade[]) {
 
 export default async function GradesPage() {
   const { sb } = await requireUser();
-  const { data, error } = await sb.from("grades").select("*").order("academic_year").order("created_at");
+  const load = () => sb.from("grades").select("*").order("academic_year").order("created_at");
+  let { data, error } = await load();
+  if (!error && (await addCurrentCourses(sb, (data ?? []) as GradeRow[]).catch(() => 0))) ({ data, error } = await load());
   const rows = (data ?? []) as Grade[];
   const years = [...new Set(rows.map((r) => r.academic_year))];
   const failed = rows.filter((r) => r.failed && r.credits > 0);
@@ -53,6 +69,8 @@ export default async function GradesPage() {
           </div>
         </div>
       )}
+
+      {rows.length > 0 && <GradeGoal rows={rows} />}
 
       {(failed.length > 0 || pending.length > 0) && (
         <section className="card text-sm space-y-1">
