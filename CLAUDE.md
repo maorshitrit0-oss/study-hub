@@ -20,8 +20,12 @@ This needs `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` in the environment (cloud e
 4. Read the whole transcript and look at the slides (they hold the formulas, code and handwritten board).
 5. Write `/tmp/lesson/chapter.json` that follows `author.CHAPTER_SCHEMA` and every rule in `author.SYSTEM`
    (the kind-specific task is in `author.KIND_TASK`). Images go in the markdown as `![תיאור](slide:N)`.
-6. `python hub.py publish <id> /tmp/lesson/chapter.json`
-7. Tell the user it is ready, with a short summary of the lesson's main points.
+6. Fact-check your own draft exactly as `author.VERIFY_SYSTEM` describes: check every definition, formula
+   and number against the transcript, the slides and engineering knowledge; re-solve every quiz question from
+   scratch; fix or remove anything doubtful. Record what you changed and what remains uncertain in a
+   `verification` object (`fixes`, `uncertain`) in the same JSON. The student is examined on this material.
+7. `python hub.py publish <id> /tmp/lesson/chapter.json` (a "✅ בדיקת עובדות" section is appended from `verification`)
+8. Tell the user it is ready, with a short summary of the lesson's main points.
 
 Do not invent content that is not in the lecture; flag lecturer mistakes with `> ⚠️`.
 
