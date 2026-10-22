@@ -18,6 +18,7 @@ export default function Chat({ courseId, userId, initial }: { courseId: string; 
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
+  const [withFiles, setWithFiles] = useState(false);
   const end = useRef<HTMLDivElement>(null);
 
   useEffect(() => end.current?.scrollIntoView({ behavior: "smooth" }), [msgs]);
@@ -40,7 +41,7 @@ export default function Chat({ courseId, userId, initial }: { courseId: string; 
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ courseId, message, imagePaths }),
+      body: JSON.stringify({ courseId, message, imagePaths, withFiles }),
     });
     if (!res.ok || !res.body) {
       const err = await res.text();
@@ -87,6 +88,10 @@ export default function Chat({ courseId, userId, initial }: { courseId: string; 
         onSubmit={(e) => { e.preventDefault(); send(text); }}
         className="sticky bottom-20 card p-2 flex flex-col gap-2 shadow-lg"
       >
+        <label className="flex items-center gap-2 text-xs text-muted px-1">
+          <input type="checkbox" checked={withFiles} onChange={(e) => setWithFiles(e.target.checked)} />
+          עם קבצי הקורס (מבחני עבר, מצגות) - איטי יותר
+        </label>
         {files.length > 0 && (
           <div className="flex gap-2 text-xs text-muted">
             📎 {files.map((f) => f.name).join(", ")}

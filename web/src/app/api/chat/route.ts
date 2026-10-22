@@ -1,4 +1,4 @@
-import { GoogleGenAI, type Content, type Part } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel, type Content, type Part } from "@google/genai";
 import { supabaseServer } from "@/lib/supabase/server";
 import { EXAM_LABEL, lessonName, type Course, type Lesson } from "@/lib/types";
 
@@ -6,6 +6,8 @@ export const maxDuration = 60;
 
 const MAX_CONTEXT_CHARS = 400_000;
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
+// Course files (PDFs etc.) are big and slow to send; attach them only when the question needs them.
+const NEEDS_FILES = /מבחן|בחינ|עבר|סילבוס|מצגת|שקפ|קובץ|קבצ|pdf|חוברת|דוח|מטל|תרגיל בית/i;
 
 const SYSTEM = `אתה המרצה והמתרגל הפרטי של סטודנט להנדסת חשמל, בקורס אחד ספציפי. ענה תמיד בעברית, ומונחים טכניים גם באנגלית.
 הסטודנט לומד מקריאה ולא מצפייה בהרצאות. בסס תשובות על חומר הקורס שמצורף (פרקי ההרצאות והתרגולים, וקבצים כמו מבחני עבר ומצגות) וציין מאיזו הרצאה/קובץ זה מגיע.
@@ -22,9 +24,10 @@ export async function POST(req: Request) {
   if (!auth?.claims) return new Response("unauthorized", { status: 401 });
   if (!process.env.GEMINI_API_KEY) return new Response("GEMINI_API_KEY לא מוגדר ב-Vercel", { status: 500 });
 
-  const { courseId, message, imagePaths = [] } = (await req.json()) as {
-    courseId: string; message: string; imagePaths?: string[];
+  const { courseId, message, imagePaths = [], withFiles = false } = (await req.json()) as {
+    courseId: string; message: string; imagePaths?: string[]; withFiles?: boolean;
   };
+  const attachFiles = withFiles || NEEDS_FILES.test(message);
 
   const [{ data: course }, { data: lessons }, { data: materials }, { data: history }] = await Promise.all([
     sb.from("courses").select("*").eq("id", courseId).single(),
@@ -50,19 +53,32 @@ export async function POST(req: Request) {
 
   const contextParts: Part[] = [{ text: `=== חומר הקורס ===\n${context}` }];
   let bytes = 0;
-  for (const m of materials ?? []) {
-    const ok = m.mime === "application/pdf" || m.mime?.startsWith("image/") || m.mime?.startsWith("text/");
-    if (!ok || bytes + (m.size_bytes ?? 0) > MAX_FILE_BYTES) continue;
-    const { data: blob } = await sb.storage.from("study").download(m.storage_path);
+  const files = attachFiles
+    ? (materials ?? []).filter((m) => {
+        const ok = m.mime === "application/pdf" || m.mime?.startsWith("image/") || m.mime?.startsWith("text/");
+        if (!ok || bytes + (m.size_bytes ?? 0) > MAX_FILE_BYTES) return false;
+        bytes += m.size_bytes ?? 0;
+        return true;
+      })
+    : [];
+  if (!attachFiles && materials?.length) {
+    context += `\n\n(יש בקורס ${materials.length} קבצים: ${materials.map((m) => m.title).join(", ")}. הם לא צורפו להודעה הזו; אם צריך אותם, בקש מהסטודנט לסמן "עם קבצי הקורס".)`;
+    contextParts[0] = { text: `=== חומר הקורס ===\n${context}` };
+  }
+  // Download course files and chat images in parallel.
+  const [fileBlobs, imageBlobs] = await Promise.all([
+    Promise.all(files.map((m) => sb.storage.from("study").download(m.storage_path))),
+    Promise.all(imagePaths.map((p) => sb.storage.from("study").download(p))),
+  ]);
+  for (const [i, m] of files.entries()) {
+    const blob = fileBlobs[i].data;
     if (!blob) continue;
-    bytes += blob.size;
     contextParts.push({ text: `קובץ: ${m.title} (${m.kind})` });
     contextParts.push({ inlineData: { mimeType: m.mime!, data: Buffer.from(await blob.arrayBuffer()).toString("base64") } });
   }
 
   const userParts: Part[] = [{ text: message }];
-  for (const p of imagePaths) {
-    const { data: blob } = await sb.storage.from("study").download(p);
+  for (const { data: blob } of imageBlobs) {
     if (blob) userParts.push({ inlineData: { mimeType: blob.type || "image/jpeg", data: Buffer.from(await blob.arrayBuffer()).toString("base64") } });
   }
 
@@ -73,14 +89,24 @@ export async function POST(req: Request) {
     { role: "user", parts: userParts },
   ];
 
-  await sb.from("chat_messages").insert({ course_id: courseId, role: "user", content: message, image_paths: imagePaths });
+  const saveUser = sb.from("chat_messages").insert({ course_id: courseId, role: "user", content: message, image_paths: imagePaths });
 
+  // Small talk needs almost no reasoning; explanations and problems get a bit more.
+  const light = message.length < 80 && !imagePaths.length && !attachFiles;
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  const stream = await ai.models.generateContentStream({
-    model: process.env.GEMINI_MODEL || "gemini-flash-latest",
+  const model = process.env.GEMINI_MODEL || "gemini-flash-latest";
+  const request = (thinking: boolean) => ai.models.generateContentStream({
+    model,
     contents,
-    config: { systemInstruction: SYSTEM },
+    config: {
+      systemInstruction: SYSTEM,
+      ...(thinking ? { thinkingConfig: { thinkingLevel: light ? ThinkingLevel.MINIMAL : ThinkingLevel.LOW } } : {}),
+    },
   });
+  const started = Date.now();
+  // Older models reject thinkingLevel; fall back to their default.
+  const stream = await request(true).catch(() => request(false));
+  await saveUser;
 
   const encoder = new TextEncoder();
   let full = "";
@@ -91,6 +117,7 @@ export async function POST(req: Request) {
           for await (const chunk of stream) {
             const t = chunk.text;
             if (t) {
+              if (!full) console.log(`chat first token after ${Date.now() - started}ms (files: ${files.length}, light: ${light})`);
               full += t;
               controller.enqueue(encoder.encode(t));
             }
