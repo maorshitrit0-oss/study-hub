@@ -1,0 +1,43 @@
+# Processes one lesson: download the Zoom recording (or web page), snapshot the board,
+# transcribe the Hebrew audio, and write the reading chapter + quiz with Gemini.
+# Started by the web app (workflow_dispatch) when a link is added.
+name: process-lesson
+
+on:
+  workflow_dispatch:
+    inputs:
+      lesson_id:
+        description: Lesson id
+        required: true
+      author:
+        description: "gemini = write the chapter automatically, none = transcribe only (Claude writes it)"
+        default: gemini
+
+concurrency:
+  group: lesson-${{ inputs.lesson_id }}
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: worker/requirements.txt
+      - run: pip install -r worker/requirements.txt
+      - name: Cache the Hebrew transcription model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: whisper-ivrit-turbo-v1
+      - name: Process
+        working-directory: worker
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+        run: python hub.py process "${{ inputs.lesson_id }}" ${{ inputs.author == 'none' && '--no-author' || '' }}

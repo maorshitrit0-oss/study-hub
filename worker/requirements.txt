@@ -1,0 +1,8 @@
+yt-dlp
+faster-whisper>=1.1
+imageio-ffmpeg
+numpy
+pillow>=10.1
+supabase>=2.30
+google-genai>=2.0
+trafilatura

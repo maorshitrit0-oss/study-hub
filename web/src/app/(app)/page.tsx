@@ -1,0 +1,128 @@
+import Link from "next/link";
+import { requireUser } from "@/lib/supabase/server";
+import DeadlineRow from "@/components/DeadlineRow";
+import { isWeak, pct, topicStats } from "@/lib/progress";
+import { isoFromNow } from "@/lib/format";
+import { lessonName, type Course, type Deadline, type Lesson } from "@/lib/types";
+
+export default async function Home() {
+  const { sb } = await requireUser();
+  const in14 = isoFromNow(14);
+  const [{ data: courses }, { data: deadlines }, { data: lessons }, stats] = await Promise.all([
+    sb.from("courses").select("*").eq("archived", false).order("year").order("name"),
+    sb.from("deadlines").select("*").eq("done", false).lte("due_at", in14).order("due_at").limit(8),
+    sb.from("lessons").select("id, course_id, kind, number, title, status, progress, read_at, created_at")
+      .order("created_at", { ascending: false }).limit(30),
+    topicStats(sb),
+  ]);
+  const courseName = new Map((courses as Course[] | null)?.map((c) => [c.id, c.name]));
+  const active = (lessons as Lesson[] | null)?.filter((l) => l.status !== "ready" && l.status !== "error") ?? [];
+  const unread = (lessons as Lesson[] | null)?.filter((l) => l.status === "ready" && !l.read_at).slice(0, 5) ?? [];
+  const weak = stats.filter(isWeak).sort((a, b) => (pct(a) ?? 0) - (pct(b) ?? 0)).slice(0, 5);
+
+  return (
+    <div className="space-y-5">
+      <h1 className="text-2xl font-bold">מה לומדים היום?</h1>
+
+      {active.length > 0 && (
+        <section className="card">
+          <h2 className="font-semibold mb-2">בעיבוד</h2>
+          <ul className="space-y-2">
+            {active.map((l) => (
+              <li key={l.id}>
+                <Link href={`/lessons/${l.id}`} className="flex justify-between gap-2">
+                  <span>{courseName.get(l.course_id)} · {lessonName(l)}</span>
+                  <span className="text-xs text-muted truncate">{l.progress ?? "בתור"}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {unread.length > 0 && (
+        <section className="card">
+          <h2 className="font-semibold mb-2">מחכה לקריאה</h2>
+          <ul className="divide-y divide-line">
+            {unread.map((l) => (
+              <li key={l.id}>
+                <Link href={`/lessons/${l.id}`} className="flex justify-between py-2.5">
+                  <span>{lessonName(l)}</span>
+                  <span className="text-sm text-muted">{courseName.get(l.course_id)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="card">
+        <div className="flex justify-between items-center mb-1">
+          <h2 className="font-semibold">דדליינים קרובים</h2>
+          <Link href="/deadlines" className="text-sm text-accent">הכל</Link>
+        </div>
+        {deadlines?.length ? (
+          <ul className="divide-y divide-line">
+            {(deadlines as Deadline[]).map((d) => (
+              <DeadlineRow key={d.id} d={d} courseName={d.course_id ? courseName.get(d.course_id) : undefined} />
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted text-sm py-2">אין משימות בשבועיים הקרובים.</p>
+        )}
+      </section>
+
+      {weak.length > 0 && (
+        <section className="card">
+          <h2 className="font-semibold mb-2">נושאים לחיזוק</h2>
+          <ul className="space-y-2">
+            {weak.map((s) => (
+              <li key={`${s.course_id}${s.topic}`}>
+                <Link href={`/courses/${s.course_id}/practice?topic=${encodeURIComponent(s.topic)}`} className="flex justify-between">
+                  <span>{s.topic} <span className="text-xs text-muted">· {courseName.get(s.course_id)}</span></span>
+                  <span className="text-bad font-medium">{pct(s)}%</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section>
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="font-semibold">הקורסים שלי</h2>
+          <Link href="/courses/new" className="btn-ghost text-sm">+ קורס</Link>
+        </div>
+        {courses?.length ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {(courses as Course[]).map((c) => {
+              const cs = stats.filter((s) => s.course_id === c.id);
+              const answered = cs.reduce((a, s) => a + s.answered, 0);
+              const correct = cs.reduce((a, s) => a + s.correct, 0);
+              const total = cs.reduce((a, s) => a + s.total, 0);
+              return (
+                <Link key={c.id} href={`/courses/${c.id}`} className="card block">
+                  <div className="font-semibold">{c.name}</div>
+                  <div className="text-xs text-muted mt-0.5">
+                    {c.year ? `שנה ${c.year}` : ""} {c.semester ? `· סמסטר ${c.semester}` : ""}
+                  </div>
+                  <div className="mt-3 h-2 rounded-full bg-bg overflow-hidden">
+                    <div className="h-full bg-good" style={{ width: `${total ? (100 * correct) / total : 0}%` }} />
+                  </div>
+                  <div className="text-xs text-muted mt-1">
+                    {total ? `${correct}/${total} שאלות נשלטות · ${answered ? Math.round((100 * correct) / answered) : 0}% הצלחה` : "עוד אין שאלות"}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="card text-center py-8">
+            <p className="mb-3">עוד אין קורסים. מתחילים מהוספת קורס ראשון.</p>
+            <Link href="/courses/new" className="btn">הוספת קורס</Link>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
