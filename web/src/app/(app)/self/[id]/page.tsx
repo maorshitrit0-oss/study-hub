@@ -31,7 +31,7 @@ export default async function Track({ params }: PageProps<"/self/[id]">) {
       {freeze && <p className="card text-sm text-warn">⏸️ {freeze.text}</p>}
 
       <div className="grid grid-cols-2 gap-3">
-        <Link href={`/courses/${id}/chat`} className="card text-center font-medium">🎓 למפגש עם המורה</Link>
+        <Link href={`/self/${id}/chat`} className="card text-center font-medium">🎓 למפגש עם המורה</Link>
         <div className="card text-center">
           <div className="text-xl font-bold">{sessions} / {WEEK_TARGET}</div>
           <div className="text-xs text-muted">ימי לימוד השבוע</div>
