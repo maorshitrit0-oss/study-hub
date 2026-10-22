@@ -85,7 +85,7 @@ def daily():
 
     for uid in users:
         courses = {c["id"]: c["name"] for c in sb.table("courses").select("id, name").eq("user_id", uid).execute().data}
-        deadlines = (sb.table("deadlines").select("title, kind, due_at, course_id").eq("user_id", uid)
+        deadlines = (sb.table("deadlines").select("*").eq("user_id", uid)
                      .eq("done", False).gte("due_at", datetime.now(timezone.utc).isoformat())
                      .lte("due_at", horizon).order("due_at").execute().data)
         unread = (sb.table("lessons").select("id", count="exact").eq("user_id", uid)
@@ -93,6 +93,8 @@ def daily():
 
         lines = []
         for d in deadlines:
+            if d.get("check_due"):
+                continue
             when = local(d["due_at"])
             name = f"{KIND.get(d['kind'], '')} {d['title']}".strip()
             course = f" ({courses[d['course_id']]})" if d.get("course_id") in courses else ""
@@ -104,11 +106,23 @@ def daily():
                 lines.append(f"📚 {when:%d/%m}: {name}{course}")
         if unread:
             lines.append(f"📖 {unread} פרקים מחכים לקריאה")
+        if now.weekday() in (6, 2):  # Sunday and Wednesday: tasks with no submission date yet
+            for d in unknown_due(sb, uid):
+                course = f" ({courses[d['course_id']]})" if d.get("course_id") in courses else ""
+                lines.append(f"🔎 לבדוק מתי מגישים: {d['title']}{course}")
         if not lines:
             continue
         title = "בוקר טוב! מה על הפרק היום" if any("היום" in l or "מחר" in l for l in lines) else "בוקר טוב"
         n = send(sb, uid, title, "\n".join(lines[:6]), "/")
         print(f"{uid}: {len(lines)} items -> {n} devices")
+
+
+def unknown_due(sb, uid):
+    try:
+        return (sb.table("deadlines").select("title, course_id").eq("user_id", uid).eq("done", False)
+                .eq("check_due", True).execute().data)
+    except Exception:  # noqa: BLE001 - database without the check_due column yet
+        return []
 
 
 SLOT_KIND = {"lecture": "הרצאה", "practice": "תרגול"}

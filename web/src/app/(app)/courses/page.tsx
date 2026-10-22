@@ -20,7 +20,10 @@ export default async function Courses() {
     <div className="space-y-5">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">קורסים</h1>
-        <Link href="/courses/new" className="btn">+ קורס</Link>
+        <div className="flex gap-2">
+          <Link href="/grades" className="btn-ghost">📜 ציונים</Link>
+          <Link href="/courses/new" className="btn">+ קורס</Link>
+        </div>
       </div>
       {[...groups].map(([label, list]) => (
         <section key={label}>

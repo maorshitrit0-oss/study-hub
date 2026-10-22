@@ -48,9 +48,10 @@ export type Deadline = {
   course_id: string | null;
   title: string;
   kind: "assignment" | "exam" | "quiz" | "lab_report" | "other";
-  due_at: string;
+  due_at: string;            // when check_due: a placeholder until the real date is known
   done: boolean;
   notes: string | null;
+  check_due?: boolean;       // no submission date published yet - remind to check
 };
 
 export const KIND_LABEL: Record<Course["kind"], string> = {

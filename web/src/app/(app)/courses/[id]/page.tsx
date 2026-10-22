@@ -18,6 +18,17 @@ const STATUS: Record<Lesson["status"], [string, string]> = {
   error: ["שגיאה", "text-bad"],
 };
 
+/** Lectures, practices and other material as separate groups (a lab keeps one list). */
+function groupLessons(ls: Lesson[], isLab: boolean): [string, Lesson[]][] {
+  if (isLab) return [["", ls]];
+  const groups: [string, Lesson[]][] = [
+    ["הרצאות", ls.filter((l) => l.kind === "lecture")],
+    ["תרגולים", ls.filter((l) => l.kind === "practice")],
+    ["חומר נוסף", ls.filter((l) => l.kind !== "lecture" && l.kind !== "practice")],
+  ];
+  return groups.filter(([, g]) => g.length);
+}
+
 export default async function CoursePage({ params }: PageProps<"/courses/[id]">) {
   const { id } = await params;
   const { sb, userId } = await requireUser();
@@ -85,24 +96,17 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
             <h2 className="font-semibold">המצב שלי מול הכיתה</h2>
             <span className={`text-xs rounded-full px-2 py-0.5 ${LEVEL_TONE[plan.level]}`}>{LEVEL_LABEL[plan.level]}</span>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-xl bg-accent-soft p-2">
-              {c.kind === "lab" ? (
-                <>
-                  <div className="text-xl font-bold">{plan.classLessons}</div>
-                  <div className="text-xs text-muted">ניסויים</div>
-                </>
-              ) : (
-                <>
-                  <div className="text-xl font-bold">{plan.lectures}<span className="text-muted font-normal"> + </span>{plan.practices}</div>
-                  <div className="text-xs text-muted">הרצאות + תרגולים בכיתה</div>
-                </>
-              )}
-            </div>
-            <div className="rounded-xl bg-accent-soft p-2">
-              <div className="text-xl font-bold">{plan.read}</div>
-              <div className="text-xs text-muted">קראתי</div>
-            </div>
+          {/* Lectures and practices are counted separately in every course; a lab counts experiments. */}
+          <div className={`grid ${c.kind === "lab" ? "grid-cols-3" : "grid-cols-4"} gap-2 text-center`}>
+            {(c.kind === "lab"
+              ? [[plan.classLessons, "ניסויים"], [plan.read, "קראתי"]]
+              : [[plan.lectures, "הרצאות בכיתה"], [plan.practices, "תרגולים בכיתה"], [plan.read, "קראתי"]]
+            ).map(([n, label]) => (
+              <div key={label} className="rounded-xl bg-accent-soft p-2">
+                <div className="text-xl font-bold">{n}</div>
+                <div className="text-xs text-muted">{label}</div>
+              </div>
+            ))}
             <div className="rounded-xl bg-accent-soft p-2">
               <div className="text-xl font-bold">{plan.mastery === null ? "—" : `${plan.mastery}%`}</div>
               <div className="text-xs text-muted">שליטה בחומר</div>
@@ -158,20 +162,25 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
           </div>
         )}
         {ls.length ? (
-          <ul className="divide-y divide-line">
-            {ls.map((l) => (
-              <li key={l.id}>
-                <Link href={`/lessons/${l.id}`} className="flex items-center justify-between gap-3 py-3">
-                  <span className="min-w-0">
-                    <span className={`font-medium ${l.read_at ? "text-muted" : ""}`}>{lessonName(l)}</span>
-                    {l.title && l.kind !== "web" && <span className="text-sm text-muted"> · {l.title}</span>}
-                    {l.read_at && <span className="text-xs text-good"> ✓ נקרא</span>}
-                  </span>
-                  <span className={`text-xs shrink-0 ${STATUS[l.status][1]}`}>{STATUS[l.status][0]}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          groupLessons(ls, c.kind === "lab").map(([label, group]) => (
+            <div key={label}>
+              {label && <h3 className="text-sm text-muted mt-3">{label} ({group.length})</h3>}
+              <ul className="divide-y divide-line">
+                {group.map((l) => (
+                  <li key={l.id}>
+                    <Link href={`/lessons/${l.id}`} className="flex items-center justify-between gap-3 py-3">
+                      <span className="min-w-0">
+                        <span className={`font-medium ${l.read_at ? "text-muted" : ""}`}>{lessonName(l)}</span>
+                        {l.title && l.kind !== "web" && <span className="text-sm text-muted"> · {l.title}</span>}
+                        {l.read_at && <span className="text-xs text-good"> ✓ נקרא</span>}
+                      </span>
+                      <span className={`text-xs shrink-0 ${STATUS[l.status][1]}`}>{STATUS[l.status][0]}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
         ) : (
           <p className="text-sm text-muted py-2">עוד אין חומר. הדבק קישור לזום למעלה.</p>
         )}

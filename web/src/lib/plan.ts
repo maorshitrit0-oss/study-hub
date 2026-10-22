@@ -71,7 +71,11 @@ export async function weeklyPlan(sb: SupabaseClient): Promise<CoursePlan[]> {
         reasons.push(`מבחן בעוד ${Math.max(0, Math.floor(days))} ימים`);
       }
     }
-    for (const d of ds.filter((x) => x.kind !== "exam")) {
+    // Tasks with no submission date published yet: keep asking to check the course site.
+    for (const d of ds.filter((x) => x.check_due)) {
+      reminders.push({ text: `לבדוק מתי מגישים את "${d.title}" ב${course.name} (עוד אין מועד הגשה)`, href: `/deadlines/${d.id}` });
+    }
+    for (const d of ds.filter((x) => x.kind !== "exam" && !x.check_due)) {
       const days = (new Date(d.due_at).getTime() - now.getTime()) / DAY;
       if (days > 7) continue;
       score += days < 3 ? 10 : 5;
@@ -95,7 +99,7 @@ export async function weeklyPlan(sb: SupabaseClient): Promise<CoursePlan[]> {
       if (!hit) continue;
       const label = `${hit[1]}${hit[2] ? ` ${hit[2]}` : ""}`;
       if (!allDeadlines.some((d) => d.title.includes(label))) {
-        reminders.push({ text: `להוסיף מועד הגשה ל"${label}" ב${course.name} (הקובץ הועלה, אין משימה)`, href: `/deadlines?course=${course.id}` });
+        reminders.push({ text: `לבדוק מתי מגישים את "${label}" ב${course.name} ולהוסיף משימה (הקובץ הועלה, אין מועד)`, href: `/deadlines?course=${course.id}` });
       }
     }
 

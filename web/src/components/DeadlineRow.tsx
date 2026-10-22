@@ -20,10 +20,11 @@ export default function DeadlineRow({ d, courseName }: { d: Deadline; courseName
         <div className={`font-medium truncate ${d.done ? "line-through text-muted" : ""}`}>{d.title}</div>
         <div className="text-xs text-muted">
           {DEADLINE_LABEL[d.kind]}
-          {courseName ? ` · ${courseName}` : ""} · {fmtDue(d.due_at)}
+          {courseName ? ` · ${courseName}` : ""} · {d.check_due ? "אין עדיין מועד הגשה" : fmtDue(d.due_at)}
         </div>
       </Link>
-      {!d.done && <span className={`text-xs rounded-full px-2 py-0.5 ${tone[urgency(d.due_at)]}`}>{daysLeft(d.due_at)}</span>}
+      {!d.done && d.check_due && <span className="text-xs rounded-full px-2 py-0.5 text-warn bg-warn-soft">🔎 לבדוק</span>}
+      {!d.done && !d.check_due && <span className={`text-xs rounded-full px-2 py-0.5 ${tone[urgency(d.due_at)]}`}>{daysLeft(d.due_at)}</span>}
     </li>
   );
 }

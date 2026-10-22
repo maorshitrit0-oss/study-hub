@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import { dispatchLesson, dispatchNotify } from "@/lib/github";
 import { parseIcs } from "@/lib/ics";
-import { israelLocalToIso } from "@/lib/format";
+import { isoFromNow, israelLocalToIso } from "@/lib/format";
 import { extractSyllabus, looksLikeSyllabus } from "@/lib/syllabus";
 import { DRIVE_PREFIX, cleanTitle, driveId, materialBlob } from "@/lib/files";
 import { fillGlossary } from "@/lib/glossary";
@@ -219,20 +219,36 @@ export async function deleteMaterial(id: string, courseId: string) {
 
 // ---------- deadlines ----------
 
+const UNKNOWN_DUE_DAYS = 120;
+
 function deadlineFields(f: FormData) {
+  const checkDue = f.get("check_due") === "on";
+  const due = str(f, "due_at");
   return {
     title: str(f, "title") ?? "משימה",
     kind: str(f, "kind") ?? "assignment",
     course_id: str(f, "course_id"),
-    due_at: israelLocalToIso(str(f, "due_at")!),
+    // No date yet: park it far ahead so it never looks urgent; the app and the push remind to check instead.
+    due_at: due && !checkDue ? israelLocalToIso(due) : isoFromNow(UNKNOWN_DUE_DAYS),
+    check_due: checkDue || !due,
     notes: str(f, "notes"),
   };
 }
 
+/** Writes a deadline; before the check_due column exists, falls back to a plain dated one. */
+async function saveDeadline(sb: Awaited<ReturnType<typeof requireUser>>["sb"], fields: ReturnType<typeof deadlineFields>, id?: string) {
+  const run = (row: Partial<typeof fields>) => (id ? sb.from("deadlines").update(row).eq("id", id) : sb.from("deadlines").insert(row));
+  const { error } = await run(fields);
+  if (error && /check_due/.test(error.message)) {
+    const { check_due: _, ...rest } = fields;
+    void _;
+    await run(rest);
+  }
+}
+
 export async function addDeadline(f: FormData) {
   const { sb } = await requireUser();
-  if (!str(f, "due_at")) return;
-  await sb.from("deadlines").insert(deadlineFields(f));
+  await saveDeadline(sb, deadlineFields(f));
   revalidatePath("/deadlines");
   revalidatePath("/exams");
   revalidatePath("/");
@@ -240,9 +256,8 @@ export async function addDeadline(f: FormData) {
 
 export async function updateDeadline(id: string, f: FormData) {
   const { sb } = await requireUser();
-  if (!str(f, "due_at")) return;
   const fields = deadlineFields(f);
-  await sb.from("deadlines").update(fields).eq("id", id);
+  await saveDeadline(sb, fields, id);
   revalidatePath("/");
   redirect(fields.kind === "exam" ? "/exams" : "/deadlines");
 }

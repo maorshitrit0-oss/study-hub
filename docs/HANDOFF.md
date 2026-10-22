@@ -43,6 +43,7 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - מעבדה 2 (digital lab) – usually Tue 09–13, Tomer Blisha & Talia Mandelbrot. Attendance mandatory, entry quiz
   every meeting, weekly prelab + summary report (Word). No Zoom recordings for the lab. Experiment 2 on Wed 28/10/2026.
 - אותות אקראיים ורעש – exam מועד ג 22/12/2026.
+- אותות אקראיים ורעש exam also on 26/10/2026 (time unknown); course registration 25/10/2026.
 - Exams: waves 12/1 & 10/2/2027, Java 17/1 & 25/2, linear 19/1 & 14/2, digital 25/1 & 18/2 (times unknown, 09:00 placeholders).
 - Still unknown: מבוא לבקרה exam date (semester ב; deferred until semester ב).
 
@@ -85,6 +86,15 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Each chapter carries a `glossary` (en/he/explanation) saved to the `glossary` table (`supabase/glossary.sql`);
   the "אנגלית" tab (`/words`) lists the words and quizzes them (missed words come back first, kept in localStorage).
   Chapters written before this get their words with the "להוציא מילים" button (one Gemini call, `web/src/lib/glossary.ts`).
+
+## Grades, tasks without a date (2026-10-22)
+- `grades` table + `/grades` page (link on Courses): his sheet from 07/10/2026 is in `supabase/grades_data.sql`.
+  The average formula (numeric grades × credits / credits, failed included, "עבר" and 0-credit excluded) was checked to
+  match the official 90.92 / 76.64 / 82.86. Failed: תורת החשמל ואלקטרומגנטיקה (26) – the page flags it.
+  Never store his ID number, address or phone from such documents.
+- `deadlines.check_due`: a task with no published submission date. Its `due_at` is a placeholder (+120 days); the app
+  shows "אין עדיין מועד הגשה" and reminds to check it, and the morning push lists them on Sundays and Wednesdays.
+- He wants lectures and practices shown **separately** everywhere (except the lab).
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.

@@ -26,8 +26,12 @@ export default function DeadlineForm({ action, courses, deadline, presetCourse, 
           {courses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </div>
-      <input className="input" name="due_at" type="datetime-local" required
-        defaultValue={deadline ? isoToIsraelLocal(deadline.due_at) : undefined} />
+      <input className="input" name="due_at" type="datetime-local"
+        defaultValue={deadline && !deadline.check_due ? isoToIsraelLocal(deadline.due_at) : undefined} />
+      <label className="flex gap-2 items-center text-sm">
+        <input type="checkbox" name="check_due" defaultChecked={deadline?.check_due} />
+        עוד אין מועד הגשה - תזכיר לי לבדוק מתי מגישים
+      </label>
       <textarea className="input min-h-20" name="notes" defaultValue={deadline?.notes ?? ""} placeholder="הערות (לא חובה)" />
       <button className="btn w-full">{submit}</button>
     </form>
