@@ -47,7 +47,8 @@ export default function Chat({ courseId, userId, initial, isLab = false, isSelf 
   const end = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => end.current?.scrollIntoView({ behavior: "smooth" }), [msgs]);
+  // Braces matter: newer browsers return a Promise from scrollIntoView, and React would call it as the cleanup.
+  useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
 
   async function send(message: string) {
     if (!message.trim() || busy) return;
