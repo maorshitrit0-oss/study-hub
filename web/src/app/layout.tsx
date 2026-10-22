@@ -7,17 +7,14 @@ export const metadata: Metadata = {
   description: "לומדים מקריאה: הרצאות, תרגולים, שאלונים ומעקב",
   authors: [{ name: "Maor Shitrit" }],
   creator: "Maor Shitrit",
-  appleWebApp: { capable: true, title: "Study Hub", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Study Hub", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f7f9" },
-    { media: "(prefers-color-scheme: dark)", color: "#111317" },
-  ],
+  themeColor: "#071a33",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

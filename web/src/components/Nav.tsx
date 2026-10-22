@@ -14,7 +14,7 @@ const items = [
 export default function Nav() {
   const path = usePathname();
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-20 border-t border-line bg-card/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 inset-x-0 z-20 border-t border-line bg-[#06142a]/90 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
       <ul className="mx-auto max-w-3xl grid grid-cols-5">
         {items.map((it) => {
           const active = it.href === "/" ? path === "/" : path.startsWith(it.href);
