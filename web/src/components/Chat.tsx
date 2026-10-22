@@ -39,7 +39,7 @@ export default function Chat({ courseId, userId, initial, isLab = false }: {
     const sb = supabaseBrowser();
     const imagePaths: string[] = [];
     const previews: string[] = [];
-    for (const f of files) {
+    for (const f of files.slice(0, 10)) {
       const path = `${userId}/chat/${courseId}/${Date.now()}_${f.name.replace(/[^\w.\-]+/g, "_")}`;
       const { error } = await sb.storage.from("study").upload(path, f, { contentType: f.type });
       if (!error) { imagePaths.push(path); previews.push(URL.createObjectURL(f)); }

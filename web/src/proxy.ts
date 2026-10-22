@@ -19,6 +19,13 @@ export async function proxy(request: NextRequest) {
   if (!data?.claims && !path.startsWith("/login") && !path.startsWith("/auth")) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
+  // Accounts with an authenticator app must finish the second step before anything else.
+  if (data?.claims && !path.startsWith("/mfa") && !path.startsWith("/auth")) {
+    const { data: aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+      return NextResponse.redirect(new URL("/mfa", request.url));
+    }
+  }
   return response;
 }
 

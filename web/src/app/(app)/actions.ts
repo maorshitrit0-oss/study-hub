@@ -102,7 +102,9 @@ export async function addLesson(courseId: string, _: AddLessonState, f: FormData
 
 export async function retryLesson(id: string) {
   const { sb } = await requireUser();
-  await sb.from("lessons").update({ status: "queued", error: null, progress: null }).eq("id", id);
+  // Row-level security limits the update to the user's own lessons; dispatch only if it matched.
+  const { data } = await sb.from("lessons").update({ status: "queued", error: null, progress: null }).eq("id", id).select("id");
+  if (!data?.length) return;
   const err = await dispatchLesson(id);
   if (err) await sb.from("lessons").update({ status: "error", error: err }).eq("id", id);
   revalidatePath(`/lessons/${id}`);

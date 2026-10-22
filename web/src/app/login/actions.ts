@@ -13,6 +13,7 @@ export async function authenticate(_: AuthState, form: FormData): Promise<AuthSt
   const sb = await supabaseServer();
 
   if (mode === "signup") {
+    if (password.length < 10) return { error: "בחר סיסמה של לפחות 10 תווים" };
     const origin = (await headers()).get("origin") ?? "";
     const { data, error } = await sb.auth.signUp({
       email,

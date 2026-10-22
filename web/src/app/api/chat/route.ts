@@ -44,6 +44,11 @@ export async function POST(req: Request) {
   const { courseId, message, imagePaths = [], withFiles = false } = (await req.json()) as {
     courseId: string; message: string; imagePaths?: string[]; withFiles?: boolean;
   };
+  // Bound what one request can make the server download and send to Gemini.
+  if (typeof message !== "string" || !message.trim() || message.length > 20_000 || !Array.isArray(imagePaths) || imagePaths.length > 10
+    || imagePaths.some((p) => typeof p !== "string" || !p.startsWith(`${auth.claims.sub}/`))) {
+    return new Response("bad request", { status: 400 });
+  }
   const attachFiles = withFiles || NEEDS_FILES.test(message);
 
   const [{ data: course }, { data: lessons }, { data: materials }, { data: history }, { data: facts }, { data: settings }] = await Promise.all([

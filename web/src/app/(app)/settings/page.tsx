@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/supabase/server";
 import SyncMoodle from "@/components/SyncMoodle";
 import PushToggle from "@/components/PushToggle";
+import TwoFactor from "@/components/TwoFactor";
 import { UsagePanel, type Snapshot } from "@/components/Usage";
 import { saveSettings, setReservist } from "../actions";
 import { signOut } from "@/app/login/actions";
@@ -15,6 +16,11 @@ export default async function Settings() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold">הגדרות</h1>
+
+      <section className="card space-y-3">
+        <h2 className="font-semibold">אבטחה: אימות דו-שלבי</h2>
+        <TwoFactor />
+      </section>
 
       <section className="card space-y-3 scroll-mt-4" id="usage">
         <h2 className="font-semibold">שימוש במשאבים החינמיים</h2>

@@ -33,7 +33,12 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python notify.py "${{ inputs.mode || (github.event.schedule == '30 19 * * *' && 'evening') || 'daily' }}" ${{ inputs.user_id }}
+          MODE: ${{ inputs.mode || (github.event.schedule == '30 19 * * *' && 'evening') || 'daily' }}
+          TARGET_USER: ${{ inputs.user_id }}
+        run: |
+          case "$MODE" in daily|evening|setup|test) ;; *) echo "::error::bad mode"; exit 1;; esac
+          [[ -z "$TARGET_USER" || "$TARGET_USER" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad user id"; exit 1; }
+          python notify.py "$MODE" $TARGET_USER
       - name: Check free-plan usage (morning run)
         if: github.event_name == 'schedule' && github.event.schedule != '30 19 * * *'
         working-directory: worker

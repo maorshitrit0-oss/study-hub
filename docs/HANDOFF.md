@@ -71,6 +71,15 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   multiply the quota. Chat starts on flash-lite to save the stronger model for chapters.
 - Semester start for "missing recordings": `SEMESTER_START` in `web/src/lib/recordings.ts` (2026-10-18) – update each semester.
 
+## Security (2026-10-22)
+- Security headers + CSP in `web/next.config.ts` (no framing, HTTPS only). If a new outside service is used from the
+  browser, add it to `connect-src`/`img-src` there or it will be blocked.
+- Optional two-step sign-in (TOTP, e.g. Google Authenticator): enabled in settings (`TwoFactor.tsx`); `proxy.ts` sends
+  aal1 sessions of such accounts to `/mfa`; `supabase/security.sql` adds restrictive RLS so the DB also requires aal2.
+- Signup needs a 10+ character password. Workflow inputs are validated (no shell injection); chat requests are bounded.
+- Asked the user to: run `security.sql`, turn off "Allow new users to sign up" in Supabase, enable 2FA, and rotate the
+  GitHub PAT and Gemini key he once showed in screenshots.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - The first Java lecture (processed on GitHub Actions) – not yet confirmed whether Gemini wrote the chapter.
