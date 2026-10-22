@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
+import { dueReviews } from "@/lib/review";
 import { attachOrphanTasks, syncPrepTasks } from "@/lib/prep";
 import DeadlineRow from "@/components/DeadlineRow";
 import { isWeak, pct, topicStats } from "@/lib/progress";
@@ -25,9 +26,10 @@ export default async function Home() {
     sb.from("schedule_slots").select("*").eq("weekday", now.weekday).order("start_time"),
     missingRecordings(sb).catch(() => []),
   ]);
-  const [plan, { data: usage }] = await Promise.all([
+  const [plan, { data: usage }, review] = await Promise.all([
     weeklyPlan(sb),
     sb.from("usage_snapshot").select("data").eq("id", 1).maybeSingle(),
+    dueReviews(sb).catch(() => ({ total: 0 })),
   ]);
   const usageAlerts = (usage?.data as Snapshot | undefined)?.alerts ?? [];
   const focus = plan.filter((p) => p.score > 0).slice(0, 3);
@@ -63,6 +65,13 @@ export default async function Home() {
             ))}
           </div>
         </section>
+      )}
+
+      {review.total > 0 && (
+        <Link href="/review" className="card flex justify-between items-center">
+          <span className="font-semibold">🔁 חזרה יומית</span>
+          <span className="text-sm text-accent">{review.total} שאלות מחכות ←</span>
+        </Link>
       )}
 
       <MissingRecordings items={missing} courseName={courseName} />

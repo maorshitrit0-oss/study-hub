@@ -106,6 +106,12 @@ def daily():
                 lines.append(f"📚 {when:%d/%m}: {name}{course}")
         if unread:
             lines.append(f"📖 {unread} פרקים מחכים לקריאה")
+        try:
+            due = reviews_due(sb, uid)
+            if due:
+                lines.append(f"🔁 {due} שאלות לחזרה היום")
+        except Exception as e:  # noqa: BLE001
+            print(f"review count failed: {e}")
         if now.weekday() in (6, 2):  # Sunday and Wednesday: tasks with no submission date yet
             for d in unknown_due(sb, uid):
                 course = f" ({courses[d['course_id']]})" if d.get("course_id") in courses else ""
@@ -115,6 +121,26 @@ def daily():
         title = "בוקר טוב! מה על הפרק היום" if any("היום" in l or "מחר" in l for l in lines) else "בוקר טוב"
         n = send(sb, uid, title, "\n".join(lines[:6]), "/")
         print(f"{uid}: {len(lines)} items -> {n} devices")
+
+
+REVIEW_DAYS = [1, 3, 7, 14, 30, 60]  # same schedule as web/src/lib/review.ts
+
+
+def reviews_due(sb, uid):
+    """How many answered questions are due for spaced review today."""
+    state, start = {}, 0
+    while True:
+        rows = (sb.table("attempts").select("question_id, is_correct, created_at").eq("user_id", uid)
+                .order("created_at").range(start, start + 999).execute().data)
+        for a in rows:
+            streak = state.get(a["question_id"], (0, None))[0]
+            state[a["question_id"]] = (streak + 1 if a["is_correct"] else 0, datetime.fromisoformat(a["created_at"]))
+        if len(rows) < 1000:
+            break
+        start += 1000
+    now = datetime.now(timezone.utc)
+    return sum(1 for streak, last in state.values()
+               if last + timedelta(days=REVIEW_DAYS[min(streak, len(REVIEW_DAYS) - 1)]) <= now)
 
 
 def unknown_due(sb, uid):

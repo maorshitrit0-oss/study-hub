@@ -30,7 +30,7 @@ export default async function Practice({ params, searchParams }: PageProps<"/cou
     <div className="space-y-4">
       <Link href={`/courses/${id}`} className="text-sm text-accent">→ {course?.name}</Link>
       <h1 className="text-2xl font-bold">תרגול{topic ? `: ${topic}` : ""}</h1>
-      <p className="text-sm text-muted">קודם שאלות שטעית בהן, אחר כך שאלות חדשות.</p>
+      <p className="text-sm text-muted">קודם שאלות שטעית בהן, אחר כך שאלות חדשות. <Link href={`/review?course=${id}`} className="text-accent">🔁 חזרה במרווחים בקורס הזה</Link></p>
       <div className="card">
         {set.length ? <Quiz key={set.map((x) => x.id).join()} questions={set} title="תרגול" /> : <p className="text-muted">אין עדיין שאלות בקורס הזה.</p>}
       </div>

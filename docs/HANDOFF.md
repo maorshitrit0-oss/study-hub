@@ -102,6 +102,8 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Prep tasks: every lecture/practice gets a task "📖 ללמוד את ... לפני ההרצאה/התרגול הבא" (`external_uid` prep:<lesson>),
   due at the course's next class of that kind; closed when the chapter is marked read (`web/src/lib/prep.ts`,
   synced when home or tasks load). His linear course is spelled "מעגלים לינאריים" (no second yod) - match both.
+- Spaced repetition (`/review`, `web/src/lib/review.ts`): computed from `attempts` only (Leitner: 1,3,7,14,30,60 days
+  by correct streak; wrong -> next day). Home card + morning push count (`worker/notify.py` reviews_due).
 - He wants lectures and practices shown **separately** everywhere (except the lab).
 
 ## Self-study: digital design / VLSI / SystemVerilog (2026-10-22)
