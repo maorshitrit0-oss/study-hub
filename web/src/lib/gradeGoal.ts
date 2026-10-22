@@ -29,3 +29,11 @@ export const pending = (rows: GradeRow[]) => rows.filter((r) => !r.grade);
 
 /** Same course code (the university appends a group number: 002-4366110-01). */
 export const sameCode = (a?: string | null, b?: string | null) => !!a && !!b && a.slice(0, 11) === b.slice(0, 11);
+
+/**
+ * Rows for projecting the final average: at Ariel the grade of a retaken course replaces the failed one,
+ * so a failed course with a planned retake (same code, no grade yet) leaves the calculation.
+ */
+export function forProjection(rows: GradeRow[]) {
+  return rows.filter((r) => !(r.failed && rows.some((x) => x.id !== r.id && !x.grade && sameCode(x.code, r.code))));
+}

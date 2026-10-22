@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { setGradeRow } from "@/app/(app)/actions";
-import { needed, num, pending, totals, type GradeRow } from "@/lib/gradeGoal";
+import { forProjection, needed, num, pending, totals, type GradeRow } from "@/lib/gradeGoal";
 import { REST } from "@/lib/degreePlan";
 
 const fmt = (x: number | null) => (x === null ? "—" : x.toFixed(1));
@@ -11,10 +11,11 @@ const fmt = (x: number | null) => (x === null ? "—" : x.toFixed(1));
  * What grades are needed for a target average: by the end of this year, and by the end of the degree
  * (the rest of the degree is in the sheet as rows without a grade). Expected grades can be typed in to see the effect.
  */
-export default function GradeGoal({ rows }: { rows: GradeRow[] }) {
+export default function GradeGoal({ rows: all }: { rows: GradeRow[] }) {
   const [target, setTarget] = useState(90);
   const [expected, setExpected] = useState<Record<string, number>>({});
-  const now = totals(rows);
+  const now = totals(all); // today's official average, failed grades included
+  const rows = forProjection(all); // the future: a retake's grade replaces the failed one
   const base = totals(rows, expected);
   const open = pending(rows).filter((r) => Number(r.credits) > 0);
   const free = (list: GradeRow[]) => list.filter((r) => expected[r.id] === undefined).reduce((a, r) => a + Number(r.credits), 0);
@@ -22,7 +23,7 @@ export default function GradeGoal({ rows }: { rows: GradeRow[] }) {
   const needYear = needed(target, base.sum, base.credits, free(thisYear));
   const needDegree = needed(target, base.sum, base.credits, free(open));
   const missingCredits = pending(rows).filter((r) => !(Number(r.credits) > 0));
-  const failed = rows.filter((r) => r.failed && Number(r.credits) > 0);
+  const replaced = all.filter((r) => !rows.includes(r));
   // Ending average if every course left gets the same grade.
   const endWith = (g: number) => { const t = totals(rows, Object.fromEntries(open.map((r) => [r.id, expected[r.id] ?? g]))); return t.sum / t.credits; };
 
@@ -85,16 +86,13 @@ export default function GradeGoal({ rows }: { rows: GradeRow[] }) {
         <p className="text-muted">אם תקבל בכל מה שנשאר 85 / 90 / 95 - תסיים עם {fmt(endWith(85))} / {fmt(endWith(90))} / {fmt(endWith(95))}.</p>
       </div>
 
-      {failed.map((r) => {
-        const replaced = totals(rows.filter((x) => x.id !== r.id), Object.fromEntries(open.map((o) => [o.id, expected[o.id] ?? target])));
-        return (
-          <p key={r.id} className="text-sm">
-            💡 {r.name} ({r.grade}) נספר היום בממוצע. אם בקורס החוזר הציון החדש <b>מחליף</b> את הישן, ובכל מה שנשאר תקבל {target} -
-            תסיים עם <b>{fmt(replaced.sum / replaced.credits)}</b> (במקום {fmt(endWith(target))}).
-            <span className="text-muted"> לבדוק בתקנון של אריאל איזה ציון נספר בקורס חוזר.</span>
-          </p>
-        );
-      })}
+      {replaced.map((r) => (
+        <p key={r.id} className="text-sm">🔁 {r.name} ({r.grade}) לא נכלל בחישוב העתידי: הציון בקורס החוזר מחליף אותו.</p>
+      ))}
+      <p className="text-xs text-muted">
+        בסוף התואר הממוצע יהיה על {totals(rows, Object.fromEntries(open.map((r) => [r.id, 0]))).credits} נק&quot;ז:
+        {" "}{base.credits - (expected ? Object.keys(expected).reduce((a, id) => a + Number(open.find((r) => r.id === id)?.credits ?? 0), 0) : 0)} שכבר יש בהם ציון + {open.reduce((a, r) => a + Number(r.credits), 0)} שעוד לפניך. כל קורס נספר פעם אחת.
+      </p>
 
       <details open>
         <summary className="cursor-pointer text-sm font-semibold">רשום השנה ({thisYear.length} קורסים, {thisYear.reduce((a, r) => a + Number(r.credits), 0)} נק&quot;ז)</summary>

@@ -7,7 +7,7 @@ import Materials from "@/components/Materials";
 import CourseFacts, { type Fact } from "@/components/CourseFacts";
 import { isWeak, pct, topicStats } from "@/lib/progress";
 import { isPast } from "@/lib/format";
-import { needed, pending, sameCode, totals, type GradeRow } from "@/lib/gradeGoal";
+import { forProjection, needed, pending, sameCode, totals, type GradeRow } from "@/lib/gradeGoal";
 import { LEVEL_LABEL, LEVEL_TONE, weeklyPlan } from "@/lib/plan";
 import { DAYS, EXAM_LABEL, KIND_LABEL, SLOT_LABEL, hhmm, type Slot, lessonName, type Course, type Deadline, type Lesson } from "@/lib/types";
 
@@ -51,7 +51,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
     sb.from("grades").select("*"),
   ]);
   // Grade needed here for a 90 average at the end of the degree, assuming the same grade in everything left.
-  const gradeRows = (grades ?? []) as GradeRow[];
+  const gradeRows = forProjection((grades ?? []) as GradeRow[]);
   const open = pending(gradeRows).filter((r) => Number(r.credits) > 0);
   const mine = open.find((r) => sameCode(r.code, c.code) || r.name === c.name);
   const sofar = totals(gradeRows);

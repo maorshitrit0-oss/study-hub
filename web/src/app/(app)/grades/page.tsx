@@ -20,8 +20,8 @@ type Grade = {
   lecturer: string | null; credits: number; grade: string | null; failed: boolean;
 };
 
-const SEM_ORDER: Record<string, number> = { "א": 1, "ב": 2, "ק": 3 };
-const SEM_LABEL: Record<string, string> = { "א": "סמסטר א", "ב": "סמסטר ב", "ק": "קיץ", "השנה": "רשום השנה", "נותר": "עוד לא נלקח" };
+const SEM_ORDER: Record<string, number> = { "א": 1, "ב": 2, "ק": 3, "השנה": 4, "ד-א": 5, "ד-ב": 6, "נותר": 7 };
+const SEM_LABEL: Record<string, string> = { "א": "סמסטר א", "ב": "סמסטר ב", "ק": "קיץ", "השנה": "רשום השנה", "נותר": "עוד לא משובץ", "ד-א": "שנה ד' · סמסטר א'", "ד-ב": "שנה ד' · סמסטר ב'" };
 
 /**
  * Average as the university computes it (checked against the official sheet of 07/10/2026):
