@@ -109,10 +109,11 @@ export async function deleteLesson(id: string, courseId: string) {
   redirect(`/courses/${courseId}`);
 }
 
-export async function markRead(id: string) {
+export async function markRead(id: string, read = true) {
   const { sb } = await requireUser();
-  await sb.from("lessons").update({ read_at: new Date().toISOString() }).eq("id", id);
+  await sb.from("lessons").update({ read_at: read ? new Date().toISOString() : null }).eq("id", id);
   revalidatePath(`/lessons/${id}`);
+  revalidatePath("/");
 }
 
 // ---------- quiz ----------

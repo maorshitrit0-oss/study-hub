@@ -36,6 +36,8 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
   const nextNumber = Math.max(0, ...ls.filter((l) => l.kind === "lecture").map((l) => l.number ?? 0)) + 1;
   const upcoming = ((deadlines ?? []) as Deadline[]).filter((d) => !d.done || !isPast(d.due_at));
   const answered = stats.reduce((a, s) => a + s.answered, 0);
+  const readyCount = ls.filter((l) => l.status === "ready").length;
+  const readCount = ls.filter((l) => l.status === "ready" && l.read_at).length;
 
   return (
     <div className="space-y-5">
@@ -83,7 +85,15 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
       </section>
 
       <section className="card">
-        <h2 className="font-semibold mb-1">חומר הקורס</h2>
+        <div className="flex justify-between items-baseline mb-1">
+          <h2 className="font-semibold">חומר הקורס</h2>
+          {readyCount > 0 && <span className="text-sm text-muted">קראת {readCount} מתוך {readyCount}</span>}
+        </div>
+        {readyCount > 0 && (
+          <div className="h-1.5 rounded-full bg-bg overflow-hidden mb-2">
+            <div className="h-full bg-good" style={{ width: `${(100 * readCount) / readyCount}%` }} />
+          </div>
+        )}
         {ls.length ? (
           <ul className="divide-y divide-line">
             {ls.map((l) => (

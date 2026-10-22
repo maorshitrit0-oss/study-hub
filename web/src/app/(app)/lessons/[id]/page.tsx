@@ -62,11 +62,13 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
 
       {lesson.status === "ready" && (
         <section className="card" id="quiz">
-          {!lesson.read_at && (
-            <form action={markRead.bind(null, id)} className="mb-4">
+          <form action={markRead.bind(null, id, !lesson.read_at)} className="mb-4">
+            {lesson.read_at ? (
+              <button className="w-full text-sm text-muted py-2">✓ סומן כנקרא · לחץ לביטול הסימון</button>
+            ) : (
               <button className="btn-ghost w-full">✓ סיימתי לקרוא</button>
-            </form>
-          )}
+            )}
+          </form>
           <Quiz questions={questions ?? []} title="שאלון סיכום" />
         </section>
       )}
