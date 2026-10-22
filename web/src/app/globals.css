@@ -65,7 +65,8 @@ html, body {
 .chip { @apply inline-block rounded-full px-2.5 py-0.5 text-xs font-medium bg-accent-soft text-accent; }
 
 /* Reading chapter typography */
-.chapter { font-size: 1.07rem; line-height: 1.85; }
+.chapter { font-size: 1.07rem; line-height: 1.75; }
+.chapter > :first-child { margin-top: 0; }
 .chapter h1 { font-size: 1.6rem; font-weight: 700; margin: 1.2em 0 .5em; }
 .chapter h2 { font-size: 1.3rem; font-weight: 700; margin: 1.6em 0 .5em; padding-bottom: .25em; border-bottom: 1px solid var(--line); }
 .chapter h3 { font-size: 1.12rem; font-weight: 700; margin: 1.2em 0 .4em; }
