@@ -4,15 +4,14 @@ import { useState } from "react";
 import { answerQuestion } from "@/app/(app)/actions";
 import type { Question } from "@/lib/types";
 
-type Q = Omit<Question, "correct" | "explanation"> & { explanation?: string | null };
+type Q = Omit<Question, "explanation"> & { explanation?: string | null };
 
-/** One question at a time; the correct answer is revealed by the server after answering. */
+/** One question at a time; feedback is instant and the answer is recorded in the background. */
 export default function Quiz({ questions, title = "שאלון" }: { questions: Q[]; title?: string }) {
   const [i, setI] = useState(0);
   const [chosen, setChosen] = useState<number | null>(null);
   const [correct, setCorrect] = useState<number | null>(null);
   const [score, setScore] = useState(0);
-  const [busy, setBusy] = useState(false);
   const done = i >= questions.length;
 
   if (!questions.length) return <p className="text-muted">אין שאלות.</p>;
@@ -29,14 +28,12 @@ export default function Quiz({ questions, title = "שאלון" }: { questions: Q
   }
 
   const q = questions[i];
-  async function pick(k: number) {
-    if (chosen !== null || busy) return;
-    setBusy(true);
+  function pick(k: number) {
+    if (chosen !== null) return;
     setChosen(k);
-    const c = await answerQuestion(q.id, k);
-    setCorrect(c);
-    if (c === k) setScore((s) => s + 1);
-    setBusy(false);
+    setCorrect(q.correct);
+    if (q.correct === k) setScore((s) => s + 1);
+    answerQuestion(q.id, k).catch(() => {});
   }
 
   return (

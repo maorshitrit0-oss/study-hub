@@ -21,7 +21,7 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
     signed?.forEach((s, k) => { if (s.signedUrl) slideUrls[k + 1] = s.signedUrl; });
   }
   const { data: questions } = await sb.from("questions")
-    .select("id, lesson_id, topic, question, options, explanation, difficulty").eq("lesson_id", id).order("created_at");
+    .select("id, lesson_id, topic, question, options, correct, explanation, difficulty").eq("lesson_id", id).order("created_at");
 
   return (
     <article className="space-y-5">

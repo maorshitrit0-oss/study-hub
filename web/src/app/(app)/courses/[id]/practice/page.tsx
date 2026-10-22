@@ -15,7 +15,7 @@ export default async function Practice({ params, searchParams }: PageProps<"/cou
   const { id } = await params;
   const topic = (await searchParams).topic as string | undefined;
   const { sb } = await requireUser();
-  let q = sb.from("questions").select("id, lesson_id, topic, question, options, explanation, difficulty").eq("course_id", id);
+  let q = sb.from("questions").select("id, lesson_id, topic, question, options, correct, explanation, difficulty").eq("course_id", id);
   if (topic) q = q.eq("topic", topic);
   const [{ data: course }, { data: questions }, { data: attempts }] = await Promise.all([
     sb.from("courses").select("name").eq("id", id).single(),
