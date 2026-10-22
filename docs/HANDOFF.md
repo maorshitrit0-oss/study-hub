@@ -106,7 +106,8 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - A track is a course with kind `self`; its `notes` hold his context and teaching rules (verbatim, they bind the tutor).
   `skills` table = roadmap topics + project steps with his levels 0-4 (`web/src/lib/skills.ts`).
 - The course chat becomes a tutor (`TUTOR` in `api/chat/route.ts`): one topic, one MCQ, wait, demand reasoning,
-  no flattery, ASCII waveforms; it ends with "📈 התקדמות: <title> → <0-4> | note" lines that update `skills`.
+  no flattery, ASCII waveforms; also a free AI chat that quizzes after each explanation (1-4 answer buttons in the UI);
+  "➕ נושא חדש: <title>" adds a topic to the map; it ends with "📈 התקדמות: <title> → <0-4> | note" lines that update `skills`.
 - Seed: `supabase/self_study.sql` + `supabase/self_study_vlsi.sql`. Exam freeze 10-25/1/2027 (no new development).
 
 ## Open items

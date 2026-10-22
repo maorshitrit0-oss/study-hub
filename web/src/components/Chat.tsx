@@ -15,6 +15,7 @@ const LAB_STARTERS = [
 ];
 
 const SELF_STARTERS = [
+  "חידון: שאלה אמריקאית על כל נושא שלמדתי עד עכשיו, אחת בכל פעם",
   "יש לי 20 דקות - בוא נמשיך מהנושא הבא במפה",
   "יש לי 10 דקות - שאלה אחת על נקודה שטעיתי בה",
   "שעה מול המחשב - בוא נתקדם בפרויקט",
@@ -30,6 +31,11 @@ const STARTERS = [
   "תתרגם לי לעברית את המצגת / הקובץ באנגלית, עם המונחים באנגלית בסוגריים",
 ];
 
+/** The tutor's last message ends with a 4-option question: offer one-tap answers (he still writes the reasoning). */
+function hasChoices(m?: Msg) {
+  return m?.role === "model" && (m.content.match(/^\s*(?:\*\*)?[1-4][.)]/gm)?.length ?? 0) >= 4;
+}
+
 export default function Chat({ courseId, userId, initial, isLab = false, isSelf = false }: {
   courseId: string; userId: string; initial: Msg[]; isLab?: boolean; isSelf?: boolean;
 }) {
@@ -39,6 +45,7 @@ export default function Chat({ courseId, userId, initial, isLab = false, isSelf 
   const [busy, setBusy] = useState(false);
   const [withFiles, setWithFiles] = useState(isLab); // lab work always needs the booklets and reports
   const end = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => end.current?.scrollIntoView({ behavior: "smooth" }), [msgs]);
 
@@ -102,6 +109,14 @@ export default function Chat({ courseId, userId, initial, isLab = false, isSelf 
           )}
         </div>
       ))}
+      {isSelf && !busy && hasChoices(msgs[msgs.length - 1]) && (
+        <div className="flex gap-2 justify-center">
+          {[1, 2, 3, 4].map((n) => (
+            <button key={n} type="button" className="btn-ghost w-14 text-lg"
+              onClick={() => { setText(`תשובה ${n}. הנימוק שלי: `); input.current?.focus(); }}>{n}</button>
+          ))}
+        </div>
+      )}
       <div ref={end} />
       <form
         onSubmit={(e) => { e.preventDefault(); send(text); }}
@@ -123,7 +138,7 @@ export default function Chat({ courseId, userId, initial, isLab = false, isSelf 
             <input type="file" accept="image/*" multiple className="hidden"
               onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
           </label>
-          <textarea className="input flex-1 min-h-11 max-h-40" rows={1} value={text} placeholder={isSelf ? "התשובה שלך + הנימוק..." : "שאל כל דבר על הקורס..."}
+          <textarea ref={input} className="input flex-1 min-h-11 max-h-40" rows={1} value={text} placeholder={isSelf ? "התשובה שלך + הנימוק..." : "שאל כל דבר על הקורס..."}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !("ontouchstart" in window)) { e.preventDefault(); send(text); } }} />
           <button className="btn px-4" disabled={busy || !text.trim()}>שלח</button>

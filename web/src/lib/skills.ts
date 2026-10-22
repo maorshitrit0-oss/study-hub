@@ -19,11 +19,21 @@ export const FREEZES = [{ from: "2027-01-10", to: "2027-01-25", text: "תקופ�
  */
 export async function applyProgress(sb: SupabaseClient, courseId: string, reply: string) {
   const lines = [...reply.matchAll(/📈\s*התקדמות:\s*(.+?)\s*(?:→|->|=)\s*(?:רמה\s*)?([0-4])\s*(?:\|\s*(.+))?$/gm)];
-  if (!lines.length) return 0;
+  const added = [...reply.matchAll(/➕\s*נושא חדש:\s*(.+?)\s*$/gm)].map((m) => m[1]);
+  if (!lines.length && !added.length) return 0;
   const { data } = await sb.from("skills").select("*").eq("course_id", courseId);
   const skills = (data ?? []) as Skill[];
   const norm = (s: string) => s.replace(/[*_`"']/g, "").trim();
   let n = 0;
+  // New topics he studies go to the end of the roadmap (once).
+  let ord = Math.max(0, ...skills.filter((s) => s.kind === "topic").map((s) => s.ord));
+  for (const raw of added) {
+    const title = norm(raw);
+    if (!title || skills.some((s) => norm(s.title) === title)) continue;
+    const { data: row } = await sb.from("skills").insert({ course_id: courseId, kind: "topic", ord: ++ord, title, level: 1 }).select("*").single();
+    if (row) skills.push(row as Skill);
+    n++;
+  }
   for (const [, rawTitle, lvl, note] of lines) {
     const title = norm(rawTitle);
     const s = skills.find((x) => norm(x.title) === title) ?? skills.find((x) => norm(x.title).includes(title) || title.includes(norm(x.title)));
