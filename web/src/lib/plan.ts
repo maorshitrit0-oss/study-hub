@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { topicStats, isWeak, type TopicStat } from "./progress";
-import { missingRecordings } from "./recordings";
+import { classMeetings } from "./recordings";
 import type { Course, Deadline, Lesson } from "./types";
 
 export type Reminder = { text: string; href: string };
@@ -10,7 +10,9 @@ export type CoursePlan = {
   level: "high" | "medium" | "low";
   reasons: string[];
   reminders: Reminder[];
-  classLessons: number;      // class meetings so far: uploaded lessons + recent ones not uploaded yet
+  classLessons: number;      // class meetings so far (lectures + practices, or lab experiments)
+  lectures: number;          // lectures held so far: by the timetable, or uploaded if more
+  practices: number;
   missingUploads: number;
   read: number;
   ready: number;
@@ -26,12 +28,12 @@ const DAY = 864e5;
  * yet, tasks and exams coming up, weak topics, missing course files.
  */
 export async function weeklyPlan(sb: SupabaseClient): Promise<CoursePlan[]> {
-  const [{ data: courses }, { data: lessons }, { data: deadlines }, missing, { data: materials }, stats, { data: titles }] =
+  const [{ data: courses }, { data: lessons }, { data: deadlines }, meetings, { data: materials }, stats, { data: titles }] =
     await Promise.all([
       sb.from("courses").select("*").eq("archived", false),
       lessonsWithCoverage(sb),
       sb.from("deadlines").select("*").eq("done", false).gte("due_at", new Date(Date.now() - DAY).toISOString()),
-      missingRecordings(sb).catch(() => []),
+      classMeetings(sb).catch(() => ({ held: [], missing: [] })),
       sb.from("materials").select("course_id, kind, title"),
       topicStats(sb),
       sb.from("deadlines").select("course_id, title"),
@@ -55,7 +57,7 @@ export async function weeklyPlan(sb: SupabaseClient): Promise<CoursePlan[]> {
     }
 
     // Recordings since the semester started not uploaded yet (the home page lists them with actions).
-    const missingUploads = missing.filter((m) => m.slot.course_id === course.id).length;
+    const missingUploads = meetings.missing.filter((m) => m.slot.course_id === course.id).length;
     if (missingUploads) {
       score += missingUploads * 2;
       reasons.push(`${missingUploads} הקלטות שעוד לא העלית`);
@@ -104,6 +106,12 @@ export async function weeklyPlan(sb: SupabaseClient): Promise<CoursePlan[]> {
       reminders.push({ text: `להעלות מבחני עבר ב${course.name}`, href: `/courses/${course.id}` });
     }
 
+    // Meetings held per the timetable; uploaded lessons win when there are more (e.g. no timetable entered).
+    const held = (kind: string) => Math.max(
+      meetings.held.filter((m) => m.slot.course_id === course.id && m.slot.kind === kind).length,
+      ls.filter((l) => l.kind === kind).length);
+    const lectures = held("lecture");
+    const practices = held("practice");
     const total = cs.reduce((a, s) => a + s.total, 0);
     const correct = cs.reduce((a, s) => a + s.correct, 0);
     const covered = new Set(ls.flatMap((l) => l.syllabus_covered ?? []));
@@ -111,7 +119,8 @@ export async function weeklyPlan(sb: SupabaseClient): Promise<CoursePlan[]> {
     return {
       course, score, reasons, reminders, missingUploads,
       level: score >= 15 ? "high" : score >= 6 ? "medium" : "low",
-      classLessons: ls.length + missingUploads,
+      classLessons: course.kind === "lab" ? ls.filter((l) => l.kind === "lab").length : lectures + practices,
+      lectures, practices,
       read: ls.filter((l) => l.read_at).length,
       ready: ready.length,
       mastery: total ? Math.round((100 * correct) / total) : null,

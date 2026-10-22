@@ -80,9 +80,17 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Asked the user to: run `security.sql`, turn off "Allow new users to sign up" in Supabase, enable 2FA, and rotate the
   GitHub PAT and Gemini key he once showed in screenshots.
 
+## English (2026-10-22)
+- He is weak in English: chapters, quizzes and chat must be fully Hebrew (English terms only in parentheses).
+- Each chapter carries a `glossary` (en/he/explanation) saved to the `glossary` table (`supabase/glossary.sql`);
+  the "אנגלית" tab (`/words`) lists the words and quizzes them (missed words come back first, kept in localStorage).
+  Chapters written before this get their words with the "להוציא מילים" button (one Gemini call, `web/src/lib/glossary.ts`).
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
-- The first Java lecture (processed on GitHub Actions) – not yet confirmed whether Gemini wrote the chapter.
+- Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
+  every Gemini chapter failed after transcription (the 3 failed lessons). Fixed; he must press "לנסות שוב" on them.
+- Course page "הרצאות + תרגולים" counts meetings held per the timetable (or uploaded lessons if more), per kind.
 - Gemini authoring + verification pipeline has never run against the real API from this environment (no key here).
 
 ## Working with this repo

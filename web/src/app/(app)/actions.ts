@@ -8,6 +8,8 @@ import { parseIcs } from "@/lib/ics";
 import { israelLocalToIso } from "@/lib/format";
 import { extractSyllabus, looksLikeSyllabus } from "@/lib/syllabus";
 import { DRIVE_PREFIX, cleanTitle, driveId, materialBlob } from "@/lib/files";
+import { fillGlossary } from "@/lib/glossary";
+import { friendlyGeminiError } from "@/lib/gemini";
 
 const str = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? "").trim();
@@ -185,6 +187,26 @@ export async function readSyllabus(materialId: string): Promise<string> {
   } finally {
     revalidatePath(`/courses/${m.course_id}`);
   }
+}
+
+// ---------- English words ----------
+
+export async function buildGlossary(courseId: string): Promise<string> {
+  const { sb } = await requireUser();
+  try {
+    const n = await fillGlossary(sb, courseId);
+    return n ? `✓ נוספו ${n} מילים` : "לכל הפרקים בקורס כבר יש מילים";
+  } catch (e) {
+    return `⚠️ ${friendlyGeminiError(e)}`;
+  } finally {
+    revalidatePath("/words");
+  }
+}
+
+export async function deleteTerm(id: string) {
+  const { sb } = await requireUser();
+  await sb.from("glossary").delete().eq("id", id);
+  revalidatePath("/words");
 }
 
 export async function deleteMaterial(id: string, courseId: string) {

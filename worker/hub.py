@@ -167,6 +167,7 @@ def save_chapter(job, ch, by):
             "correct": q["correct"], "explanation": q.get("explanation"), "difficulty": q.get("difficulty", 2),
         } for q in ch["questions"]]).execute()
     save_course_facts(job, ch)
+    save_glossary(job, ch)
     chapter_md = ch["chapter_md"] + (author.verification_md(ch) if ch.get("verification") else "")
     fields = dict(chapter_md=chapter_md, topics=ch["topics"], status="ready",
                   syllabus_covered=[i for i in ch.get("syllabus_covered") or [] if isinstance(i, int)],
@@ -204,6 +205,23 @@ def save_course_facts(job, ch):
             job.sb.table("courses").update(update).eq("id", job.course["id"]).execute()
     except Exception as e:  # noqa: BLE001 - the chapter matters more than the facts
         print(f"course facts not saved: {e}")
+
+
+def save_glossary(job, ch):
+    """English terms for the course's vocabulary quiz (the user reads English slowly)."""
+    try:
+        job.sb.table("glossary").delete().eq("lesson_id", job.lesson["id"]).execute()
+        seen, rows = set(), []
+        for g in ch.get("glossary") or []:
+            key = g["en"].strip().lower()
+            if key and key not in seen:
+                seen.add(key)
+                rows.append({"user_id": job.lesson["user_id"], "course_id": job.course["id"], "lesson_id": job.lesson["id"],
+                             "en": g["en"].strip(), "he": g["he"].strip(), "explanation": (g.get("explanation") or "").strip()})
+        if rows:
+            job.sb.table("glossary").insert(rows).execute()
+    except Exception as e:  # noqa: BLE001 - the chapter matters more than the word list
+        print(f"glossary not saved: {e}")
 
 
 def cmd_queued():

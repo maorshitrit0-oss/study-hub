@@ -22,6 +22,12 @@ CHAPTER_SCHEMA = {
             },
         },
         "syllabus_covered": {"type": "array", "items": {"type": "integer"}},
+        "glossary": {
+            "type": "array",
+            "items": {"type": "object", "properties": {"en": {"type": "string"}, "he": {"type": "string"},
+                                                       "explanation": {"type": "string"}},
+                      "required": ["en", "he", "explanation"]},
+        },
         "exam_type": {"type": "string", "enum": ["mcq", "open", "mixed", "none", "unknown"]},
         "grade_weights": {
             "type": "array",
@@ -51,7 +57,8 @@ FACT_LABEL = {"exam": "המבחן", "exam_hint": "מה יהיה במבחן", "gr
               "assignments": "מטלות והגשות", "attendance": "נוכחות", "materials": "חומרים מותרים וספרות", "other": "כללי"}
 
 SYSTEM = """אתה מרצה ומתרגל מעולה בהנדסת חשמל. הסטודנט לא צפה בהקלטה ולומד רק מקריאה ומשאלונים.
-כתוב בעברית. מונחים טכניים - גם באנגלית בסוגריים בפעם הראשונה.
+כתוב הכל בעברית - גם כשהשקפים, הקוד או הקובץ באנגלית: תרגם את התוכן לעברית (בקוד - ההערות וההסברים בעברית, הקוד עצמו כמו שהוא).
+מונחים טכניים - בעברית, ובפעם הראשונה גם המונח באנגלית בסוגריים. השאלון וההסברים - בעברית.
 
 כללי הכתיבה של chapter_md (Markdown):
 - כותרות ## לכל נושא, לפי סדר ההרצאה. הסבר אינטואיטיבי קודם, אחר כך הגדרות ונוסחאות, ואז דוגמה.
@@ -78,6 +85,9 @@ course_facts: כל מידע מנהלי חשוב שנאמר (גם בפטפוט ב
 - attendance: חובת נוכחות. materials: סביבת עבודה, ספרים, דף נוסחאות. other: כל דבר מנהלי חשוב אחר.
 אם לא נאמר שום דבר מנהלי - רשימה ריקה. אל תמציא.
 exam_type ו-grade_weights: רק אם נאמרו במפורש בחומר הזה, אחרת "unknown" ורשימה ריקה.
+glossary: 10-30 מונחים באנגלית מהחומר (מהשקפים, מהקוד ומהדיבור) - הסטודנט לא חזק באנגלית ונבחן על חומר שכתוב באנגלית.
+en - המונח כמו שהוא מופיע באנגלית; he - התרגום/המונח המקובל בעברית; explanation - משפט קצר בעברית מה זה אומר בקורס הזה.
+כלול גם מילים באנגלית שאינן מונחים טכניים אבל מופיעות בשקפים/בשאלות (למשל assume, derive, respectively).
 syllabus_covered: אם צורפה רשימת נושאי הסילבוס - המספרים של הנושאים שהשיעור הזה לימד (גם חלקית). אחרת רשימה ריקה."""
 
 KIND_TASK = {
@@ -220,19 +230,23 @@ def _generate_json(parts, system, schema, thinking="MEDIUM"):
     return json.loads(text)
 
 
-def _source_parts(course, lesson, transcript, slides, previous_topics):
+def _source_parts(course, lesson, transcript, slides, previous_topics, docs=()):
     from google.genai import types
     parts = [types.Part.from_text(text=build_prompt(course, lesson, transcript, len(slides), previous_topics))]
+    for data, mime in docs:
+        parts.append(types.Part.from_text(text="הקובץ המצורף (המקור לפרק):"))
+        parts.append(types.Part.from_bytes(data=data, mime_type=mime))
     for n, path in slides:
         parts.append(types.Part.from_text(text=f"שקף {n}:"))
         parts.append(types.Part.from_bytes(data=Path(path).read_bytes(), mime_type="image/webp"))
     return parts
 
 
-def author_with_gemini(course, lesson, transcript, slides, previous_topics, log=print):
-    """slides: list of (number, Path). Writes the chapter, then has it fact-checked. Returns the chapter dict."""
+def author_with_gemini(course, lesson, transcript, slides, previous_topics, log=print, docs=()):
+    """slides: list of (number, Path); docs: list of (bytes, mime) files to read.
+    Writes the chapter, then has it fact-checked. Returns the chapter dict."""
     log("כותב פרק קריאה ושאלון...")
-    sources = _source_parts(course, lesson, transcript, slides, previous_topics)
+    sources = _source_parts(course, lesson, transcript, slides, previous_topics, docs)
     draft = validate(_generate_json(sources, SYSTEM, CHAPTER_SCHEMA, "MEDIUM"))
     log("בודק את הפרק והשאלון מול ההקלטה, השקפים והידע המקצועי...")
     return verify_with_gemini(sources, draft, log)
@@ -253,6 +267,8 @@ VERIFY_SYSTEM = """אתה בודק עובדות קפדן בהנדסת חשמל. 
    - ההסבר נכון.
    תקן מה שצריך. שאלה שאי אפשר לתקן בוודאות - הסר.
 3. course_facts / exam_type / grade_weights: השאר רק מה שנאמר במפורש במקור, מדויק.
+4. glossary: ודא שכל תרגום נכון ומקובל בהנדסת חשמל ושההסבר נכון. תקן או הסר.
+5. ודא שהפרק והשאלון כתובים בעברית (מונחים באנגלית רק בסוגריים).
 
 החזר את הפרק המתוקן המלא באותו מבנה, ובנוסף verification:
 - fixes: רשימה קצרה של כל מה שתיקנת (משפט לכל תיקון).
@@ -332,4 +348,5 @@ def validate(ch):
             good.append(q)
     ch["questions"] = good
     ch.setdefault("topics", [])
+    ch["glossary"] = [g for g in ch.get("glossary") or [] if isinstance(g, dict) and g.get("en") and g.get("he")]
     return ch

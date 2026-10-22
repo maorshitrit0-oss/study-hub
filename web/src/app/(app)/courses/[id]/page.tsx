@@ -73,9 +73,10 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
         )}
       </header>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <Link href={`/courses/${id}/chat`} className="card text-center font-medium">💬 צ&apos;אט על הקורס</Link>
         <Link href={`/courses/${id}/practice`} className="card text-center font-medium">✍️ תרגול שאלות</Link>
+        <Link href={`/words?course=${id}`} className="card text-center font-medium">🔤 מילים באנגלית</Link>
       </div>
 
       {plan && (
@@ -86,8 +87,17 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="rounded-xl bg-accent-soft p-2">
-              <div className="text-xl font-bold">{plan.classLessons}</div>
-              <div className="text-xs text-muted">שיעורים בכיתה</div>
+              {c.kind === "lab" ? (
+                <>
+                  <div className="text-xl font-bold">{plan.classLessons}</div>
+                  <div className="text-xs text-muted">ניסויים</div>
+                </>
+              ) : (
+                <>
+                  <div className="text-xl font-bold">{plan.lectures}<span className="text-muted font-normal"> + </span>{plan.practices}</div>
+                  <div className="text-xs text-muted">הרצאות + תרגולים בכיתה</div>
+                </>
+              )}
             </div>
             <div className="rounded-xl bg-accent-soft p-2">
               <div className="text-xl font-bold">{plan.read}</div>

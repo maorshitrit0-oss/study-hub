@@ -15,7 +15,7 @@ do $$
 declare t text;
 begin
   foreach t in array array['courses', 'lessons', 'questions', 'attempts', 'materials', 'deadlines', 'chat_messages',
-                           'settings', 'push_subscriptions', 'course_facts', 'schedule_slots', 'recording_marks', 'usage_snapshot']
+                           'settings', 'push_subscriptions', 'course_facts', 'schedule_slots', 'recording_marks', 'usage_snapshot', 'glossary']
   loop
     if to_regclass('public.' || t) is not null then
       execute format('drop policy if exists require_mfa on %I', t);

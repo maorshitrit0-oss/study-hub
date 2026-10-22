@@ -19,6 +19,11 @@ function israelDate(d: Date) {
  * same course and kind was added on or after that day (lessons are matched to meetings in date order).
  */
 export async function missingRecordings(sb: SupabaseClient): Promise<Missing[]> {
+  return (await classMeetings(sb)).missing;
+}
+
+/** Every lecture/practice meeting held since the semester started, and which of them still lack a recording. */
+export async function classMeetings(sb: SupabaseClient): Promise<{ held: Missing[]; missing: Missing[] }> {
   const since = new Date(`${SEMESTER_START}T00:00:00+03:00`);
   const days = Math.ceil((Date.now() - since.getTime()) / DAY_MS);
   const [{ data: slots }, { data: marks }, { data: lessons }] = await Promise.all([
@@ -45,7 +50,7 @@ export async function missingRecordings(sb: SupabaseClient): Promise<Missing[]> 
 
   const used = new Set<number>();
   const pending = (lessons ?? []) as { course_id: string; kind: string; created_at: string }[];
-  return meetings.filter((m) => {
+  const missing = meetings.filter((m) => {
     if (marked.has(`${m.slot.id}|${m.date}`)) return false;
     const i = pending.findIndex((l, j) => !used.has(j) && l.course_id === m.slot.course_id
       && l.kind === m.slot.kind && israelDate(new Date(l.created_at)) >= m.date);
@@ -55,4 +60,5 @@ export async function missingRecordings(sb: SupabaseClient): Promise<Missing[]> 
     }
     return true;
   });
+  return { held: meetings, missing };
 }
