@@ -96,12 +96,12 @@ export default function GradeGoal({ rows }: { rows: GradeRow[] }) {
         );
       })}
 
-      <details>
-        <summary className="cursor-pointer text-sm font-semibold">השנה ({thisYear.length} קורסים)</summary>
+      <details open>
+        <summary className="cursor-pointer text-sm font-semibold">רשום השנה ({thisYear.length} קורסים, {thisYear.reduce((a, r) => a + Number(r.credits), 0)} נק&quot;ז)</summary>
         <ul className="divide-y divide-line">{thisYear.map((r) => row(r, needDegree))}</ul>
       </details>
-      <details>
-        <summary className="cursor-pointer text-sm font-semibold">עד סוף התואר ({open.length - thisYear.length} פריטים)</summary>
+      <details open>
+        <summary className="cursor-pointer text-sm font-semibold">עוד לא נלקח ({open.length - thisYear.length} פריטים, {open.filter((r) => r.academic_year === REST).reduce((a, r) => a + Number(r.credits), 0)} נק&quot;ז)</summary>
         <ul className="divide-y divide-line">{open.filter((r) => r.academic_year === REST).map((r) => row(r, needDegree))}</ul>
       </details>
     </section>
