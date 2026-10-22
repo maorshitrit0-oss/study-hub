@@ -48,7 +48,7 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
               <AutoRefresh />
               <p className="font-medium">{lesson.status === "queued" ? "בתור לעיבוד..." : "מעבד..."}</p>
               <p className="text-sm text-muted">{lesson.progress ?? "מתחיל בקרוב"}</p>
-              <p className="text-xs text-muted">אפשר לסגור את הדף - העיבוד רץ בשרת. הרצאה של שעה וחצי לוקחת בערך 40 דקות.</p>
+              <p className="text-xs text-muted">אפשר לסגור את הדף - העיבוד רץ בשרת ותקבל התראה כשהוא מוכן. זמן העיבוד בערך 40% מאורך ההקלטה.</p>
             </>
           )}
         </section>

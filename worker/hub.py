@@ -121,6 +121,10 @@ def cmd_process(lesson_id, do_author=True):
                 title = source.stem
             else:
                 video, audio, title = media.download(url, work, log=job.log)
+            length = media.duration(audio)
+            if length:
+                # Measured on GitHub's runners: ~0.4 minutes of processing per minute of recording.
+                job.log(f"אורך ההקלטה {media.fmt_time(length)} · זמן עיבוד משוער: כ-{max(5, round(length * 0.4 / 60))} דקות")
             job.log("מזהה שקפים / מצבי לוח...")
             scenes = media.detect_slides(video, log=job.log)
             slides = media.save_slides(video, scenes, work)
