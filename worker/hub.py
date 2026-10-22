@@ -102,14 +102,23 @@ def cmd_process(lesson_id, do_author=True):
         slides, docs = [], []
         url = job.lesson.get("source_url") or ""
         source = None
-        if job.lesson.get("source_path"):  # a file uploaded in the app (lab booklet, prelab...)
+        reuse = bool(job.lesson.get("transcript")) and do_author
+        if reuse:
+            # A retry after the chapter step failed: reuse the transcript and snapshots instead of
+            # downloading and transcribing the recording again (that takes ~0.4x its length).
+            job.log("משתמש בתמלול שכבר נעשה...")
+            transcript = job.lesson["transcript"]
+            slides = load_slides(job, work)
+        elif job.lesson.get("source_path"):  # a file uploaded in the app (lab booklet, prelab...)
             job.log("מוריד את הקובץ...")
             source = work / Path(job.lesson["source_path"]).name
             source.write_bytes(job.sb.storage.from_(BUCKET).download(job.lesson["source_path"]))
         elif media.is_drive(url):
             source = media.download_drive(url, work, log=job.log)
 
-        if source is not None and not media.is_video(source):
+        if reuse:
+            pass
+        elif source is not None and not media.is_video(source):
             docs = [(source.read_bytes(), media.mime_of(source))]
             transcript = ""
         elif job.lesson["kind"] == "web":
@@ -138,7 +147,8 @@ def cmd_process(lesson_id, do_author=True):
             transcript = transcript_with_markers(segments, slides)
             if not job.lesson.get("title"):
                 job.update(title=title)
-        job.update(transcript=transcript, status="transcribed", progress="התמלול מוכן")
+        if not reuse:
+            job.update(transcript=transcript, status="transcribed", progress="התמלול מוכן")
 
         if do_author and os.environ.get("GEMINI_API_KEY"):
             ch = author.author_with_gemini(job.course, job.lesson, transcript,
@@ -155,6 +165,19 @@ def cmd_process(lesson_id, do_author=True):
         raise
     finally:
         shutil.rmtree(work, ignore_errors=True)
+
+
+def load_slides(job, work):
+    """The lesson's board snapshots from storage, as (number, start, path) like media.save_slides."""
+    store, slides = job.sb.storage.from_(BUCKET), []
+    for n in range(1, (job.lesson.get("slide_count") or 0) + 1):
+        p = work / f"slide_{n:03d}.webp"
+        try:
+            p.write_bytes(store.download(f"{job.prefix}/{p.name}"))
+            slides.append((n, None, p))
+        except Exception:  # noqa: BLE001
+            pass
+    return slides
 
 
 def save_chapter(job, ch, by):

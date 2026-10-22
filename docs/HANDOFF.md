@@ -94,6 +94,8 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   Never store his ID number, address or phone from such documents.
 - `deadlines.check_due`: a task with no published submission date. Its `due_at` is a placeholder (+120 days); the app
   shows "אין עדיין מועד הגשה" and reminds to check it, and the morning push lists them on Sundays and Wednesdays.
+- "לנסות שוב" on a lesson that already has a transcript skips download/transcription and only rewrites the chapter.
+- iOS auto-zoom on inputs left the bottom nav floating mid-screen: viewport maximumScale 1 + 16px inputs.
 - He wants lectures and practices shown **separately** everywhere (except the lab).
 
 ## Open items

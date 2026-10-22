@@ -13,6 +13,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Stops iOS from zooming in on a focused field (it left the bottom menu floating mid-screen); pinch zoom still works.
+  maximumScale: 1,
   viewportFit: "cover",
   themeColor: "#071a33",
 };

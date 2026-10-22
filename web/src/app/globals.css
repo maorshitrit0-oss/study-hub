@@ -60,6 +60,8 @@ body::before {
 .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-medium bg-accent text-white active:opacity-80 disabled:opacity-50; }
 .btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 font-medium text-accent bg-accent-soft active:opacity-80; }
 .input { @apply w-full rounded-xl border border-line bg-card px-3 py-2.5 text-fg outline-none focus:border-accent; }
+/* iOS zooms into fields with text under 16px. */
+input, select, textarea { font-size: max(16px, 1em); }
 .label { @apply block text-sm text-muted mb-1; }
 .chip { @apply inline-block rounded-full px-2.5 py-0.5 text-xs font-medium bg-accent-soft text-accent; }
 
