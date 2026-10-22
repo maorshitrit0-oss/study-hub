@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { addMaterial, deleteMaterial } from "@/app/(app)/actions";
+import { addMaterial, deleteMaterial, readSyllabus } from "@/app/(app)/actions";
 
 type Material = { id: string; title: string; kind: string; storage_path: string };
 const KINDS: Record<string, string> = {
@@ -24,7 +24,7 @@ export default function Materials({ courseId, userId, items }: { courseId: strin
       const path = `${userId}/materials/${courseId}/${Date.now()}_${safe}`;
       const { error } = await sb.storage.from("study").upload(path, file, { contentType: file.type });
       if (error) { setBusy(`שגיאה: ${error.message}`); return; }
-      if (kind === "syllabus") setBusy(`קורא את הסילבוס ${file.name}...`);
+      setBusy(`שומר ${file.name}... (סילבוס נקרא אוטומטית, זה לוקח כחצי דקה)`);
       const note = await addMaterial(courseId, { title: file.name, kind, path, mime: file.type, size: file.size });
       if (note) { setBusy(note); router.refresh(); return; }
     }
@@ -45,7 +45,15 @@ export default function Materials({ courseId, userId, items }: { courseId: strin
             <li key={m.id} className="flex items-center gap-2 py-2">
               <span className="chip">{KINDS[m.kind] ?? m.kind}</span>
               <button className="flex-1 text-start truncate" onClick={() => open(m.storage_path)}>{m.title}</button>
-              <button className="text-muted text-sm" onClick={async () => { await deleteMaterial(m.id, courseId); router.refresh(); }}>מחיקה</button>
+              {["syllabus", "other", "slides"].includes(m.kind) && <button className="text-accent text-sm shrink-0" title="לקרוא את המבחן, המשקלים וההקלות מהקובץ"
+                onClick={async () => {
+                  setBusy(`קורא את ${m.title}... (כחצי דקה)`);
+                  setBusy(await readSyllabus(m.id));
+                  router.refresh();
+                }}>
+                {m.kind === "syllabus" ? "קרא מחדש" : "זה סילבוס"}
+              </button>}
+              <button className="text-muted text-sm shrink-0" onClick={async () => { await deleteMaterial(m.id, courseId); router.refresh(); }}>מחיקה</button>
             </li>
           ))}
         </ul>
@@ -61,7 +69,7 @@ export default function Materials({ courseId, userId, items }: { courseId: strin
         </label>
       </div>
       {busy && <p className="text-sm text-muted">{busy}</p>}
-      <p className="text-xs text-muted">סילבוס שמועלה נקרא אוטומטית: המבחן, המשקלים והקלות המילואים עוברים לדף הקורס. ה-AI בצ&apos;אט קורא את כל הקבצים.</p>
+      <p className="text-xs text-muted">סילבוס נקרא אוטומטית (PDF או Word): מבנה המבחן, המשקלים והקלות המילואים עוברים ל&quot;מידע על הקורס&quot;. קובץ שכבר הועלה - לחץ &quot;זה סילבוס&quot; לידו. ה-AI בצ&apos;אט קורא את כל הקבצים.</p>
     </div>
   );
 }

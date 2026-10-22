@@ -29,8 +29,8 @@ export default function CourseFacts({ facts, reservist, lessonNames }: {
 
   return (
     <section className="card">
-      <h2 className="font-semibold mb-1">מה המרצה אמר על הקורס</h2>
-      <p className="text-xs text-muted mb-3">נאסף אוטומטית מההרצאות. כדאי לבדוק מול הסילבוס.</p>
+      <h2 className="font-semibold mb-1">מידע על הקורס</h2>
+      <p className="text-xs text-muted mb-3">נאסף אוטומטית מהסילבוס ומההרצאות.</p>
       <div className="space-y-4">
         {groups.map(([cat, list]) => (
           <div key={cat} className={cat === "reservist" && reservist ? "rounded-xl bg-warn-soft p-3 -mx-1" : ""}>
