@@ -1,0 +1,30 @@
+# Morning digest of deadlines, exams and unread chapters, sent as push notifications.
+name: notify
+
+on:
+  schedule:
+    - cron: "0 5 * * *"   # 08:00 Israel summer time / 07:00 winter time
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "daily / setup / test"
+        default: daily
+      user_id:
+        description: "for test: who gets the notification"
+        default: ""
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install supabase pywebpush
+      - working-directory: worker
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python notify.py "${{ inputs.mode || 'daily' }}" ${{ inputs.user_id }}

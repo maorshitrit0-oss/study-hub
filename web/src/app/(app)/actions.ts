@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
-import { dispatchLesson } from "@/lib/github";
+import { dispatchLesson, dispatchNotify } from "@/lib/github";
 import { parseIcs } from "@/lib/ics";
 
 const str = (f: FormData, k: string) => {
@@ -214,4 +214,34 @@ export async function syncMoodle(): Promise<string> {
   revalidatePath("/deadlines");
   revalidatePath("/");
   return `סונכרנו ${rows.length} אירועים מהמודל`;
+}
+
+// ---------- push notifications ----------
+
+export async function pushPublicKey(): Promise<string | null> {
+  const { sb } = await requireUser();
+  const { data } = await sb.rpc("push_public_key");
+  if (data) return data as string;
+  // First use: ask the notification worker to create the signing keys (takes ~1 minute).
+  await dispatchNotify("setup");
+  return null;
+}
+
+export async function savePushSubscription(sub: { endpoint: string; keys: { p256dh: string; auth: string } }) {
+  const { sb, userId } = await requireUser();
+  await sb.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+  const { error } = await sb.from("push_subscriptions").insert({
+    user_id: userId, endpoint: sub.endpoint, p256dh: sub.keys.p256dh, auth: sub.keys.auth,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function removePushSubscription(endpoint: string) {
+  const { sb } = await requireUser();
+  await sb.from("push_subscriptions").delete().eq("endpoint", endpoint);
+}
+
+export async function sendTestPush() {
+  const { userId } = await requireUser();
+  return dispatchNotify("test", userId);
 }

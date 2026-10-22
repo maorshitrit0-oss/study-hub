@@ -20,6 +20,7 @@ from supabase import create_client
 
 import author
 import media
+import notify
 
 BUCKET = "study"
 
@@ -47,6 +48,11 @@ class Job:
     def log(self, msg):
         print(msg, flush=True)
         self.update(progress=msg)
+
+    def label(self):
+        kinds = {"lecture": "הרצאה", "practice": "תרגול", "lab": "מעבדה", "web": "מאמר", "other": "חומר"}
+        num = f" {self.lesson['number']}" if self.lesson.get("number") else ""
+        return f"{kinds.get(self.lesson['kind'], '')}{num} · {self.course['name']}"
 
     def previous_topics(self):
         rows = (self.sb.table("lessons").select("topics").eq("course_id", self.course["id"])
@@ -122,6 +128,8 @@ def cmd_process(lesson_id, do_author=True):
             job.log("התמלול מוכן - מחכה לכתיבת הפרק (Claude)")
     except Exception as e:
         job.update(status="error", error=str(e)[:2000])
+        notify.send(job.sb, job.lesson["user_id"], f"⚠️ העיבוד נכשל: {job.label()}",
+                    "לחץ כדי לראות מה קרה ולנסות שוב", f"/lessons/{job.lesson['id']}")
         raise
     finally:
         shutil.rmtree(work, ignore_errors=True)
@@ -142,6 +150,8 @@ def save_chapter(job, ch, by):
         fields["title"] = ch.get("title")
     job.update(**fields)
     print(f"published: {len(ch['questions'])} questions", flush=True)
+    notify.send(job.sb, job.lesson["user_id"], f"✅ {job.label()} מוכן לקריאה",
+                f"{ch.get('title') or ''}\n{len(ch['questions'])} שאלות בשאלון".strip(), f"/lessons/{job.lesson['id']}")
 
 
 def cmd_queued():

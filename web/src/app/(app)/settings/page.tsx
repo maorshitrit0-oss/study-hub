@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/supabase/server";
 import SyncMoodle from "@/components/SyncMoodle";
+import PushToggle from "@/components/PushToggle";
 import { saveSettings } from "../actions";
 import { signOut } from "@/app/login/actions";
 
@@ -12,6 +13,12 @@ export default async function Settings() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold">הגדרות</h1>
+
+      <section className="card space-y-3">
+        <h2 className="font-semibold">התראות</h2>
+        <p className="text-sm text-muted">כל בוקר: מה מגישים היום ומחר ומבחנים בשבוע הקרוב. וגם כשפרק חדש מוכן לקריאה.</p>
+        <PushToggle />
+      </section>
 
       <section className="card space-y-3">
         <h2 className="font-semibold">סנכרון עם המודל</h2>
