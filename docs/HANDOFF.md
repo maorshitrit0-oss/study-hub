@@ -108,6 +108,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - His study plan (22/10/2026) for year 3B and year 4 is in `degreePlan.ts` (audit credits win where they differ).
   It omits the mandatory electromagnetics retake (kept as "עוד לא משובץ"). A retaken course's new grade REPLACES the
   failed one at Ariel (he confirmed) - `forProjection` drops the failed row from future averages.
+- He retakes electromagnetics in year 3 semester B. Realistic forecast (`web/src/lib/predict.ts`): per course, his
+  average in the same category of past courses, adjusted by quiz accuracy (>=15 answers) and reading vs class;
+  shown on /grades with the reasons. Projected 22/10/2026 with no quiz data: ~85.7 end of year 3, ~85.3 end of degree.
 - Target average (goal 90+): `GradeGoal` on /grades and a chip on each course page (`web/src/lib/gradeGoal.ts`).
   Current courses are added to `grades` (academic year 'תשפ"ז', credits 0 until he fills them). 82.86 over 73.5 credits:
   90 is out of reach this semester; ~96 on all remaining ~84 credits (if the degree is 160 - verify). Retaking

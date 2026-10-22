@@ -21,11 +21,11 @@ const IN_PROGRESS: (Item & { semester: string })[] = [
   { code: "002-4366010", name: "ניתוח נתונים מעשי ובינה מלאכותית בפייתון", credits: 3, semester: "ב" },
   { code: "002-4331530", name: "מעבדה 3", credits: 2, kind: "מעבדה", semester: "ב" },
   { code: "002-4375410", name: "פיזיקה של מל\"מ", credits: 3, semester: "ב" },
+  { code: "002-4322510", name: "תורת החשמל ואלקטרומגנטיקה (חזרה על הקורס)", credits: 3.5, semester: "ב" },
 ];
 
-/** Year 4, as he plans it (semester "ד-א" / "ד-ב"); the electromagnetics retake is not in his plan yet. */
+/** Year 4, as he plans it (semester "ד-א" / "ד-ב"). */
 const REMAINING: (Item & { semester: string })[] = [
-  { code: "002-4322510", name: "תורת החשמל ואלקטרומגנטיקה (חזרה על הקורס - חובה, לא בתוכנית)", credits: 3.5, semester: "נותר" },
   { code: "002-4330610", name: "מבוא למערכות תקשורת", credits: 3.5, semester: "ד-א" },
   { code: "002-4375610", name: "רכיבים מתוכנתים ומבוא ל-VHDL (בשתי ההתמחויות)", credits: 3.5, semester: "ד-א" },
   { code: "002-4361110", name: "התקני VLSI", credits: 3.5, semester: "ד-א" },
@@ -54,8 +54,18 @@ export function similar(a: string, b: string) {
  * Loads his plan into the grade sheet once (and replaces the first, coarser plan of the same day). Only rows the app
  * generated and that have no grade are replaced; real grades are never touched.
  */
-export async function ensureDegreePlan(sb: SupabaseClient, rows: GradeRow[]) {
-  if (rows.some((r) => r.name === PLAN_MARK)) return false;
+export async function ensureDegreePlan(sb: SupabaseClient, loaded: GradeRow[]) {
+  let rows = loaded;
+  let changed = false;
+  // He retakes electromagnetics in year 3, semester B (told 22/10/2026).
+  const retake = rows.find((r) => r.academic_year === REST && !r.grade && sameCode(r.code, "002-4322510"));
+  if (retake) {
+    const moved = { academic_year: THIS_YEAR, semester: "ב", name: "תורת החשמל ואלקטרומגנטיקה (חזרה על הקורס)" };
+    await sb.from("grades").update(moved).eq("id", retake.id);
+    rows = rows.map((r) => (r.id === retake.id ? { ...r, ...moved } : r));
+    changed = true;
+  }
+  if (rows.some((r) => r.name === PLAN_MARK)) return changed;
   // The audit shows 32 (a later exam) where the sheet of 07/10 had 26; still not passed.
   await sb.from("grades").update({ grade: "32", failed: true }).eq("code", "002-4322510").eq("grade", "26");
   await sb.from("grades").delete().eq("academic_year", REST).is("grade", null);

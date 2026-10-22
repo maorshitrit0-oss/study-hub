@@ -4,6 +4,7 @@ import { useState } from "react";
 import { setGradeRow } from "@/app/(app)/actions";
 import { forProjection, needed, num, pending, totals, type GradeRow } from "@/lib/gradeGoal";
 import { REST } from "@/lib/degreePlan";
+import type { Prediction } from "@/lib/predict";
 
 const fmt = (x: number | null) => (x === null ? "—" : x.toFixed(1));
 
@@ -11,7 +12,7 @@ const fmt = (x: number | null) => (x === null ? "—" : x.toFixed(1));
  * What grades are needed for a target average: by the end of this year, and by the end of the degree
  * (the rest of the degree is in the sheet as rows without a grade). Expected grades can be typed in to see the effect.
  */
-export default function GradeGoal({ rows: all }: { rows: GradeRow[] }) {
+export default function GradeGoal({ rows: all, predictions }: { rows: GradeRow[]; predictions: Record<string, Prediction> }) {
   const [target, setTarget] = useState(90);
   const [expected, setExpected] = useState<Record<string, number>>({});
   const now = totals(all); // today's official average, failed grades included
@@ -22,6 +23,12 @@ export default function GradeGoal({ rows: all }: { rows: GradeRow[] }) {
   const thisYear = open.filter((r) => r.academic_year !== REST);
   const needYear = needed(target, base.sum, base.credits, free(thisYear));
   const needDegree = needed(target, base.sum, base.credits, free(open));
+  // Realistic forecast: predicted grades (or his own expected grade where he typed one).
+  const forecast = (list: GradeRow[]) => {
+    const t = totals(rows.filter((r) => r.grade || list.includes(r)),
+      Object.fromEntries(list.map((r) => [r.id, expected[r.id] ?? predictions[r.id]?.grade ?? 0])));
+    return t.credits ? t.sum / t.credits : null;
+  };
   const missingCredits = pending(rows).filter((r) => !(Number(r.credits) > 0));
   const replaced = all.filter((r) => !rows.includes(r));
   // Ending average if every course left gets the same grade.
@@ -34,6 +41,12 @@ export default function GradeGoal({ rows: all }: { rows: GradeRow[] }) {
         <span className="min-w-0">
           <span className="font-medium">{r.name}</span>
           <span className="block text-xs text-muted">{Number(r.credits)} נק&quot;ז</span>
+          {predictions[r.id] && (
+            <details className="text-xs">
+              <summary className="cursor-pointer text-good">צפי {predictions[r.id].grade} · ודאות {predictions[r.id].confidence}</summary>
+              <ul className="text-muted">{predictions[r.id].why.map((w) => <li key={w}>{w}</li>)}</ul>
+            </details>
+          )}
         </span>
         <span className="flex items-center gap-2 shrink-0">
           {mine === undefined && need !== null && (
@@ -84,6 +97,12 @@ export default function GradeGoal({ rows: all }: { rows: GradeRow[] }) {
             : <>עד סוף התואר ל-{target}: <b>לא אפשרי</b> (היה צריך {fmt(needDegree)}) - כדאי לבחור יעד נמוך יותר.</>}
         </p>
         <p className="text-muted">אם תקבל בכל מה שנשאר 85 / 90 / 95 - תסיים עם {fmt(endWith(85))} / {fmt(endWith(90))} / {fmt(endWith(95))}.</p>
+      </div>
+
+      <div className="rounded-xl bg-good-soft p-3 text-sm space-y-1">
+        <p className="font-semibold">📈 תחזית ריאלית</p>
+        <p>סוף שנה ג&apos;: <b>{fmt(forecast(thisYear))}</b> · סוף התואר: <b>{fmt(forecast(open))}</b></p>
+        <p className="text-xs text-muted">לפי הציונים שלך בקורסים דומים, ולקורסים של עכשיו גם לפי השאלונים והקריאה באפליקציה. מתעדכן עם כל ציון חדש וכל שאלון. &quot;צפי&quot; ליד כל קורס - לחיצה מראה למה.</p>
       </div>
 
       {replaced.map((r) => (

@@ -5,6 +5,32 @@ import GradeGoal from "@/components/GradeGoal";
 import { sameCode, type GradeRow } from "@/lib/gradeGoal";
 import { ensureDegreePlan, REST as REST_YEAR, similar, THIS_YEAR as CURRENT_YEAR } from "@/lib/degreePlan";
 import { deleteGradeRow } from "@/app/(app)/actions";
+import { predict, type Signals } from "@/lib/predict";
+import { topicStats } from "@/lib/progress";
+import { weeklyPlan } from "@/lib/plan";
+
+/** What he does in the app per current course: quiz answers and reading vs the class. */
+async function learningSignals(sb: SupabaseClient, rows: GradeRow[]) {
+  const [{ data: courses }, stats, plan] = await Promise.all([
+    sb.from("courses").select("id, name, code").eq("archived", false),
+    topicStats(sb),
+    weeklyPlan(sb),
+  ]);
+  const out = new Map<string, Signals>();
+  for (const r of rows.filter((x) => !x.grade)) {
+    const c = (courses ?? []).find((c) => sameCode(r.code, c.code) || similar(r.name, c.name));
+    if (!c) continue;
+    const cs = stats.filter((t) => (t as { course_id?: string }).course_id === c.id);
+    const p = plan.find((x) => x.course.id === c.id);
+    out.set(r.id, {
+      answered: cs.reduce((a, t) => a + t.answered, 0),
+      correct: cs.reduce((a, t) => a + t.correct, 0),
+      read: p?.read ?? 0,
+      classLessons: p?.classLessons ?? 0,
+    });
+  }
+  return out;
+}
 
 /** Current courses get a grade row (no grade yet) so the target calculator includes them. */
 async function addCurrentCourses(sb: SupabaseClient, rows: GradeRow[]) {
@@ -76,7 +102,7 @@ export default async function GradesPage() {
         </div>
       )}
 
-      {rows.length > 0 && <GradeGoal rows={rows} />}
+      {rows.length > 0 && <GradeGoal rows={rows} predictions={Object.fromEntries(predict(rows as GradeRow[], await learningSignals(sb, rows as GradeRow[]).catch(() => new Map())))} />}
 
       {(failed.length > 0 || pending.length > 0) && (
         <section className="card text-sm space-y-1">
