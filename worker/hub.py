@@ -19,6 +19,7 @@ from pathlib import Path
 from supabase import create_client
 
 import author
+import cleanup
 import media
 import notify
 
@@ -177,6 +178,10 @@ def save_chapter(job, ch, by):
         fields.pop("syllabus_covered", None)
         job.update(**fields)
     print(f"published: {len(ch['questions'])} questions", flush=True)
+    try:
+        print(f"removed {cleanup.prune_lesson(job.sb, job.lesson)} unused snapshots", flush=True)
+    except Exception as e:  # noqa: BLE001 - storage cleanup is best-effort
+        print(f"snapshot cleanup failed: {e}")
     notify.send(job.sb, job.lesson["user_id"], f"✅ {job.label()} מוכן לקריאה",
                 f"{ch.get('title') or ''}\n{len(ch['questions'])} שאלות בשאלון".strip(), f"/lessons/{job.lesson['id']}")
 
@@ -222,7 +227,10 @@ def cmd_fetch(lesson_id, out_dir):
     store = job.sb.storage.from_(BUCKET)
     for n in range(1, (job.lesson.get("slide_count") or 0) + 1):
         name = f"slide_{n:03d}.webp"
-        (out / "slides" / name).write_bytes(store.download(f"{job.prefix}/{name}"))
+        try:
+            (out / "slides" / name).write_bytes(store.download(f"{job.prefix}/{name}"))
+        except Exception:  # noqa: BLE001 - finished chapters keep only the snapshots they show
+            pass
     print(f"fetched to {out}")
 
 

@@ -46,6 +46,14 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Exams: waves 12/1 & 10/2/2027, Java 17/1 & 25/2, linear 19/1 & 14/2, digital 25/1 & 18/2 (times unknown, 09:00 placeholders).
 - Still unknown: מבוא לבקרה exam date (semester ב; deferred until semester ב).
 
+## Free-tier limits (watch these)
+- Supabase storage 1 GB: lecture snapshots are pruned to the ones a chapter shows (`worker/cleanup.py`, after each
+  chapter and daily in `notify.yml`). Big uploads (PDFs) also count; Google Drive links (lessons) avoid that.
+- Supabase DB 500 MB: text only, ~15 MB per semester. Free projects pause after 7 idle days; the daily cron touches the DB.
+- GitHub Actions 2,000 min/month for a private repo; a 80-min lecture takes ~35 min. If it runs short, the repo can be
+  made public (no secrets in code; data lives in Supabase) for unlimited minutes – ask the user first.
+- Gemini free tier: daily request limits; ~3 calls per lecture (write, verify, search check).
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - The first Java lecture (processed on GitHub Actions) – not yet confirmed whether Gemini wrote the chapter.
