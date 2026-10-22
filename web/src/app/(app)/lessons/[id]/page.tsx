@@ -4,8 +4,8 @@ import { requireUser } from "@/lib/supabase/server";
 import AutoRefresh from "@/components/AutoRefresh";
 import Chapter from "@/components/Chapter";
 import Quiz from "@/components/Quiz";
-import { deleteLesson, markRead, retryLesson } from "../../actions";
-import { lessonName, type Lesson } from "@/lib/types";
+import { deleteLesson, markRead, retryLesson, updateLesson } from "../../actions";
+import { LESSON_LABEL, lessonName, type Lesson } from "@/lib/types";
 
 export default async function LessonPage({ params }: PageProps<"/lessons/[id]">) {
   const { id } = await params;
@@ -94,6 +94,20 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
           <pre className="whitespace-pre-wrap text-sm leading-relaxed mt-3 font-sans">{lesson.transcript}</pre>
         </details>
       )}
+
+      <details className="card">
+        <summary className="cursor-pointer font-medium">✏️ עריכת פרטים (סוג, מספר, כותרת)</summary>
+        <form action={updateLesson.bind(null, id)} className="space-y-3 mt-3">
+          <div className="grid grid-cols-2 gap-3">
+            <select className="input" name="kind" defaultValue={lesson.kind}>
+              {Object.entries(LESSON_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            <input className="input" name="number" type="number" min={0} defaultValue={lesson.number ?? ""} placeholder="מספר" />
+          </div>
+          <input className="input" name="title" defaultValue={lesson.title ?? ""} placeholder="כותרת (לא חובה)" />
+          <button className="btn w-full">שמירה</button>
+        </form>
+      </details>
 
       <div className="flex justify-between text-sm">
         {lesson.source_url && <a href={lesson.source_url} target="_blank" rel="noreferrer" className="text-accent">המקור</a>}

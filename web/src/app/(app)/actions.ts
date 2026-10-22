@@ -122,6 +122,16 @@ export async function deleteLesson(id: string, courseId: string) {
   redirect(`/courses/${courseId}`);
 }
 
+export async function updateLesson(id: string, f: FormData) {
+  const { sb } = await requireUser();
+  const kind = str(f, "kind");
+  const { data } = await sb.from("lessons")
+    .update({ number: int(f, "number"), title: str(f, "title"), ...(kind ? { kind } : {}) })
+    .eq("id", id).select("course_id").single();
+  revalidatePath(`/lessons/${id}`);
+  if (data) revalidatePath(`/courses/${data.course_id}`);
+}
+
 export async function markRead(id: string, read = true) {
   const { sb } = await requireUser();
   await sb.from("lessons").update({ read_at: read ? new Date().toISOString() : null }).eq("id", id);
