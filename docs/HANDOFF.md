@@ -99,6 +99,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - He wants industry/career knowledge too: chapters end with "מהעולם האמיתי: תעשייה וראיונות עבודה" (what the lecturer
   said, marked 🎙️, plus a short verified enrichment with interview questions); such remarks are also collected as
   course facts with category `industry` ("💼 מהתעשייה ולראיונות עבודה" on the course page).
+- Prep tasks: every lecture/practice gets a task "📖 ללמוד את ... לפני ההרצאה/התרגול הבא" (`external_uid` prep:<lesson>),
+  due at the course's next class of that kind; closed when the chapter is marked read (`web/src/lib/prep.ts`,
+  synced when home or tasks load). His linear course is spelled "מעגלים לינאריים" (no second yod) - match both.
 - He wants lectures and practices shown **separately** everywhere (except the lab).
 
 ## Self-study: digital design / VLSI / SystemVerilog (2026-10-22)

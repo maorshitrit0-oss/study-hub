@@ -38,7 +38,7 @@ with u as (select id from auth.users order by created_at limit 1),
 c as (
   select
     (select id from courses where name ilike '%java%' order by created_at limit 1) as java,
-    (select id from courses where name like '%ליניאר%' and kind <> 'lab' order by created_at limit 1) as linear,
+    (select id from courses where (name like '%ליניאר%' or name like '%לינאר%') and kind <> 'lab' order by created_at limit 1) as linear,
     (select id from courses where name like '%אותות אקראיים%' order by created_at limit 1) as noise
 )
 insert into deadlines (user_id, course_id, title, kind, due_at, check_due, notes, external_uid)

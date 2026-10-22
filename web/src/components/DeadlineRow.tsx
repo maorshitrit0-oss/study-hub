@@ -22,6 +22,7 @@ export default function DeadlineRow({ d, courseName }: { d: Deadline; courseName
           {DEADLINE_LABEL[d.kind]}
           {courseName ? ` · ${courseName}` : ""} · {d.check_due ? "אין עדיין מועד הגשה" : fmtDue(d.due_at)}
         </div>
+        {d.check_due && d.notes && <div className="text-xs text-warn">{d.notes}</div>}
       </Link>
       {!d.done && d.check_due && <span className="text-xs rounded-full px-2 py-0.5 text-warn bg-warn-soft">🔎 לבדוק</span>}
       {!d.done && !d.check_due && <span className={`text-xs rounded-full px-2 py-0.5 ${tone[urgency(d.due_at)]}`}>{daysLeft(d.due_at)}</span>}

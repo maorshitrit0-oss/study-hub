@@ -9,6 +9,7 @@ import { isoFromNow, israelLocalToIso } from "@/lib/format";
 import { extractSyllabus, looksLikeSyllabus } from "@/lib/syllabus";
 import { DRIVE_PREFIX, cleanTitle, driveId, materialBlob } from "@/lib/files";
 import { fillGlossary } from "@/lib/glossary";
+import { closePrepTask } from "@/lib/prep";
 import { friendlyGeminiError } from "@/lib/gemini";
 
 const str = (f: FormData, k: string) => {
@@ -124,7 +125,9 @@ export async function deleteLesson(id: string, courseId: string) {
 export async function markRead(id: string, read = true) {
   const { sb } = await requireUser();
   await sb.from("lessons").update({ read_at: read ? new Date().toISOString() : null }).eq("id", id);
+  await closePrepTask(sb, id, read);
   revalidatePath(`/lessons/${id}`);
+  revalidatePath("/deadlines");
   revalidatePath("/");
 }
 

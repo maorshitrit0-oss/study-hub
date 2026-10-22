@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
+import { attachOrphanTasks, syncPrepTasks } from "@/lib/prep";
 import DeadlineRow from "@/components/DeadlineRow";
 import { isWeak, pct, topicStats } from "@/lib/progress";
 import { isoFromNow, israelNow } from "@/lib/format";
@@ -12,6 +13,7 @@ import { DAYS, lessonName, type Course, type Deadline, type Lesson, type Slot } 
 
 export default async function Home() {
   const { sb } = await requireUser();
+  await Promise.all([syncPrepTasks(sb).catch(() => {}), attachOrphanTasks(sb).catch(() => {})]);
   const in14 = isoFromNow(14);
   const now = israelNow();
   const [{ data: courses }, { data: deadlines }, { data: lessons }, stats, { data: today }, missing] = await Promise.all([
