@@ -16,10 +16,10 @@ const SEM_LABEL: Record<string, string> = { "א": "סמסטר א", "ב": "סמס
 function average(rows: Grade[]) {
   let sum = 0, credits = 0;
   for (const r of rows) {
-    const g = Number(r.grade);
-    if (r.grade && Number.isFinite(g) && r.credits > 0) {
-      sum += g * r.credits;
-      credits += r.credits;
+    const g = Number(r.grade), c = Number(r.credits);
+    if (r.grade && Number.isFinite(g) && c > 0) {
+      sum += g * c;
+      credits += c;
     }
   }
   return credits ? (sum / credits).toFixed(2) : null;
