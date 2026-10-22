@@ -197,7 +197,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
 
       <section className="card">
         <h2 className="font-semibold mb-3">קבצים (מצגות, מבחני עבר, סילבוס)</h2>
-        <Materials courseId={id} userId={userId} items={materials ?? []} />
+        <Materials courseId={id} userId={userId} items={materials ?? []} isLab={c.kind === "lab"} />
       </section>
 
       <section className="card">

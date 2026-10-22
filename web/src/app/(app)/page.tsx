@@ -7,6 +7,7 @@ import SlotCard from "@/components/SlotCard";
 import MissingRecordings from "@/components/MissingRecordings";
 import { missingRecordings } from "@/lib/recordings";
 import { LEVEL_LABEL, LEVEL_TONE, weeklyPlan } from "@/lib/plan";
+import { UsageAlerts, type Snapshot } from "@/components/Usage";
 import { DAYS, lessonName, type Course, type Deadline, type Lesson, type Slot } from "@/lib/types";
 
 export default async function Home() {
@@ -22,7 +23,11 @@ export default async function Home() {
     sb.from("schedule_slots").select("*").eq("weekday", now.weekday).order("start_time"),
     missingRecordings(sb).catch(() => []),
   ]);
-  const plan = await weeklyPlan(sb);
+  const [plan, { data: usage }] = await Promise.all([
+    weeklyPlan(sb),
+    sb.from("usage_snapshot").select("data").eq("id", 1).maybeSingle(),
+  ]);
+  const usageAlerts = (usage?.data as Snapshot | undefined)?.alerts ?? [];
   const focus = plan.filter((p) => p.score > 0).slice(0, 3);
   const reminders = plan.flatMap((p) => p.reminders).slice(0, 6);
   const todaySlots = ((today ?? []) as Slot[]).filter((s) => s.end_time.slice(0, 5) > now.time);
@@ -59,6 +64,13 @@ export default async function Home() {
       )}
 
       <MissingRecordings items={missing} courseName={courseName} />
+
+      {usageAlerts.length > 0 && (
+        <section className="card">
+          <h2 className="font-semibold mb-2">⚠️ צריך לטפל</h2>
+          <UsageAlerts snap={usage!.data as Snapshot} />
+        </section>
+      )}
 
       {focus.length > 0 && (
         <section className="card">

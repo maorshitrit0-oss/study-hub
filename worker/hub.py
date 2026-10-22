@@ -19,7 +19,6 @@ from pathlib import Path
 from supabase import create_client
 
 import author
-import cleanup
 import media
 import notify
 
@@ -149,6 +148,8 @@ def cmd_process(lesson_id, do_author=True):
             job.log("התמלול מוכן - מחכה לכתיבת הפרק (Claude)")
     except Exception as e:
         job.update(status="error", error=str(e)[:2000])
+        # GitHub annotation: readable through the API even where full logs are not.
+        print(f"::error title=Lesson {lesson_id}::{str(e)[:900]}".replace("\n", " "), flush=True)
         notify.send(job.sb, job.lesson["user_id"], f"⚠️ העיבוד נכשל: {job.label()}",
                     "לחץ כדי לראות מה קרה ולנסות שוב", f"/lessons/{job.lesson['id']}")
         raise
@@ -178,10 +179,6 @@ def save_chapter(job, ch, by):
         fields.pop("syllabus_covered", None)
         job.update(**fields)
     print(f"published: {len(ch['questions'])} questions", flush=True)
-    try:
-        print(f"removed {cleanup.prune_lesson(job.sb, job.lesson)} unused snapshots", flush=True)
-    except Exception as e:  # noqa: BLE001 - storage cleanup is best-effort
-        print(f"snapshot cleanup failed: {e}")
     notify.send(job.sb, job.lesson["user_id"], f"✅ {job.label()} מוכן לקריאה",
                 f"{ch.get('title') or ''}\n{len(ch['questions'])} שאלות בשאלון".strip(), f"/lessons/{job.lesson['id']}")
 

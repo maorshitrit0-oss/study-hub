@@ -1,18 +1,25 @@
 import { requireUser } from "@/lib/supabase/server";
 import SyncMoodle from "@/components/SyncMoodle";
 import PushToggle from "@/components/PushToggle";
+import { UsagePanel, type Snapshot } from "@/components/Usage";
 import { saveSettings, setReservist } from "../actions";
 import { signOut } from "@/app/login/actions";
 
 export default async function Settings() {
   const { sb, userId } = await requireUser();
-  const [{ data: s }, { data: user }] = await Promise.all([
+  const [{ data: s }, { data: user }, { data: usage }] = await Promise.all([
     sb.from("settings").select("moodle_ics_url, is_reservist").eq("user_id", userId).maybeSingle(),
     sb.auth.getUser(),
+    sb.from("usage_snapshot").select("data").eq("id", 1).maybeSingle(),
   ]);
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold">הגדרות</h1>
+
+      <section className="card space-y-3 scroll-mt-4" id="usage">
+        <h2 className="font-semibold">שימוש במשאבים החינמיים</h2>
+        <UsagePanel snap={(usage?.data as Snapshot) ?? null} />
+      </section>
 
       <section className="card space-y-3">
         <h2 className="font-semibold">מילואים</h2>

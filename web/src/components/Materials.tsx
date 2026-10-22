@@ -3,37 +3,60 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { guessKind, mimeOf, readZip } from "@/lib/zip";
 import { addDriveMaterial, addMaterial, deleteMaterial, readSyllabus, setMaterialKind } from "@/app/(app)/actions";
 
 type Material = { id: string; title: string; kind: string; storage_path: string };
 const KINDS: Record<string, string> = {
-  syllabus: "סילבוס", slides: "מצגת", past_exam: "מבחנים ובחנים קודמים", solution: "פתרון", lab_guide: "חוברת מעבדה", other: "אחר",
+  syllabus: "סילבוס", slides: "מצגת", past_exam: "מבחנים ובחנים קודמים", solution: "פתרון", lab_guide: "חוברת מעבדה", prev_report: "דוח קודם (של שותפים)", other: "אחר",
 };
 const MAX_UPLOAD = 50 * 1024 * 1024; // Supabase free plan limit per file
 
-export default function Materials({ courseId, userId, items }: { courseId: string; userId: string; items: Material[] }) {
+export default function Materials({ courseId, userId, items, isLab = false }: {
+  courseId: string; userId: string; items: Material[]; isLab?: boolean;
+}) {
   const [kind, setKind] = useState("slides");
   const [busy, setBusy] = useState("");
   const [drive, setDrive] = useState({ url: "", title: "" });
   const router = useRouter();
 
-  async function upload(files: FileList | null) {
-    if (!files?.length) return;
+  async function upload(picked: FileList | null) {
+    if (!picked?.length) return;
     const sb = supabaseBrowser();
-    for (const file of Array.from(files)) {
-      if (file.size > MAX_UPLOAD) {
-        setBusy(`"${file.name}" גדול מ-50MB (${Math.round(file.size / 1048576)}MB). העלה אותו ל-Google Drive, שתף "כל מי שיש לו את הקישור", והדבק את הקישור בשדה למטה.`);
+    // ZIPs are unpacked here on the device; each file inside is stored on its own.
+    const files: { file: File; kind: string }[] = [];
+    const tooBig: string[] = [];
+    for (const f of Array.from(picked)) {
+      if (!/\.zip$/i.test(f.name)) { files.push({ file: f, kind }); continue; }
+      setBusy(`פותח את ${f.name}...`);
+      try {
+        for (const e of await readZip(f)) {
+          const file = new File([e.data as BlobPart], e.name, { type: mimeOf(e.name) });
+          files.push({ file, kind: guessKind(e.name, isLab) });
+        }
+      } catch {
+        setBusy(`לא הצלחתי לפתוח את ${f.name} - ודא שזה קובץ ZIP תקין`);
         return;
       }
-      setBusy(`מעלה ${file.name}... (סילבוס נקרא אוטומטית, זה לוקח כחצי דקה)`);
+    }
+    let done = 0;
+    for (const { file, kind } of files) {
+      if (files.length > 1) setBusy(`מעלה ${++done} מתוך ${files.length}: ${file.name}`);
+      if (file.size > MAX_UPLOAD) {
+        tooBig.push(`${file.name} (${Math.round(file.size / 1048576)}MB)`);
+        continue;
+      }
+      if (files.length === 1) setBusy(`מעלה ${file.name}... (סילבוס נקרא אוטומטית, זה לוקח כחצי דקה)`);
       const safe = file.name.replace(/[^\w.\-]+/g, "_");
       const path = `${userId}/materials/${courseId}/${Date.now()}_${safe}`;
       const { error } = await sb.storage.from("study").upload(path, file, { contentType: file.type });
-      if (error) { setBusy(`שגיאה: ${error.message}`); return; }
-      const note = await addMaterial(courseId, { title: file.name, kind, path, mime: file.type, size: file.size });
-      if (note) { setBusy(note); router.refresh(); return; }
+      if (error) { setBusy(`שגיאה ב-${file.name}: ${error.message}`); return; }
+      const note = await addMaterial(courseId, { title: file.name, kind, path, mime: file.type || mimeOf(file.name), size: file.size });
+      if (note && files.length === 1) { setBusy(note); router.refresh(); return; }
     }
-    setBusy("");
+    setBusy(tooBig.length
+      ? `הועלו ${files.length - tooBig.length} קבצים. גדולים מ-50MB ולא הועלו - הוסף אותם מקישור דרייב: ${tooBig.join(", ")}`
+      : files.length > 1 ? `✓ הועלו ${files.length} קבצים. הסוג נקבע לפי השם - אפשר לשנות בלחיצה על התגית.` : "");
     router.refresh();
   }
 
@@ -85,8 +108,8 @@ export default function Materials({ courseId, userId, items }: { courseId: strin
           {Object.entries(KINDS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
         <label className="btn-ghost flex-1 cursor-pointer">
-          העלאת קבצים
-          <input type="file" multiple className="hidden" accept=".pdf,.docx,.pptx,.txt,.md,image/*"
+          העלאת קבצים / ZIP
+          <input type="file" multiple className="hidden" accept=".pdf,.docx,.pptx,.txt,.md,.zip,image/*"
             onChange={(e) => upload(e.target.files)} />
         </label>
       </div>

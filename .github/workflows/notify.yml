@@ -15,6 +15,10 @@ on:
         description: "for test: who gets the notification"
         default: ""
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   notify:
     runs-on: ubuntu-latest
@@ -30,10 +34,11 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: python notify.py "${{ inputs.mode || (github.event.schedule == '30 19 * * *' && 'evening') || 'daily' }}" ${{ inputs.user_id }}
-      - name: Free storage (keep only snapshots shown in chapters)
+      - name: Check free-plan usage (morning run)
         if: github.event_name == 'schedule' && github.event.schedule != '30 19 * * *'
         working-directory: worker
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python cleanup.py
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python usage.py

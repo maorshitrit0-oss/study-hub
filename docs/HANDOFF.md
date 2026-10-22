@@ -49,12 +49,20 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 ## Free-tier limits (watch these)
 - Supabase allows 50 MB per uploaded file: bigger course files are added as a shared Google Drive link
   (`materials.storage_path = "drive:<id>"`); files over 15 MB reach Gemini through its Files API (`web/src/lib/files.ts`).
-- Supabase storage 1 GB: lecture snapshots are pruned to the ones a chapter shows (`worker/cleanup.py`, after each
-  chapter and daily in `notify.yml`). Big uploads (PDFs) also count; Google Drive links (lessons) avoid that.
+- **Never delete his study data** (snapshots, transcripts, chapters, files): he needs everything until the end of the
+  degree. Storage pressure is handled by moving big files to Google Drive, not by deleting.
+- `worker/usage.py` (morning run of notify.yml) writes `usage_snapshot` and pushes an alert at 75% of a free limit,
+  with the recommended fix; the app shows it on home and in settings.
 - Supabase DB 500 MB: text only, ~15 MB per semester. Free projects pause after 7 idle days; the daily cron touches the DB.
 - GitHub Actions 2,000 min/month for a private repo; a 80-min lecture takes ~35 min. If it runs short, the repo can be
   made public (no secrets in code; data lives in Supabase) for unlimited minutes – ask the user first.
 - Gemini free tier: daily request limits; ~3 calls per lecture (write, verify, search check).
+
+## Lab (מעבדה 2)
+- Partner: Shirel (failed the lab in summer, repeating it with him). Her and her former partner Yehonatan's summary
+  reports are uploaded as `prev_report`; the lab chat compares them with the current booklet and lists exact changes,
+  marking measurements to replace with their own.
+- Course files can be uploaded as ZIPs; they are unpacked on the device and typed by file name (`web/src/lib/zip.ts`).
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.

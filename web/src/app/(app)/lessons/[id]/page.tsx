@@ -73,6 +73,21 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
         </section>
       )}
 
+      {Object.keys(slideUrls).length > 0 && (
+        <details className="card">
+          <summary className="cursor-pointer font-medium">כל צילומי הלוח ({Object.keys(slideUrls).length})</summary>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
+            {Object.entries(slideUrls).map(([n, url]) => (
+              <a key={n} href={url} target="_blank" rel="noreferrer" className="block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt={`צילום ${n}`} loading="lazy" className="rounded-lg border border-line w-full" />
+                <span className="text-xs text-muted">צילום {n}</span>
+              </a>
+            ))}
+          </div>
+        </details>
+      )}
+
       {lesson.transcript && (
         <details className="card">
           <summary className="cursor-pointer font-medium">התמלול המלא</summary>

@@ -11,6 +11,7 @@ const LAB_STARTERS = [
   "תעזור לי לפתור את שאלות הדוח המכין, שאלה אחרי שאלה",
   "תכין אותי ללוח: אני מסביר את הניסוי ואתה שואל כמו המדריך",
   "בוחן כניסה על הניסוי - שאלה אחת בכל פעם",
+  "השווה את הדוח המסכם הקודם (של שיראל / יהונתן) לניסוי הזה לפי החוברת העדכנית - מה בדיוק לשנות?",
 ];
 
 const STARTERS = [
@@ -27,7 +28,7 @@ export default function Chat({ courseId, userId, initial, isLab = false }: {
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
-  const [withFiles, setWithFiles] = useState(false);
+  const [withFiles, setWithFiles] = useState(isLab); // lab work always needs the booklets and reports
   const end = useRef<HTMLDivElement>(null);
 
   useEffect(() => end.current?.scrollIntoView({ behavior: "smooth" }), [msgs]);
