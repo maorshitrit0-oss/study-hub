@@ -233,3 +233,7 @@ grant select, insert, update, delete on table recording_marks to authenticated;
 grant all on table recording_marks to service_role;
 
 alter table lessons add column if not exists source_path text;
+
+alter table courses add column if not exists syllabus_topics jsonb not null default '[]';
+alter table lessons add column if not exists syllabus_covered jsonb not null default '[]';
+alter table course_facts add column if not exists source text not null default 'auto';

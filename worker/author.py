@@ -21,6 +21,7 @@ CHAPTER_SCHEMA = {
                 "required": ["category", "text"],
             },
         },
+        "syllabus_covered": {"type": "array", "items": {"type": "integer"}},
         "exam_type": {"type": "string", "enum": ["mcq", "open", "mixed", "none", "unknown"]},
         "grade_weights": {
             "type": "array",
@@ -76,7 +77,8 @@ course_facts: כל מידע מנהלי חשוב שנאמר (גם בפטפוט ב
 - assignments: מטלות, תדירות, אופן ההגשה, דדליינים, חובת הגשה.
 - attendance: חובת נוכחות. materials: סביבת עבודה, ספרים, דף נוסחאות. other: כל דבר מנהלי חשוב אחר.
 אם לא נאמר שום דבר מנהלי - רשימה ריקה. אל תמציא.
-exam_type ו-grade_weights: רק אם נאמרו במפורש בחומר הזה, אחרת "unknown" ורשימה ריקה."""
+exam_type ו-grade_weights: רק אם נאמרו במפורש בחומר הזה, אחרת "unknown" ורשימה ריקה.
+syllabus_covered: אם צורפה רשימת נושאי הסילבוס - המספרים של הנושאים שהשיעור הזה לימד (גם חלקית). אחרת רשימה ריקה."""
 
 KIND_TASK = {
     "lecture": "זו הרצאה. כתוב פרק קריאה מלא שמחליף צפייה בהרצאה.",
@@ -110,6 +112,9 @@ def build_prompt(course, lesson, transcript, slide_count, previous_topics):
         lines.append(f"הערות על הקורס: {course['notes']}")
     if previous_topics:
         lines.append("נושאים שכבר נלמדו בקורס: " + ", ".join(previous_topics[-40:]))
+    if course.get("syllabus_topics"):
+        lines.append("נושאי הסילבוס (למילוי syllabus_covered): " +
+                     "; ".join(f"{i + 1}. {t}" for i, t in enumerate(course["syllabus_topics"])))
     lines += [
         f"פריט: {KIND_NAME.get(lesson['kind'], '')} {lesson.get('number') or ''} {lesson.get('title') or ''}".strip(),
         KIND_TASK.get(lesson["kind"], KIND_TASK["other"]),
@@ -144,10 +149,24 @@ def _generate_json(parts, system, schema, thinking="MEDIUM"):
     try:
         resp = call(True)
     except Exception as e:  # noqa: BLE001
-        if "thinking" not in str(e).lower():
+        if "thinking" in str(e).lower():
+            resp = call(False)
+        elif "INVALID_ARGUMENT" in str(e) or "400" in str(e):
+            # Some models reject response_json_schema: plain JSON mode with the schema in the prompt.
+            from google.genai import types as t
+            client, model = _gemini()
+            resp = client.models.generate_content(
+                model=model,
+                contents=[t.Content(role="user", parts=list(parts) + [t.Part.from_text(
+                    text="החזר אך ורק JSON תקין לפי ה-JSON Schema הזה:\n" + json.dumps(schema, ensure_ascii=False))])],
+                config=t.GenerateContentConfig(system_instruction=system, response_mime_type="application/json",
+                                               max_output_tokens=65536))
+        else:
             raise
-        resp = call(False)
-    return json.loads(resp.text)
+    text = (resp.text or "").strip()
+    if text.startswith("```"):
+        text = text.strip("`").removeprefix("json").strip()
+    return json.loads(text)
 
 
 def _source_parts(course, lesson, transcript, slides, previous_topics):

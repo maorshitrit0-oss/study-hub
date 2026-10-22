@@ -10,6 +10,7 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-dvh flex items-center justify-center p-4">
+      <p className="fixed top-[max(1rem,env(safe-area-inset-top))] right-4 text-sm font-medium text-accent">בשם ה&apos; נעשה ונצליח</p>
       <div className="card w-full max-w-sm">
         <h1 className="text-2xl font-bold mb-1">Study Hub</h1>
         <p className="text-muted mb-5">לומדים מקריאה, לא מהקלטות.</p>

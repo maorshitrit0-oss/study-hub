@@ -167,10 +167,15 @@ def save_chapter(job, ch, by):
     save_course_facts(job, ch)
     chapter_md = ch["chapter_md"] + (author.verification_md(ch) if ch.get("verification") else "")
     fields = dict(chapter_md=chapter_md, topics=ch["topics"], status="ready",
+                  syllabus_covered=[i for i in ch.get("syllabus_covered") or [] if isinstance(i, int)],
                   progress=f"מוכן - {len(ch['questions'])} שאלות", author=by, error=None)
     if not job.lesson.get("title") or job.lesson["kind"] == "web":
         fields["title"] = ch.get("title")
-    job.update(**fields)
+    try:
+        job.update(**fields)
+    except Exception:  # noqa: BLE001 - database without the syllabus_covered column yet
+        fields.pop("syllabus_covered", None)
+        job.update(**fields)
     print(f"published: {len(ch['questions'])} questions", flush=True)
     notify.send(job.sb, job.lesson["user_id"], f"✅ {job.label()} מוכן לקריאה",
                 f"{ch.get('title') or ''}\n{len(ch['questions'])} שאלות בשאלון".strip(), f"/lessons/{job.lesson['id']}")

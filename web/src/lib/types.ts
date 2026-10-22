@@ -11,6 +11,7 @@ export type Course = {
   grade_weights: { name: string; weight: number }[];
   notes: string | null;
   archived: boolean;
+  syllabus_topics?: string[];
 };
 
 export type Lesson = {

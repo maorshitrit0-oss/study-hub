@@ -6,6 +6,7 @@ import { isoFromNow, israelNow } from "@/lib/format";
 import SlotCard from "@/components/SlotCard";
 import MissingRecordings from "@/components/MissingRecordings";
 import { missingRecordings } from "@/lib/recordings";
+import { LEVEL_LABEL, LEVEL_TONE, weeklyPlan } from "@/lib/plan";
 import { DAYS, lessonName, type Course, type Deadline, type Lesson, type Slot } from "@/lib/types";
 
 export default async function Home() {
@@ -21,6 +22,9 @@ export default async function Home() {
     sb.from("schedule_slots").select("*").eq("weekday", now.weekday).order("start_time"),
     missingRecordings(sb).catch(() => []),
   ]);
+  const plan = await weeklyPlan(sb);
+  const focus = plan.filter((p) => p.score > 0).slice(0, 3);
+  const reminders = plan.flatMap((p) => p.reminders).slice(0, 6);
   const todaySlots = ((today ?? []) as Slot[]).filter((s) => s.end_time.slice(0, 5) > now.time);
   const courseName = new Map((courses as Course[] | null)?.map((c) => [c.id, c.name]));
   const active = (lessons as Lesson[] | null)?.filter((l) => l.status !== "ready" && l.status !== "error") ?? [];
@@ -55,6 +59,36 @@ export default async function Home() {
       )}
 
       <MissingRecordings items={missing} courseName={courseName} />
+
+      {focus.length > 0 && (
+        <section className="card">
+          <h2 className="font-semibold mb-2">על מה להשקיע השבוע</h2>
+          <ul className="space-y-3">
+            {focus.map((p) => (
+              <li key={p.course.id}>
+                <Link href={`/courses/${p.course.id}`} className="block">
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="font-medium">{p.course.name}</span>
+                    <span className={`text-xs rounded-full px-2 py-0.5 shrink-0 ${LEVEL_TONE[p.level]}`}>{LEVEL_LABEL[p.level]}</span>
+                  </div>
+                  <div className="text-xs text-muted mt-0.5">{p.reasons.join(" · ")}</div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {reminders.length > 0 && (
+        <section className="card">
+          <h2 className="font-semibold mb-2">תזכורות</h2>
+          <ul className="space-y-2 text-sm">
+            {reminders.map((r) => (
+              <li key={r.text}><Link href={r.href} className="flex gap-2"><span>📌</span><span>{r.text}</span></Link></li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {active.length > 0 && (
         <section className="card">

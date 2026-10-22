@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { addFact, deleteFact } from "@/app/(app)/actions";
 
 export type Fact = { id: string; category: string; text: string; lesson_id: string | null };
 
@@ -14,7 +15,8 @@ const LABEL: Record<string, string> = {
 };
 
 /** Admin info the lecturers said in class, grouped; reservist rules first for reservists. */
-export default function CourseFacts({ facts, reservist, lessonNames }: {
+export default function CourseFacts({ courseId, facts, reservist, lessonNames }: {
+  courseId: string;
   facts: Fact[];
   reservist: boolean;
   lessonNames: Map<string, string>;
@@ -25,12 +27,13 @@ export default function CourseFacts({ facts, reservist, lessonNames }: {
   const groups = order
     .map((cat) => [cat, facts.filter((f) => (LABEL[f.category] ? f.category : "other") === cat)] as const)
     .filter(([, list]) => list.length);
-  if (!groups.length) return null;
 
   return (
     <section className="card">
       <h2 className="font-semibold mb-1">מידע על הקורס</h2>
-      <p className="text-xs text-muted mb-3">נאסף אוטומטית מהסילבוס ומההרצאות.</p>
+      <p className="text-xs text-muted mb-3">
+        {groups.length ? "נאסף אוטומטית מהסילבוס ומההרצאות, ומה שהוספת בעצמך." : "יתמלא מהסילבוס ומההרצאות. אפשר גם להוסיף בעצמך למטה."}
+      </p>
       <div className="space-y-4">
         {groups.map(([cat, list]) => (
           <div key={cat} className={cat === "reservist" && reservist ? "rounded-xl bg-warn-soft p-3 -mx-1" : ""}>
@@ -39,18 +42,31 @@ export default function CourseFacts({ facts, reservist, lessonNames }: {
               {list.map((f) => (
                 <li key={f.id} className="flex gap-2">
                   <span className="text-muted">•</span>
-                  <span>
+                  <span className="flex-1">
                     {f.text}
                     {f.lesson_id && lessonNames.get(f.lesson_id) && (
                       <Link href={`/lessons/${f.lesson_id}`} className="text-xs text-accent"> ({lessonNames.get(f.lesson_id)})</Link>
                     )}
                   </span>
+                  <form action={deleteFact.bind(null, f.id, courseId)}>
+                    <button className="text-muted text-xs px-1" aria-label="מחיקה">✕</button>
+                  </form>
                 </li>
               ))}
             </ul>
           </div>
         ))}
       </div>
+      <details className="mt-4">
+        <summary className="text-sm text-accent cursor-pointer">+ הוספת מידע (למשל: נוכחות חובה)</summary>
+        <form action={addFact.bind(null, courseId)} className="mt-2 space-y-2">
+          <select name="category" className="input" defaultValue="attendance">
+            {Object.entries(LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+          <input name="text" className="input" required placeholder="למשל: חובת נוכחות בהרצאות" />
+          <button className="btn w-full">הוספה</button>
+        </form>
+      </details>
     </section>
   );
 }

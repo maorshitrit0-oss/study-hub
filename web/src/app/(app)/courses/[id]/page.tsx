@@ -7,6 +7,7 @@ import Materials from "@/components/Materials";
 import CourseFacts, { type Fact } from "@/components/CourseFacts";
 import { isWeak, pct, topicStats } from "@/lib/progress";
 import { isPast } from "@/lib/format";
+import { LEVEL_LABEL, LEVEL_TONE, weeklyPlan } from "@/lib/plan";
 import { DAYS, EXAM_LABEL, KIND_LABEL, SLOT_LABEL, hhmm, type Slot, lessonName, type Course, type Deadline, type Lesson } from "@/lib/types";
 
 const STATUS: Record<Lesson["status"], [string, string]> = {
@@ -32,6 +33,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
   ]);
   if (!course) notFound();
   const c = course as Course;
+  const plan = (await weeklyPlan(sb)).find((p) => p.course.id === id);
   const ls = (lessons ?? []) as Lesson[];
   const nextNumber = Math.max(0, ...ls.filter((l) => l.kind === (c.kind === "lab" ? "lab" : "lecture")).map((l) => l.number ?? 0)) + 1;
   const upcoming = ((deadlines ?? []) as Deadline[]).filter((d) => !d.done || !isPast(d.due_at));
@@ -76,7 +78,58 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
         <Link href={`/courses/${id}/practice`} className="card text-center font-medium">✍️ תרגול שאלות</Link>
       </div>
 
-      <CourseFacts facts={(facts ?? []) as Fact[]} reservist={!!settings?.is_reservist}
+      {plan && (
+        <section className="card">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="font-semibold">המצב שלי מול הכיתה</h2>
+            <span className={`text-xs rounded-full px-2 py-0.5 ${LEVEL_TONE[plan.level]}`}>{LEVEL_LABEL[plan.level]}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-xl bg-accent-soft p-2">
+              <div className="text-xl font-bold">{plan.classLessons}</div>
+              <div className="text-xs text-muted">שיעורים בכיתה</div>
+            </div>
+            <div className="rounded-xl bg-accent-soft p-2">
+              <div className="text-xl font-bold">{plan.read}</div>
+              <div className="text-xs text-muted">קראתי</div>
+            </div>
+            <div className="rounded-xl bg-accent-soft p-2">
+              <div className="text-xl font-bold">{plan.mastery === null ? "—" : `${plan.mastery}%`}</div>
+              <div className="text-xs text-muted">שליטה בחומר</div>
+            </div>
+          </div>
+          {plan.reasons.length > 0 && <p className="text-sm text-muted mt-3">השבוע: {plan.reasons.join(" · ")}</p>}
+          {plan.reminders.length > 0 && (
+            <ul className="text-sm mt-2 space-y-1">
+              {plan.reminders.map((r) => <li key={r.text}><Link href={r.href}>📌 {r.text}</Link></li>)}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {(c.syllabus_topics?.length ?? 0) > 0 && plan && (
+        <details className="card">
+          <summary className="cursor-pointer font-semibold">
+            הסילבוס · נלמדו בכיתה {plan.covered.size} מתוך {c.syllabus_topics!.length} נושאים
+          </summary>
+          <ol className="mt-3 space-y-1.5 text-sm">
+            {c.syllabus_topics!.map((t, i) => {
+              const n = i + 1;
+              const taught = plan.covered.has(n);
+              const read = plan.readCovered.has(n);
+              return (
+                <li key={n} className="flex gap-2">
+                  <span className="w-5 shrink-0 text-center">{read ? "✅" : taught ? "🟡" : "⚪"}</span>
+                  <span className={taught ? "" : "text-muted"}>{n}. {t}</span>
+                </li>
+              );
+            })}
+          </ol>
+          <p className="text-xs text-muted mt-3">✅ נלמד וקראתי · 🟡 נלמד בכיתה ועוד לא קראתי · ⚪ עוד לא נלמד</p>
+        </details>
+      )}
+
+      <CourseFacts courseId={id} facts={(facts ?? []) as Fact[]} reservist={!!settings?.is_reservist}
         lessonNames={new Map(ls.map((l) => [l.id, lessonName(l)]))} />
 
       <section className="card scroll-mt-4" id="add">

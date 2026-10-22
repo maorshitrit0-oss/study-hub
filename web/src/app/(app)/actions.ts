@@ -340,3 +340,21 @@ export async function markRecording(slotId: string, classDate: string, status: "
   await sb.from("recording_marks").upsert({ slot_id: slotId, class_date: classDate, status }, { onConflict: "slot_id,class_date" });
   revalidatePath("/");
 }
+
+// ---------- course info (facts) ----------
+
+export async function addFact(courseId: string, f: FormData) {
+  const { sb } = await requireUser();
+  const text = str(f, "text");
+  if (!text) return;
+  const row = { course_id: courseId, category: str(f, "category") ?? "other", text };
+  const { error } = await sb.from("course_facts").insert({ ...row, source: "manual" });
+  if (error) await sb.from("course_facts").insert(row); // database without the source column yet
+  revalidatePath(`/courses/${courseId}`);
+}
+
+export async function deleteFact(id: string, courseId: string) {
+  const { sb } = await requireUser();
+  await sb.from("course_facts").delete().eq("id", id);
+  revalidatePath(`/courses/${courseId}`);
+}
