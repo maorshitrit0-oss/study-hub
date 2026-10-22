@@ -15,13 +15,15 @@ export default async function EditDeadline({ params }: PageProps<"/deadlines/[id
   if (!data) notFound();
   return (
     <div className="space-y-4">
-      <Link href="/deadlines" className="text-sm text-accent">→ משימות</Link>
-      <h1 className="text-2xl font-bold">עריכת משימה</h1>
+      {data.kind === "exam"
+        ? <Link href="/exams" className="text-sm text-accent">→ לוח מבחנים</Link>
+        : <Link href="/deadlines" className="text-sm text-accent">→ משימות</Link>}
+      <h1 className="text-2xl font-bold">{data.kind === "exam" ? "עריכת מבחן" : "עריכת משימה"}</h1>
       <div className="card">
         <DeadlineForm action={updateDeadline.bind(null, id)} courses={courses ?? []} deadline={data as Deadline} submit="שמירה" />
       </div>
       <form action={deleteDeadline.bind(null, id)}>
-        <button className="w-full text-bad text-sm py-2">מחיקת המשימה</button>
+        <button className="w-full text-bad text-sm py-2">מחיקה</button>
       </form>
     </div>
   );

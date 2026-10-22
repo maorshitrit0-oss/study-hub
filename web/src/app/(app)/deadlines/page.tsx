@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
 import DeadlineRow from "@/components/DeadlineRow";
 import DeadlineForm from "@/components/DeadlineForm";
@@ -9,7 +10,7 @@ export default async function Deadlines({ searchParams }: PageProps<"/deadlines"
   const { sb } = await requireUser();
   const [{ data: courses }, { data: deadlines }] = await Promise.all([
     sb.from("courses").select("id, name").eq("archived", false).order("name"),
-    sb.from("deadlines").select("*").order("due_at"),
+    sb.from("deadlines").select("*").neq("kind", "exam").order("due_at"),
   ]);
   const names = new Map((courses as Course[] | null)?.map((c) => [c.id, c.name]));
   const all = (deadlines ?? []) as Deadline[];
@@ -18,7 +19,10 @@ export default async function Deadlines({ searchParams }: PageProps<"/deadlines"
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold">משימות ומבחנים</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">משימות</h1>
+        <Link href="/exams" className="btn-ghost text-sm">לוח מבחנים</Link>
+      </div>
       <p className="text-sm text-muted -mt-3">לחיצה על משימה פותחת עריכה. העיגול מסמן שבוצעה.</p>
 
       <section className="card">

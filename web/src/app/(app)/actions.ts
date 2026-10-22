@@ -173,16 +173,17 @@ export async function addDeadline(f: FormData) {
   if (!str(f, "due_at")) return;
   await sb.from("deadlines").insert(deadlineFields(f));
   revalidatePath("/deadlines");
+  revalidatePath("/exams");
   revalidatePath("/");
 }
 
 export async function updateDeadline(id: string, f: FormData) {
   const { sb } = await requireUser();
   if (!str(f, "due_at")) return;
-  await sb.from("deadlines").update(deadlineFields(f)).eq("id", id);
-  revalidatePath("/deadlines");
+  const fields = deadlineFields(f);
+  await sb.from("deadlines").update(fields).eq("id", id);
   revalidatePath("/");
-  redirect("/deadlines");
+  redirect(fields.kind === "exam" ? "/exams" : "/deadlines");
 }
 
 export async function toggleDeadline(id: string, done: boolean) {
@@ -194,9 +195,9 @@ export async function toggleDeadline(id: string, done: boolean) {
 
 export async function deleteDeadline(id: string) {
   const { sb } = await requireUser();
-  await sb.from("deadlines").delete().eq("id", id);
+  const { data } = await sb.from("deadlines").delete().eq("id", id).select("kind").maybeSingle();
   revalidatePath("/");
-  redirect("/deadlines");
+  redirect(data?.kind === "exam" ? "/exams" : "/deadlines");
 }
 
 // ---------- settings / Moodle sync ----------

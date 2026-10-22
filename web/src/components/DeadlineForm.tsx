@@ -1,11 +1,12 @@
 import { isoToIsraelLocal } from "@/lib/format";
 import type { Deadline } from "@/lib/types";
 
-export default function DeadlineForm({ action, courses, deadline, presetCourse, submit }: {
+export default function DeadlineForm({ action, courses, deadline, presetCourse, defaultKind = "assignment", submit }: {
   action: (f: FormData) => Promise<void>;
   courses: { id: string; name: string }[];
   deadline?: Deadline;
   presetCourse?: string;
+  defaultKind?: Deadline["kind"];
   submit: string;
 }) {
   return (
@@ -13,7 +14,7 @@ export default function DeadlineForm({ action, courses, deadline, presetCourse, 
       <input className="input" name="title" required defaultValue={deadline?.title}
         placeholder="מטלה 3 / מבחן מועד א / דוח מכין ניסוי 2" />
       <div className="grid grid-cols-2 gap-3">
-        <select className="input" name="kind" defaultValue={deadline?.kind ?? "assignment"}>
+        <select className="input" name="kind" defaultValue={deadline?.kind ?? defaultKind}>
           <option value="assignment">מטלה</option>
           <option value="exam">מבחן</option>
           <option value="quiz">בוחן</option>
