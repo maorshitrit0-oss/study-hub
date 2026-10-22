@@ -11,6 +11,7 @@ const LABEL: Record<string, string> = {
   assignments: "📮 מטלות והגשות",
   attendance: "🙋 נוכחות",
   materials: "📚 חומרים וסביבת עבודה",
+  industry: "💼 מהתעשייה ולראיונות עבודה",
   other: "ℹ️ כללי",
 };
 
@@ -22,8 +23,8 @@ export default function CourseFacts({ courseId, facts, reservist, lessonNames }:
   lessonNames: Map<string, string>;
 }) {
   const order = reservist
-    ? ["reservist", "exam", "exam_hint", "grading", "assignments", "attendance", "materials", "other"]
-    : ["exam", "exam_hint", "grading", "assignments", "reservist", "attendance", "materials", "other"];
+    ? ["reservist", "exam", "exam_hint", "grading", "assignments", "attendance", "materials", "industry", "other"]
+    : ["exam", "exam_hint", "grading", "assignments", "reservist", "attendance", "materials", "industry", "other"];
   const groups = order
     .map((cat) => [cat, facts.filter((f) => (LABEL[f.category] ? f.category : "other") === cat)] as const)
     .filter(([, list]) => list.length);

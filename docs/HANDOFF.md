@@ -96,6 +96,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   shows "אין עדיין מועד הגשה" and reminds to check it, and the morning push lists them on Sundays and Wednesdays.
 - "לנסות שוב" on a lesson that already has a transcript skips download/transcription and only rewrites the chapter.
 - iOS auto-zoom on inputs left the bottom nav floating mid-screen: viewport maximumScale 1 + 16px inputs.
+- He wants industry/career knowledge too: chapters end with "מהעולם האמיתי: תעשייה וראיונות עבודה" (what the lecturer
+  said, marked 🎙️, plus a short verified enrichment with interview questions); such remarks are also collected as
+  course facts with category `industry` ("💼 מהתעשייה ולראיונות עבודה" on the course page).
 - He wants lectures and practices shown **separately** everywhere (except the lab).
 
 ## Open items
