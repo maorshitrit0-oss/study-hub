@@ -50,7 +50,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
     weeklyPlan(sb).then((all) => all.find((p) => p.course.id === id)),
     sb.from("grades").select("*"),
   ]);
-  // Grade needed here for a 90 average, assuming the same grade in every course still without one.
+  // Grade needed here for a 90 average at the end of the degree, assuming the same grade in everything left.
   const gradeRows = (grades ?? []) as GradeRow[];
   const open = pending(gradeRows).filter((r) => Number(r.credits) > 0);
   const mine = open.find((r) => sameCode(r.code, c.code) || r.name === c.name);
@@ -83,7 +83,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
           {c.grade_weights.map((w) => <span key={w.name} className="chip">{w.name} {w.weight}%</span>)}
           {c.archived && <span className="chip">בארכיון</span>}
           {need90 !== null && (
-            <Link href="/grades" className="chip">🎯 לממוצע 90: {need90 > 100 ? "לא אפשרי השנה" : `צריך ${Math.ceil(need90)}`}</Link>
+            <Link href="/grades" className="chip">🎯 לממוצע 90 בסוף התואר: {need90 > 100 ? "לא אפשרי" : `צריך ${Math.ceil(need90)}`}</Link>
           )}
         </div>
         {c.notes && <p className="text-sm text-muted mt-2 whitespace-pre-line">{c.notes}</p>}

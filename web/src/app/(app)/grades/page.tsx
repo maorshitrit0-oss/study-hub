@@ -3,13 +3,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireUser } from "@/lib/supabase/server";
 import GradeGoal from "@/components/GradeGoal";
 import { sameCode, type GradeRow } from "@/lib/gradeGoal";
-
-const CURRENT_YEAR = 'תשפ"ז'; // academic year of the courses now in the app - update each year
+import { ensureDegreePlan, REST as REST_YEAR, similar, THIS_YEAR as CURRENT_YEAR } from "@/lib/degreePlan";
+import { deleteGradeRow } from "@/app/(app)/actions";
 
 /** Current courses get a grade row (no grade yet) so the target calculator includes them. */
 async function addCurrentCourses(sb: SupabaseClient, rows: GradeRow[]) {
   const { data: courses } = await sb.from("courses").select("name, code, kind, semester").eq("archived", false).in("kind", ["course", "lab", "project"]);
-  const add = (courses ?? []).filter((c) => !rows.some((r) => sameCode(r.code, c.code) || r.name === c.name))
+  const add = (courses ?? []).filter((c) => !rows.some((r) => sameCode(r.code, c.code) || similar(r.name, c.name)))
     .map((c) => ({ academic_year: CURRENT_YEAR, semester: c.semester || "א", code: c.code ? c.code.slice(0, 11) : null, name: c.name, kind: c.kind === "lab" ? "מעבדה" : "הרצאה", credits: 0 }));
   if (add.length) await sb.from("grades").insert(add);
   return add.length;
@@ -21,7 +21,7 @@ type Grade = {
 };
 
 const SEM_ORDER: Record<string, number> = { "א": 1, "ב": 2, "ק": 3 };
-const SEM_LABEL: Record<string, string> = { "א": "סמסטר א", "ב": "סמסטר ב", "ק": "קיץ" };
+const SEM_LABEL: Record<string, string> = { "א": "סמסטר א", "ב": "סמסטר ב", "ק": "קיץ", "השנה": "רשום השנה", "נותר": "עוד לא נלקח" };
 
 /**
  * Average as the university computes it (checked against the official sheet of 07/10/2026):
@@ -43,11 +43,17 @@ export default async function GradesPage() {
   const { sb } = await requireUser();
   const load = () => sb.from("grades").select("*").order("academic_year").order("created_at");
   let { data, error } = await load();
-  if (!error && (await addCurrentCourses(sb, (data ?? []) as GradeRow[]).catch(() => 0))) ({ data, error } = await load());
+  if (!error) {
+    const added = await addCurrentCourses(sb, (data ?? []) as GradeRow[]).catch(() => 0);
+    if (added) ({ data, error } = await load());
+    const planned = await ensureDegreePlan(sb, (data ?? []) as GradeRow[]).catch(() => false);
+    if (planned) ({ data, error } = await load());
+  }
   const rows = (data ?? []) as Grade[];
   const years = [...new Set(rows.map((r) => r.academic_year))];
+  const gradedYears = years.filter((y) => average(rows.filter((r) => r.academic_year === y)) !== null);
   const failed = rows.filter((r) => r.failed && r.credits > 0);
-  const pending = rows.filter((r) => !r.grade);
+  const pending = rows.filter((r) => !r.grade && r.academic_year !== REST_YEAR && r.academic_year !== CURRENT_YEAR);
 
   return (
     <div className="space-y-5">
@@ -57,7 +63,7 @@ export default async function GradesPage() {
 
       {rows.length > 0 && (
         <div className="grid grid-cols-3 gap-2 text-center">
-          {years.map((y) => (
+          {gradedYears.map((y) => (
             <div key={y} className="card p-3">
               <div className="text-xl font-bold">{average(rows.filter((r) => r.academic_year === y)) ?? "—"}</div>
               <div className="text-xs text-muted">ממוצע {y}</div>
@@ -97,8 +103,15 @@ export default async function GradesPage() {
                           {r.lecturer ?? ""}{r.credits ? ` · ${r.credits} נק"ז` : " · ללא נק\"ז"}
                         </span>
                       </span>
-                      <span className={`font-bold shrink-0 ${r.failed ? "text-bad" : !r.grade ? "text-muted" : ""}`}>
-                        {r.grade ?? "טרם נקבע"}
+                      <span className="flex items-center gap-2 shrink-0">
+                        <span className={`font-bold ${r.failed ? "text-bad" : !r.grade ? "text-muted" : ""}`}>
+                          {r.grade ?? (r.academic_year === REST_YEAR ? "—" : "טרם נקבע")}
+                        </span>
+                        {!r.grade && (
+                          <form action={deleteGradeRow.bind(null, r.id)}>
+                            <button aria-label="הסרה" className="text-muted px-1">×</button>
+                          </form>
+                        )}
                       </span>
                     </li>
                   ))}

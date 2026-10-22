@@ -201,6 +201,13 @@ export async function setGradeRow(id: string, fields: { credits?: number; grade?
   revalidatePath("/grades");
 }
 
+/** Only rows without a grade (planned / current courses) can be removed; real grades stay. */
+export async function deleteGradeRow(id: string) {
+  const { sb } = await requireUser();
+  await sb.from("grades").delete().eq("id", id).is("grade", null);
+  revalidatePath("/grades");
+}
+
 // ---------- self-study roadmap ----------
 
 export async function setSkillLevel(id: string, level: number) {
