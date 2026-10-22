@@ -147,7 +147,7 @@ def cmd_process(lesson_id, do_author=True):
         else:
             job.log("התמלול מוכן - מחכה לכתיבת הפרק (Claude)")
     except Exception as e:
-        job.update(status="error", error=str(e)[:2000])
+        job.update(status="error", error=author.friendly_error(e)[:2000])
         # GitHub annotation: readable through the API even where full logs are not.
         print(f"::error title=Lesson {lesson_id}::{str(e)[:900]}".replace("\n", " "), flush=True)
         notify.send(job.sb, job.lesson["user_id"], f"⚠️ העיבוד נכשל: {job.label()}",

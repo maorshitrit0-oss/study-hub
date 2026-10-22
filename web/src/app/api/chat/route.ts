@@ -1,4 +1,5 @@
-import { GoogleGenAI, ThinkingLevel, type Content, type Part } from "@google/genai";
+import { ThinkingLevel, type Content, type Part } from "@google/genai";
+import { friendlyGeminiError, withGemini } from "@/lib/gemini";
 import { supabaseServer } from "@/lib/supabase/server";
 import { DRIVE_PREFIX, geminiFilePart, materialBlob } from "@/lib/files";
 import { EXAM_LABEL, lessonName, type Course, type Lesson } from "@/lib/types";
@@ -39,7 +40,6 @@ export async function POST(req: Request) {
   const sb = await supabaseServer();
   const { data: auth } = await sb.auth.getClaims();
   if (!auth?.claims) return new Response("unauthorized", { status: 401 });
-  if (!process.env.GEMINI_API_KEY) return new Response("GEMINI_API_KEY לא מוגדר ב-Vercel", { status: 500 });
 
   const { courseId, message, imagePaths = [], withFiles = false } = (await req.json()) as {
     courseId: string; message: string; imagePaths?: string[]; withFiles?: boolean;
@@ -123,19 +123,27 @@ export async function POST(req: Request) {
 
   // Small talk needs almost no reasoning; explanations and problems get a bit more.
   const light = message.length < 80 && !imagePaths.length && !attachFiles;
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  const model = process.env.GEMINI_MODEL || "gemini-flash-latest";
-  const request = (thinking: boolean) => ai.models.generateContentStream({
-    model,
-    contents,
-    config: {
-      systemInstruction: SYSTEM,
-      ...(thinking ? { thinkingConfig: { thinkingLevel: light ? ThinkingLevel.MINIMAL : ThinkingLevel.LOW } } : {}),
-    },
-  });
   const started = Date.now();
-  // Older models reject thinkingLevel; fall back to their default.
-  const stream = await request(true).catch(() => request(false));
+  let stream;
+  try {
+    stream = await withGemini("chat", async (ai, model) => {
+      const request = (thinking: boolean) => ai.models.generateContentStream({
+        model,
+        contents,
+        config: {
+          systemInstruction: SYSTEM,
+          ...(thinking ? { thinkingConfig: { thinkingLevel: light ? ThinkingLevel.MINIMAL : ThinkingLevel.LOW } } : {}),
+        },
+      });
+      // Models without thinking levels reject the setting; retry them with their default.
+      return request(true).catch((e) => (/thinking/i.test(String(e?.message)) ? request(false) : Promise.reject(e)));
+    });
+  } catch (e) {
+    await saveUser;
+    const text = `⚠️ ${friendlyGeminiError(e)}`;
+    await sb.from("chat_messages").insert({ course_id: courseId, role: "model", content: text });
+    return new Response(text, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  }
   await saveUser;
 
   const encoder = new TextEncoder();
@@ -153,7 +161,7 @@ export async function POST(req: Request) {
             }
           }
         } catch (e) {
-          const msg = `\n\n⚠️ שגיאה: ${(e as Error).message}`;
+          const msg = `\n\n⚠️ ${friendlyGeminiError(e)}`;
           full += msg;
           controller.enqueue(encoder.encode(msg));
         }

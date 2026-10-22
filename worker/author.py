@@ -128,41 +128,92 @@ def build_prompt(course, lesson, transcript, slide_count, previous_topics):
     return "\n".join(lines)
 
 
-def _gemini():
+# Free-tier quotas are per project AND per model (e.g. 20 requests/day on the newest Flash): fall back
+# across models, and across keys when GEMINI_API_KEY holds several comma-separated keys.
+WORK_MODELS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-flash-lite-latest", "gemini-2.5-flash-lite"]
+
+
+def _list(v):
+    return [x.strip() for x in (v or "").split(",") if x.strip()]
+
+
+def _keys():
+    return _list(os.environ.get("GEMINI_API_KEY"))
+
+
+def _models():
+    own = _list(os.environ.get("GEMINI_MODELS") or os.environ.get("GEMINI_MODEL"))
+    return list(dict.fromkeys(own + WORK_MODELS))
+
+
+def _is(e, *words):
+    t = str(e)
+    return any(w.lower() in t.lower() for w in words)
+
+
+def friendly_error(e):
+    if _is(e, "RESOURCE_EXHAUSTED", "429", "quota"):
+        return "המכסה היומית החינמית של Gemini נגמרה בכל המודלים. היא מתאפסת כל יום בסביבות 10:00 בבוקר - אז ללחוץ 'לנסות שוב'."
+    if _is(e, "UNAVAILABLE", "503", "overloaded", "high demand"):
+        return "השרתים של Gemini היו עמוסים. ללחוץ 'לנסות שוב' בעוד כמה דקות."
+    return str(e)[:1500]
+
+
+def _with_gemini(call):
+    """Runs call(client, model) with retries on overload and fallback across models and keys on quota."""
+    import time
     from google import genai
-    return genai.Client(api_key=os.environ["GEMINI_API_KEY"]), os.environ.get("GEMINI_MODEL") or "gemini-flash-latest"
+
+    keys = _keys()
+    if not keys:
+        raise RuntimeError("לא הוגדר GEMINI_API_KEY")
+    last = None
+    for key in keys:
+        client = genai.Client(api_key=key)
+        for model in _models():
+            for attempt in range(3):
+                try:
+                    return call(client, model)
+                except Exception as e:  # noqa: BLE001
+                    last = e
+                    busy = _is(e, "UNAVAILABLE", "503", "overloaded", "high demand")
+                    if busy and attempt < 2:
+                        time.sleep(5 * (attempt + 1) ** 2)
+                        continue
+                    if busy or _is(e, "RESOURCE_EXHAUSTED", "429", "quota", "NOT_FOUND", "404", "not supported"):
+                        print(f"gemini {model}: {str(e)[:120]} -> next model", flush=True)
+                        break
+                    raise
+    raise RuntimeError(friendly_error(last))
 
 
 def _generate_json(parts, system, schema, thinking="MEDIUM"):
-    """One structured-output call; retries without thinking_level for models that don't support it."""
+    """One structured-output call (with model/key fallback); adapts to models without thinking levels or schemas."""
     from google.genai import types
 
-    client, model = _gemini()
-
-    def call(with_thinking):
-        cfg = dict(system_instruction=system, response_mime_type="application/json",
-                   response_json_schema=schema, max_output_tokens=65536)
-        if with_thinking:
-            cfg["thinking_config"] = types.ThinkingConfig(thinking_level=thinking)
-        return client.models.generate_content(model=model, contents=[types.Content(role="user", parts=parts)],
-                                              config=types.GenerateContentConfig(**cfg))
-    try:
-        resp = call(True)
-    except Exception as e:  # noqa: BLE001
-        if "thinking" in str(e).lower():
-            resp = call(False)
-        elif "INVALID_ARGUMENT" in str(e) or "400" in str(e):
-            # Some models reject response_json_schema: plain JSON mode with the schema in the prompt.
-            from google.genai import types as t
-            client, model = _gemini()
-            resp = client.models.generate_content(
-                model=model,
-                contents=[t.Content(role="user", parts=list(parts) + [t.Part.from_text(
-                    text="החזר אך ורק JSON תקין לפי ה-JSON Schema הזה:\n" + json.dumps(schema, ensure_ascii=False))])],
-                config=t.GenerateContentConfig(system_instruction=system, response_mime_type="application/json",
-                                               max_output_tokens=65536))
-        else:
+    def call(client, model):
+        def run(with_thinking, with_schema):
+            cfg = dict(system_instruction=system, response_mime_type="application/json", max_output_tokens=65536)
+            contents = list(parts)
+            if with_schema:
+                cfg["response_json_schema"] = schema
+            else:
+                contents.append(types.Part.from_text(
+                    text="החזר אך ורק JSON תקין לפי ה-JSON Schema הזה:\n" + json.dumps(schema, ensure_ascii=False)))
+            if with_thinking:
+                cfg["thinking_config"] = types.ThinkingConfig(thinking_level=thinking)
+            return client.models.generate_content(model=model, contents=[types.Content(role="user", parts=contents)],
+                                                  config=types.GenerateContentConfig(**cfg))
+        try:
+            return run(True, True)
+        except Exception as e:  # noqa: BLE001
+            if _is(e, "thinking"):
+                return run(False, True)
+            if _is(e, "INVALID_ARGUMENT"):
+                return run(False, False)
             raise
+
+    resp = _with_gemini(call)
     text = (resp.text or "").strip()
     if text.startswith("```"):
         text = text.strip("`").removeprefix("json").strip()
@@ -246,13 +297,12 @@ def _search_check(claims):
     """Best effort: check the remaining doubtful claims against Google Search."""
     try:
         from google.genai import types
-        client, model = _gemini()
         listing = "\n".join(f"{i + 1}. {c}" for i, c in enumerate(claims[:8]))
-        resp = client.models.generate_content(
+        resp = _with_gemini(lambda client, model: client.models.generate_content(
             model=model,
             contents=f"בדוק בחיפוש כל טענה, וענה לכל אחת בשורה אחת בעברית בפורמט: <הטענה> - נכון / לא נכון / לא חד-משמעי: <הסבר קצר>\n{listing}",
             config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())]),
-        )
+        ))
         lines = [l.strip(" -*") for l in (resp.text or "").splitlines() if l.strip()]
         return lines or claims
     except Exception:  # noqa: BLE001

@@ -20,7 +20,7 @@ export default function Materials({ courseId, userId, items, isLab = false }: {
   const [drive, setDrive] = useState({ url: "", title: "" });
   const router = useRouter();
 
-  async function upload(picked: FileList | null) {
+  async function upload(picked: FileList | File[] | null) {
     if (!picked?.length) return;
     const sb = supabaseBrowser();
     // ZIPs are unpacked here on the device; each file inside is stored on its own.
@@ -60,6 +60,17 @@ export default function Materials({ courseId, userId, items, isLab = false }: {
     router.refresh();
   }
 
+  /** A ZIP uploaded before ZIPs were unpacked: download it, unpack it like a fresh upload, then remove it. */
+  async function extractStored(m: Material) {
+    setBusy(`מוריד את ${m.title}...`);
+    const { data } = await supabaseBrowser().storage.from("study").createSignedUrl(m.storage_path, 3600);
+    if (!data) { setBusy("לא הצלחתי להוריד את הקובץ"); return; }
+    const blob = await (await fetch(data.signedUrl)).blob();
+    await upload([new File([blob], m.title, { type: "application/zip" })]);
+    await deleteMaterial(m.id, courseId);
+    router.refresh();
+  }
+
   async function addFromDrive() {
     if (!drive.url.trim()) return;
     setBusy("מוסיף מהדרייב...");
@@ -92,6 +103,9 @@ export default function Materials({ courseId, userId, items, isLab = false }: {
               <button className="flex-1 text-start truncate" onClick={() => open(m.storage_path)}>
                 {m.storage_path.startsWith("drive:") && "☁️ "}{m.title}
               </button>
+              {/\.zip$/i.test(m.title) && !m.storage_path.startsWith("drive:") && (
+                <button className="text-accent text-sm shrink-0" onClick={() => extractStored(m)}>חלץ</button>
+              )}
               {m.kind === "syllabus" && (
                 <button className="text-accent text-sm shrink-0"
                   onClick={async () => { setBusy(`קורא את ${m.title}... (כחצי דקה)`); setBusy(await readSyllabus(m.id)); router.refresh(); }}>

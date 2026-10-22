@@ -26,14 +26,15 @@ const DAY = 864e5;
  * yet, tasks and exams coming up, weak topics, missing course files.
  */
 export async function weeklyPlan(sb: SupabaseClient): Promise<CoursePlan[]> {
-  const [{ data: courses }, { data: lessons }, { data: deadlines }, missing, { data: materials }, stats] =
+  const [{ data: courses }, { data: lessons }, { data: deadlines }, missing, { data: materials }, stats, { data: titles }] =
     await Promise.all([
       sb.from("courses").select("*").eq("archived", false),
       lessonsWithCoverage(sb),
       sb.from("deadlines").select("*").eq("done", false).gte("due_at", new Date(Date.now() - DAY).toISOString()),
       missingRecordings(sb).catch(() => []),
-      sb.from("materials").select("course_id, kind"),
+      sb.from("materials").select("course_id, kind, title"),
       topicStats(sb),
+      sb.from("deadlines").select("course_id, title"),
     ]);
   const now = new Date();
 
@@ -53,7 +54,7 @@ export async function weeklyPlan(sb: SupabaseClient): Promise<CoursePlan[]> {
       reasons.push(`${unread.length} פרקים שעוד לא קראת`);
     }
 
-    // Recordings of the last two weeks not uploaded yet (the home page lists them with actions).
+    // Recordings since the semester started not uploaded yet (the home page lists them with actions).
     const missingUploads = missing.filter((m) => m.slot.course_id === course.id).length;
     if (missingUploads) {
       score += missingUploads * 2;
@@ -83,6 +84,17 @@ export async function weeklyPlan(sb: SupabaseClient): Promise<CoursePlan[]> {
     if (weak) {
       score += weak * 2;
       reasons.push(`${weak} נושאים לחיזוק`);
+    }
+
+    // Assignment files without a deadline: "מטלה 3.pdf" uploaded but no task "מטלה 3" with a due date.
+    const allDeadlines = (titles ?? []).filter((d) => d.course_id === course.id);
+    for (const m of mats) {
+      const hit = m.title?.match(/(מטלה|תרגיל בית|עבודת בית|assignment|homework|hw)\s*(\d+)?/i);
+      if (!hit) continue;
+      const label = `${hit[1]}${hit[2] ? ` ${hit[2]}` : ""}`;
+      if (!allDeadlines.some((d) => d.title.includes(label))) {
+        reminders.push({ text: `להוסיף מועד הגשה ל"${label}" ב${course.name} (הקובץ הועלה, אין משימה)`, href: `/deadlines?course=${course.id}` });
+      }
     }
 
     if (course.kind !== "self" && !mats.some((m) => m.kind === "syllabus")) {

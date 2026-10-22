@@ -5,7 +5,8 @@ import type { Slot } from "./types";
 export type Missing = { slot: Slot; date: string };
 
 const DAY_MS = 864e5;
-const LOOKBACK_DAYS = 14;
+// First day of the current semester (Israel). Update each semester (see docs/HANDOFF.md).
+export const SEMESTER_START = process.env.SEMESTER_START || "2026-10-18";
 
 /** YYYY-MM-DD of a date in Israel. */
 function israelDate(d: Date) {
@@ -13,12 +14,13 @@ function israelDate(d: Date) {
 }
 
 /**
- * Lecture/practice meetings of the last two weeks that still have no recording.
+ * Lecture/practice meetings since the semester started that still have no recording.
  * A meeting counts as covered when it was marked ("uploaded" / "no recording"), or when a lesson of the
  * same course and kind was added on or after that day (lessons are matched to meetings in date order).
  */
 export async function missingRecordings(sb: SupabaseClient): Promise<Missing[]> {
-  const since = new Date(Date.now() - LOOKBACK_DAYS * DAY_MS);
+  const since = new Date(`${SEMESTER_START}T00:00:00+03:00`);
+  const days = Math.ceil((Date.now() - since.getTime()) / DAY_MS);
   const [{ data: slots }, { data: marks }, { data: lessons }] = await Promise.all([
     sb.from("schedule_slots").select("*").in("kind", ["lecture", "practice"]).not("course_id", "is", null),
     sb.from("recording_marks").select("slot_id, class_date").gte("class_date", israelDate(since)),
@@ -30,11 +32,11 @@ export async function missingRecordings(sb: SupabaseClient): Promise<Missing[]> 
 
   const meetings: Missing[] = [];
   for (const s of (slots ?? []) as (Slot & { created_at: string })[]) {
-    for (let k = LOOKBACK_DAYS; k >= 0; k--) {
+    for (let k = days; k >= 0; k--) {
       const d = new Date(Date.now() - k * DAY_MS);
       const date = israelDate(d);
       const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
-      if (weekday !== s.weekday || date < israelDate(new Date(s.created_at))) continue;
+      if (weekday !== s.weekday || date < SEMESTER_START) continue;
       if (date === today && now.time < s.end_time.slice(0, 5)) continue; // class not over yet
       meetings.push({ slot: s, date });
     }

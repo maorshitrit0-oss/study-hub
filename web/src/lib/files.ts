@@ -1,5 +1,6 @@
 import { GoogleGenAI, type Part } from "@google/genai";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { geminiKeys } from "./gemini";
 
 /** Materials are either in Supabase storage, or a shared Google Drive file stored as "drive:<id>". */
 export const DRIVE_PREFIX = "drive:";
@@ -38,7 +39,7 @@ export async function geminiFilePart(key: string, blob: Blob, mimeType: string):
   }
   const cached = uploaded.get(key);
   if (cached && cached.until > Date.now()) return { fileData: { fileUri: cached.uri, mimeType: cached.mimeType } };
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: geminiKeys()[0] });
   let file = await ai.files.upload({ file: blob, config: { mimeType } });
   for (let i = 0; i < 30 && file.state === "PROCESSING" && file.name; i++) {
     await new Promise((r) => setTimeout(r, 2000));

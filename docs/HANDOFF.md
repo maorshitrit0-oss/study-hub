@@ -64,6 +64,13 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   marking measurements to replace with their own.
 - Course files can be uploaded as ZIPs; they are unpacked on the device and typed by file name (`web/src/lib/zip.ts`).
 
+## Gemini quota (important)
+- Free tier: about **20 requests/day per model per project** on the newest Flash (seen 2026-10-22). `web/src/lib/gemini.ts`
+  and `worker/author.py` fall back across models (flash → 2.5-flash → flash-lite → 2.5-flash-lite) on 429/404 and
+  retry on 503; `GEMINI_API_KEY` may hold several comma-separated keys from different Google Cloud projects to
+  multiply the quota. Chat starts on flash-lite to save the stronger model for chapters.
+- Semester start for "missing recordings": `SEMESTER_START` in `web/src/lib/recordings.ts` (2026-10-18) – update each semester.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - The first Java lecture (processed on GitHub Actions) – not yet confirmed whether Gemini wrote the chapter.
