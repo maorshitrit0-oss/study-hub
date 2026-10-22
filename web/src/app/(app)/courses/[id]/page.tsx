@@ -7,7 +7,7 @@ import Materials from "@/components/Materials";
 import CourseFacts, { type Fact } from "@/components/CourseFacts";
 import { isWeak, pct, topicStats } from "@/lib/progress";
 import { isPast } from "@/lib/format";
-import { EXAM_LABEL, KIND_LABEL, lessonName, type Course, type Deadline, type Lesson } from "@/lib/types";
+import { DAYS, EXAM_LABEL, KIND_LABEL, SLOT_LABEL, hhmm, type Slot, lessonName, type Course, type Deadline, type Lesson } from "@/lib/types";
 
 const STATUS: Record<Lesson["status"], [string, string]> = {
   queued: ["בתור", "text-muted"],
@@ -20,7 +20,7 @@ const STATUS: Record<Lesson["status"], [string, string]> = {
 export default async function CoursePage({ params }: PageProps<"/courses/[id]">) {
   const { id } = await params;
   const { sb, userId } = await requireUser();
-  const [{ data: course }, { data: lessons }, { data: materials }, { data: deadlines }, stats, { data: facts }, { data: settings }] = await Promise.all([
+  const [{ data: course }, { data: lessons }, { data: materials }, { data: deadlines }, stats, { data: facts }, { data: settings }, { data: slots }] = await Promise.all([
     sb.from("courses").select("*").eq("id", id).maybeSingle(),
     sb.from("lessons").select("id, kind, number, title, status, progress, read_at, created_at").eq("course_id", id).order("created_at"),
     sb.from("materials").select("id, title, kind, storage_path").eq("course_id", id).order("created_at"),
@@ -28,6 +28,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
     topicStats(sb, id),
     sb.from("course_facts").select("id, category, text, lesson_id").eq("course_id", id).order("created_at"),
     sb.from("settings").select("is_reservist").eq("user_id", userId).maybeSingle(),
+    sb.from("schedule_slots").select("*").eq("course_id", id).order("weekday").order("start_time"),
   ]);
   if (!course) notFound();
   const c = course as Course;
@@ -57,6 +58,15 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
           {c.archived && <span className="chip">בארכיון</span>}
         </div>
         {c.notes && <p className="text-sm text-muted mt-2 whitespace-pre-line">{c.notes}</p>}
+        {(slots ?? []).length > 0 && (
+          <ul className="text-sm mt-2 space-y-0.5">
+            {((slots ?? []) as Slot[]).map((s) => (
+              <li key={s.id} className="text-muted">
+                🕒 {SLOT_LABEL[s.kind]}: יום {DAYS[s.weekday]} {hhmm(s.start_time)}–{hhmm(s.end_time)}{s.room ? ` · חדר ${s.room}` : ""}
+              </li>
+            ))}
+          </ul>
+        )}
       </header>
 
       <div className="grid grid-cols-2 gap-3">

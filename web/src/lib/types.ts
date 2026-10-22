@@ -1,6 +1,7 @@
 export type Course = {
   id: string;
   name: string;
+  code: string | null;
   kind: "course" | "lab" | "project" | "self";
   year: number | null;
   semester: string | null;
@@ -68,3 +69,19 @@ export function lessonName(l: Pick<Lesson, "kind" | "number" | "title">) {
   const base = `${LESSON_LABEL[l.kind]}${l.number ? ` ${l.number}` : ""}`;
   return l.title && l.kind === "web" ? l.title : base;
 }
+
+export type Slot = {
+  id: string;
+  course_id: string | null;
+  title: string;
+  kind: "lecture" | "practice" | "lab" | "other";
+  weekday: number;
+  start_time: string;
+  end_time: string;
+  room: string | null;
+  instructor: string | null;
+};
+
+export const DAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
+export const SLOT_LABEL: Record<Slot["kind"], string> = { lecture: "הרצאה", practice: "תרגול", lab: "מעבדה", other: "אחר" };
+export const hhmm = (t: string) => t.slice(0, 5);

@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/supabase/server";
 import { dispatchLesson, dispatchNotify } from "@/lib/github";
 import { parseIcs } from "@/lib/ics";
 import { israelLocalToIso } from "@/lib/format";
+import { extractSyllabus } from "@/lib/syllabus";
 
 const str = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? "").trim();
@@ -24,6 +25,7 @@ function courseFields(f: FormData) {
     .map((m) => ({ name: m![1], weight: Number(m![2]) }));
   return {
     name: str(f, "name") ?? "קורס",
+    code: str(f, "code"),
     kind: str(f, "kind") ?? "course",
     year: int(f, "year"),
     semester: str(f, "semester"),
@@ -136,7 +138,14 @@ export async function addMaterial(courseId: string, m: { title: string; kind: st
   await sb.from("materials").insert({
     course_id: courseId, title: m.title, kind: m.kind, storage_path: m.path, mime: m.mime, size_bytes: m.size,
   });
+  let note: string | null = null;
+  const readable = m.mime === "application/pdf" || m.mime.startsWith("image/") || m.mime.startsWith("text/");
+  if (m.kind === "syllabus" && readable) {
+    const { data: file } = await sb.storage.from("study").download(m.path);
+    note = file ? await extractSyllabus(sb, courseId, file, m.mime).catch((e) => `קריאת הסילבוס נכשלה: ${(e as Error).message}`) : null;
+  }
   revalidatePath(`/courses/${courseId}`);
+  return note;
 }
 
 export async function deleteMaterial(id: string, courseId: string) {
@@ -265,4 +274,40 @@ export async function removePushSubscription(endpoint: string) {
 export async function sendTestPush() {
   const { userId } = await requireUser();
   return dispatchNotify("test", userId);
+}
+
+// ---------- timetable ----------
+
+function slotFields(f: FormData) {
+  return {
+    title: str(f, "title") ?? "שיעור",
+    kind: str(f, "kind") ?? "lecture",
+    course_id: str(f, "course_id"),
+    weekday: int(f, "weekday") ?? 0,
+    start_time: str(f, "start_time") ?? "09:00",
+    end_time: str(f, "end_time") ?? "10:00",
+    room: str(f, "room"),
+    instructor: str(f, "instructor"),
+  };
+}
+
+export async function addSlot(f: FormData) {
+  const { sb } = await requireUser();
+  await sb.from("schedule_slots").insert(slotFields(f));
+  revalidatePath("/schedule");
+  revalidatePath("/");
+}
+
+export async function updateSlot(id: string, f: FormData) {
+  const { sb } = await requireUser();
+  await sb.from("schedule_slots").update(slotFields(f)).eq("id", id);
+  revalidatePath("/");
+  redirect("/schedule");
+}
+
+export async function deleteSlot(id: string) {
+  const { sb } = await requireUser();
+  await sb.from("schedule_slots").delete().eq("id", id);
+  revalidatePath("/");
+  redirect("/schedule");
 }

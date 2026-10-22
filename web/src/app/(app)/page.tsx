@@ -2,19 +2,23 @@ import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
 import DeadlineRow from "@/components/DeadlineRow";
 import { isWeak, pct, topicStats } from "@/lib/progress";
-import { isoFromNow } from "@/lib/format";
-import { lessonName, type Course, type Deadline, type Lesson } from "@/lib/types";
+import { isoFromNow, israelNow } from "@/lib/format";
+import SlotCard from "@/components/SlotCard";
+import { DAYS, lessonName, type Course, type Deadline, type Lesson, type Slot } from "@/lib/types";
 
 export default async function Home() {
   const { sb } = await requireUser();
   const in14 = isoFromNow(14);
-  const [{ data: courses }, { data: deadlines }, { data: lessons }, stats] = await Promise.all([
+  const now = israelNow();
+  const [{ data: courses }, { data: deadlines }, { data: lessons }, stats, { data: today }] = await Promise.all([
     sb.from("courses").select("*").eq("archived", false).order("year").order("name"),
     sb.from("deadlines").select("*").eq("done", false).lte("due_at", in14).order("due_at").limit(8),
     sb.from("lessons").select("id, course_id, kind, number, title, status, progress, read_at, created_at")
       .order("created_at", { ascending: false }).limit(30),
     topicStats(sb),
+    sb.from("schedule_slots").select("*").eq("weekday", now.weekday).order("start_time"),
   ]);
+  const todaySlots = ((today ?? []) as Slot[]).filter((s) => s.end_time.slice(0, 5) > now.time);
   const courseName = new Map((courses as Course[] | null)?.map((c) => [c.id, c.name]));
   const active = (lessons as Lesson[] | null)?.filter((l) => l.status !== "ready" && l.status !== "error") ?? [];
   const unread = (lessons as Lesson[] | null)?.filter((l) => l.status === "ready" && !l.read_at).slice(0, 5) ?? [];
@@ -23,6 +27,21 @@ export default async function Home() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold">מה לומדים היום?</h1>
+
+      {todaySlots.length > 0 && (
+        <section className="card">
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="font-semibold">היום באוניברסיטה · יום {DAYS[now.weekday]}</h2>
+            <Link href="/schedule" className="text-sm text-accent">המערכת</Link>
+          </div>
+          <div className="space-y-2">
+            {todaySlots.map((s) => (
+              <SlotCard key={s.id} s={s} courseName={s.course_id ? courseName.get(s.course_id) : undefined}
+                now={s.start_time.slice(0, 5) <= now.time} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {active.length > 0 && (
         <section className="card">

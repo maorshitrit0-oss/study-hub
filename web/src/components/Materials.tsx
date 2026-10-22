@@ -24,7 +24,9 @@ export default function Materials({ courseId, userId, items }: { courseId: strin
       const path = `${userId}/materials/${courseId}/${Date.now()}_${safe}`;
       const { error } = await sb.storage.from("study").upload(path, file, { contentType: file.type });
       if (error) { setBusy(`שגיאה: ${error.message}`); return; }
-      await addMaterial(courseId, { title: file.name, kind, path, mime: file.type, size: file.size });
+      if (kind === "syllabus") setBusy(`קורא את הסילבוס ${file.name}...`);
+      const note = await addMaterial(courseId, { title: file.name, kind, path, mime: file.type, size: file.size });
+      if (note) { setBusy(note); router.refresh(); return; }
     }
     setBusy("");
     router.refresh();
@@ -59,7 +61,7 @@ export default function Materials({ courseId, userId, items }: { courseId: strin
         </label>
       </div>
       {busy && <p className="text-sm text-muted">{busy}</p>}
-      <p className="text-xs text-muted">ה-AI בצ&apos;אט של הקורס קורא את קבצי ה-PDF והתמונות (מבחני עבר, מצגות, סילבוס).</p>
+      <p className="text-xs text-muted">סילבוס שמועלה נקרא אוטומטית: המבחן, המשקלים והקלות המילואים עוברים לדף הקורס. ה-AI בצ&apos;אט קורא את כל הקבצים.</p>
     </div>
   );
 }

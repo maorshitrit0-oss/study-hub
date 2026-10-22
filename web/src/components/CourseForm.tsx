@@ -50,6 +50,10 @@ export default function CourseForm({ action, course, submit }: {
         </div>
       </div>
       <div>
+        <label className="label" htmlFor="code">מספר קורס (לא חובה)</label>
+        <input className="input" id="code" name="code" dir="ltr" defaultValue={course?.code ?? ""} placeholder="002-4366110-01" />
+      </div>
+      <div>
         <label className="label" htmlFor="exam_type">סוג המבחן</label>
         <select className="input" id="exam_type" name="exam_type" defaultValue={course?.exam_type ?? ""}>
           <option value="">לא ידוע</option>
