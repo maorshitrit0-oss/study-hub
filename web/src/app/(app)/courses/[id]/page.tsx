@@ -79,7 +79,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
       <CourseFacts facts={(facts ?? []) as Fact[]} reservist={!!settings?.is_reservist}
         lessonNames={new Map(ls.map((l) => [l.id, lessonName(l)]))} />
 
-      <section className="card">
+      <section className="card scroll-mt-4" id="add">
         <h2 className="font-semibold mb-3">הוספת הרצאה / תרגול</h2>
         <AddLesson courseId={id} nextNumber={nextNumber} />
       </section>

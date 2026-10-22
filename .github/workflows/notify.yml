@@ -1,13 +1,15 @@
-# Morning digest of deadlines, exams and unread chapters, sent as push notifications.
+# Push notifications: morning digest (deadlines, exams, unread chapters) and an evening
+# reminder to upload the recordings of today's classes.
 name: notify
 
 on:
   schedule:
-    - cron: "0 5 * * *"   # 08:00 Israel summer time / 07:00 winter time
+    - cron: "0 5 * * *"    # morning: 08:00 Israel summer time / 07:00 winter time
+    - cron: "30 19 * * *"  # evening: 22:30 summer / 21:30 winter
   workflow_dispatch:
     inputs:
       mode:
-        description: "daily / setup / test"
+        description: "daily / evening / setup / test"
         default: daily
       user_id:
         description: "for test: who gets the notification"
@@ -27,4 +29,4 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python notify.py "${{ inputs.mode || 'daily' }}" ${{ inputs.user_id }}
+        run: python notify.py "${{ inputs.mode || (github.event.schedule == '30 19 * * *' && 'evening') || 'daily' }}" ${{ inputs.user_id }}

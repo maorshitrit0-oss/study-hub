@@ -4,19 +4,22 @@ import DeadlineRow from "@/components/DeadlineRow";
 import { isWeak, pct, topicStats } from "@/lib/progress";
 import { isoFromNow, israelNow } from "@/lib/format";
 import SlotCard from "@/components/SlotCard";
+import MissingRecordings from "@/components/MissingRecordings";
+import { missingRecordings } from "@/lib/recordings";
 import { DAYS, lessonName, type Course, type Deadline, type Lesson, type Slot } from "@/lib/types";
 
 export default async function Home() {
   const { sb } = await requireUser();
   const in14 = isoFromNow(14);
   const now = israelNow();
-  const [{ data: courses }, { data: deadlines }, { data: lessons }, stats, { data: today }] = await Promise.all([
+  const [{ data: courses }, { data: deadlines }, { data: lessons }, stats, { data: today }, missing] = await Promise.all([
     sb.from("courses").select("*").eq("archived", false).order("year").order("name"),
     sb.from("deadlines").select("*").eq("done", false).lte("due_at", in14).order("due_at").limit(8),
     sb.from("lessons").select("id, course_id, kind, number, title, status, progress, read_at, created_at")
       .order("created_at", { ascending: false }).limit(30),
     topicStats(sb),
     sb.from("schedule_slots").select("*").eq("weekday", now.weekday).order("start_time"),
+    missingRecordings(sb).catch(() => []),
   ]);
   const todaySlots = ((today ?? []) as Slot[]).filter((s) => s.end_time.slice(0, 5) > now.time);
   const courseName = new Map((courses as Course[] | null)?.map((c) => [c.id, c.name]));
@@ -50,6 +53,8 @@ export default async function Home() {
           </div>
         </section>
       )}
+
+      <MissingRecordings items={missing} courseName={courseName} />
 
       {active.length > 0 && (
         <section className="card">

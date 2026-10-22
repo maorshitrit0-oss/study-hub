@@ -313,3 +313,11 @@ export async function deleteSlot(id: string) {
   revalidatePath("/");
   redirect("/schedule");
 }
+
+// ---------- recording reminders ----------
+
+export async function markRecording(slotId: string, classDate: string, status: "uploaded" | "none") {
+  const { sb } = await requireUser();
+  await sb.from("recording_marks").upsert({ slot_id: slotId, class_date: classDate, status }, { onConflict: "slot_id,class_date" });
+  revalidatePath("/");
+}

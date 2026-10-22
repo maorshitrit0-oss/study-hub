@@ -2,6 +2,7 @@
 
   python notify.py setup            create the VAPID signing keys if they don't exist yet
   python notify.py daily            morning digest: deadlines today/tomorrow, exams this week, unread chapters
+  python notify.py evening          after classes: which of today's lectures/practices still need their recording
   python notify.py test <user_id>   send a test notification
 
 Also imported by hub.py to announce a finished lesson. Never raises: a failed
@@ -110,10 +111,40 @@ def daily():
         print(f"{uid}: {len(lines)} items -> {n} devices")
 
 
+SLOT_KIND = {"lecture": "הרצאה", "practice": "תרגול"}
+
+
+def evening():
+    """Remind to upload today's recordings that weren't added or marked yet."""
+    sb = db()
+    users = {r["user_id"] for r in sb.table("push_subscriptions").select("user_id").execute().data}
+    now = datetime.now(TZ)
+    today = now.date().isoformat()
+    weekday = (now.weekday() + 1) % 7  # Python Monday=0 -> Sunday=0
+    start_of_day = datetime.combine(now.date(), datetime.min.time(), TZ).astimezone(timezone.utc).isoformat()
+    for uid in users:
+        slots = (sb.table("schedule_slots").select("id, course_id, kind, title, end_time").eq("user_id", uid)
+                 .eq("weekday", weekday).in_("kind", ["lecture", "practice"]).execute().data)
+        if not slots:
+            continue
+        marked = {m["slot_id"] for m in sb.table("recording_marks").select("slot_id").eq("user_id", uid)
+                  .eq("class_date", today).execute().data}
+        added = {(l["course_id"], l["kind"]) for l in sb.table("lessons").select("course_id, kind").eq("user_id", uid)
+                 .gte("created_at", start_of_day).execute().data}
+        courses = {c["id"]: c["name"] for c in sb.table("courses").select("id, name").eq("user_id", uid).execute().data}
+        todo = [f"{SLOT_KIND[s['kind']]} · {courses.get(s['course_id'], s['title'])}" for s in slots
+                if s["id"] not in marked and (s["course_id"], s["kind"]) not in added and s["end_time"][:5] <= now.strftime("%H:%M")]
+        if todo:
+            n = send(sb, uid, "📹 להעלות הקלטות מהיום", "\n".join(todo) + "\nכשההקלטה עולה לזום - מדביקים את הקישור באפליקציה.", "/")
+            print(f"{uid}: {len(todo)} recordings -> {n} devices")
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "daily"
     if cmd == "setup":
         ensure_keys(db())
+    elif cmd == "evening":
+        evening()
     elif cmd == "test":
         print("devices:", send(db(), sys.argv[2], "Study Hub 🎉", "ההתראות עובדות! מעכשיו תקבל כאן תזכורות על משימות ופרקים חדשים.", "/"))
     else:
