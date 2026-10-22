@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/supabase/server";
 import SkillRow from "@/components/SkillRow";
 import { addSkill } from "@/app/(app)/actions";
 import { FREEZES, weekDates, type Skill } from "@/lib/skills";
+import { ensureSyllabus, parseModules } from "@/lib/vlsiSyllabus";
 import DeadlineRow from "@/components/DeadlineRow";
 import type { Deadline } from "@/lib/types";
 
@@ -14,13 +15,28 @@ export default async function Track({ params }: PageProps<"/self/[id]">) {
   const { sb } = await requireUser();
   const { weekStart, today } = weekDates();
   const [{ data: course }, { data: skills }, { data: msgs }, { data: deadlines }] = await Promise.all([
-    sb.from("courses").select("id, name, notes").eq("id", id).maybeSingle(),
+    sb.from("courses").select("id, name, notes, syllabus_topics").eq("id", id).maybeSingle(),
     sb.from("skills").select("*").eq("course_id", id).order("ord"),
     sb.from("chat_messages").select("created_at").eq("course_id", id).eq("role", "user").gte("created_at", weekStart),
     sb.from("deadlines").select("*").eq("course_id", id).eq("done", false).order("due_at"),
   ]);
   if (!course) notFound();
-  const list = (skills ?? []) as Skill[];
+  let list = (skills ?? []) as Skill[];
+  let modulesRaw = course.syllabus_topics;
+  // His VLSI track gets the syllabus once (existing topics keep their level).
+  if (/VLSI/i.test(course.name) && await ensureSyllabus(sb, id, list, modulesRaw).catch(() => false)) {
+    const [{ data: s2 }, { data: c2 }] = await Promise.all([
+      sb.from("skills").select("*").eq("course_id", id).order("ord"),
+      sb.from("courses").select("syllabus_topics").eq("id", id).single(),
+    ]);
+    list = (s2 ?? []) as Skill[];
+    modulesRaw = c2?.syllabus_topics;
+  }
+  const modules = parseModules(modulesRaw);
+  const topics = list.filter((s) => s.kind === "topic");
+  const groups = modules.length
+    ? modules.map((m, i) => ({ ...m, items: topics.filter((t) => t.ord >= m.from && (i + 1 >= modules.length || t.ord < modules[i + 1].from)) }))
+    : [{ from: 1, title: "", goal: "", items: topics }];
   const sessions = new Set((msgs ?? []).map((m) => m.created_at.slice(0, 10))).size;
   const freeze = FREEZES.find((f) => today >= f.from && today <= f.to);
 
@@ -41,7 +57,20 @@ export default async function Track({ params }: PageProps<"/self/[id]">) {
       <section className="card">
         <h2 className="font-semibold mb-1">מפת הלימוד</h2>
         <p className="text-xs text-muted mb-2">נושא נחשב סגור רק אחרי שתי שאלות חדשות שפתרת והסברת בעצמך. המורה מעדכן את הרמה אחרי כל מפגש, ואפשר גם לשנות ידנית.</p>
-        <ul className="divide-y divide-line">{list.filter((s) => s.kind === "topic").map((s) => <SkillRow key={s.id} s={s} />)}</ul>
+        {groups.map((g) => {
+          const done = g.items.filter((t) => t.level >= 3).length;
+          return (
+            <details key={g.title || "all"} open={!g.title || (done < g.items.length && g.items.some((t) => t.level > 0))} className="mt-2">
+              {g.title && (
+                <summary className="cursor-pointer font-medium">
+                  {g.title} <span className="text-xs text-muted">({done}/{g.items.length})</span>
+                  <span className="block text-xs text-muted font-normal">{g.goal}</span>
+                </summary>
+              )}
+              <ul className="divide-y divide-line">{g.items.map((s) => <SkillRow key={s.id} s={s} />)}</ul>
+            </details>
+          );
+        })}
       </section>
 
       <section className="card">

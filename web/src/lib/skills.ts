@@ -47,9 +47,10 @@ export async function applyProgress(sb: SupabaseClient, courseId: string, reply:
 }
 
 /** Text block describing the roadmap for the tutor's context. */
-export function roadmapText(skills: Skill[]) {
+export function roadmapText(skills: Skill[], modules: { from: number; title: string; goal: string }[] = []) {
+  const head = (o: number) => modules.filter((m) => m.from === o).map((m) => `\n## מודול ${m.title} - ${m.goal}\n`).join("");
   const part = (kind: Skill["kind"], names: string[]) => skills.filter((s) => s.kind === kind).sort((a, b) => a.ord - b.ord)
-    .map((s) => `${s.ord}. ${s.title} - רמה ${s.level} (${names[s.level]})${s.notes ? `\n   הערות: ${s.notes.replace(/\n/g, " / ")}` : ""}`).join("\n");
+    .map((s) => `${kind === "topic" ? head(s.ord) : ""}${s.ord}. ${s.title} - רמה ${s.level} (${names[s.level]})${s.notes ? `\n   הערות: ${s.notes.replace(/\n/g, " / ")}` : ""}`).join("\n");
   return `מפת הלימוד (לפי הסדר):\n${part("topic", LEVELS)}\n\nשלבי הפרויקט:\n${part("project", PROJECT_LEVELS)}`;
 }
 

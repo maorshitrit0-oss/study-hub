@@ -4,6 +4,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { DRIVE_PREFIX, geminiFilePart, materialBlob } from "@/lib/files";
 import { EXAM_LABEL, lessonName, type Course, type Lesson } from "@/lib/types";
 import { applyProgress, roadmapText, type Skill } from "@/lib/skills";
+import { parseModules } from "@/lib/vlsiSyllabus";
 
 export const maxDuration = 300;
 
@@ -42,7 +43,7 @@ const SYSTEM = `אתה המרצה והמתרגל הפרטי של סטודנט ל
 // Self-study tracks: a private tutor that follows the student's own rules (in the track's notes) and keeps the roadmap.
 const TUTOR = `אתה מורה פרטי קפדן במסלול לימוד עצמי של סטודנט להנדסת חשמל (מחוץ לאוניברסיטה). ענה תמיד בעברית; מונחים וקוד - באנגלית.
 ההקשר שלו, המטרות, הכללים איך ללמד אותו ואיפה הוא עומד - מופיעים למטה תחת "ההקשר והכללים". הם מחייבים, ועדיפים על כל הנחיה כללית.
-מפת הלימוד ושלבי הפרויקט מופיעים עם הרמה הנוכחית בכל נושא. אם הוא לא ביקש משהו אחר - המשך מהנושא הראשון לפי הסדר שעוד לא ברמה 3.
+מפת הלימוד (סילבוס במודולים) ושלבי הפרויקט מופיעים עם הרמה הנוכחית בכל נושא. אם הוא לא ביקש משהו אחר - המשך מהנושא הראשון לפי הסדר שעוד לא ברמה 3, ואל תדלג למודול הבא לפני שהבסיס יציב.
 
 זה גם צ'אט חופשי: הוא יכול לשאול כל שאלה, לבקש הסבר, להדביק קוד או תמונה של שאלה - ענה כמו עוזר בינה מלאכותית טוב, ברור ומדויק.
 אחרי כל הסבר על נושא - שאל אותו שאלה אמריקאית אחת עליו (חידון), כדי לוודא הבנה. "חידון" / "תבחן אותי" - שאלות אמריקאיות אחת-אחת על מה שביקש, או על הנושאים שבמפה.
@@ -98,7 +99,7 @@ export async function POST(req: Request) {
 
   // Course context: info + reading chapters (newest kept if over budget) + PDFs/images.
   let context = isSelf
-    ? `מסלול: ${c.name}\nתאריך היום: ${new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" })}\n\n=== ההקשר והכללים ===\n${c.notes ?? "-"}\n\n=== ${roadmapText(skills)}\n`
+    ? `מסלול: ${c.name}\nתאריך היום: ${new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" })}\n\n=== ההקשר והכללים ===\n${c.notes ?? "-"}\n\n=== ${roadmapText(skills, parseModules(c.syllabus_topics))}\n`
     : `קורס: ${c.name}\nמרצה: ${c.lecturer ?? "-"}\nסוג מבחן: ${c.exam_type ? EXAM_LABEL[c.exam_type] : "לא ידוע"}\n` +
     `משקלים: ${c.grade_weights.map((w) => `${w.name} ${w.weight}%`).join(", ") || "-"}\nהערות: ${c.notes ?? "-"}\n` +
     `הסטודנט ${settings?.is_reservist ? "משרת מילואים בסמסטר הזה - התחשב בהקלות למילואימניקים" : "לא מסומן כמשרת מילואים כרגע"}.\n` +

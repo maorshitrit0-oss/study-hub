@@ -126,6 +126,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - The course chat becomes a tutor (`TUTOR` in `api/chat/route.ts`): one topic, one MCQ, wait, demand reasoning,
   no flattery, ASCII waveforms; also a free AI chat that quizzes after each explanation (1-4 answer buttons in the UI);
   "➕ נושא חדש: <title>" adds a topic to the map; it ends with "📈 התקדמות: <title> → <0-4> | note" lines that update `skills`.
+- Syllabus (`web/src/lib/vlsiSyllabus.ts`, 9 modules / 50 topics) is merged into his roadmap once by /self/[id];
+  module headers live in `courses.syllabus_topics` as "firstOrd|title|goal".
+- Lessons can be edited (kind, number, title) on the lesson page.
 - Seed: `supabase/self_study.sql` + `supabase/self_study_vlsi.sql`. Exam freeze 10-25/1/2027 (no new development).
 
 ## Open items
