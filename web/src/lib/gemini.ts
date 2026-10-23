@@ -22,7 +22,12 @@ const isMissingModel = (e: unknown) => /NOT_FOUND|"code":404|is not found|not su
 export function friendlyGeminiError(e: unknown) {
   if (isQuota(e)) return "המכסה היומית החינמית של Gemini נגמרה בכל המודלים. היא מתאפסת כל יום בסביבות 10:00 בבוקר - אז ללחוץ שוב.";
   if (isBusy(e)) return "השרתים של Gemini עמוסים כרגע. לנסות שוב בעוד כמה דקות.";
-  return msg(e).slice(0, 300);
+  // Never an empty warning: some failures (dropped stream, blocked reply) carry no message at all.
+  const text = msg(e).trim();
+  const name = (e as Error)?.name && (e as Error).name !== "Error" ? ` (${(e as Error).name})` : "";
+  return text && text !== "undefined" && text !== "[object Object]"
+    ? text.slice(0, 300)
+    : `Gemini לא החזיר תשובה${name}. לשלוח שוב; אם זה חוזר - לצלם ולשלוח ל-Claude.`;
 }
 
 /** Runs a Gemini call with retries on overload and fallback across models and keys on quota. */

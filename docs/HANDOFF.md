@@ -132,6 +132,12 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   were numbered after the lectures until 22/10/2026; the first waves practice was renumbered to 1).
 - Seed: `supabase/self_study.sql` + `supabase/self_study_vlsi.sql`. Exam freeze 10-25/1/2027 (no new development).
 
+## Formulas (2026-10-23)
+- KaTeX CSS must match the KaTeX that rehype-katex renders with (pinned katex 0.16.47; a 0.19 CSS broke \vec arrows).
+- `web/src/lib/math.ts`: long inline $...$ become display math, and long display equations split at "=" into aligned
+  lines (applies to old chapters too). Quiz text renders math via `Rich` (Chapter.tsx). Prompts ask for short inline math.
+- Chat errors never show an empty "⚠️": `friendlyGeminiError` falls back to a message; an empty stream says so.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so

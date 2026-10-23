@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { answerQuestion } from "@/app/(app)/actions";
 import type { Question } from "@/lib/types";
+import { Rich } from "./Chapter";
 
 type Q = Omit<Question, "explanation"> & { explanation?: string | null };
 
@@ -42,7 +43,7 @@ export default function Quiz({ questions, title = "שאלון" }: { questions: Q
         <span>{title}</span>
         <span>{i + 1} / {questions.length}{q.topic ? ` · ${q.topic}` : ""}</span>
       </div>
-      <p className="font-medium text-lg leading-relaxed whitespace-pre-line">{q.question}</p>
+      <div className="font-medium text-lg leading-relaxed"><Rich text={q.question} /></div>
       <ol className="space-y-2">
         {q.options.map((opt, k) => {
           let cls = "border-line";
@@ -54,7 +55,7 @@ export default function Quiz({ questions, title = "שאלון" }: { questions: Q
               <button onClick={() => pick(k)} disabled={chosen !== null}
                 className={`w-full text-start flex gap-3 items-start rounded-xl border-2 px-3 py-3 ${cls}`}>
                 <span className="font-bold text-muted">{k + 1}.</span>
-                <span className="whitespace-pre-line">{opt}</span>
+                <span className="min-w-0"><Rich text={opt} /></span>
               </button>
             </li>
           );
@@ -63,7 +64,7 @@ export default function Quiz({ questions, title = "שאלון" }: { questions: Q
       {correct !== null && (
         <div className={`rounded-xl p-3 ${chosen === correct ? "bg-good-soft" : "bg-bad-soft"}`}>
           <p className="font-semibold mb-1">{chosen === correct ? "נכון ✓" : `לא נכון - התשובה היא ${correct + 1}`}</p>
-          {q.explanation && <p className="text-sm whitespace-pre-line">{q.explanation}</p>}
+          {q.explanation && <div className="text-sm"><Rich text={q.explanation} /></div>}
         </div>
       )}
       {correct !== null && (

@@ -2,6 +2,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import { promoteLongMath } from "@/lib/math";
 
 /** Renders a reading chapter; images written as ![..](slide:N) resolve to signed slide URLs. */
 export default function Chapter({ md, slideUrls }: { md: string; slideUrls: Record<number, string> }) {
@@ -26,8 +27,20 @@ export default function Chapter({ md, slideUrls }: { md: string; slideUrls: Reco
           a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" className="text-accent underline">{children}</a>,
         }}
       >
-        {md}
+        {promoteLongMath(md)}
       </ReactMarkdown>
     </div>
+  );
+}
+
+/** A short text with formulas (quiz question, option, explanation): same math rendering, no block margins. */
+export function Rich({ text }: { text: string }) {
+  return (
+    <span className="rich">
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}
+        components={{ p: ({ children }) => <span className="block">{children}</span> }}>
+        {text}
+      </ReactMarkdown>
+    </span>
   );
 }

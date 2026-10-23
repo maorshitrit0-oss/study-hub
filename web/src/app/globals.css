@@ -84,5 +84,7 @@ input, select, textarea { font-size: max(16px, 1em); }
 .chapter table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1em 0; }
 .chapter th, .chapter td { border: 1px solid var(--line); padding: .4em .7em; }
 .chapter img { border-radius: 12px; border: 1px solid var(--line); margin: .8em 0; width: 100%; height: auto; }
-.chapter .katex-display { direction: ltr; overflow-x: auto; overflow-y: hidden; padding: .3em 0; }
-.chapter .katex { direction: ltr; unicode-bidi: isolate; }
+/* Formulas: always left-to-right and never broken across lines; a long one scrolls sideways instead. */
+.katex-display { direction: ltr; overflow-x: auto; overflow-y: hidden; padding: .3em 0; font-size: .92em; }
+.katex { direction: ltr; unicode-bidi: isolate; white-space: nowrap; }
+:not(.katex-display) > .katex { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: middle; padding: .1em 0; }
