@@ -1,3 +1,4 @@
+import { fetchAll } from "./fetchAll";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type TopicStat = { topic: string; answered: number; correct: number; total: number };
@@ -7,13 +8,18 @@ export type TopicStat = { topic: string; answered: number; correct: number; tota
  * so re-practicing a weak topic actually moves the number.
  */
 export async function topicStats(sb: SupabaseClient, courseId?: string) {
-  let qs = sb.from("questions").select("id, topic, course_id");
-  let at = sb.from("attempts").select("question_id, is_correct, created_at").order("created_at");
-  if (courseId) {
-    qs = qs.eq("course_id", courseId);
-    at = at.eq("course_id", courseId);
-  }
-  const [{ data: questions }, { data: attempts }] = await Promise.all([qs, at]);
+  const qs = () => {
+    const q = sb.from("questions").select("id, topic, course_id").order("id");
+    return courseId ? q.eq("course_id", courseId) : q;
+  };
+  const at = () => {
+    const q = sb.from("attempts").select("question_id, is_correct, created_at").order("created_at").order("id");
+    return courseId ? q.eq("course_id", courseId) : q;
+  };
+  const [questions, attempts] = await Promise.all([
+    fetchAll<{ id: string; topic: string | null; course_id: string }>(qs),
+    fetchAll<{ question_id: string; is_correct: boolean }>(at),
+  ]);
   const latest = new Map<string, boolean>();
   for (const a of attempts ?? []) latest.set(a.question_id, a.is_correct);
 

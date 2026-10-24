@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
 import Quiz from "@/components/Quiz";
+import { fetchAll } from "@/lib/fetchAll";
 import type { Question } from "@/lib/types";
 
 const SIZE = 10;
@@ -15,12 +16,14 @@ export default async function Practice({ params, searchParams }: PageProps<"/cou
   const { id } = await params;
   const topic = (await searchParams).topic as string | undefined;
   const { sb } = await requireUser();
-  let q = sb.from("questions").select("id, lesson_id, topic, question, options, correct, explanation, difficulty").eq("course_id", id);
-  if (topic) q = q.eq("topic", topic);
-  const [{ data: course }, { data: questions }, { data: attempts }] = await Promise.all([
+  const q = () => {
+    const base = sb.from("questions").select("id, lesson_id, topic, question, options, correct, explanation, difficulty").eq("course_id", id).order("id");
+    return topic ? base.eq("topic", topic) : base;
+  };
+  const [{ data: course }, questions, attempts] = await Promise.all([
     sb.from("courses").select("name").eq("id", id).single(),
-    q,
-    sb.from("attempts").select("question_id, is_correct").eq("course_id", id).order("created_at"),
+    fetchAll<Question>(q),
+    fetchAll<{ question_id: string; is_correct: boolean }>(() => sb.from("attempts").select("question_id, is_correct").eq("course_id", id).order("created_at").order("id")),
   ]);
   const last = new Map<string, boolean>();
   for (const a of attempts ?? []) last.set(a.question_id, a.is_correct);
