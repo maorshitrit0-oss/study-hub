@@ -148,7 +148,12 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   the script from the chapters, a second pass fact-checks it, Gemini 3.8 Flash TTS records Hebrew with two voices),
   video (the lesson's board snapshots shown while discussed, ffmpeg), everyday examples (markdown). On a lesson page
   for that lesson; on a course page for picked lessons. Not yet run with a real key (TTS quota unknown).
-- Chapters now include "> 🏠 **מהחיים:**" everyday examples per topic, checked in the verify pass.
+- He learns ONLY through examples: every topic (chapters, tutor, course chat) = background -> "🏠 מהחיים" everyday
+  example -> definitions -> question. Old chapters get "רקע ודוגמאות" automatically on first open (studio "examples").
+- Timing diagrams are never drawn by the AI: ```wave blocks (JSON: inputs per half-cycle) are rendered by
+  `web/src/components/Wave.tsx`, and Q is simulated in `web/src/lib/wave.ts` (none / sync / async reset). The tutor's
+  ASCII waveforms were wrong and confused him (24/10/2026).
+- CSP needs `media-src` for Supabase storage, or studio audio/video can't play (fixed 24/10/2026).
 
 ## Formulas (2026-10-23)
 - KaTeX CSS must match the KaTeX that rehype-katex renders with (pinned katex 0.16.47; a 0.19 CSS broke \vec arrows).

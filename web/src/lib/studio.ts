@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { dispatchStudio } from "./github";
 
 export type Media = {
   id: string; kind: "podcast" | "video" | "examples"; title: string | null; status: "queued" | "processing" | "ready" | "error";
@@ -21,4 +22,17 @@ export async function loadMedia(sb: SupabaseClient, filter: { lessonId?: string;
     for (const r of rows) if (r.storage_path) r.url = byPath.get(r.storage_path) ?? undefined;
   }
   return rows.map(({ storage_path: _, ...r }) => (void _, r)) as Media[];
+}
+
+/**
+ * Chapters written before chapters had "🏠 מהחיים" get background + everyday examples automatically, once,
+ * the first time the lesson is opened (no button: he learns through examples).
+ */
+export async function ensureExamples(sb: SupabaseClient, lesson: { id: string; course_id: string; chapter_md: string | null }, items: Media[] | null) {
+  if (items === null || !lesson.chapter_md || lesson.chapter_md.includes("🏠") || items.some((m) => m.kind === "examples")) return false;
+  const { data } = await sb.from("lesson_media").insert({ course_id: lesson.course_id, kind: "examples", lesson_ids: [lesson.id] }).select("id").single();
+  if (!data) return false;
+  const err = await dispatchStudio(data.id);
+  if (err) await sb.from("lesson_media").update({ status: "error", error: err }).eq("id", data.id);
+  return true;
 }

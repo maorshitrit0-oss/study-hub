@@ -3,6 +3,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { promoteLongMath } from "@/lib/math";
+import Wave from "./Wave";
 
 /** Renders a reading chapter; images written as ![..](slide:N) resolve to signed slide URLs. */
 export default function Chapter({ md, slideUrls }: { md: string; slideUrls: Record<number, string> }) {
@@ -23,6 +24,16 @@ export default function Chapter({ md, slideUrls }: { md: string; slideUrls: Reco
                 <img src={url} alt={alt ?? ""} loading="lazy" />
               </a>
             );
+          },
+          // ```wave blocks become computed timing diagrams.
+          pre: ({ node, children }) => {
+            const code = node?.children?.[0];
+            const cls = code && "properties" in code ? String(code.properties?.className ?? "") : "";
+            if (/language-wave/.test(cls) && code && "children" in code) {
+              const text = code.children.map((c) => ("value" in c ? c.value : "")).join("");
+              return <Wave src={text} />;
+            }
+            return <pre>{children}</pre>;
           },
           a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" className="text-accent underline">{children}</a>,
         }}

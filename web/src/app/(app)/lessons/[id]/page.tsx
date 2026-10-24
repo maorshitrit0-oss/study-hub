@@ -5,7 +5,7 @@ import AutoRefresh from "@/components/AutoRefresh";
 import Chapter from "@/components/Chapter";
 import Quiz from "@/components/Quiz";
 import Studio from "@/components/Studio";
-import { loadMedia } from "@/lib/studio";
+import { ensureExamples, loadMedia } from "@/lib/studio";
 import { deleteLesson, markRead, retryLesson, updateLesson } from "../../actions";
 import { LESSON_LABEL, lessonName, type Lesson } from "@/lib/types";
 
@@ -22,6 +22,12 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
     const { data: signed } = await sb.storage.from("study").createSignedUrls(paths, 6 * 3600);
     signed?.forEach((s, k) => { if (s.signedUrl) slideUrls[k + 1] = s.signedUrl; });
   }
+  // Studio items; chapters without everyday examples get them automatically (once).
+  let media = lesson.status === "ready" ? await loadMedia(sb, { lessonId: id }) : null;
+  if (lesson.status === "ready" && await ensureExamples(sb, { id, course_id: lesson.course_id, chapter_md: lesson.chapter_md }, media).catch(() => false)) {
+    media = await loadMedia(sb, { lessonId: id });
+  }
+  const examples = media?.find((m) => m.kind === "examples");
   const { data: questions } = await sb.from("questions")
     .select("id, lesson_id, topic, question, options, correct, explanation, difficulty").eq("lesson_id", id).order("created_at");
 
@@ -58,6 +64,15 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
 
       {lesson.chapter_md && (
         <section className="card">
+          {examples && (
+            <details open className="rounded-xl bg-accent-soft p-3 mb-4">
+              <summary className="cursor-pointer font-semibold">🏠 רקע ודוגמאות מחיי היום-יום לשיעור הזה</summary>
+              {examples.status === "ready" && examples.script ? <Chapter md={examples.script} slideUrls={{}} />
+                : examples.status === "error" ? <p className="text-sm text-bad mt-2">⚠️ {examples.error}</p>
+                : <p className="text-sm text-muted mt-2 animate-pulse">מכין רקע ודוגמה מהחיים לכל נושא... (כמה דקות)</p>}
+              {(examples.status === "queued" || examples.status === "processing") && <AutoRefresh seconds={20} />}
+            </details>
+          )}
           <Chapter md={lesson.chapter_md} slideUrls={slideUrls} />
         </section>
       )}
@@ -98,7 +113,7 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
       )}
 
       {lesson.status === "ready" && lesson.chapter_md && (
-        <Studio courseId={lesson.course_id} lessons={[{ id, label: lessonName(lesson) }]} items={await loadMedia(sb, { lessonId: id })}
+        <Studio courseId={lesson.course_id} lessons={[{ id, label: lessonName(lesson) }]} items={media === null ? null : media.filter((m) => m.kind !== "examples")}
           canVideo={/!\[[^\]]*\]\(slide:\d+\)/.test(lesson.chapter_md)} />
       )}
 

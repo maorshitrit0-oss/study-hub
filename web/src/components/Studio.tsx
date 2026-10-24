@@ -60,7 +60,6 @@ export default function Studio({ courseId, lessons, items, canVideo = false }: {
         <button className="btn" disabled={pending || !picked.size} onClick={() => make("podcast")}>🎙️ צור פודקאסט</button>
         {single && <button className="btn-ghost" disabled={pending || !canVideo} onClick={() => make("video")}
           title={canVideo ? "" : "אין צילומי לוח בשיעור הזה"}>🎬 צור סרטון</button>}
-        {single && <button className="btn-ghost col-span-2" disabled={pending} onClick={() => make("examples")}>🏠 דוגמאות מחיי היום-יום</button>}
       </div>
       {single && !canVideo && <p className="text-xs text-muted">סרטון נבנה מצילומי הלוח של ההרצאה; בשיעור הזה אין כאלה.</p>}
       {msg && <p className="text-sm">{msg}</p>}
