@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/supabase/server";
 import AutoRefresh from "@/components/AutoRefresh";
 import Chapter from "@/components/Chapter";
 import Quiz from "@/components/Quiz";
+import NotebookExport from "@/components/NotebookExport";
 import { deleteLesson, markRead, retryLesson, updateLesson } from "../../actions";
 import { LESSON_LABEL, lessonName, type Lesson } from "@/lib/types";
 
@@ -93,6 +94,10 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
           <summary className="cursor-pointer font-medium">התמלול המלא</summary>
           <pre className="whitespace-pre-wrap text-sm leading-relaxed mt-3 font-sans">{lesson.transcript}</pre>
         </details>
+      )}
+
+      {lesson.status === "ready" && lesson.chapter_md && (
+        <NotebookExport title={`${lesson.courses.name} - ${lessonName(lesson)}${lesson.title ? ` - ${lesson.title}` : ""}`} text={lesson.chapter_md} />
       )}
 
       <details className="card">

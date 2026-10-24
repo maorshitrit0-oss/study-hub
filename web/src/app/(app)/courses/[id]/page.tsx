@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/supabase/server";
 import AddLesson from "@/components/AddLesson";
 import DeadlineRow from "@/components/DeadlineRow";
 import Materials from "@/components/Materials";
+import NotebookExport from "@/components/NotebookExport";
 import CourseFacts, { type Fact } from "@/components/CourseFacts";
 import { isWeak, pct, topicStats } from "@/lib/progress";
 import { isPast } from "@/lib/format";
@@ -35,7 +36,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
   const { sb, userId } = await requireUser();
   const [{ data: course }, { data: lessons }, { data: materials }, { data: deadlines }, stats, { data: facts }, { data: settings }, { data: slots }] = await Promise.all([
     sb.from("courses").select("*").eq("id", id).maybeSingle(),
-    sb.from("lessons").select("id, kind, number, title, status, progress, read_at, created_at").eq("course_id", id).order("created_at"),
+    sb.from("lessons").select("id, kind, number, title, status, progress, read_at, created_at, chapter_md").eq("course_id", id).order("created_at"),
     sb.from("materials").select("id, title, kind, storage_path").eq("course_id", id).order("created_at"),
     sb.from("deadlines").select("*").eq("course_id", id).order("due_at"),
     topicStats(sb, id),
@@ -227,6 +228,11 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
             })}
           </ul>
         </section>
+      )}
+
+      {readyCount > 0 && (
+        <NotebookExport title={`${c.name} - כל הפרקים`}
+          text={ls.filter((l) => l.status === "ready" && l.chapter_md).map((l) => `## ${lessonName(l)}${l.title ? ` - ${l.title}` : ""}\n\n${l.chapter_md}`).join("\n\n---\n\n")} />
       )}
 
       <section className="card">

@@ -4,6 +4,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { DRIVE_PREFIX, geminiFilePart, materialBlob } from "@/lib/files";
 import { EXAM_LABEL, lessonName, type Course, type Lesson } from "@/lib/types";
 import { applyProgress, roadmapText, type Skill } from "@/lib/skills";
+import { nameThread, saveMessage, threadMessages, validThread } from "@/lib/threads";
 import { parseModules } from "@/lib/vlsiSyllabus";
 
 export const maxDuration = 300;
@@ -75,9 +76,10 @@ export async function POST(req: Request) {
   const { data: auth } = await sb.auth.getClaims();
   if (!auth?.claims) return new Response("unauthorized", { status: 401 });
 
-  const { courseId, message, imagePaths = [], withFiles = false } = (await req.json()) as {
-    courseId: string; message: string; imagePaths?: string[]; withFiles?: boolean;
+  const { courseId, message, imagePaths = [], withFiles = false, threadId: rawThread } = (await req.json()) as {
+    courseId: string; message: string; imagePaths?: string[]; withFiles?: boolean; threadId?: string;
   };
+  const threadId = validThread(rawThread);
   // Bound what one request can make the server download and send to Gemini.
   if (typeof message !== "string" || !message.trim() || message.length > 20_000 || !Array.isArray(imagePaths) || imagePaths.length > 10
     || imagePaths.some((p) => typeof p !== "string" || !p.startsWith(`${auth.claims.sub}/`))) {
@@ -89,7 +91,7 @@ export async function POST(req: Request) {
     sb.from("courses").select("*").eq("id", courseId).single(),
     sb.from("lessons").select("kind, number, title, chapter_md, created_at").eq("course_id", courseId).eq("status", "ready").order("created_at"),
     sb.from("materials").select("title, kind, storage_path, mime, size_bytes").eq("course_id", courseId).order("created_at"),
-    sb.from("chat_messages").select("role, content").eq("course_id", courseId).order("created_at", { ascending: false }).limit(20),
+    threadMessages(sb, courseId, threadId, 20),
     sb.from("course_facts").select("category, text").eq("course_id", courseId).order("created_at"),
     sb.from("settings").select("is_reservist").eq("user_id", auth.claims.sub).maybeSingle(),
   ]);
@@ -162,7 +164,10 @@ export async function POST(req: Request) {
     { role: "user", parts: userParts },
   ];
 
-  const saveUser = sb.from("chat_messages").insert({ course_id: courseId, role: "user", content: message, image_paths: imagePaths });
+  const saveUser = Promise.all([
+    saveMessage(sb, { course_id: courseId, role: "user", content: message, image_paths: imagePaths }, threadId),
+    !history?.length ? nameThread(sb, threadId, message) : null,
+  ]);
 
   // Small talk needs almost no reasoning; explanations and problems get a bit more.
   const light = message.length < 80 && !imagePaths.length && !attachFiles && !isSelf;
@@ -184,7 +189,7 @@ export async function POST(req: Request) {
   } catch (e) {
     await saveUser;
     const text = `⚠️ ${friendlyGeminiError(e)}`;
-    await sb.from("chat_messages").insert({ course_id: courseId, role: "model", content: text });
+    await saveMessage(sb, { course_id: courseId, role: "model", content: text }, threadId);
     return new Response(text, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
   }
   await saveUser;
@@ -215,7 +220,7 @@ export async function POST(req: Request) {
           full += msg;
           controller.enqueue(encoder.encode(msg));
         }
-        if (full) await sb.from("chat_messages").insert({ course_id: courseId, role: "model", content: full });
+        if (full) await saveMessage(sb, { course_id: courseId, role: "model", content: full }, threadId);
         if (isSelf && full) {
           const n = await applyProgress(sb, courseId, full).catch(() => 0);
           if (n) controller.enqueue(encoder.encode(`\n\n_(מפת הלימוד עודכנה)_`));

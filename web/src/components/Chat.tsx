@@ -36,8 +36,8 @@ function hasChoices(m?: Msg) {
   return m?.role === "model" && (m.content.match(/^\s*(?:\*\*)?[1-4][.)]/gm)?.length ?? 0) >= 4;
 }
 
-export default function Chat({ courseId, userId, initial, isLab = false, isSelf = false }: {
-  courseId: string; userId: string; initial: Msg[]; isLab?: boolean; isSelf?: boolean;
+export default function Chat({ courseId, userId, initial, isLab = false, isSelf = false, threadId = null }: {
+  courseId: string; userId: string; initial: Msg[]; isLab?: boolean; isSelf?: boolean; threadId?: string | null;
 }) {
   const [msgs, setMsgs] = useState<Msg[]>(initial);
   const [text, setText] = useState("");
@@ -68,7 +68,7 @@ export default function Chat({ courseId, userId, initial, isLab = false, isSelf 
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ courseId, message, imagePaths, withFiles }),
+      body: JSON.stringify({ courseId, message, imagePaths, withFiles, threadId }),
     });
     if (!res.ok || !res.body) {
       const err = await res.text();
@@ -88,6 +88,22 @@ export default function Chat({ courseId, userId, initial, isLab = false, isSelf 
     setBusy(false);
   }
 
+  /** Independent check of answer k against the course material (and search); appended as a new message. */
+  async function verify(k: number) {
+    if (busy) return;
+    const question = [...msgs.slice(0, k)].reverse().find((m) => m.role === "user")?.content ?? "";
+    setBusy(true);
+    setMsgs((m) => [...m, { role: "model", content: "" }]);
+    const res = await fetch("/api/chat/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ courseId, question, answer: msgs[k].content, threadId }),
+    }).catch(() => null);
+    const text = res ? await res.text() : "⚠️ אין חיבור - לנסות שוב.";
+    setMsgs((m) => [...m.slice(0, -1), { role: "model", content: res?.ok ? text : `⚠️ ${text}` }]);
+    setBusy(false);
+  }
+
   return (
     <div className="flex flex-col gap-3">
       {msgs.length === 0 && (
@@ -104,7 +120,12 @@ export default function Chat({ courseId, userId, initial, isLab = false, isSelf 
           {m.role === "user" ? (
             <p className="whitespace-pre-line">{m.content}</p>
           ) : m.content ? (
-            <Chapter md={m.content} slideUrls={{}} />
+            <>
+              <Chapter md={m.content} slideUrls={{}} />
+              {!busy && !/^(🔍|⚠️)/.test(m.content.trim()) && msgs[k + 1]?.content?.startsWith("🔍") !== true && (
+                <button type="button" onClick={() => verify(k)} className="text-xs text-accent mt-1">🔍 לאמת את התשובה</button>
+              )}
+            </>
           ) : (
             <p className="text-muted animate-pulse">חושב...</p>
           )}

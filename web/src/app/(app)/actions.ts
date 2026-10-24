@@ -203,6 +203,14 @@ export async function readSyllabus(materialId: string): Promise<string> {
   }
 }
 
+// ---------- chats ----------
+
+export async function createThread(courseId: string, base: string) {
+  const { sb } = await requireUser();
+  const { data } = await sb.from("chat_threads").insert({ course_id: courseId, title: "צ'אט חדש" }).select("id").single();
+  redirect(data ? `${base}?t=${data.id}` : base);
+}
+
 // ---------- grades ----------
 
 export async function setGradeRow(id: string, fields: { credits?: number; grade?: string | null }) {

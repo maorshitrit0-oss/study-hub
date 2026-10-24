@@ -138,6 +138,14 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   (`supabase/notify_cron.sql`) calls `/api/cron/notify` at 05/06/17/18 UTC; `web/src/lib/notifySchedule.ts` decides
   (DST-safe) and the route dispatches notify.yml at most once per slot. Evening = recordings to upload + tomorrow.
 
+## Course chat (2026-10-24)
+- Several chats per course (`chat_threads`, `chat_messages.thread_id`; `supabase/chat_threads.sql`): tabs at the top
+  of the chat ("ראשי" = messages without a thread), "＋ צ'אט חדש", a new chat is named after its first question.
+- "🔍 לאמת את התשובה" under each answer: `/api/chat/verify` re-checks it against the chapters (+ Google Search),
+  re-solving calculations; on demand only, to save the free quota.
+- Podcast: NotebookLM (free, Hebrew Audio Overview) - lesson and course pages export the chapter text (copy / .md).
+  In-app TTS was not used: Gemini TTS is preview, Hebrew unconfirmed, and the free quota is tiny.
+
 ## Formulas (2026-10-23)
 - KaTeX CSS must match the KaTeX that rehype-katex renders with (pinned katex 0.16.47; a 0.19 CSS broke \vec arrows).
 - `web/src/lib/math.ts`: long inline $...$ become display math, and long display equations split at "=" into aligned
