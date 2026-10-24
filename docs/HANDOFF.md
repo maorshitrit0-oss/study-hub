@@ -143,8 +143,12 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   of the chat ("ראשי" = messages without a thread), "＋ צ'אט חדש", a new chat is named after its first question.
 - "🔍 לאמת את התשובה" under each answer: `/api/chat/verify` re-checks it against the chapters (+ Google Search),
   re-solving calculations; on demand only, to save the free quota.
-- Podcast: NotebookLM (free, Hebrew Audio Overview) - lesson and course pages export the chapter text (copy / .md).
-  In-app TTS was not used: Gemini TTS is preview, Hebrew unconfirmed, and the free quota is tiny.
+- He does NOT want NotebookLM: everything inside the app. Studio (`worker/studio.py`, `.github/workflows/media.yml`,
+  table `lesson_media` in `supabase/studio.sql`, UI `web/src/components/Studio.tsx`): podcast (two hosts, Gemini writes
+  the script from the chapters, a second pass fact-checks it, Gemini 3.8 Flash TTS records Hebrew with two voices),
+  video (the lesson's board snapshots shown while discussed, ffmpeg), everyday examples (markdown). On a lesson page
+  for that lesson; on a course page for picked lessons. Not yet run with a real key (TTS quota unknown).
+- Chapters now include "> 🏠 **מהחיים:**" everyday examples per topic, checked in the verify pass.
 
 ## Formulas (2026-10-23)
 - KaTeX CSS must match the KaTeX that rehype-katex renders with (pinned katex 0.16.47; a 0.19 CSS broke \vec arrows).

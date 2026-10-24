@@ -4,7 +4,8 @@ import { requireUser } from "@/lib/supabase/server";
 import AutoRefresh from "@/components/AutoRefresh";
 import Chapter from "@/components/Chapter";
 import Quiz from "@/components/Quiz";
-import NotebookExport from "@/components/NotebookExport";
+import Studio from "@/components/Studio";
+import { loadMedia } from "@/lib/studio";
 import { deleteLesson, markRead, retryLesson, updateLesson } from "../../actions";
 import { LESSON_LABEL, lessonName, type Lesson } from "@/lib/types";
 
@@ -97,7 +98,8 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
       )}
 
       {lesson.status === "ready" && lesson.chapter_md && (
-        <NotebookExport title={`${lesson.courses.name} - ${lessonName(lesson)}${lesson.title ? ` - ${lesson.title}` : ""}`} text={lesson.chapter_md} />
+        <Studio courseId={lesson.course_id} lessons={[{ id, label: lessonName(lesson) }]} items={await loadMedia(sb, { lessonId: id })}
+          canVideo={/!\[[^\]]*\]\(slide:\d+\)/.test(lesson.chapter_md)} />
       )}
 
       <details className="card">

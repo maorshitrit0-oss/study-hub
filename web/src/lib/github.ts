@@ -22,3 +22,6 @@ export const dispatchLesson = (lessonId: string, author: "gemini" | "none" = "ge
 /** Push notifications: "setup" creates the signing keys, "test" pings one user. */
 export const dispatchNotify = (mode: "setup" | "test", userId = "") =>
   dispatch("notify.yml", { mode, user_id: userId });
+
+/** Podcast / video / everyday examples from lesson chapters (worker/studio.py). */
+export const dispatchStudio = (mediaId: string) => dispatch("media.yml", { media_id: mediaId });

@@ -1,0 +1,35 @@
+# Studio: podcast / video / everyday examples from lesson chapters (worker/studio.py). Dispatched by the app.
+name: studio
+
+on:
+  workflow_dispatch:
+    inputs:
+      media_id:
+        description: "lesson_media row id"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: studio-${{ inputs.media_id }}
+
+jobs:
+  studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install supabase pywebpush google-genai imageio-ffmpeg numpy
+      - working-directory: worker
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MEDIA_ID: ${{ inputs.media_id }}
+        run: |
+          [[ "$MEDIA_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad media id"; exit 1; }
+          python studio.py "$MEDIA_ID"

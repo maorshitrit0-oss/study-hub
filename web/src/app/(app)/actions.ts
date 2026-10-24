@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
-import { dispatchLesson, dispatchNotify } from "@/lib/github";
+import { dispatchLesson, dispatchNotify, dispatchStudio } from "@/lib/github";
 import { parseIcs } from "@/lib/ics";
 import { isoFromNow, israelLocalToIso } from "@/lib/format";
 import { extractSyllabus, looksLikeSyllabus } from "@/lib/syllabus";
@@ -201,6 +201,36 @@ export async function readSyllabus(materialId: string): Promise<string> {
   } finally {
     revalidatePath(`/courses/${m.course_id}`);
   }
+}
+
+// ---------- studio ----------
+
+export type StudioState = { error?: string; ok?: boolean };
+
+/** Starts a podcast / video / everyday examples for one or more lessons; the worker notifies when ready. */
+export async function createMedia(courseId: string, kind: string, lessonIds: string[], title?: string): Promise<StudioState> {
+  const { sb } = await requireUser();
+  if (!["podcast", "video", "examples"].includes(kind) || !lessonIds.length) return { error: "לא נבחרו שיעורים" };
+  const { data, error } = await sb.from("lesson_media")
+    .insert({ course_id: courseId, kind, lesson_ids: lessonIds.slice(0, 30), title: title ?? null }).select("id").single();
+  if (error || !data) return { error: /lesson_media/.test(error?.message ?? "") ? "צריך להריץ את קוד ה-SQL של הסטודיו ב-Supabase" : (error?.message ?? "שגיאה") };
+  const err = await dispatchStudio(data.id);
+  if (err) {
+    await sb.from("lesson_media").update({ status: "error", error: err }).eq("id", data.id);
+    return { error: err };
+  }
+  revalidatePath(`/courses/${courseId}`);
+  for (const id of lessonIds) revalidatePath(`/lessons/${id}`);
+  return { ok: true };
+}
+
+export async function deleteMedia(id: string) {
+  const { sb } = await requireUser();
+  const { data } = await sb.from("lesson_media").select("storage_path, course_id, lesson_ids").eq("id", id).single();
+  if (data?.storage_path) await sb.storage.from("study").remove([data.storage_path]);
+  await sb.from("lesson_media").delete().eq("id", id);
+  if (data) revalidatePath(`/courses/${data.course_id}`);
+  for (const l of data?.lesson_ids ?? []) revalidatePath(`/lessons/${l}`);
 }
 
 // ---------- chats ----------
