@@ -1,11 +1,10 @@
 # Push notifications: morning digest (deadlines, exams, unread chapters) and an evening
 # reminder to upload the recordings of today's classes.
+# Started by the app (/api/cron/notify), which Supabase pg_cron calls on time: Sun-Thu 08:00 and 20:00,
+# Fri 08:00, Sat 20:00 (Israel). GitHub's own schedule ran hours late, so it is not used.
 name: notify
 
 on:
-  schedule:
-    - cron: "0 5 * * *"    # morning: 08:00 Israel summer time / 07:00 winter time
-    - cron: "30 19 * * *"  # evening: 22:30 summer / 21:30 winter
   workflow_dispatch:
     inputs:
       mode:
@@ -33,14 +32,14 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          MODE: ${{ inputs.mode || (github.event.schedule == '30 19 * * *' && 'evening') || 'daily' }}
+          MODE: ${{ inputs.mode || 'daily' }}
           TARGET_USER: ${{ inputs.user_id }}
         run: |
           case "$MODE" in daily|evening|setup|test) ;; *) echo "::error::bad mode"; exit 1;; esac
           [[ -z "$TARGET_USER" || "$TARGET_USER" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad user id"; exit 1; }
           python notify.py "$MODE" $TARGET_USER
       - name: Check free-plan usage (morning run)
-        if: github.event_name == 'schedule' && github.event.schedule != '30 19 * * *'
+        if: inputs.mode == 'daily'
         working-directory: worker
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

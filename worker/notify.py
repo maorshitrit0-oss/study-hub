@@ -155,28 +155,41 @@ SLOT_KIND = {"lecture": "הרצאה", "practice": "תרגול"}
 
 
 def evening():
-    """Remind to upload today's recordings that weren't added or marked yet."""
+    """Evening (Sun-Thu, Sat): recordings of today's classes still to upload, and a preview of tomorrow."""
     sb = db()
     users = {r["user_id"] for r in sb.table("push_subscriptions").select("user_id").execute().data}
     now = datetime.now(TZ)
     today = now.date().isoformat()
     weekday = (now.weekday() + 1) % 7  # Python Monday=0 -> Sunday=0
+    tomorrow = now.date() + timedelta(days=1)
     start_of_day = datetime.combine(now.date(), datetime.min.time(), TZ).astimezone(timezone.utc).isoformat()
+    t0 = datetime.combine(tomorrow, datetime.min.time(), TZ).astimezone(timezone.utc).isoformat()
+    t1 = datetime.combine(tomorrow + timedelta(days=1), datetime.min.time(), TZ).astimezone(timezone.utc).isoformat()
     for uid in users:
+        courses = {c["id"]: c["name"] for c in sb.table("courses").select("id, name").eq("user_id", uid).execute().data}
+        lines = []
         slots = (sb.table("schedule_slots").select("id, course_id, kind, title, end_time").eq("user_id", uid)
                  .eq("weekday", weekday).in_("kind", ["lecture", "practice"]).execute().data)
-        if not slots:
+        if slots:
+            marked = {m["slot_id"] for m in sb.table("recording_marks").select("slot_id").eq("user_id", uid)
+                      .eq("class_date", today).execute().data}
+            added = {(l["course_id"], l["kind"]) for l in sb.table("lessons").select("course_id, kind").eq("user_id", uid)
+                     .gte("created_at", start_of_day).execute().data}
+            lines += [f"📹 להעלות: {SLOT_KIND[s['kind']]} · {courses.get(s['course_id'], s['title'])}" for s in slots
+                      if s["id"] not in marked and (s["course_id"], s["kind"]) not in added
+                      and s["end_time"][:5] <= now.strftime("%H:%M")]
+        # Tomorrow: classes, then what is due (learning a lesson before class, assignments, exams).
+        tmr = (sb.table("schedule_slots").select("course_id, kind, title, start_time").eq("user_id", uid)
+               .eq("weekday", (weekday + 1) % 7).order("start_time").execute().data)
+        if tmr:
+            lines.append("🗓️ מחר: " + ", ".join(f"{s['start_time'][:5]} {courses.get(s['course_id'], s['title'])}" for s in tmr))
+        due = (sb.table("deadlines").select("title, kind, course_id").eq("user_id", uid).eq("done", False)
+               .gte("due_at", t0).lt("due_at", t1).order("due_at").execute().data)
+        lines += [f"📌 {d['title']}" + (f" ({courses[d['course_id']]})" if d.get("course_id") in courses else "") for d in due]
+        if not lines:
             continue
-        marked = {m["slot_id"] for m in sb.table("recording_marks").select("slot_id").eq("user_id", uid)
-                  .eq("class_date", today).execute().data}
-        added = {(l["course_id"], l["kind"]) for l in sb.table("lessons").select("course_id, kind").eq("user_id", uid)
-                 .gte("created_at", start_of_day).execute().data}
-        courses = {c["id"]: c["name"] for c in sb.table("courses").select("id, name").eq("user_id", uid).execute().data}
-        todo = [f"{SLOT_KIND[s['kind']]} · {courses.get(s['course_id'], s['title'])}" for s in slots
-                if s["id"] not in marked and (s["course_id"], s["kind"]) not in added and s["end_time"][:5] <= now.strftime("%H:%M")]
-        if todo:
-            n = send(sb, uid, "📹 להעלות הקלטות מהיום", "\n".join(todo) + "\nכשההקלטה עולה לזום - מדביקים את הקישור באפליקציה.", "/")
-            print(f"{uid}: {len(todo)} recordings -> {n} devices")
+        n = send(sb, uid, "ערב טוב - מה נשאר להיום ומה מחר", "\n".join(lines[:7]), "/")
+        print(f"{uid}: {len(lines)} items -> {n} devices")
 
 
 if __name__ == "__main__":

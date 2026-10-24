@@ -16,7 +16,8 @@ export async function proxy(request: NextRequest) {
   });
   const { data } = await sb.auth.getClaims();
   const path = request.nextUrl.pathname;
-  if (!data?.claims && !path.startsWith("/login") && !path.startsWith("/auth")) {
+  // /api/cron/* is called by the database scheduler, not a signed-in user (it can only start what is due).
+  if (!data?.claims && !path.startsWith("/login") && !path.startsWith("/auth") && !path.startsWith("/api/cron")) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
   // Accounts with an authenticator app must finish the second step before anything else.
