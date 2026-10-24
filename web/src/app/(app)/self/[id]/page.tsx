@@ -1,4 +1,5 @@
 import Link from "next/link";
+import TrackTabs from "@/components/TrackTabs";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import SkillRow from "@/components/SkillRow";
@@ -14,11 +15,12 @@ export default async function Track({ params }: PageProps<"/self/[id]">) {
   const { id } = await params;
   const { sb } = await requireUser();
   const { weekStart, today } = weekDates();
-  const [{ data: course }, { data: skills }, { data: msgs }, { data: deadlines }] = await Promise.all([
+  const [{ data: course }, { data: skills }, { data: msgs }, { data: deadlines }, { data: tracks }] = await Promise.all([
     sb.from("courses").select("id, name, notes, syllabus_topics").eq("id", id).maybeSingle(),
     sb.from("skills").select("*").eq("course_id", id).order("ord"),
     sb.from("chat_messages").select("created_at").eq("course_id", id).eq("role", "user").gte("created_at", weekStart),
     sb.from("deadlines").select("*").eq("course_id", id).eq("done", false).order("due_at"),
+    sb.from("courses").select("id, name").eq("kind", "self").eq("archived", false).order("created_at"),
   ]);
   if (!course) notFound();
   let list = (skills ?? []) as Skill[];
@@ -43,6 +45,7 @@ export default async function Track({ params }: PageProps<"/self/[id]">) {
   return (
     <div className="space-y-5">
       <Link href="/self" className="text-sm text-accent">→ לימוד עצמי</Link>
+      <TrackTabs tracks={tracks ?? []} current={id} />
       <h1 className="text-2xl font-bold">{course.name}</h1>
       {freeze && <p className="card text-sm text-warn">⏸️ {freeze.text}</p>}
 

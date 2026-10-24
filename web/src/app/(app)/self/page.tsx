@@ -1,14 +1,21 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
 import { FREEZES, LEVELS, weekDates, type Skill } from "@/lib/skills";
+import { ensureCadenceTracks } from "@/lib/cadenceTracks";
 
 /** Self-study tracks (outside the university): roadmap, project and a private tutor each. */
 export default async function SelfStudy() {
   const { sb } = await requireUser();
-  const [{ data: courses }, { data: skills, error }] = await Promise.all([
+  const load = () => Promise.all([
     sb.from("courses").select("id, name").eq("kind", "self").eq("archived", false).order("created_at"),
     sb.from("skills").select("*").order("ord"),
   ]);
+  let [{ data: courses }, { data: skills, error }] = await load();
+  // His Cadence courses get their own tracks (once).
+  const { data: all } = await sb.from("courses").select("name").eq("kind", "self");
+  if (!error && await ensureCadenceTracks(sb, (all ?? []).map((c) => c.name)).catch(() => 0)) {
+    [{ data: courses }, { data: skills, error }] = await load();
+  }
   const { today } = weekDates();
   const freeze = FREEZES.find((f) => today >= f.from && today <= f.to);
 

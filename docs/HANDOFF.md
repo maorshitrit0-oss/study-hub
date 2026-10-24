@@ -132,6 +132,12 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   were numbered after the lectures until 22/10/2026; the first waves practice was renumbered to 1).
 - Seed: `supabase/self_study.sql` + `supabase/self_study_vlsi.sql`. Exam freeze 10-25/1/2027 (no new development).
 
+## Cadence tracks (2026-10-24)
+- He has Cadence online courses (English videos). Never log into his Cadence account or accept his password.
+  `web/src/lib/cadenceTracks.ts` creates 3 self-study tracks once (on /self): SystemVerilog for Design and
+  Verification, Genus Synthesis (Stylus Common UI), Xcelium Simulator - syllabi from Cadence's public course pages;
+  each track's notes carry his teaching rules. `TrackTabs` switches between tracks (map and tutor).
+
 ## Notification times (2026-10-24)
 - He wants: Sun-Thu 08:00 and 20:00, Fri 08:00 only, Sat 20:00 only (Israel). GitHub cron ran 3-4 hours late
   (morning arrived ~12:30, evening ~01:30), so notify.yml has no schedule any more. Supabase pg_cron
