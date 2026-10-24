@@ -146,7 +146,7 @@ def tts(lines, work, n):
                     return wav
                 except Exception as e:  # noqa: BLE001
                     last = e
-                    if author._is(e, "UNAVAILABLE", "503", "overloaded") and attempt < 2:
+                    if author._is(e, "UNAVAILABLE", "503", "overloaded", "disconnected", "timed out", "Connection reset") and attempt < 2:
                         time.sleep(5 * (attempt + 1) ** 2)
                         continue
                     if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota", "NOT_FOUND", "404", "not supported", "INVALID_ARGUMENT"):

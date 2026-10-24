@@ -200,7 +200,9 @@ def _with_gemini(call):
                     return call(client, model)
                 except Exception as e:  # noqa: BLE001
                     last = e
-                    busy = _is(e, "UNAVAILABLE", "503", "overloaded", "high demand")
+                    # Overload, or a dropped connection ("Server disconnected without sending a response"): retry.
+                    busy = _is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "disconnected", "timed out",
+                               "Connection reset", "RemoteProtocolError")
                     if busy and attempt < 2:
                         time.sleep(5 * (attempt + 1) ** 2)
                         continue
