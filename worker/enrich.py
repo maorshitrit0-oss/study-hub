@@ -11,6 +11,7 @@ rewrite that drops content (board snapshots, much shorter text) is rejected and 
 import os
 import re
 import sys
+import time
 
 from supabase import create_client
 
@@ -42,12 +43,26 @@ def db():
     return create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
 
 
+BUDGET_SEC = 45 * 60  # stop before the workflow's hour; the next run continues
+
+
 def gen(system, prompt):
     from google.genai import types
 
     def call(client, model):
-        return client.models.generate_content(model=model, contents=prompt,
-                                              config=types.GenerateContentConfig(system_instruction=system))
+        # Reorganizing existing text needs little reasoning; low thinking keeps each lesson to a few minutes.
+        def run(thinking):
+            cfg = dict(system_instruction=system, max_output_tokens=65536,
+                       http_options=types.HttpOptions(timeout=10 * 60 * 1000))
+            if thinking:
+                cfg["thinking_config"] = types.ThinkingConfig(thinking_level="LOW")
+            return client.models.generate_content(model=model, contents=prompt, config=types.GenerateContentConfig(**cfg))
+        try:
+            return run(True)
+        except Exception as e:  # noqa: BLE001 - models without thinking levels
+            if author._is(e, "thinking"):
+                return run(False)
+            raise
     text = (author._with_gemini(call).text or "").strip()
     return re.sub(r"^```(?:markdown|md)?\s*|\s*```$", "", text)
 
@@ -86,11 +101,11 @@ def enrich(sb, lesson):
     except Exception as e:  # noqa: BLE001 - keep the first rewrite if the check itself fails
         print(f"check failed: {e}", flush=True)
     if not safe(body, new):
-        print(f"rejected: rewrite of {lesson['id']} lost content - chapter kept as it was", flush=True)
+        print(f"::warning title=Enrich rejected::{lesson['kind']} {lesson.get('number') or ''} ({lesson['id']}) - the rewrite lost content, chapter kept", flush=True)
         return False
     mark(sb, lesson, md)
     sb.table("lessons").update({"chapter_md": new.strip() + tail}).eq("id", lesson["id"]).execute()
-    print("saved", flush=True)
+    print(f"::notice title=Enriched::{lesson['kind']} {lesson.get('number') or ''} ({lesson['id']})", flush=True)
     return True
 
 
@@ -100,9 +115,13 @@ def run(only=None):
     if only:
         q = q.eq("id", only)
     lessons = q.order("created_at").execute().data
-    for lesson in lessons:
-        if not lesson.get("chapter_md") or done(sb, lesson):
-            continue
+    start = time.time()
+    todo = [l for l in lessons if l.get("chapter_md") and not done(sb, l)]
+    print(f"::notice title=Enrich::{len(todo)} chapters to restructure", flush=True)
+    for lesson in todo:
+        if time.time() - start > BUDGET_SEC:
+            print("::notice title=Enrich::time budget used - the rest continue on the next run", flush=True)
+            return
         try:
             enrich(sb, lesson)
         except Exception as e:  # noqa: BLE001
