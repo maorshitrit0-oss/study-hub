@@ -18,6 +18,9 @@ const IN_PROGRESS: (Item & { semester: string })[] = [
   { code: "002-4331710", name: "גלים ומערכות מפולגות", credits: 4.5, semester: "א" },
   { code: "002-4332030", name: "מעבדה 2", credits: 2, kind: "מעבדה", semester: "א" },
   { code: "002-4366110", name: "תכנות מונחה עצמים ושפת JAVA", credits: 3.5, semester: "א" },
+  // Moved from year 4 semester A on 25/10/2026 (supabase/add_micro_comm.sql) to lighten year 4.
+  { code: "002-4371710", name: "מיקרו מעבדים (ליבה - מחשבים)", credits: 3.5, semester: "א" },
+  { code: "002-4330610", name: "מבוא למערכות תקשורת", credits: 3.5, semester: "א" },
   { code: "002-4366010", name: "ניתוח נתונים מעשי ובינה מלאכותית בפייתון", credits: 3, semester: "ב" },
   { code: "002-4331530", name: "מעבדה 3", credits: 2, kind: "מעבדה", semester: "ב" },
   { code: "002-4375410", name: "פיזיקה של מל\"מ", credits: 3, semester: "ב" },
@@ -32,9 +35,7 @@ const IN_PROGRESS: (Item & { semester: string })[] = [
  * 3.5/3 for the two semester-A ones follow his own plan's 6.5 total - to be checked.
  */
 const REMAINING: (Item & { semester: string })[] = [
-  { code: "002-4330610", name: "מבוא למערכות תקשורת", credits: 3.5, semester: "ד-א" },
   { code: "002-4375610", name: "רכיבים מתוכנתים ומבוא ל-VHDL (ליבה - מחשבים)", credits: 3.5, semester: "ד-א" },
-  { code: "002-4371710", name: "מיקרו מעבדים (ליבה - מחשבים)", credits: 3.5, semester: "ד-א" },
   { code: "002-4361110", name: "התקני VLSI (ליבה - VLSI)", credits: 3.5, semester: "ד-א" },
   { code: "002-4365130", name: "מעבדה ל-VLSI אנלוגי (מעבדת מסלול - VLSI)", credits: 2, kind: "מעבדה", semester: "ד-א" },
   { code: "002-4372510", name: "מקורות וגלאים מוליכים למחצה - בחירה VLSI", credits: 3.5, semester: "ד-א" },

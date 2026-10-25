@@ -45,6 +45,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - אותות אקראיים ורעש – exam מועד ג 22/12/2026.
 - אותות אקראיים ורעש exam also on 26/10/2026 (time unknown); course registration 25/10/2026.
 - Exams: waves 12/1 & 10/2/2027, Java 17/1 & 25/2, linear 19/1 & 14/2, digital 25/1 & 18/2 (times unknown, 09:00 placeholders).
+- Added 25/10/2026 (`supabase/add_micro_comm.sql`, moved from year 4 semester A so year 4 is lighter - 21.5 credits
+  there, 25 now): מיקרו מעבדים (002-4371710, Dr. Roi Yozevitch, 100% theoretical final, exam 18/1/2027) and
+  מבוא למערכות תקשורת (002-4330610, Prof. Yosef Pinhasi, analog: AM/SSB/superheterodyne/FM, noise figure, SNR;
+  exam 2/2/2027). Weekly times and מועד ב not known yet. He may drop micro if behind by week 4-5 - check the drop window.
 - Still unknown: מבוא לבקרה exam date (semester ב; deferred until semester ב).
 
 ## Free-tier limits (watch these)
