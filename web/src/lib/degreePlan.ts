@@ -24,22 +24,29 @@ const IN_PROGRESS: (Item & { semester: string })[] = [
   { code: "002-4322510", name: "תורת החשמל ואלקטרומגנטיקה (חזרה על הקורס)", credits: 3.5, semester: "ב" },
 ];
 
-/** Year 4, as he plans it (semester "ד-א" / "ד-ב"). */
+/**
+ * Year 4 by the department's rules for תשפ"ז (file "הנחיות ופירוט קורסי תחומי הידע", 25/10/2026): per field 2 core + lab
+ * + 2 electives, plus 2 more electives and a pre-project. His 6 electives: Java, Python (computers), and from VLSI:
+ * sources & detectors, optoelectronic devices (both semester A only), reliability and VLSI design (semester B, after
+ * VLSI devices). VHDL counts once, as a computers core course. Credits of the four VLSI electives are not in the file:
+ * 3.5/3 for the two semester-A ones follow his own plan's 6.5 total - to be checked.
+ */
 const REMAINING: (Item & { semester: string })[] = [
   { code: "002-4330610", name: "מבוא למערכות תקשורת", credits: 3.5, semester: "ד-א" },
-  { code: "002-4375610", name: "רכיבים מתוכנתים ומבוא ל-VHDL (בשתי ההתמחויות)", credits: 3.5, semester: "ד-א" },
-  { code: "002-4361110", name: "התקני VLSI", credits: 3.5, semester: "ד-א" },
-  { code: "002-4365130", name: "מעבדה ל-VLSI אנלוגי", credits: 2, kind: "מעבדה", semester: "ד-א" },
-  { code: "002-4371710", name: "מיקרו מעבדים", credits: 3.5, semester: "ד-א" },
+  { code: "002-4375610", name: "רכיבים מתוכנתים ומבוא ל-VHDL (ליבה - מחשבים)", credits: 3.5, semester: "ד-א" },
+  { code: "002-4371710", name: "מיקרו מעבדים (ליבה - מחשבים)", credits: 3.5, semester: "ד-א" },
+  { code: "002-4361110", name: "התקני VLSI (ליבה - VLSI)", credits: 3.5, semester: "ד-א" },
+  { code: "002-4365130", name: "מעבדה ל-VLSI אנלוגי (מעבדת מסלול - VLSI)", credits: 2, kind: "מעבדה", semester: "ד-א" },
+  { code: "002-4372510", name: "מקורות וגלאים מוליכים למחצה - בחירה VLSI", credits: 3.5, semester: "ד-א" },
+  { code: "002-4365910", name: "מבוא להתקנים אופטואלקטרוניים - בחירה VLSI", credits: 3, semester: "ד-א" },
   { code: "002-4331330", name: "קדם פרויקט - התקני VLSI", credits: 2, semester: "ד-א" },
-  { code: null, name: "פרויקט גמר א' (VLSI / Verification)", credits: 4, semester: "ד-א" },
-  { code: "002-4364130", name: "מעבדת רכיבים מתוכנתים (VHDL)", credits: 2, kind: "מעבדה", semester: "ד-ב" },
-  { code: null, name: "מבוא לתכנון VLSI (VLSI Design) - בחירה", credits: 3.5, semester: "ד-ב" },
-  { code: null, name: "אמינות במיקרואלקטרוניקה - בחירה", credits: 3.5, semester: "ד-ב" },
-  { code: null, name: "מקורות וגלאים / התקנים אופטו' - בחירה", credits: 6.5, semester: "ד-ב" },
+  { code: null, name: "פרויקט גמר א'", credits: 4, semester: "ד-א" },
+  { code: "002-4364130", name: "מעבדת רכיבים מתוכנתים VHDL (מעבדת מסלול - מחשבים)", credits: 2, kind: "מעבדה", semester: "ד-ב" },
+  { code: "002-4366710", name: "מבוא לתכנון VLSI - בחירה VLSI", credits: 3.5, semester: "ד-ב" },
+  { code: "002-4363322", name: "אמינות במיקרואלקטרוניקה - בחירה VLSI", credits: 3.5, semester: "ד-ב" },
   { code: null, name: "פרויקט גמר ב'", credits: 4, semester: "ד-ב" },
 ];
-const PLAN_MARK = "אמינות במיקרואלקטרוניקה - בחירה";
+const PLAN_MARK = "מבוא להתקנים אופטואלקטרוניים - בחירה VLSI";
 
 const words = (s: string) => s.replace(/["'()\-,.]/g, " ").split(/\s+/).filter((w) => w.length >= 3);
 /** Same course under a slightly different name (e.g. "ליניאריים" / "לינאריים"). */
