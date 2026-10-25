@@ -5,7 +5,7 @@ import AutoRefresh from "@/components/AutoRefresh";
 import Chapter from "@/components/Chapter";
 import Quiz from "@/components/Quiz";
 import Studio from "@/components/Studio";
-import { ensureExamples, loadMedia } from "@/lib/studio";
+import { loadMedia } from "@/lib/studio";
 import { deleteLesson, markRead, retryLesson, updateLesson } from "../../actions";
 import { LESSON_LABEL, lessonName, type Lesson } from "@/lib/types";
 
@@ -23,11 +23,10 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
     signed?.forEach((s, k) => { if (s.signedUrl) slideUrls[k + 1] = s.signedUrl; });
   }
   // Studio items; chapters without everyday examples get them automatically (once).
-  let media = lesson.status === "ready" ? await loadMedia(sb, { lessonId: id }) : null;
-  if (lesson.status === "ready" && await ensureExamples(sb, { id, course_id: lesson.course_id, chapter_md: lesson.chapter_md }, media).catch(() => false)) {
-    media = await loadMedia(sb, { lessonId: id });
-  }
-  const examples = media?.find((m) => m.kind === "examples");
+  // Everyday examples now live inside the chapter (enrich.py / new chapters); the old separate card shows only
+  // for a chapter not restructured yet.
+  const media = lesson.status === "ready" ? await loadMedia(sb, { lessonId: id }) : null;
+  const examples = lesson.chapter_md?.includes("🏠") ? undefined : media?.find((m) => m.kind === "examples");
   const { data: questions } = await sb.from("questions")
     .select("id, lesson_id, topic, question, options, correct, explanation, difficulty").eq("lesson_id", id).order("created_at");
 

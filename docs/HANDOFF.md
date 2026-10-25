@@ -160,8 +160,12 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   the script from the chapters, a second pass fact-checks it, Gemini 3.8 Flash TTS records Hebrew with two voices),
   video (the lesson's board snapshots shown while discussed, ffmpeg), everyday examples (markdown). On a lesson page
   for that lesson; on a course page for picked lessons. Not yet run with a real key (TTS quota unknown).
-- He learns ONLY through examples: every topic (chapters, tutor, course chat) = background -> "🏠 מהחיים" everyday
-  example -> definitions -> question. Old chapters get "רקע ודוגמאות" automatically on first open (studio "examples").
+- He learns ONLY through examples. Chapter structure for every topic and subtopic: background -> the lecturer's
+  explanation -> "> 🏠 **מהחיים:**" right there (not at the top) -> worked example if the lecture had one -> next topic.
+  New chapters are written so (author.SYSTEM); old ones are rewritten by `worker/enrich.py` (workflow enrich.yml,
+  dispatched every morning by /api/cron/notify until all are done; stops on quota). The pre-rewrite chapter is kept in
+  storage as `chapter_before_examples.md` (also the "done" mark); quizzes/answers untouched; content-losing rewrites
+  are rejected.
 - Timing diagrams are never drawn by the AI: ```wave blocks (JSON: inputs per half-cycle) are rendered by
   `web/src/components/Wave.tsx`, and Q is simulated in `web/src/lib/wave.ts` (none / sync / async reset). The tutor's
   ASCII waveforms were wrong and confused him (24/10/2026).

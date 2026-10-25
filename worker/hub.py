@@ -202,6 +202,11 @@ def save_chapter(job, ch, by):
     except Exception:  # noqa: BLE001 - database without the syllabus_covered column yet
         fields.pop("syllabus_covered", None)
         job.update(**fields)
+    try:  # written in the new structure already: enrich.py must not rewrite it
+        import enrich
+        enrich.mark(job.sb, job.lesson, chapter_md)
+    except Exception as e:  # noqa: BLE001
+        print(f"structure mark not saved: {e}")
     print(f"published: {len(ch['questions'])} questions", flush=True)
     notify.send(job.sb, job.lesson["user_id"], f"✅ {job.label()} מוכן לקריאה",
                 f"{ch.get('title') or ''}\n{len(ch['questions'])} שאלות בשאלון".strip(), f"/lessons/{job.lesson['id']}")

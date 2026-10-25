@@ -23,5 +23,13 @@ export async function GET() {
     return Response.json({ sent: false, reason: "already sent for this slot" });
   }
   const res = await gh("/dispatches", { method: "POST", body: JSON.stringify({ ref: "main", inputs: { mode: slot } }) });
+  // Mornings also continue rewriting old chapters into his structure (stops on quota, resumes the next day).
+  if (slot === "daily") {
+    await fetch(`https://api.github.com/repos/${repo}/actions/workflows/enrich.yml/dispatches`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
+      body: JSON.stringify({ ref: "main", inputs: { lesson_id: "" } }),
+    }).catch(() => null);
+  }
   return Response.json({ sent: res.ok, slot, status: res.status }, { status: res.ok ? 200 : 502 });
 }
