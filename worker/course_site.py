@@ -90,20 +90,34 @@ class Notion:
 
     def fill_missing(self, pid):
         """Children that the page chunk did not include (closed toggles, long pages)."""
+        tried = set()
         for _ in range(10):
-            missing = []
+            parents = {}
             for bid in self.tree_ids(pid):
-                missing += [c for c in self.blocks.get(bid, {}).get("content", []) if c not in self.blocks]
-            missing = list(dict.fromkeys(missing))
-            if not missing:
+                for c in self.blocks.get(bid, {}).get("content", []):
+                    if c not in self.blocks:
+                        parents.setdefault(bid, []).append(c)
+            missing = [c for cs in parents.values() for c in cs]
+            if not missing or all(p in tried for p in parents):
                 return
+            before = len(self.blocks)
             space = self.blocks.get(pid, {}).get("space_id")
-            for i in range(0, len(missing), 100):
-                reqs = [{"pointer": {"table": "block", "id": b, **({"spaceId": space} if space else {})}, "version": -1}
-                        for b in missing[i:i + 100]]
-                self._add((self.api("syncRecordValues", {"requests": reqs}) or {}).get("recordMap") or {})
-            if all(m not in self.blocks for m in missing):
-                return
+            try:
+                for i in range(0, len(missing), 100):
+                    reqs = [{"pointer": {"table": "block", "id": b, **({"spaceId": space} if space else {})}, "version": -1}
+                            for b in missing[i:i + 100]]
+                    self._add((self.api("syncRecordValues", {"requests": reqs}) or {}).get("recordMap") or {})
+            except requests.RequestException:
+                pass  # public sites refuse it; load each parent block as its own chunk instead
+            if len(self.blocks) == before:
+                for parent in parents:
+                    if parent not in tried:
+                        tried.add(parent)
+                        try:
+                            self._add(self.api("loadPageChunk", {"pageId": parent, "limit": 100, "cursor": {"stack": []},
+                                                                 "chunkNumber": 0, "verticalColumns": False}).get("recordMap") or {})
+                        except requests.RequestException:
+                            pass
 
     def tree_ids(self, pid):
         """Blocks of one page (not descending into sub-pages)."""
