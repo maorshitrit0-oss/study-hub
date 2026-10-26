@@ -29,10 +29,11 @@ def dashed(i):
 
 
 def page_id(url):
-    m = re.findall(r"[0-9a-f]{32}", urlparse(url).path.replace("-", ""))
-    if not m:
+    # The id is the last 32 hex digits of the last path part ("...-2027-327e0f37...": the year is not part of it).
+    tail = urlparse(url).path.rstrip("/").split("/")[-1].replace("-", "")[-32:]
+    if not re.fullmatch(r"[0-9a-f]{32}", tail):
         raise SystemExit("זה לא קישור לדף Notion (חסר מזהה הדף בסוף הכתובת)")
-    return dashed(m[-1])
+    return dashed(tail)
 
 
 def unwrap(url):
