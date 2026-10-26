@@ -40,7 +40,7 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
           <div className="flex flex-wrap gap-1.5 mt-2">{lesson.topics.map((t) => <span key={t} className="chip">{t}</span>)}</div>
         )}
         <details className="mt-2">
-          <summary className="cursor-pointer text-sm text-accent">✏️ עריכה (כותרת, מספר, סוג) - למשל "חלק 1" / "חלק 2"</summary>
+          <summary className="cursor-pointer text-sm text-accent">✏️ עריכה (כותרת, מספר, סוג) - למשל חלק 1 / חלק 2</summary>
           <form action={updateLesson.bind(null, id)} className="space-y-3 mt-3">
             <div className="grid grid-cols-2 gap-3">
               <select className="input" name="kind" defaultValue={lesson.kind}>
