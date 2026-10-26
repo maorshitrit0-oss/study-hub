@@ -54,7 +54,7 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   Tue lab 2 09-13, digital 13-16 + 16-17; Wed Java 13-16 + 16-17, micro 17-20 + practice 21-22 (Lior Brown);
   Thu linear 09-13 + 16-17. Exams added: micro B 17/2, communication B 24/2; semester ב: control 27/6 & 21/7,
   semiconductor physics 8/7 & 27/7, electromagnetics 11/7 & 1/8/2027.
-- Still unknown: מבוא לבקרה exam date (semester ב; deferred until semester ב).
+- מבוא לבקרה exams: 27/6 and 21/7/2027 (from the university system).
 
 ## Free-tier limits (watch these)
 - Supabase allows 50 MB per uploaded file: bigger course files are added as a shared Google Drive link
