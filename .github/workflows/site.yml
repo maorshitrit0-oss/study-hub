@@ -1,0 +1,46 @@
+# Imports a lecturer's course website (public Notion page + sub-pages + attached files) into a course.
+# Started by the web app (workflow_dispatch) from the course page.
+name: import-site
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Site URL
+        required: true
+      course_id:
+        description: Course id (empty = only show what would be imported)
+        default: ""
+
+concurrency:
+  group: site-${{ inputs.course_id }}
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: worker/requirements.txt
+      - run: pip install -r worker/requirements.txt
+      - name: Import
+        working-directory: worker
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+          SITE_URL: ${{ inputs.url }}
+          COURSE_ID: ${{ inputs.course_id }}
+        # Inputs arrive as environment variables (never pasted into the script).
+        run: |
+          [[ "$SITE_URL" =~ ^https:// ]] || { echo "::error::bad url"; exit 1; }
+          if [ -z "$COURSE_ID" ]; then python course_site.py show "$SITE_URL"; exit 0; fi
+          [[ "$COURSE_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad course id"; exit 1; }
+          python course_site.py import "$COURSE_ID" "$SITE_URL"

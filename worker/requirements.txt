@@ -8,3 +8,4 @@ google-genai>=2.0
 trafilatura
 pywebpush
 gdown
+requests
