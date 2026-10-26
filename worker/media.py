@@ -38,11 +38,22 @@ def has_audio(path):
 
 # ---------- 1. download ----------
 
+def youtube_cookies():
+    """YouTube refuses GitHub's servers without a signed-in session: cookies.txt from the YT_COOKIES secret."""
+    text = os.environ.get("YT_COOKIES", "").strip()
+    if not text:
+        return {}
+    path = Path(os.environ.get("RUNNER_TEMP", "/tmp")) / "yt_cookies.txt"
+    path.write_text(text + "\n", encoding="utf-8")
+    return {"cookiefile": str(path)}
+
+
 def download(url, work_dir, log=print):
     import yt_dlp
 
     def fetch(fmt, name):
         opts = {
+            **youtube_cookies(),
             "format": fmt,
             "outtmpl": str(work_dir / f"{name}.%(ext)s"),
             "ffmpeg_location": FFMPEG,

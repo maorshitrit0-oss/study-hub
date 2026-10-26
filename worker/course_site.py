@@ -283,7 +283,8 @@ def cmd_show(url):
 def show(url):
     if re.search(r"youtube\.com/|youtu\.be/", url):  # can the runner download this recording?
         import yt_dlp
-        with yt_dlp.YoutubeDL({"quiet": True, "skip_download": True}) as ydl:
+        from media import youtube_cookies
+        with yt_dlp.YoutubeDL({"quiet": True, "skip_download": True, **youtube_cookies()}) as ydl:
             info = ydl.extract_info(url, download=False)
         fmts = [f"{f.get('format_id')}:{f.get('height')}" for f in info.get("formats", []) if f.get("height")]
         print(f"YOUTUBE OK: {info.get('title')} | {info.get('duration')}s | heights {sorted({f.split(':')[1] for f in fmts})}")
@@ -498,8 +499,12 @@ def recordings(sb, course, pages, links):
                  {"content-type": "application/json", "upsert": "true"})
     lessons = sb.table("lessons").select("number, source_url").eq("course_id", course["id"]).eq("kind", "lecture").execute().data
     have_url, have_num = {l["source_url"] for l in lessons}, {l["number"] for l in lessons}
+    youtube_blocked = not os.environ.get("YT_COOKIES")
     for i, url in enumerate(current, 1):
         if url in have_url or i in have_num:  # he may have uploaded this lecture's Zoom himself
+            continue
+        if youtube_blocked and re.search(r"youtube\.com/|youtu\.be/", url):
+            print(f"::notice title=Site::lecture {i} is on YouTube - waiting for the YT_COOKIES secret", flush=True)
             continue
         row = sb.table("lessons").insert({"user_id": course["user_id"], "course_id": course["id"], "kind": "lecture",
                                           "number": i, "source_url": url, "status": "queued",

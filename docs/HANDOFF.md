@@ -222,8 +222,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   "📼 משנה שעברה" explanations + a "🔄 השוואה" section. The repo is public: Actions minutes are not limited.
 - Lesson edit (title/number/kind, e.g. "חלק 1") is at the top of the lesson page; two parts with the same number
   count as one meeting; hub never overwrites a title he set while the recording downloaded.
-- addLesson also accepts YouTube links; media.download merges best video+audio for YouTube (GitHub runners may be
-  refused by YouTube's bot check - not verified yet).
+- addLesson also accepts YouTube links; media.download merges best video+audio for YouTube. VERIFIED 2026-10-26:
+  YouTube refuses GitHub runners ("Sign in to confirm you're not a bot"). Fix: repo secret `YT_COOKIES` (cookies.txt
+  of a signed-in YouTube session, ideally a spare Google account) -> `media.youtube_cookies()`. Until it exists,
+  course_site skips YouTube recordings (they are created the morning after the secret is added). Test with site.yml
+  url=<youtube link>, course_id empty -> "YOUTUBE OK ..." / "FAILED ..." annotation.
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
