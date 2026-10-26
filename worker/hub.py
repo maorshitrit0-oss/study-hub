@@ -10,9 +10,11 @@ Needs SUPABASE_URL and SUPABASE_SERVICE_KEY; GEMINI_API_KEY for automatic author
 import argparse
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -161,9 +163,12 @@ def cmd_process(lesson_id, do_author=True):
             job.update(transcript=transcript, status="transcribed", progress="התמלול מוכן")
 
         if do_author and os.environ.get("GEMINI_API_KEY"):
+            transcript = with_previous_year(job, transcript)
             ch = author.author_with_gemini(job.course, job.lesson, transcript,
                                            [(n, p) for n, _, p in slides], job.previous_topics(), log=job.log, docs=docs)
             save_chapter(job, ch, "gemini")
+        elif "(להשוואה)" in (job.lesson.get("title") or ""):
+            job.log("התמלול מוכן - משמש להשוואה עם ההרצאה של השנה")
         else:
             job.log("התמלול מוכן - מחכה לכתיבת הפרק (Claude)")
     except Exception as e:
@@ -175,6 +180,38 @@ def cmd_process(lesson_id, do_author=True):
         raise
     finally:
         shutil.rmtree(work, ignore_errors=True)
+
+
+COMPARE = """=== ההרצאה המקבילה משנה שעברה (אותו מרצה, אותו מספר הרצאה) - להשוואה ===
+המקור העיקרי לפרק הוא ההרצאה של השנה (למעלה). השתמש בהרצאה משנה שעברה כך:
+- הסבר או דוגמה משנה שעברה על **אותו נושא** שמבהירים יותר - הוסף במקום המתאים, מסומן "📼 משנה שעברה:".
+- אם הנושאים שונים (הסדר השתנה) - אל תערבב; ציין זאת בסעיף ההשוואה.
+- בסוף הפרק, לפני השאלות: "## 🔄 השוואה להרצאה משנה שעברה" - מה נוסף השנה, מה הושמט, מה הוסבר אחרת,
+  ומה מופיע רק משנה שעברה (מסומן כך - ייתכן שלא יהיה במבחן של השנה).
+"""
+
+
+def with_previous_year(job, transcript):
+    """Lecture N of a course with an imported site: add last year's lecture N (waits up to 30 min for its transcript)."""
+    try:
+        prev = course_site.previous_lecture(job.sb, job.lesson)
+    except Exception as e:  # noqa: BLE001 - the comparison is a bonus, never a reason to fail
+        print(f"previous year lookup failed: {e}", flush=True)
+        return transcript
+    if not prev:
+        return transcript
+    for _ in range(30):
+        row = job.sb.table("lessons").select("transcript, status").eq("id", prev["id"]).single().execute().data
+        if row.get("transcript") or row["status"] == "error":
+            break
+        job.log("מחכה לתמלול ההרצאה המקבילה משנה שעברה (להשוואה)...")
+        time.sleep(60)
+    if not row.get("transcript"):
+        job.log("ההרצאה משנה שעברה עוד לא מוכנה - כותב בלי השוואה")
+        return transcript
+    # Its board snapshots are not attached here: drop their markers so no image of the wrong lecture is cited.
+    prev_text = re.sub(r"^===== שקף \d+ .*$", "", row["transcript"], flags=re.M)
+    return f"{transcript}\n\n{COMPARE}\n{prev_text}"
 
 
 def load_slides(job, work):

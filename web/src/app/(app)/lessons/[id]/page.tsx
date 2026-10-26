@@ -62,6 +62,8 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
               <p className="text-sm text-muted whitespace-pre-line break-words" dir="auto">{lesson.error}</p>
               <form action={retryLesson.bind(null, id)}><button className="btn">לנסות שוב</button></form>
             </>
+          ) : lesson.status === "transcribed" && lesson.title?.includes("(להשוואה)") ? (
+            <p>זה התמלול של ההרצאה משנה שעברה. הוא נכנס כהשוואה לפרק של ההרצאה עם אותו מספר מהשנה.</p>
           ) : lesson.status === "transcribed" ? (
             <p>התמלול מוכן ומחכה לכתיבת הפרק. ב-Claude Code כתוב: <b dir="ltr">כתוב את הפרק של {id}</b></p>
           ) : (

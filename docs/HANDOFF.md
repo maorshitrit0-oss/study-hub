@@ -205,6 +205,15 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   chapters until the Gemini quota ends.
 - This container cannot reach notion.site and cannot download Actions logs: test with `site.yml` (course_id empty)
   and read the output from the job's annotations (`check-runs/<job>/annotations`).
+- Recordings on the site: headings "<year> ... Recordings (EE Group)" (his group EE; CE lists ignored when an EE one
+  exists). The newest year's links -> `lecture` lessons numbered in order (skipped if that number exists - he may
+  upload the Zoom himself) and process.yml is started for each (`actions: write`, GITHUB_TOKEN). Lists saved as
+  `site_recordings.json` next to `site.md`. When lecture N of such a course is authored, `hub.with_previous_year`
+  takes last year's lecture N (exercise sessions dropped from the numbering), creating it as an `other` lesson
+  "שנה שעברה · הרצאה N (להשוואה)" transcribed without a chapter, waits up to 30 min for it, and the chapter adds
+  "📼 משנה שעברה" explanations + a "🔄 השוואה" section. The repo is public: Actions minutes are not limited.
+- Lesson edit (title/number/kind, e.g. "חלק 1") is at the top of the lesson page; two parts with the same number
+  count as one meeting; hub never overwrites a title he set while the recording downloaded.
 - addLesson also accepts YouTube links; media.download merges best video+audio for YouTube (GitHub runners may be
   refused by YouTube's bot check - not verified yet).
 

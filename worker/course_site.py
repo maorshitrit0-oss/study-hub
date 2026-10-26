@@ -8,6 +8,7 @@
 Notion renders in the browser, so its public pages are read through the same JSON endpoints its own page uses
 (loadPageChunk / syncRecordValues / getSignedFileUrls). Nothing is deleted; running it again adds only what is new.
 """
+import json
 import os
 import re
 import sys
@@ -447,7 +448,95 @@ def cmd_import(course_id, url):
                                     "source_url": src, "transcript": transcript, "status": "queued",
                                     "progress": "מאתר הקורס - ממתין לכתיבת הפרק"}).execute()
     print(f"::notice title=Site::{len(paths)} files, {len(new)} new lessons ({len(planned) - len(new)} already there)", flush=True)
+    recordings(sb, course, pages, links)
     process_pending(sb)
+
+
+# ---------- recordings: this semester's lectures, each compared with the same lecture of last year ----------
+
+PAIRS = "site_recordings.json"   # <user>/materials/<course>/site_recordings.json: {"current": [...], "previous": [...]}
+RECORDING = re.compile(r"(youtube\.com/watch|youtu\.be/|zoom\.us/rec/)")
+NOT_LECTURE = re.compile(r"\bex\b|exercise|תרגול|recitation|תרגיל", re.I)
+MY_GROUP = re.compile(r"\bEE\b|חשמל", re.I)  # he studies electrical engineering (the site also has a CE group)
+
+
+def recording_lists(pages, links):
+    """{year: [(text, url)]} from headings like "2027 Zoom Recordings (EE Group)" - his group's list per year."""
+    by_year = {}
+    for pid, _title, lines in pages:
+        heads = [(i, line) for i, line in enumerate(lines) if HEAD.match(line)]
+        for k, (i, line) in enumerate(heads):
+            year = re.search(r"20\d\d", line)
+            if not year or not re.search(r"record|הקלט", line, re.I):
+                continue
+            level = len(HEAD.match(line)[1])
+            end = next((j for j, l in heads[k + 1:] if len(HEAD.match(l)[1]) <= level), len(lines))
+            items = [(l["text"], l["url"]) for l in links
+                     if l["page_id"] == pid and i < l["line"] < end and RECORDING.search(l["url"] or "")]
+            group = bool(MY_GROUP.search(line)) or not re.search(r"\b(CE|EE)\b", line)
+            prev = by_year.get(year[0])
+            if items and (prev is None or (group and not prev[0])):
+                by_year[year[0]] = (group, items)
+    return {y: items for y, (_, items) in by_year.items()}
+
+
+def recordings(sb, course, pages, links):
+    """This semester's recordings -> lecture lessons (numbered in order); last year's list is kept for comparison:
+    when lecture N is processed, last year's lecture N is transcribed too and the chapter compares the two."""
+    years = recording_lists(pages, links)
+    if not years:
+        return
+    cur = max(years)
+    current = [u for _, u in years[cur]]
+    previous = [u for t, u in years.get(str(int(cur) - 1), []) if not NOT_LECTURE.search(t or "")]
+    store = sb.storage.from_(BUCKET)
+    store.upload(f"{course['user_id']}/materials/{course['id']}/{PAIRS}",
+                 json.dumps({"current": current, "previous": previous}).encode(),
+                 {"content-type": "application/json", "upsert": "true"})
+    lessons = sb.table("lessons").select("number, source_url").eq("course_id", course["id"]).eq("kind", "lecture").execute().data
+    have_url, have_num = {l["source_url"] for l in lessons}, {l["number"] for l in lessons}
+    for i, url in enumerate(current, 1):
+        if url in have_url or i in have_num:  # he may have uploaded this lecture's Zoom himself
+            continue
+        row = sb.table("lessons").insert({"user_id": course["user_id"], "course_id": course["id"], "kind": "lecture",
+                                          "number": i, "source_url": url, "status": "queued",
+                                          "progress": "הקלטה מאתר הקורס - בתור"}).execute().data[0]
+        print(f"::notice title=Site::lecture {i} from the site's recordings -> {dispatch(row['id'])}", flush=True)
+
+
+def dispatch(lesson_id, author="gemini"):
+    """Starts process.yml for a lesson (GitHub Actions; GITHUB_TOKEN with actions: write)."""
+    repo, token = os.environ.get("GITHUB_REPOSITORY"), os.environ.get("GITHUB_TOKEN")
+    if not repo or not token:
+        return "no GITHUB_TOKEN - not started"
+    r = requests.post(f"https://api.github.com/repos/{repo}/actions/workflows/process.yml/dispatches",
+                      headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+                      json={"ref": "main", "inputs": {"lesson_id": lesson_id, "author": author}}, timeout=30)
+    return "started" if r.ok else f"GitHub {r.status_code}: {r.text[:200]}"
+
+
+def previous_lecture(sb, lesson):
+    """Last year's lecture with the same number (transcribed for comparison; started here if it is not yet)."""
+    if lesson["kind"] != "lecture" or not lesson.get("number"):
+        return None
+    try:
+        pairs = json.loads(sb.storage.from_(BUCKET).download(
+            f"{lesson['user_id']}/materials/{lesson['course_id']}/{PAIRS}").decode())
+    except Exception:  # noqa: BLE001 - not a course with an imported site
+        return None
+    prev = pairs.get("previous") or []
+    if lesson["number"] > len(prev):
+        return None
+    url = prev[lesson["number"] - 1]
+    rows = sb.table("lessons").select("*").eq("course_id", lesson["course_id"]).eq("source_url", url).execute().data
+    if rows:
+        return rows[0]
+    row = sb.table("lessons").insert({"user_id": lesson["user_id"], "course_id": lesson["course_id"], "kind": "other",
+                                      "number": lesson["number"], "title": f"שנה שעברה · הרצאה {lesson['number']} (להשוואה)",
+                                      "source_url": url, "status": "queued",
+                                      "progress": "הקלטה משנה שעברה - מתומללת להשוואה עם ההרצאה של השנה"}).execute().data[0]
+    print(f"previous year's lecture {lesson['number']}: {dispatch(row['id'], 'none')}", flush=True)
+    return row
 
 
 def process_pending(sb, budget=100 * 60):

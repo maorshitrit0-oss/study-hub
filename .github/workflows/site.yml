@@ -4,6 +4,7 @@ name: import-site
 
 permissions:
   contents: read
+  actions: write   # course_site.py starts process.yml for recordings (this year's and last year's)
 
 on:
   workflow_dispatch:
@@ -35,6 +36,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
           SITE_URL: ${{ inputs.url }}
