@@ -272,7 +272,10 @@ def cmd_show(url):
     import io
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
-        show(url)
+        try:
+            show(url)
+        except Exception as e:  # noqa: BLE001 - report it where it can be read
+            print(f"FAILED: {type(e).__name__}: {e}")
     print(buf.getvalue())
     annotate(buf.getvalue())
 
