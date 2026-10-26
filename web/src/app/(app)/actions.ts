@@ -82,8 +82,11 @@ export async function addLesson(courseId: string, _: AddLessonState, f: FormData
   const sourcePath = str(f, "source_path");
   const kind = str(f, "kind") ?? "lecture";
   if (!url && !sourcePath) return { error: "צריך קישור או קובץ" };
-  if (url && kind !== "web" && !/zoom\.us\/|drive\.google\.com|docs\.google\.com|youtube\.com\/watch|youtu\.be\//.test(url)) {
-    return { error: "צריך קישור להקלטת זום, ליוטיוב או לקובץ בגוגל דרייב" };
+  if (url && /youtube\.com\/|youtu\.be\//.test(url)) {
+    return { error: "יוטיוב חוסם את השרת שמעבד את ההקלטות - צריך את קישור הזום של אותה הרצאה (או קובץ בדרייב)" };
+  }
+  if (url && kind !== "web" && !/zoom\.us\/|drive\.google\.com|docs\.google\.com/.test(url)) {
+    return { error: "צריך קישור להקלטת זום או לקובץ בגוגל דרייב" };
   }
   if (url && /drive\.google\.com\/drive\/folders/.test(url)) {
     return { error: "זה קישור לתיקייה - צריך קישור לקובץ עצמו (פותחים את הקובץ ← שיתוף ← העתקת קישור)" };
@@ -126,9 +129,19 @@ export async function deleteLesson(id: string, courseId: string) {
 export async function updateLesson(id: string, f: FormData) {
   const { sb } = await requireUser();
   const kind = str(f, "kind");
+  const url = str(f, "url");
+  const { data: before } = await sb.from("lessons").select("source_url, status").eq("id", id).single();
+  // A new recording link (e.g. the class Zoom instead of a YouTube link YouTube would not serve): process it again.
+  // Only for a lesson that never finished: a ready chapter (and its transcript) is never thrown away.
+  const relink = !!url && url !== before?.source_url && before?.status !== "ready"
+    && /zoom\.us\/|drive\.google\.com|docs\.google\.com/.test(url);
   const { data } = await sb.from("lessons")
-    .update({ number: int(f, "number"), title: str(f, "title"), ...(kind ? { kind } : {}) })
+    .update({
+      number: int(f, "number"), title: str(f, "title"), ...(kind ? { kind } : {}),
+      ...(relink ? { source_url: url, status: "queued", error: null, transcript: null, progress: "קישור חדש - בתור" } : {}),
+    })
     .eq("id", id).select("course_id").single();
+  if (relink) await dispatchLesson(id);
   revalidatePath(`/lessons/${id}`);
   if (data) revalidatePath(`/courses/${data.course_id}`);
 }

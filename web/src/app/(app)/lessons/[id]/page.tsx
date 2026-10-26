@@ -49,6 +49,10 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
               <input className="input" name="number" type="number" min={0} defaultValue={lesson.number ?? ""} placeholder="מספר" />
             </div>
             <input className="input" name="title" defaultValue={lesson.title ?? ""} placeholder="כותרת, למשל: חלק 1 - מבוא ל-GPIO" />
+            {lesson.kind !== "web" && (
+              <input className="input" name="url" dir="ltr" inputMode="url" defaultValue={lesson.source_url ?? ""}
+                placeholder="קישור (זום / דרייב) - קישור חדש מעבד את ההקלטה מחדש" aria-label="קישור" />
+            )}
             <button className="btn w-full">שמירה</button>
           </form>
         </details>
