@@ -235,7 +235,25 @@ def walk(n, max_pages=MAX_PAGES):
 
 # ---------- show ----------
 
+def annotate(text):
+    """The run's text as annotations (readable through the checks API when the log is not)."""
+    chunks = [text[i:i + 3500] for i in range(0, len(text), 3500)][:30]
+    for i, c in enumerate(chunks):
+        kind = ("notice", "warning", "error")[i // 10]
+        print(f"::{kind} title=part {i + 1}/{len(chunks)}::" + c.replace("%", "%25").replace("\r", "").replace("\n", "%0A"), flush=True)
+
+
 def cmd_show(url):
+    import contextlib
+    import io
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        show(url)
+    print(buf.getvalue())
+    annotate(buf.getvalue())
+
+
+def show(url):
     n = Notion(url)
     pages, files, links = walk(n)
     for pid, title, md in pages:
