@@ -49,6 +49,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   there, 25 now): מיקרו מעבדים (002-4371710, Dr. Roi Yozevitch, 100% theoretical final, exam 18/1/2027) and
   מבוא למערכות תקשורת (002-4330610, Prof. Yosef Pinhasi, analog: AM/SSB/superheterodyne/FM, noise figure, SNR;
   exam 2/2/2027). Weekly times and מועד ב not known yet. He may drop micro if behind by week 4-5 - check the drop window.
+- Full timetable from the university system (26/10/2026) -> `supabase/schedule_full.sql`: Sun waves 17-21 + 21-22;
+  Mon communication 09-12 (lecturer this semester: Mr. Avraham Yehonatan; material Prof. Pinhasi) + practice 13-14;
+  Tue lab 2 09-13, digital 13-16 + 16-17; Wed Java 13-16 + 16-17, micro 17-20 + practice 21-22 (Lior Brown);
+  Thu linear 09-13 + 16-17. Exams added: micro B 17/2, communication B 24/2; semester ב: control 27/6 & 21/7,
+  semiconductor physics 8/7 & 27/7, electromagnetics 11/7 & 1/8/2027.
 - Still unknown: מבוא לבקרה exam date (semester ב; deferred until semester ב).
 
 ## Free-tier limits (watch these)
