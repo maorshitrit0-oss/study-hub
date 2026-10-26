@@ -67,6 +67,14 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Partner: Shirel (failed the lab in summer, repeating it with him). Her and her former partner Yehonatan's summary
   reports are uploaded as `prev_report`; the lab chat compares them with the current booklet and lists exact changes,
   marking measurements to replace with their own.
+- Final exam of the lab is PRACTICAL (told 2026-10-26), on the whole semester's experiments. Lab 1's was 3 questions:
+  (1) theory/graph question, (2) verbal question, (3) build a circuit on the breadboard and show it on the scope -
+  e.g. two input waves -> summing op-amp. Last year there was a hands-on practice day; this year there is none, so he
+  wants to practise at home. Plan (near the end of the semester, when all experiments are known): a "מבחן מעשי"
+  page per lab - for every experiment, build-it tasks (which circuit, component values, breadboard wiring steps,
+  generator/scope/multimeter settings, expected waveform, common mistakes) + the theory/verbal questions, and practice
+  in a free browser simulator with breadboard + function generator + oscilloscope + multimeter (Tinkercad Circuits;
+  Falstad for quick op-amp/RC behaviour). Not built yet.
 - Entry quiz (בוחן כניסה, 2026-10-26): every experiment opens with a 3-question MCQ on the prelab + Multisim
   simulations. His group is Tuesday; Sunday/Monday groups tell what they were asked. `/courses/[id]/entry`
   (lab courses: "🎯 בוחן כניסה" card; lab lesson page links to it): paste/screenshot a report -> `processReport`
