@@ -521,18 +521,8 @@ def recordings(sb, course, pages, links):
         notified = set()
     lessons = sb.table("lessons").select("number, source_url").eq("course_id", course["id"]).eq("kind", "lecture").execute().data
     have_url, have_num = {l["source_url"] for l in lessons}, {l["number"] for l in lessons}
-    youtube_blocked = not os.environ.get("YT_COOKIES")
     for i, url in enumerate(current, 1):
         if url in have_url or i in have_num:  # he may have uploaded this lecture's Zoom himself
-            continue
-        if youtube_blocked and re.search(r"youtube\.com/|youtu\.be/", url):
-            # YouTube refuses GitHub's servers: tell him once, so he adds the class Zoom link himself.
-            if url not in notified:
-                import notify
-                notify.send(sb, course["user_id"], f"🎓 {course['name']}: הרצאה {i} עלתה לאתר",
-                            "המרצה העלה אותה ליוטיוב, שחוסם את השרת. העלה את קישור הזום של ההרצאה והיא תתומלל ותסוכם.",
-                            f"/courses/{course['id']}")
-                notified.add(url)
             continue
         row = sb.table("lessons").insert({"user_id": course["user_id"], "course_id": course["id"], "kind": "lecture",
                                           "number": i, "source_url": url, "status": "queued",

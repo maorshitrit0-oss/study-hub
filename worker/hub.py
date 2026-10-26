@@ -134,6 +134,9 @@ def cmd_process(lesson_id, do_author=True):
         elif job.lesson["kind"] == "web":
             job.log("קורא את הדף...")
             transcript = fetch_web(url)
+        elif media.is_youtube(url):
+            # YouTube refuses GitHub's servers, but Gemini reads YouTube videos itself (official video input).
+            transcript = media.transcribe_youtube(url, log=job.log)
         else:
             if source is not None:
                 video = audio = source

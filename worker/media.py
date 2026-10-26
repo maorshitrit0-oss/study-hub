@@ -77,6 +77,60 @@ def download(url, work_dir, log=print):
     return video, audio, info.get("title") or "lecture"
 
 
+# ---------- 1b. YouTube: Gemini reads the video itself ----------
+
+def is_youtube(url):
+    return bool(re.search(r"youtube\.com/|youtu\.be/", url or ""))
+
+
+YT_SEGMENT = 30 * 60   # ~165k tokens per half hour at low media resolution (measured: ~92 tokens/s)
+YT_MAX = 5 * 60 * 60   # a lecture never runs past 5 hours
+YT_PROMPT = """זה קטע מהקלטת הרצאה באוניברסיטה (הנדסת חשמל), מ-{start} עד {end} בסרטון.
+תמלל מילה במילה, בעברית, את כל מה שנאמר בקטע - בלי לסכם ובלי לדלג. כתוב פסקאות, כל אחת מתחילה בזמן [hh:mm:ss] מתחילת הסרטון.
+בכל פעם שמשהו חדש מופיע על המסך (שקף, קוד, לוח, אתר, סימולציה) - שורה נפרדת:
+===== על המסך ([hh:mm:ss]) =====
+ואחריה תוכן המסך במלואו: כותרות, נקודות, נוסחאות ב-LaTeX, קוד מילה במילה בתוך ```, ותיאור קצר של שרטוט/גרף.
+אם הקטע הזה אחרי סוף הסרטון או שאין בו כלום - ענה רק: END"""
+
+
+def _hms(sec):
+    return fmt_time(sec)
+
+
+def transcribe_youtube(url, log=print):
+    """Transcript of a YouTube lecture through Gemini's own YouTube input (the runner never downloads the video):
+    half an hour per call, with what is on screen written out, since there are no board snapshots."""
+    import time
+    import author
+    from google.genai import types
+
+    parts = []
+    for start in range(0, YT_MAX, YT_SEGMENT):
+        end = start + YT_SEGMENT
+        log(f"Gemini צופה בהרצאה ביוטיוב ומתמלל: {_hms(start)}-{_hms(end)}...")
+
+        def call(client, model):
+            return client.models.generate_content(model=model, contents=types.Content(parts=[
+                types.Part(file_data=types.FileData(file_uri=url),
+                           video_metadata=types.VideoMetadata(start_offset=f"{start}s", end_offset=f"{end}s")),
+                types.Part(text=YT_PROMPT.format(start=_hms(start), end=_hms(end)))]),
+                config=types.GenerateContentConfig(media_resolution="MEDIA_RESOLUTION_LOW", max_output_tokens=65536,
+                                                   http_options=types.HttpOptions(timeout=15 * 60 * 1000)))
+        try:
+            text = (author._with_gemini(call).text or "").strip()
+        except Exception as e:  # noqa: BLE001 - asking past the end of the video
+            if parts and author._is(e, "INVALID_ARGUMENT", "offset", "400"):
+                break
+            raise
+        if not text or text.strip().upper() == "END" or (parts and len(text) < 40):
+            break
+        parts.append(text)
+        time.sleep(20)  # tokens-per-minute limit of the free tier
+    if not parts:
+        raise RuntimeError("Gemini לא הצליח לקרוא את הסרטון ביוטיוב (אולי הוא פרטי - צריך שיהיה ציבורי או 'לא רשום')")
+    return "\n\n".join(parts)
+
+
 # ---------- 2. transcription ----------
 
 def transcribe_local(audio, log=print):

@@ -231,11 +231,16 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   YouTube refuses GitHub runners ("Sign in to confirm you're not a bot"). Fix: repo secret `YT_COOKIES` (cookies.txt
   of a signed-in YouTube session, ideally a spare Google account) -> `media.youtube_cookies()`. Until it exists,
   course_site skips YouTube recordings (they are created the morning after the secret is added). Test with site.yml
-  url=<youtube link>, course_id empty -> "YOUTUBE OK ..." / "FAILED ..." annotation. Do NOT try to get around
-  YouTube's bot check (other player clients, proxies) - refused as circumvention. Main path: he adds the class Zoom.
+  url=<youtube link>, course_id empty. Do NOT try to get around YouTube's bot check (other player clients, proxies) -
+  refused as circumvention.
+- YouTube WORKS through Gemini's official YouTube video input (verified 2026-10-27 on micro lecture 1, Hebrew):
+  `media.transcribe_youtube` - no download; 30-minute segments (videoMetadata offsets, media resolution LOW,
+  ~92 tokens/s -> ~165k tokens per call, 20 s pause), verbatim transcript with timestamps + "===== על המסך =====" blocks
+  (slides/code written out, since there are no board snapshots). Stops at "END"/past the end. Free tier allows
+  8 h of YouTube per day. A 3 h lecture = ~6 calls + authoring; with last year's lecture for comparison ~15 calls.
+  gemini-2.5-flash is gone for new keys (404 -> next model); gemini-flash-latest worked.
 - site.yml also runs every 30 minutes on a schedule -> `course_site.py check` (re-read every imported site, no
-  chapter writing): new files/weeks are added, a new non-YouTube recording starts process.yml at once, and a new
-  YouTube recording sends ONE push "הרצאה N עלתה לאתר - העלה את קישור הזום" (`notified` list in site_recordings.json).
+  chapter writing): new files/weeks are added and a new recording (YouTube included) starts process.yml at once.
 
 ## Study week and weekly tasks (2026-10-26)
 - He studies ONE WEEK BEHIND the semester on purpose (recordings take days to come out; he does not watch live).

@@ -82,11 +82,8 @@ export async function addLesson(courseId: string, _: AddLessonState, f: FormData
   const sourcePath = str(f, "source_path");
   const kind = str(f, "kind") ?? "lecture";
   if (!url && !sourcePath) return { error: "צריך קישור או קובץ" };
-  if (url && /youtube\.com\/|youtu\.be\//.test(url)) {
-    return { error: "יוטיוב חוסם את השרת שמעבד את ההקלטות - צריך את קישור הזום של אותה הרצאה (או קובץ בדרייב)" };
-  }
-  if (url && kind !== "web" && !/zoom\.us\/|drive\.google\.com|docs\.google\.com/.test(url)) {
-    return { error: "צריך קישור להקלטת זום או לקובץ בגוגל דרייב" };
+  if (url && kind !== "web" && !/zoom\.us\/|drive\.google\.com|docs\.google\.com|youtube\.com\/|youtu\.be\//.test(url)) {
+    return { error: "צריך קישור להקלטת זום, ליוטיוב או לקובץ בגוגל דרייב" };
   }
   if (url && /drive\.google\.com\/drive\/folders/.test(url)) {
     return { error: "זה קישור לתיקייה - צריך קישור לקובץ עצמו (פותחים את הקובץ ← שיתוף ← העתקת קישור)" };
@@ -134,7 +131,7 @@ export async function updateLesson(id: string, f: FormData) {
   // A new recording link (e.g. the class Zoom instead of a YouTube link YouTube would not serve): process it again.
   // Only for a lesson that never finished: a ready chapter (and its transcript) is never thrown away.
   const relink = !!url && url !== before?.source_url && before?.status !== "ready"
-    && /zoom\.us\/|drive\.google\.com|docs\.google\.com/.test(url);
+    && /zoom\.us\/|drive\.google\.com|docs\.google\.com|youtube\.com\/|youtu\.be\//.test(url);
   const { data } = await sb.from("lessons")
     .update({
       number: int(f, "number"), title: str(f, "title"), ...(kind ? { kind } : {}),
