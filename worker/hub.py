@@ -259,6 +259,8 @@ def save_chapter(job, ch, by):
     except Exception as e:  # noqa: BLE001
         print(f"structure mark not saved: {e}")
     print(f"published: {len(ch['questions'])} questions", flush=True)
+    if (job.lesson.get("transcript") or "").startswith(course_site.SITE_NOTE):
+        return  # last year's material from the course site: one line in the morning summary, not a push each
     notify.send(job.sb, job.lesson["user_id"], f"✅ {job.label()} מוכן לקריאה",
                 f"{ch.get('title') or ''}\n{len(ch['questions'])} שאלות בשאלון".strip(), f"/lessons/{job.lesson['id']}")
 

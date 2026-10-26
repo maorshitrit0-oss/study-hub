@@ -5,6 +5,7 @@ import AddLesson from "@/components/AddLesson";
 import DeadlineRow from "@/components/DeadlineRow";
 import Materials from "@/components/Materials";
 import SiteImport from "@/components/SiteImport";
+import { isSiteLesson } from "@/lib/week";
 import Studio from "@/components/Studio";
 import { loadMedia } from "@/lib/studio";
 import CourseFacts, { type Fact } from "@/components/CourseFacts";
@@ -28,7 +29,9 @@ function groupLessons(ls: Lesson[], isLab: boolean): [string, Lesson[]][] {
   const groups: [string, Lesson[]][] = [
     ["הרצאות", ls.filter((l) => l.kind === "lecture")],
     ["תרגולים", ls.filter((l) => l.kind === "practice")],
-    ["חומר נוסף", ls.filter((l) => l.kind !== "lecture" && l.kind !== "practice")],
+    ["חומר נוסף", ls.filter((l) => l.kind !== "lecture" && l.kind !== "practice" && !isSiteLesson(l))],
+    // Last year's material from the lecturer's site: reference and backup, after this year's own lessons.
+    ["📼 חומר משנה שעברה (מאתר המרצה)", ls.filter(isSiteLesson).sort((a, b) => (a.number ?? 99) - (b.number ?? 99))],
   ];
   return groups.filter(([, g]) => g.length);
 }
@@ -38,7 +41,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
   const { sb, userId } = await requireUser();
   const [{ data: course }, { data: lessons }, { data: materials }, { data: deadlines }, stats, { data: facts }, { data: settings }, { data: slots }] = await Promise.all([
     sb.from("courses").select("*").eq("id", id).maybeSingle(),
-    sb.from("lessons").select("id, kind, number, title, status, progress, read_at, created_at").eq("course_id", id).order("created_at"),
+    sb.from("lessons").select("id, kind, number, title, status, progress, read_at, created_at, source_url").eq("course_id", id).order("created_at"),
     sb.from("materials").select("id, title, kind, storage_path").eq("course_id", id).order("created_at"),
     sb.from("deadlines").select("*").eq("course_id", id).order("due_at"),
     topicStats(sb, id),

@@ -349,6 +349,12 @@ def sections(lines):
     return out
 
 
+def week_number(title):
+    """"Week 3 - ADC" -> 3 (the semester week of last year's material; matched to this year's lecture 3)."""
+    m = re.search(r"(?:week|שבוע)\s*(\d+)", title or "", re.I)
+    return int(m[1]) if m else None
+
+
 def kind_of(name):
     if EXAM.search(name):
         return "past_exam"
@@ -443,14 +449,18 @@ def cmd_import(course_id, url):
             planned.append((f"{n.page_url(f['page_id'])}#{f['block']}", f"מבחן קודם: {Path(f['name']).stem}", [],
                             [paths[key]], "זה מבחן קודם של המרצה (קובץ מצורף): פתור כל שאלה במלואה, שלב אחרי שלב, כדוגמה פתורה."))
 
-    existing = {l["source_url"] for l in sb.table("lessons").select("source_url").eq("course_id", course_id).execute().data}
+    existing = {l["source_url"]: l for l in sb.table("lessons").select("id, source_url, number").eq("course_id", course_id).execute().data}
     new = [p for p in planned if p[0] not in existing]
+    for src, title, *_ in planned:  # week number on lessons imported before numbers were kept (the chapter renames them)
+        week = week_number(title)
+        if src in existing and week and not existing[src].get("number"):
+            sb.table("lessons").update({"number": week}).eq("id", existing[src]["id"]).execute()
     for src, title, body, docs, hint in new:
         transcript = "\n".join([SITE_NOTE, f"מתוך אתר הקורס של המרצה ({src}).", hint,
                                 *[f"[[file:{d}]]" for d in dict.fromkeys(docs)], "", *body]).strip()
         sb.table("lessons").insert({"user_id": uid, "course_id": course_id, "kind": "web", "title": title[:200],
-                                    "source_url": src, "transcript": transcript, "status": "queued",
-                                    "progress": "מאתר הקורס - ממתין לכתיבת הפרק"}).execute()
+                                    "number": week_number(title), "source_url": src, "transcript": transcript,
+                                    "status": "queued", "progress": "מאתר הקורס - ממתין לכתיבת הפרק"}).execute()
     print(f"::notice title=Site::{len(paths)} files, {len(new)} new lessons ({len(planned) - len(new)} already there)", flush=True)
     recordings(sb, course, pages, links)
     process_pending(sb)

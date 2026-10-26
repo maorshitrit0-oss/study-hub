@@ -1,3 +1,4 @@
+import { isSiteLesson } from "./week";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { topicStats, isWeak, type TopicStat } from "./progress";
 import { classMeetings } from "./recordings";
@@ -50,7 +51,7 @@ export async function weeklyPlan(sb: SupabaseClient): Promise<CoursePlan[]> {
     let score = 0;
 
     const ready = ls.filter((l) => l.status === "ready");
-    const unread = ready.filter((l) => !l.read_at);
+    const unread = ready.filter((l) => !l.read_at && !isSiteLesson(l));
     if (unread.length) {
       score += unread.length * 3;
       reasons.push(`${unread.length} פרקים שעוד לא קראת`);
@@ -136,7 +137,7 @@ export async function weeklyPlan(sb: SupabaseClient): Promise<CoursePlan[]> {
 
 /** Lessons with their syllabus coverage; works before the syllabus_covered column exists too. */
 async function lessonsWithCoverage(sb: SupabaseClient) {
-  const cols = "id, course_id, kind, number, title, status, read_at, created_at";
+  const cols = "id, course_id, kind, number, title, status, read_at, created_at, source_url";
   const res = await sb.from("lessons").select(`${cols}, syllabus_covered`);
   return res.error ? sb.from("lessons").select(cols) : res;
 }

@@ -228,6 +228,22 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   course_site skips YouTube recordings (they are created the morning after the secret is added). Test with site.yml
   url=<youtube link>, course_id empty -> "YOUTUBE OK ..." / "FAILED ..." annotation.
 
+## Study week and weekly tasks (2026-10-26)
+- He studies ONE WEEK BEHIND the semester on purpose (recordings take days to come out; he does not watch live).
+  `STUDY_LAG = 1` in `web/src/lib/week.ts` and `worker/notify.py`. Semester week 1 = SEMESTER_START (Sunday 18/10).
+  Deadlines stay real.
+- `/week` (home card "📅 השבוע שלי"): his study week's meetings per course (from the timetable via `classMeetings`,
+  which now also returns the matched lesson / "none" mark), with uploaded/read state; "להשלים" = earlier meetings not
+  uploaded or not read; "⚡ להגביר קצב" = assignments due within 14 days whose material (semester week of the due
+  date - 1) is beyond his study week (also a morning push line).
+- `syncWeekTasks` (home + tasks load): "📹 להעלות: <kind> שבוע N (dd/mm) · <course>" per held meeting without a
+  recording (`external_uid upload:<slot>:<date>`, due +2 days 20:00, closes itself when uploaded/marked); for a
+  course with an imported site, when his study week has no lecture of that number this year -> "📼 ... לקרוא את
+  החומר משנה שעברה" (`site-week:<lesson>`). Everything depends on the timetable being complete.
+- Site lessons (`kind web`, source_url on notion) = last year's material: own group on the course page, not counted
+  as unread (home, plan, morning push), no push per chapter (hub), one "📼 נוספו X פרקים" line in the morning.
+  Week lessons carry `number` = week N (backfilled by the daily site run).
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so

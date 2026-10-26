@@ -12,7 +12,7 @@ import base64
 import json
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from supabase import create_client
@@ -88,8 +88,9 @@ def daily():
         deadlines = (sb.table("deadlines").select("*").eq("user_id", uid)
                      .eq("done", False).gte("due_at", datetime.now(timezone.utc).isoformat())
                      .lte("due_at", horizon).order("due_at").execute().data)
+        # Chapters of last year's material from a course site are reference, not reading to catch up on.
         unread = (sb.table("lessons").select("id", count="exact").eq("user_id", uid)
-                  .eq("status", "ready").is_("read_at", "null").execute().count or 0)
+                  .eq("status", "ready").is_("read_at", "null").or_("source_url.is.null,source_url.not.like.*notion*").execute().count or 0)
 
         lines = entry_quiz_lines(sb, uid, (now.weekday() + 1) % 7, "היום")
         for d in deadlines:
@@ -106,6 +107,7 @@ def daily():
                 lines.append(f"📚 {when:%d/%m}: {name}{course}")
         if unread:
             lines.append(f"📖 {unread} פרקים מחכים לקריאה")
+        lines += week_lines(sb, uid, courses, now)
         try:
             due = reviews_due(sb, uid)
             if due:
@@ -141,6 +143,40 @@ def entry_quiz_lines(sb, uid, weekday, when):
                        else f"🎯 {when} מעבדה - לשאול בקבוצה מה שאלו בבוחן הכניסה של ניסוי {n} ולהוסיף לאפליקציה")
     except Exception as e:  # noqa: BLE001 - database without the entry-quiz columns yet
         print(f"entry quiz line failed: {e}")
+    return out
+
+
+SEMESTER_START = date.fromisoformat(os.environ.get("SEMESTER_START", "2026-10-18"))  # a Sunday; as web/src/lib/recordings.ts
+STUDY_LAG = 1  # he studies one week behind the semester on purpose (recordings take time to come out) - web/src/lib/week.ts
+
+
+def semester_week(d):
+    return (d - SEMESTER_START).days // 7 + 1
+
+
+def week_lines(sb, uid, courses, now):
+    """Recordings to upload, assignments that need material beyond his study week, new site chapters."""
+    out = []
+    try:
+        uploads = (sb.table("deadlines").select("id", count="exact").eq("user_id", uid).eq("done", False)
+                   .like("external_uid", "upload:%").execute().count or 0)
+        if uploads:
+            out.append(f"📹 {uploads} שיעורים מחכים שתעלה את ההקלטה")
+        study = semester_week(now.date()) - STUDY_LAG
+        soon = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
+        for d in (sb.table("deadlines").select("title, due_at, course_id").eq("user_id", uid).eq("done", False)
+                  .in_("kind", ["assignment", "lab_report"]).eq("check_due", False)
+                  .gte("due_at", datetime.now(timezone.utc).isoformat()).lte("due_at", soon).execute().data):
+            need = semester_week(local(d["due_at"]).date()) - 1
+            if need > study and d.get("course_id") in courses:
+                out.append(f"⚡ להגביר קצב: {courses[d['course_id']]} - \"{d['title']}\" ב-{local(d['due_at']):%d/%m} דורש עד שבוע {need} (אתה בשבוע {study})")
+        since = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+        site = (sb.table("lessons").select("id", count="exact").eq("user_id", uid).eq("status", "ready")
+                .like("source_url", "%notion%").gte("updated_at", since).execute().count or 0)
+        if site:
+            out.append(f"📼 נוספו {site} פרקים מאתרי הקורסים (חומר משנה שעברה)")
+    except Exception as e:  # noqa: BLE001
+        print(f"week lines failed: {e}")
     return out
 
 

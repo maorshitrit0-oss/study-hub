@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
 import { dueReviews } from "@/lib/review";
 import { attachOrphanTasks, syncPrepTasks } from "@/lib/prep";
+import { isSiteLesson, studyWeek, syncWeekTasks, todayWeek } from "@/lib/week";
 import DeadlineRow from "@/components/DeadlineRow";
 import { isWeak, pct, topicStats } from "@/lib/progress";
 import { isoFromNow, israelNow } from "@/lib/format";
@@ -14,13 +15,13 @@ import { DAYS, lessonName, type Course, type Deadline, type Lesson, type Slot } 
 
 export default async function Home() {
   const { sb } = await requireUser();
-  await Promise.all([syncPrepTasks(sb).catch(() => {}), attachOrphanTasks(sb).catch(() => {})]);
+  await Promise.all([syncPrepTasks(sb).catch(() => {}), attachOrphanTasks(sb).catch(() => {}), syncWeekTasks(sb).catch(() => {})]);
   const in14 = isoFromNow(14);
   const now = israelNow();
   const [{ data: courses }, { data: deadlines }, { data: lessons }, stats, { data: today }, missing] = await Promise.all([
     sb.from("courses").select("*").eq("archived", false).order("year").order("name"),
     sb.from("deadlines").select("*").eq("done", false).lte("due_at", in14).order("due_at").limit(8),
-    sb.from("lessons").select("id, course_id, kind, number, title, status, progress, read_at, created_at")
+    sb.from("lessons").select("id, course_id, kind, number, title, status, progress, read_at, created_at, source_url")
       .order("created_at", { ascending: false }).limit(30),
     topicStats(sb),
     sb.from("schedule_slots").select("*").eq("weekday", now.weekday).order("start_time"),
@@ -37,7 +38,8 @@ export default async function Home() {
   const todaySlots = ((today ?? []) as Slot[]).filter((s) => s.end_time.slice(0, 5) > now.time);
   const courseName = new Map((courses as Course[] | null)?.map((c) => [c.id, c.name]));
   const active = (lessons as Lesson[] | null)?.filter((l) => l.status !== "ready" && l.status !== "error") ?? [];
-  const unread = (lessons as Lesson[] | null)?.filter((l) => l.status === "ready" && !l.read_at).slice(0, 5) ?? [];
+  // Last year's material from a lecturer's site is reference only, not "waiting to be read".
+  const unread = (lessons as Lesson[] | null)?.filter((l) => l.status === "ready" && !l.read_at && !isSiteLesson(l)).slice(0, 5) ?? [];
   const weak = stats.filter(isWeak).sort((a, b) => (pct(a) ?? 0) - (pct(b) ?? 0)).slice(0, 5);
 
   return (
@@ -73,6 +75,11 @@ export default async function Home() {
           <span className="text-sm text-accent">{review.total} שאלות מחכות ←</span>
         </Link>
       )}
+
+      <Link href="/week" className="card flex justify-between items-center">
+        <span className="font-semibold">📅 השבוע שלי · שבוע לימוד {studyWeek()}</span>
+        <span className="text-sm text-muted">בסמסטר: שבוע {todayWeek()} ←</span>
+      </Link>
 
       <MissingRecordings items={missing} courseName={courseName} />
 
