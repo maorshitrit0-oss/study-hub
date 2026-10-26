@@ -67,6 +67,15 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Partner: Shirel (failed the lab in summer, repeating it with him). Her and her former partner Yehonatan's summary
   reports are uploaded as `prev_report`; the lab chat compares them with the current booklet and lists exact changes,
   marking measurements to replace with their own.
+- Entry quiz (בוחן כניסה, 2026-10-26): every experiment opens with a 3-question MCQ on the prelab + Multisim
+  simulations. His group is Tuesday; Sunday/Monday groups tell what they were asked. `/courses/[id]/entry`
+  (lab courses: "🎯 בוחן כניסה" card; lab lesson page links to it): paste/screenshot a report -> `processReport`
+  (`web/src/lib/entryQuiz.ts`, one Gemini call with the experiment's chapter + booklet) -> the reported questions
+  rebuilt as MCQs (`questions.source = 'entry_reported'`) + 6-8 similar ones (`entry_practice`), `experiment` = N,
+  doubtful answers prefixed "⚠️ לא בטוח". "📂 לקרוא בחני כניסה מהקבצים" reads course files named בוחן/כניסה once each
+  (`entry_reports.material_id`). Mock quiz = 3 questions, reported first. Chapter re-saves keep these questions
+  (hub deletes only `source is null`); the chapter quiz hides them. Push: "🎯" line the evening before and the
+  morning of a lab slot day (`notify.entry_quiz_lines`). Needs `supabase/entry_quiz.sql`.
 - Course files can be uploaded as ZIPs; they are unpacked on the device and typed by file name (`web/src/lib/zip.ts`).
 
 ## Gemini quota (important)

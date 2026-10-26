@@ -27,8 +27,9 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
   // for a chapter not restructured yet.
   const media = lesson.status === "ready" ? await loadMedia(sb, { lessonId: id }) : null;
   const examples = lesson.chapter_md?.includes("🏠") ? undefined : media?.find((m) => m.kind === "examples");
-  const { data: questions } = await sb.from("questions")
-    .select("id, lesson_id, topic, question, options, correct, explanation, difficulty").eq("lesson_id", id).order("created_at");
+  // "*" also brings `source` where it exists: lab entry-quiz questions live on their own page, not in the chapter quiz.
+  const { data: all } = await sb.from("questions").select("*").eq("lesson_id", id).order("created_at");
+  const questions = (all ?? []).filter((q) => !q.source);
 
   return (
     <article className="space-y-5">
@@ -85,7 +86,10 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
               <button className="btn-ghost w-full">✓ סיימתי לקרוא</button>
             )}
           </form>
-          <Quiz questions={questions ?? []} title="שאלון סיכום" />
+          <Quiz questions={questions} title="שאלון סיכום" />
+          {lesson.kind === "lab" && lesson.number && (
+            <Link href={`/courses/${lesson.course_id}/entry?n=${lesson.number}`} className="btn-ghost w-full mt-3">🎯 תרגול לבוחן הכניסה של ניסוי {lesson.number}</Link>
+          )}
         </section>
       )}
 

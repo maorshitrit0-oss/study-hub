@@ -91,7 +91,7 @@ def daily():
         unread = (sb.table("lessons").select("id", count="exact").eq("user_id", uid)
                   .eq("status", "ready").is_("read_at", "null").execute().count or 0)
 
-        lines = []
+        lines = entry_quiz_lines(sb, uid, (now.weekday() + 1) % 7, "היום")
         for d in deadlines:
             if d.get("check_due"):
                 continue
@@ -121,6 +121,27 @@ def daily():
         title = "בוקר טוב! מה על הפרק היום" if any("היום" in l or "מחר" in l for l in lines) else "בוקר טוב"
         n = send(sb, uid, title, "\n".join(lines[:6]), "/")
         print(f"{uid}: {len(lines)} items -> {n} devices")
+
+
+def entry_quiz_lines(sb, uid, weekday, when):
+    """Lab day: practise the entry quiz of the coming experiment (questions classmates reported)."""
+    out = []
+    try:
+        labs = {s["course_id"] for s in sb.table("schedule_slots").select("course_id").eq("user_id", uid)
+                .eq("weekday", weekday).eq("kind", "lab").execute().data if s.get("course_id")}
+        for cid in labs:
+            nums = [l["number"] for l in sb.table("lessons").select("number").eq("course_id", cid).eq("kind", "lab")
+                    .not_.is_("number", "null").execute().data]
+            if not nums:
+                continue
+            n = max(nums)
+            count = (sb.table("questions").select("id", count="exact").eq("course_id", cid).eq("experiment", n)
+                     .not_.is_("source", "null").execute().count or 0)
+            out.append(f"🎯 {when} מעבדה - בוחן כניסה ניסוי {n}: {count} שאלות לתרגול" if count
+                       else f"🎯 {when} מעבדה - לשאול בקבוצה מה שאלו בבוחן הכניסה של ניסוי {n} ולהוסיף לאפליקציה")
+    except Exception as e:  # noqa: BLE001 - database without the entry-quiz columns yet
+        print(f"entry quiz line failed: {e}")
+    return out
 
 
 REVIEW_DAYS = [1, 3, 7, 14, 30, 60]  # same schedule as web/src/lib/review.ts
@@ -181,6 +202,7 @@ def evening():
         # Tomorrow: classes, then what is due (learning a lesson before class, assignments, exams).
         tmr = (sb.table("schedule_slots").select("course_id, kind, title, start_time").eq("user_id", uid)
                .eq("weekday", (weekday + 1) % 7).order("start_time").execute().data)
+        lines += entry_quiz_lines(sb, uid, (weekday + 1) % 7, "מחר")
         if tmr:
             lines.append("🗓️ מחר: " + ", ".join(f"{s['start_time'][:5]} {courses.get(s['course_id'], s['title'])}" for s in tmr))
         due = (sb.table("deadlines").select("title, kind, course_id").eq("user_id", uid).eq("done", False)

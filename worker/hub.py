@@ -190,7 +190,11 @@ def load_slides(job, work):
 
 def save_chapter(job, ch, by):
     ch = author.validate(ch)
-    job.sb.table("questions").delete().eq("lesson_id", job.lesson["id"]).execute()
+    # Only the chapter's own quiz is replaced: lab entry-quiz questions (source set) stay.
+    try:
+        job.sb.table("questions").delete().eq("lesson_id", job.lesson["id"]).is_("source", "null").execute()
+    except Exception:  # noqa: BLE001 - database without the source column yet (supabase/entry_quiz.sql)
+        job.sb.table("questions").delete().eq("lesson_id", job.lesson["id"]).execute()
     if ch["questions"]:
         job.sb.table("questions").insert([{
             "user_id": job.lesson["user_id"], "course_id": job.course["id"], "lesson_id": job.lesson["id"],

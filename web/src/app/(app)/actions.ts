@@ -10,6 +10,7 @@ import { extractSyllabus, looksLikeSyllabus } from "@/lib/syllabus";
 import { DRIVE_PREFIX, cleanTitle, driveId, materialBlob } from "@/lib/files";
 import { fillGlossary } from "@/lib/glossary";
 import { closePrepTask } from "@/lib/prep";
+import { importEntryFiles, processReport } from "@/lib/entryQuiz";
 import { friendlyGeminiError } from "@/lib/gemini";
 
 const str = (f: FormData, k: string) => {
@@ -155,6 +156,47 @@ export async function answerQuestion(questionId: string, chosen: number) {
     is_correct: chosen === q.correct,
   });
   return q.correct as number;
+}
+
+// ---------- lab entry quizzes ----------
+
+/** What classmates said they were asked -> questions for the experiment's entry-quiz practice (one Gemini call). */
+export async function addEntryReport(courseId: string, experiment: number, text: string, imagePaths: string[]): Promise<string> {
+  const { sb } = await requireUser();
+  if (!(experiment > 0)) return "צריך לבחור מספר ניסוי";
+  if (!text.trim() && !imagePaths.length) return "צריך לכתוב את השאלות או לצרף צילום";
+  const { data, error } = await sb.from("entry_reports")
+    .insert({ course_id: courseId, experiment, text: text.trim() || null, image_paths: imagePaths }).select("id").single();
+  if (error) return error.message.includes("entry_reports") ? "צריך קודם להריץ את supabase/entry_quiz.sql" : error.message;
+  try {
+    const msg = await processReport(sb, data.id);
+    revalidatePath(`/courses/${courseId}/entry`);
+    return msg;
+  } catch (e) {
+    return `הדיווח נשמר, אבל יצירת השאלות נכשלה: ${(e as Error).message}. אפשר ללחוץ "לנסות שוב" ברשימת הדיווחים.`;
+  }
+}
+
+export async function retryEntryReport(id: string, courseId: string): Promise<string> {
+  const { sb } = await requireUser();
+  try {
+    const msg = await processReport(sb, id);
+    revalidatePath(`/courses/${courseId}/entry`);
+    return msg;
+  } catch (e) {
+    return (e as Error).message;
+  }
+}
+
+export async function readEntryFiles(courseId: string): Promise<string> {
+  const { sb } = await requireUser();
+  try {
+    const msg = await importEntryFiles(sb, courseId);
+    revalidatePath(`/courses/${courseId}/entry`);
+    return msg;
+  } catch (e) {
+    return (e as Error).message;
+  }
 }
 
 // ---------- materials ----------
