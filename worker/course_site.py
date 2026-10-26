@@ -306,7 +306,7 @@ SITE_NOTE = "<!-- course-site -->"  # first line of a lesson made from the site 
 FILE_REF = re.compile(r"^\[\[file:(.+?)\]\]$", re.M)
 VIDEO = re.compile(r"\.(mov|mp4|m4v|avi|mkv|webm)$", re.I)
 EXAM = re.compile(r"מועד|מבחן|בחינה|exam", re.I)
-WEEK = re.compile(r"^#{1,3} .*?(week|שבוע|lesson|הרצאה)\s*\d+", re.I)
+WEEK = re.compile(r"^#{1,3} .*?(week|שבוע)\s*\d+", re.I)
 HEAD = re.compile(r"^(#{1,3}) ")
 
 
@@ -323,10 +323,11 @@ def sections(lines):
     """Week sections of a page: [(title, start, end)] by its "Week N" / "שבוע N" headings (code blocks skipped)."""
     heads, fence = [], False
     for i, line in enumerate(lines):
-        if line.lstrip().startswith("```"):
-            fence = not fence
-        elif not fence and HEAD.match(line):
+        if not fence and HEAD.match(line):
             heads.append((i, len(HEAD.match(line)[1]), line))
+        # A code block is one entry holding both of its fences.
+        if sum(x.lstrip().startswith("```") for x in line.split("\n")) % 2:
+            fence = not fence
     out = []
     for k, (i, level, line) in enumerate(heads):
         if not WEEK.match(line):
@@ -415,7 +416,9 @@ def cmd_import(course_id, url):
                     used_pages.add(sub)
                     body += ["", f"## {by_page[sub][0]}", *by_page[sub][1]]
                     docs += doc_paths(sub, 0, len(by_page[sub][1]))
-            planned.append((f"{n.page_url(pid)}#w{start}", name, body, docs, ""))
+            # A week the lecturer has not filled yet is left for a later day's run (lessons are never updated).
+            if docs or sum(len(x) for x in body) >= 600:
+                planned.append((f"{n.page_url(pid)}#w{start}", name, body, docs, ""))
             used_pages.add(pid)
     for pid, title, lines in pages:
         if pid in used_pages or sum(len(x) for x in lines) < 1500:
