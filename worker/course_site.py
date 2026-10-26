@@ -282,13 +282,21 @@ def cmd_show(url):
 
 
 def show(url):
-    if re.search(r"youtube\.com/|youtu\.be/", url):  # can the runner download this recording?
-        import yt_dlp
-        from media import youtube_cookies
-        with yt_dlp.YoutubeDL({"quiet": True, "skip_download": True, **youtube_cookies()}) as ydl:
-            info = ydl.extract_info(url, download=False)
-        fmts = [f"{f.get('format_id')}:{f.get('height')}" for f in info.get("formats", []) if f.get("height")]
-        print(f"YOUTUBE OK: {info.get('title')} | {info.get('duration')}s | heights {sorted({f.split(':')[1] for f in fmts})}")
+    if re.search(r"youtube\.com/|youtu\.be/", url):  # can Gemini read this YouTube video directly (official API)?
+        from google import genai
+        from google.genai import types
+        client = genai.Client(api_key=os.environ["GEMINI_API_KEY"].split(",")[0].strip())
+        for model in ["gemini-2.5-flash", "gemini-flash-latest"]:
+            try:
+                r = client.models.generate_content(model=model, contents=types.Content(parts=[
+                    types.Part(file_data=types.FileData(file_uri=url),
+                               video_metadata=types.VideoMetadata(start_offset="600s", end_offset="660s")),
+                    types.Part(text="תמלל מילה במילה את מה שנאמר בקטע הזה (עברית), ותאר בשורה מה רואים על המסך.")]),
+                    config=types.GenerateContentConfig(media_resolution="MEDIA_RESOLUTION_LOW"))
+                print(f"{model}: OK tokens={r.usage_metadata.prompt_token_count}\n{(r.text or '')[:1500]}")
+                break
+            except Exception as e:  # noqa: BLE001
+                print(f"{model}: FAILED {str(e)[:300]}")
         return
     n = Notion(url)
     pages, files, links = walk(n)
