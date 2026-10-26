@@ -231,7 +231,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   YouTube refuses GitHub runners ("Sign in to confirm you're not a bot"). Fix: repo secret `YT_COOKIES` (cookies.txt
   of a signed-in YouTube session, ideally a spare Google account) -> `media.youtube_cookies()`. Until it exists,
   course_site skips YouTube recordings (they are created the morning after the secret is added). Test with site.yml
-  url=<youtube link>, course_id empty -> "YOUTUBE OK ..." / "FAILED ..." annotation.
+  url=<youtube link>, course_id empty -> "YOUTUBE OK ..." / "FAILED ..." annotation. Do NOT try to get around
+  YouTube's bot check (other player clients, proxies) - refused as circumvention. Main path: he adds the class Zoom.
+- site.yml also runs every 30 minutes on a schedule -> `course_site.py check` (re-read every imported site, no
+  chapter writing): new files/weeks are added, a new non-YouTube recording starts process.yml at once, and a new
+  YouTube recording sends ONE push "הרצאה N עלתה לאתר - העלה את קישור הזום" (`notified` list in site_recordings.json).
 
 ## Study week and weekly tasks (2026-10-26)
 - He studies ONE WEEK BEHIND the semester on purpose (recordings take days to come out; he does not watch live).

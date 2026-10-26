@@ -4,6 +4,7 @@
   python course_site.py import <course_id> <url>    files -> course files (materials), all text -> one course file,
                                              each week / extra page (review questions) / past exam -> a lesson + chapter
   python course_site.py pending                     daily: re-read imported sites and continue writing chapters
+  python course_site.py check                       every half hour: re-read only (new recordings start at once)
 
 Notion renders in the browser, so its public pages are read through the same JSON endpoints its own page uses
 (loadPageChunk / syncRecordValues / getSignedFileUrls). Nothing is deleted; running it again adds only what is new.
@@ -361,7 +362,7 @@ def kind_of(name):
     return "slides" if re.search(r"\.(pdf|pptx?)$", name, re.I) else "other"
 
 
-def cmd_import(course_id, url):
+def cmd_import(course_id, url, write=True):
     sb, n = db(), Notion(url)
     course = sb.table("courses").select("*").eq("id", course_id).single().execute().data
     uid, store = course["user_id"], sb.storage.from_(BUCKET)
@@ -463,7 +464,8 @@ def cmd_import(course_id, url):
                                     "status": "queued", "progress": "מאתר הקורס - ממתין לכתיבת הפרק"}).execute()
     print(f"::notice title=Site::{len(paths)} files, {len(new)} new lessons ({len(planned) - len(new)} already there)", flush=True)
     recordings(sb, course, pages, links)
-    process_pending(sb)
+    if write:
+        process_pending(sb)
 
 
 # ---------- recordings: this semester's lectures, each compared with the same lecture of last year ----------
@@ -504,9 +506,11 @@ def recordings(sb, course, pages, links):
     current = [u for _, u in years[cur]]
     previous = [u for t, u in years.get(str(int(cur) - 1), []) if not NOT_LECTURE.search(t or "")]
     store = sb.storage.from_(BUCKET)
-    store.upload(f"{course['user_id']}/materials/{course['id']}/{PAIRS}",
-                 json.dumps({"current": current, "previous": previous}).encode(),
-                 {"content-type": "application/json", "upsert": "true"})
+    pairs_path = f"{course['user_id']}/materials/{course['id']}/{PAIRS}"
+    try:
+        notified = set(json.loads(store.download(pairs_path).decode()).get("notified") or [])
+    except Exception:  # noqa: BLE001 - first run
+        notified = set()
     lessons = sb.table("lessons").select("number, source_url").eq("course_id", course["id"]).eq("kind", "lecture").execute().data
     have_url, have_num = {l["source_url"] for l in lessons}, {l["number"] for l in lessons}
     youtube_blocked = not os.environ.get("YT_COOKIES")
@@ -514,12 +518,20 @@ def recordings(sb, course, pages, links):
         if url in have_url or i in have_num:  # he may have uploaded this lecture's Zoom himself
             continue
         if youtube_blocked and re.search(r"youtube\.com/|youtu\.be/", url):
-            print(f"::notice title=Site::lecture {i} is on YouTube - waiting for the YT_COOKIES secret", flush=True)
+            # YouTube refuses GitHub's servers: tell him once, so he adds the class Zoom link himself.
+            if url not in notified:
+                import notify
+                notify.send(sb, course["user_id"], f"🎓 {course['name']}: הרצאה {i} עלתה לאתר",
+                            "המרצה העלה אותה ליוטיוב, שחוסם את השרת. העלה את קישור הזום של ההרצאה והיא תתומלל ותסוכם.",
+                            f"/courses/{course['id']}")
+                notified.add(url)
             continue
         row = sb.table("lessons").insert({"user_id": course["user_id"], "course_id": course["id"], "kind": "lecture",
                                           "number": i, "source_url": url, "status": "queued",
                                           "progress": "הקלטה מאתר הקורס - בתור"}).execute().data[0]
         print(f"::notice title=Site::lecture {i} from the site's recordings -> {dispatch(row['id'])}", flush=True)
+    store.upload(pairs_path, json.dumps({"current": current, "previous": previous, "notified": sorted(notified)}).encode(),
+                 {"content-type": "application/json", "upsert": "true"})
 
 
 def dispatch(lesson_id, author="gemini"):
@@ -580,17 +592,19 @@ def process_pending(sb, budget=100 * 60):
                 return
 
 
-def cmd_pending():
-    """Daily: re-read each imported site (new weeks, new files) and continue writing chapters."""
+def cmd_pending(write=True):
+    """Daily: re-read each imported site (new weeks, new files) and continue writing chapters.
+    check (every half hour): the same re-read only - new recordings start processing right away."""
     sb = db()
     for m in sb.table("materials").select("course_id, storage_path").like("storage_path", f"%/{SITE_MD}").execute().data:
         try:
             first = sb.storage.from_(BUCKET).download(m["storage_path"]).decode("utf-8").split("\n", 1)[0]
             if first.startswith("מקור: "):
-                cmd_import(m["course_id"], first[len("מקור: "):].strip())
+                cmd_import(m["course_id"], first[len("מקור: "):].strip(), write)
         except Exception as e:  # noqa: BLE001
             print(f"::warning title=Site {m['course_id']}::{str(e)[:300]}", flush=True)
-    process_pending(sb)
+    if write:
+        process_pending(sb)
 
 
 if __name__ == "__main__":
@@ -600,5 +614,7 @@ if __name__ == "__main__":
         cmd_import(sys.argv[2], sys.argv[3])
     elif len(sys.argv) >= 2 and sys.argv[1] == "pending":
         cmd_pending()
+    elif len(sys.argv) >= 2 and sys.argv[1] == "check":
+        cmd_pending(write=False)
     else:
         print(__doc__)

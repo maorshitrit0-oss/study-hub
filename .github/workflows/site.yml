@@ -7,6 +7,9 @@ permissions:
   actions: write   # course_site.py starts process.yml for recordings (this year's and last year's)
 
 on:
+  # Every half hour: has a lecturer added a recording or files? (re-read only; chapters are written by the daily run)
+  schedule:
+    - cron: "*/30 * * * *"
   workflow_dispatch:
     inputs:
       url:
@@ -17,7 +20,7 @@ on:
         default: ""
 
 concurrency:
-  group: site
+  group: site-${{ github.event_name }}
 
 jobs:
   site:
@@ -40,10 +43,12 @@ jobs:
           YT_COOKIES: ${{ secrets.YT_COOKIES }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          EVENT: ${{ github.event_name }}
           SITE_URL: ${{ inputs.url }}
           COURSE_ID: ${{ inputs.course_id }}
         # Inputs arrive as environment variables (never pasted into the script).
         run: |
+          if [ "$EVENT" = "schedule" ]; then python course_site.py check; exit 0; fi
           if [ -z "$SITE_URL" ]; then python course_site.py pending; exit 0; fi
           [[ "$SITE_URL" =~ ^https:// ]] || { echo "::error::bad url"; exit 1; }
           if [ -z "$COURSE_ID" ]; then python course_site.py show "$SITE_URL"; exit 0; fi
