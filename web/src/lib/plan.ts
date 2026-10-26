@@ -113,7 +113,8 @@ export async function weeklyPlan(sb: SupabaseClient): Promise<CoursePlan[]> {
     // Meetings held per the timetable; uploaded lessons win when there are more (e.g. no timetable entered).
     const held = (kind: string) => Math.max(
       meetings.held.filter((m) => m.slot.course_id === course.id && m.slot.kind === kind).length,
-      ls.filter((l) => l.kind === kind).length);
+      // Two Zoom parts of one lecture share its number: count meetings, not uploads.
+      new Set(ls.filter((l) => l.kind === kind).map((l) => l.number ?? l.id)).size);
     const lectures = held("lecture");
     const practices = held("practice");
     const total = cs.reduce((a, s) => a + s.total, 0);

@@ -153,7 +153,9 @@ def cmd_process(lesson_id, do_author=True):
             job.update(slide_count=len(slides))
             segments = media.transcribe_local(audio, log=job.log)
             transcript = transcript_with_markers(segments, slides)
-            if not job.lesson.get("title"):
+            # He may have named it ("חלק 1") while it was downloading: never overwrite his title.
+            fresh = job.sb.table("lessons").select("title").eq("id", job.lesson["id"]).single().execute().data
+            if not fresh.get("title"):
                 job.update(title=title)
         if not reuse:
             job.update(transcript=transcript, status="transcribed", progress="התמלול מוכן")

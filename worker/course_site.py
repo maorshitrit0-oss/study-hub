@@ -277,6 +277,13 @@ def cmd_show(url):
 
 
 def show(url):
+    if re.search(r"youtube\.com/|youtu\.be/", url):  # can the runner download this recording?
+        import yt_dlp
+        with yt_dlp.YoutubeDL({"quiet": True, "skip_download": True}) as ydl:
+            info = ydl.extract_info(url, download=False)
+        fmts = [f"{f.get('format_id')}:{f.get('height')}" for f in info.get("formats", []) if f.get("height")]
+        print(f"YOUTUBE OK: {info.get('title')} | {info.get('duration')}s | heights {sorted({f.split(':')[1] for f in fmts})}")
+        return
     n = Notion(url)
     pages, files, links = walk(n)
     print(f"\n===== {len(files)} FILES =====")
