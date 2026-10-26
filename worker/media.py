@@ -83,7 +83,7 @@ def is_youtube(url):
     return bool(re.search(r"youtube\.com/|youtu\.be/", url or ""))
 
 
-YT_SEGMENT = 30 * 60   # ~165k tokens per half hour at low media resolution (measured: ~92 tokens/s)
+YT_SEGMENT = 15 * 60   # ~83k tokens per quarter hour at low media resolution (measured: ~92 tokens/s) - under the free per-minute limit
 YT_MAX = 5 * 60 * 60   # a lecture never runs past 5 hours
 YT_PROMPT = """זה קטע מהקלטת הרצאה באוניברסיטה (הנדסת חשמל), מ-{start} עד {end} בסרטון.
 תמלל מילה במילה, בעברית, את כל מה שנאמר בקטע - בלי לסכם ובלי לדלג. כתוב פסקאות, כל אחת מתחילה בזמן [hh:mm:ss] מתחילת הסרטון.
@@ -104,6 +104,9 @@ def transcribe_youtube(url, log=print):
     import author
     from google.genai import types
 
+    vid = re.search(r"(?:v=|youtu\.be/|shorts/|live/)([\w-]{11})", url)
+    if vid:  # the form Gemini documents
+        url = f"https://www.youtube.com/watch?v={vid[1]}"
     parts = []
     for start in range(0, YT_MAX, YT_SEGMENT):
         end = start + YT_SEGMENT
@@ -122,7 +125,10 @@ def transcribe_youtube(url, log=print):
             if parts and author._is(e, "INVALID_ARGUMENT", "offset", "400"):
                 break
             raise
-        if not text or text.strip().upper() == "END" or (parts and len(text) < 40):
+        if not parts and (not text or text.strip().upper() == "END" or len(text) < 40):
+            # The start of a lecture is never empty: a model that cannot watch video (a lighter fallback) said so.
+            raise RuntimeError("RESOURCE_EXHAUSTED: no model with video left today (quota) - " + text[:80])
+        if not text or text.strip().upper() == "END" or len(text) < 40:
             break
         parts.append(text)
         time.sleep(20)  # tokens-per-minute limit of the free tier

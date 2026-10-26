@@ -238,7 +238,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   ~92 tokens/s -> ~165k tokens per call, 20 s pause), verbatim transcript with timestamps + "===== על המסך =====" blocks
   (slides/code written out, since there are no board snapshots). Stops at "END"/past the end. Free tier allows
   8 h of YouTube per day. A 3 h lecture = ~6 calls + authoring; with last year's lecture for comparison ~15 calls.
-  gemini-2.5-flash is gone for new keys (404 -> next model); gemini-flash-latest worked.
+  gemini-2.5-flash is gone for new keys (404 -> next model); gemini-flash-latest worked; gemini-3.8-flash added.
+  Segments are 15 min (~83k tokens). URLs normalised to youtube.com/watch?v=ID. If the first segment comes back empty
+  / "END" (a lite fallback that cannot watch video, after the daily quota ran out) it is a quota failure. Lessons that
+  failed on the quota are re-dispatched by the half-hourly `check` run between 10:30-11:00 Israel (after the reset).
 - site.yml also runs every 30 minutes on a schedule -> `course_site.py check` (re-read every imported site, no
   chapter writing): new files/weeks are added and a new recording (YouTube included) starts process.yml at once.
 

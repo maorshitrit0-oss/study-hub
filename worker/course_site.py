@@ -578,6 +578,7 @@ def process_pending(sb, budget=100 * 60):
     # Failed only for the quota -> retry; any other failure waits for him to press "retry".
     rows = [r for r in rows if (r.get("transcript") or "").startswith(SITE_NOTE)
             and (r["status"] == "queued" or "מכסה" in (r.get("error") or ""))]
+
     for r in rows:
         if time.time() - start > budget:
             print("::notice title=Site::time budget used - the rest continue tomorrow", flush=True)
@@ -588,6 +589,15 @@ def process_pending(sb, budget=100 * 60):
             if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota", "המכסה"):
                 print("::notice title=Site::daily Gemini quota used up - the rest continue tomorrow", flush=True)
                 return
+
+
+def retry_after_quota(sb):
+    """Lessons (e.g. a YouTube lecture) that failed only on Gemini's daily quota: start each again in its own job.
+    Run once a day just after the quota resets (~10:00 Israel), so a retry cannot fail on the same empty quota."""
+    for r in (sb.table("lessons").select("id, error, transcript").eq("status", "error").like("error", "%מכסה%")
+              .execute().data):
+        if not (r.get("transcript") or "").startswith(SITE_NOTE):
+            print(f"::notice title=Retry::{r['id']} after the quota reset -> {dispatch(r['id'])}", flush=True)
 
 
 def cmd_pending(write=True):
@@ -603,6 +613,12 @@ def cmd_pending(write=True):
             print(f"::warning title=Site {m['course_id']}::{str(e)[:300]}", flush=True)
     if write:
         process_pending(sb)
+    else:
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        now = datetime.now(ZoneInfo("Asia/Jerusalem"))
+        if now.hour == 10 and 30 <= now.minute < 60:  # one half-hourly run a day, after the reset
+            retry_after_quota(sb)
 
 
 if __name__ == "__main__":

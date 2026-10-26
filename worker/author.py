@@ -155,7 +155,7 @@ def build_prompt(course, lesson, transcript, slide_count, previous_topics):
 
 # Free-tier quotas are per project AND per model (e.g. 20 requests/day on the newest Flash): fall back
 # across models, and across keys when GEMINI_API_KEY holds several comma-separated keys.
-WORK_MODELS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-flash-lite-latest", "gemini-2.5-flash-lite"]
+WORK_MODELS = ["gemini-flash-latest", "gemini-3.8-flash", "gemini-2.5-flash", "gemini-flash-lite-latest", "gemini-2.5-flash-lite"]
 
 
 def _list(v):
