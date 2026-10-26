@@ -1,13 +1,13 @@
 """Import a lecturer's course website (a public Notion page, with its sub-pages and attached files) into a course.
 
   python course_site.py show <url>                  print what would be imported (pages as Markdown, files, links)
-  python course_site.py import <course_id> <url>    files -> course files (materials), all text -> "אתר הקורס.md",
-                                             review questions / past exams / sub-pages -> lessons that get a chapter
+  python course_site.py import <course_id> <url>    files -> course files (materials), all text -> one course file,
+                                             each week / extra page (review questions) / past exam -> a lesson + chapter
+  python course_site.py pending                     daily: re-read imported sites and continue writing chapters
 
 Notion renders in the browser, so its public pages are read through the same JSON endpoints its own page uses
 (loadPageChunk / syncRecordValues / getSignedFileUrls). Nothing is deleted; running it again adds only what is new.
 """
-import json
 import os
 import re
 import sys
@@ -160,7 +160,8 @@ FILE_TYPES = {"file", "pdf", "image", "video", "audio"}
 
 
 def walk(n, max_pages=MAX_PAGES):
-    """All pages from the root: [(page_id, title, markdown)], files [{...}], links [{...}]."""
+    """All pages from the root: [(page_id, title, lines)], files [{page_id, line, name, block, src}], links [...].
+    A file's `line` is its index in its page's lines, so files can be grouped by the section they appear in."""
     pages, files, links, seen = [], [], [], set()
     queue = [(n.root, 0)]
     while queue and len(pages) < max_pages:
@@ -176,7 +177,7 @@ def walk(n, max_pages=MAX_PAGES):
         title = n.title(pid)
         lines = []
 
-        def rich(r):
+        def rich(r, bid=None):
             out = []
             for seg in r or []:
                 text, ann = seg[0], (seg[1] if len(seg) > 1 else [])
@@ -185,11 +186,17 @@ def walk(n, max_pages=MAX_PAGES):
                         href = unwrap(a[1])
                         if href.startswith("/"):
                             href = n.base + href
-                        links.append({"page": title, "text": text, "url": href})
-                        text = f"[{text}]({href})"
+                        if href.startswith("attachment:") and bid:  # a file attached as a link (e.g. a .pptx)
+                            files.append({"page_id": pid, "page": title, "line": len(lines), "name": text.strip() or
+                                          href.rsplit(":", 1)[-1], "block": bid, "src": href})
+                            text = f"📎 {text}"
+                        else:
+                            links.append({"page_id": pid, "page": title, "line": len(lines), "text": text, "url": href})
+                            text = f"[{text}]({href})"
                     elif a[0] == "p" and len(a) > 1:
                         sub = dashed(a[1])
                         queue.append((sub, depth + 1))
+                        links.append({"page_id": pid, "page": title, "line": len(lines), "text": "", "url": n.page_url(sub), "sub": sub})
                         text = f"[{n.title(sub) if sub in n.blocks else 'דף'}]({n.page_url(sub)})"
                     elif a[0] == "e" and len(a) > 1:
                         text = f"${a[1]}$"
@@ -205,10 +212,11 @@ def walk(n, max_pages=MAX_PAGES):
             if not b:
                 return
             t, props, pad = b.get("type"), b.get("properties", {}), "  " * indent
-            text = rich(props.get("title"))
+            text = rich(props.get("title"), bid)
             children = b.get("content", [])
             if t == "page" and bid != pid:
                 queue.append((bid, depth + 1))
+                links.append({"page_id": pid, "page": title, "line": len(lines), "text": "", "url": n.page_url(bid), "sub": bid})
                 lines.append(f"{pad}- 📄 [{plain(props.get('title')) or 'דף'}]({n.page_url(bid)})")
                 return
             if t in FILE_TYPES or t in ("bookmark", "embed"):
@@ -216,12 +224,12 @@ def walk(n, max_pages=MAX_PAGES):
                 src = unwrap(src or b.get("format", {}).get("display_source", ""))
                 name = plain(props.get("title")) or unquote(Path(urlparse(src).path).name) or t
                 if t in ("bookmark", "embed") or (t == "video" and not src.startswith("attachment:")):
-                    links.append({"page": title, "text": name, "url": src})
+                    links.append({"page_id": pid, "page": title, "line": len(lines), "text": name, "url": src})
                     lines.append(f"{pad}- 🔗 [{name}]({src})")
                 elif t == "image":
                     lines.append(f"{pad}- 🖼️ {name}")
                 else:
-                    files.append({"page": title, "name": name, "block": bid, "src": src})
+                    files.append({"page_id": pid, "page": title, "line": len(lines), "name": name, "block": bid, "src": src})
                     lines.append(f"{pad}- 📎 {name}")
                 return
             prefix = {"header": "# ", "sub_header": "## ", "sub_sub_header": "### ", "bulleted_list": "- ",
@@ -235,7 +243,7 @@ def walk(n, max_pages=MAX_PAGES):
                 lines.append("---")
             elif t == "table_row":
                 cols = n.blocks.get(b.get("parent_id"), {}).get("format", {}).get("table_block_column_order") or list(props)
-                lines.append(pad + "| " + " | ".join(rich(props.get(c)) for c in cols) + " |")
+                lines.append(pad + "| " + " | ".join(rich(props.get(c), bid) for c in cols) + " |")
             elif text:
                 lines.append(f"{pad}{prefix}{text}")
             nested = indent + 1 if t in ("bulleted_list", "numbered_list", "toggle", "to_do") else indent
@@ -244,7 +252,7 @@ def walk(n, max_pages=MAX_PAGES):
 
         for c in n.blocks.get(pid, {}).get("content", []):
             block(c, 0)
-        pages.append((pid, title, "\n".join(lines)))
+        pages.append((pid, title, lines))
     return pages, files, links
 
 
@@ -271,24 +279,209 @@ def cmd_show(url):
 def show(url):
     n = Notion(url)
     pages, files, links = walk(n)
-    for pid, title, md in pages:
-        print(f"\n===== PAGE {title} ({pid}) =====\n{md}")
     print(f"\n===== {len(files)} FILES =====")
     for f in files:
         u = n.file_url(f["block"], f["src"])
         try:
-            r = n.http.head(u, allow_redirects=True, timeout=30)
-            info = f"{r.status_code} {r.headers.get('content-type', '')} {r.headers.get('content-length', '?')}"
+            with n.http.get(u, stream=True, timeout=30) as r:  # signed links answer GET only
+                info = f"{r.status_code} {r.headers.get('content-type', '')} {r.headers.get('content-length', '?')}"
         except requests.RequestException as e:
             info = f"ERR {e}"
         print(f"- [{f['page']}] {f['name']} :: {info}")
     print(f"\n===== {len(links)} LINKS =====")
-    for l in links:
+    for l in [l for l in links if not l.get("sub")]:
         print(f"- [{l['page']}] {l['text']} -> {l['url']}")
+    print("\n===== WEEK SECTIONS =====")
+    for pid, title, lines in pages:
+        for name, start, end in sections(lines):
+            print(f"- [{title}] {name} ({end - start} lines)")
+    for pid, title, lines in pages:
+        print(f"\n===== PAGE {title} ({pid}) =====\n" + "\n".join(lines))
+
+
+# ---------- import ----------
+
+SITE_MD = "site.md"            # <user>/materials/<course>/site.md - all the site's text; its first line holds the URL
+SITE_NOTE = "<!-- course-site -->"  # first line of a lesson made from the site (its transcript is the site's text)
+FILE_REF = re.compile(r"^\[\[file:(.+?)\]\]$", re.M)
+VIDEO = re.compile(r"\.(mov|mp4|m4v|avi|mkv|webm)$", re.I)
+EXAM = re.compile(r"מועד|מבחן|בחינה|exam", re.I)
+WEEK = re.compile(r"^#{1,3} .*?(week|שבוע|lesson|הרצאה)\s*\d+", re.I)
+HEAD = re.compile(r"^(#{1,3}) ")
+
+
+def db():
+    from supabase import create_client
+    return create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
+
+
+def safe_name(name):
+    return re.sub(r"[^\w.\-]+", "_", name, flags=re.A).strip("_")[-80:] or "file"
+
+
+def sections(lines):
+    """Week sections of a page: [(title, start, end)] by its "Week N" / "שבוע N" headings (code blocks skipped)."""
+    heads, fence = [], False
+    for i, line in enumerate(lines):
+        if line.lstrip().startswith("```"):
+            fence = not fence
+        elif not fence and HEAD.match(line):
+            heads.append((i, len(HEAD.match(line)[1]), line))
+    out = []
+    for k, (i, level, line) in enumerate(heads):
+        if not WEEK.match(line):
+            continue
+        end = next((j for j, lv, _ in heads[k + 1:] if lv <= level), len(lines))
+        out.append((re.sub(r"[#*]", "", line).strip(), i, end))
+    return out
+
+
+def kind_of(name):
+    if EXAM.search(name):
+        return "past_exam"
+    return "slides" if re.search(r"\.(pdf|pptx?)$", name, re.I) else "other"
+
+
+def cmd_import(course_id, url):
+    sb, n = db(), Notion(url)
+    course = sb.table("courses").select("*").eq("id", course_id).single().execute().data
+    uid, store = course["user_id"], sb.storage.from_(BUCKET)
+    pages, files, links = walk(n)
+    print(f"::notice title=Site::{len(pages)} pages, {len(files)} files, {len(links)} links", flush=True)
+
+    # 1. Files -> course files (each once; videos and files over 50 MB stay as links in the site text).
+    have = {m["storage_path"] for m in sb.table("materials").select("storage_path").eq("course_id", course_id).execute().data}
+    paths, skipped, names = {}, [], set()
+    for f in files:
+        key = (f["name"], f["page_id"])
+        if VIDEO.search(f["name"]) or f["name"] in names:
+            if f["name"] not in names:
+                skipped.append(f"{f['name']} (סרטון - נשאר באתר)")
+            continue
+        names.add(f["name"])
+        path = f"{uid}/materials/{course_id}/site_{f['block'][:8]}_{safe_name(f['name'])}"
+        if path in have:
+            paths[key] = path
+            continue
+        try:
+            r = n.http.get(n.file_url(f["block"], f["src"]), timeout=300)
+            r.raise_for_status()
+            data = r.content
+            if len(data) > MAX_FILE:
+                skipped.append(f"{f['name']} (גדול מ-50MB)")
+                continue
+            mime = r.headers.get("content-type", "application/octet-stream").split(";")[0]
+            if f["name"].lower().endswith(".pdf"):
+                mime = "application/pdf"
+            store.upload(path, data, {"content-type": mime, "upsert": "true"})
+            sb.table("materials").insert({"user_id": uid, "course_id": course_id, "title": f["name"], "kind": kind_of(f["name"]),
+                                          "storage_path": path, "mime": mime, "size_bytes": len(data)}).execute()
+            paths[key] = path
+            print(f"file: {f['name']} ({len(data) // 1024} KB)", flush=True)
+        except Exception as e:  # noqa: BLE001 - one file must not stop the import
+            skipped.append(f"{f['name']} ({str(e)[:80]})")
+            print(f"::warning title=Site file::{f['name']}: {str(e)[:300]}", flush=True)
+
+    # 2. All the text -> one course file (also what the course chat reads with "עם קבצי הקורס").
+    md = [f"מקור: {url}", f"# אתר הקורס - {course['name']}"]
+    for pid, title, lines in pages:
+        md += ["", f"# 📄 {title}", f"({n.page_url(pid)})", "", *lines]
+    if skipped:
+        md += ["", "## קבצים שלא הועתקו", *[f"- {x}" for x in skipped]]
+    site_path = f"{uid}/materials/{course_id}/{SITE_MD}"
+    store.upload(site_path, "\n".join(md).encode("utf-8"), {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+    if site_path not in have:
+        sb.table("materials").insert({"user_id": uid, "course_id": course_id, "title": "🌐 אתר הקורס (כל הטקסט)",
+                                      "kind": "other", "storage_path": site_path, "mime": "text/plain"}).execute()
+
+    # 3. Lessons: a chapter + quiz per week, per extra page (review questions...), per past exam.
+    by_page = {pid: (title, lines) for pid, title, lines in pages}
+    subs_in = {}  # sub-page -> (parent page, line)
+    for l in links:
+        if l.get("sub") and l["sub"] in by_page and l["sub"] not in subs_in:
+            subs_in[l["sub"]] = (l["page_id"], l["line"])
+    planned, used_pages = [], {n.root}
+
+    def doc_paths(pid, start, end):
+        return [paths[(f["name"], f["page_id"])] for f in files
+                if f["page_id"] == pid and start <= f["line"] < end and (f["name"], f["page_id"]) in paths
+                and f["name"].lower().endswith(".pdf") and not EXAM.search(f["name"])]
+
+    for pid, title, lines in pages:
+        for name, start, end in sections(lines):
+            body, docs = lines[start:end], doc_paths(pid, start, end)
+            for sub, (parent, line) in subs_in.items():  # a week's own sub-page ("Week 9 Material") belongs to it
+                if parent == pid and start <= line < end:
+                    used_pages.add(sub)
+                    body += ["", f"## {by_page[sub][0]}", *by_page[sub][1]]
+                    docs += doc_paths(sub, 0, len(by_page[sub][1]))
+            planned.append((f"{n.page_url(pid)}#w{start}", name, body, docs, ""))
+            used_pages.add(pid)
+    for pid, title, lines in pages:
+        if pid in used_pages or sum(len(x) for x in lines) < 1500:
+            continue
+        hint = "זה דף שאלות חזרה של המרצה: פתור כל שאלה בפירוט, כדוגמה פתורה, עם קוד מלא ומוסבר." if EXAM.search(title) or "שאלות" in title else ""
+        planned.append((n.page_url(pid), title, lines, doc_paths(pid, 0, len(lines)), hint))
+    for f in files:
+        key = (f["name"], f["page_id"])
+        if EXAM.search(f["name"]) and f["name"].lower().endswith(".pdf") and key in paths:
+            planned.append((f"{n.page_url(f['page_id'])}#{f['block']}", f"מבחן קודם: {Path(f['name']).stem}", [],
+                            [paths[key]], "זה מבחן קודם של המרצה (קובץ מצורף): פתור כל שאלה במלואה, שלב אחרי שלב, כדוגמה פתורה."))
+
+    existing = {l["source_url"] for l in sb.table("lessons").select("source_url").eq("course_id", course_id).execute().data}
+    new = [p for p in planned if p[0] not in existing]
+    for src, title, body, docs, hint in new:
+        transcript = "\n".join([SITE_NOTE, f"מתוך אתר הקורס של המרצה ({src}).", hint,
+                                *[f"[[file:{d}]]" for d in dict.fromkeys(docs)], "", *body]).strip()
+        sb.table("lessons").insert({"user_id": uid, "course_id": course_id, "kind": "web", "title": title[:200],
+                                    "source_url": src, "transcript": transcript, "status": "queued",
+                                    "progress": "מאתר הקורס - ממתין לכתיבת הפרק"}).execute()
+    print(f"::notice title=Site::{len(paths)} files, {len(new)} new lessons ({len(planned) - len(new)} already there)", flush=True)
+    process_pending(sb)
+
+
+def process_pending(sb, budget=100 * 60):
+    """Writes the chapters of lessons made from course sites, oldest first; stops when Gemini's daily quota is
+    used up - the next morning's run continues (worker/course_site.py pending, from the daily cron)."""
+    import author
+    import hub
+    start = time.time()
+    rows = (sb.table("lessons").select("id, transcript, status, error").eq("kind", "web").in_("status", ["queued", "error"])
+            .order("created_at").execute().data)
+    # Failed only for the quota -> retry; any other failure waits for him to press "retry".
+    rows = [r for r in rows if (r.get("transcript") or "").startswith(SITE_NOTE)
+            and (r["status"] == "queued" or "מכסה" in (r.get("error") or ""))]
+    for r in rows:
+        if time.time() - start > budget:
+            print("::notice title=Site::time budget used - the rest continue tomorrow", flush=True)
+            return
+        try:
+            hub.cmd_process(r["id"])
+        except Exception as e:  # noqa: BLE001
+            if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota", "המכסה"):
+                print("::notice title=Site::daily Gemini quota used up - the rest continue tomorrow", flush=True)
+                return
+
+
+def cmd_pending():
+    """Daily: re-read each imported site (new weeks, new files) and continue writing chapters."""
+    sb = db()
+    for m in sb.table("materials").select("course_id, storage_path").like("storage_path", f"%/{SITE_MD}").execute().data:
+        try:
+            first = sb.storage.from_(BUCKET).download(m["storage_path"]).decode("utf-8").split("\n", 1)[0]
+            if first.startswith("מקור: "):
+                cmd_import(m["course_id"], first[len("מקור: "):].strip())
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Site {m['course_id']}::{str(e)[:300]}", flush=True)
+    process_pending(sb)
 
 
 if __name__ == "__main__":
     if len(sys.argv) >= 3 and sys.argv[1] == "show":
         cmd_show(sys.argv[2])
+    elif len(sys.argv) >= 4 and sys.argv[1] == "import":
+        cmd_import(sys.argv[2], sys.argv[3])
+    elif len(sys.argv) >= 2 and sys.argv[1] == "pending":
+        cmd_pending()
     else:
         print(__doc__)

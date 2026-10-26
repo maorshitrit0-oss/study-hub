@@ -19,6 +19,7 @@ from pathlib import Path
 from supabase import create_client
 
 import author
+import course_site
 import media
 import notify
 
@@ -106,9 +107,16 @@ def cmd_process(lesson_id, do_author=True):
         if reuse:
             # A retry after the chapter step failed: reuse the transcript and snapshots instead of
             # downloading and transcribing the recording again (that takes ~0.4x its length).
-            job.log("משתמש בתמלול שכבר נעשה...")
+            # Lessons made from a course site (course_site.py) start here: their text is the transcript.
             transcript = job.lesson["transcript"]
+            from_site = transcript.startswith(course_site.SITE_NOTE)
+            job.log("קורא את החומר מאתר הקורס..." if from_site else "משתמש בתמלול שכבר נעשה...")
             slides = load_slides(job, work)
+            for path in course_site.FILE_REF.findall(transcript):
+                data = job.sb.storage.from_(BUCKET).download(path)
+                if sum(len(d) for d, _ in docs) + len(data) < 18 * 1024 * 1024:  # Gemini's inline request limit
+                    docs.append((data, "application/pdf"))
+            transcript = course_site.FILE_REF.sub("", transcript).replace(course_site.SITE_NOTE, "").strip()
         elif job.lesson.get("source_path"):  # a file uploaded in the app (lab booklet, prelab...)
             job.log("מוריד את הקובץ...")
             source = work / Path(job.lesson["source_path"]).name
