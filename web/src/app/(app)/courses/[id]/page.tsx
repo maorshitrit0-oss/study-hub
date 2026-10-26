@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/supabase/server";
 import AddLesson from "@/components/AddLesson";
 import DeadlineRow from "@/components/DeadlineRow";
 import Materials from "@/components/Materials";
+import SiteImport from "@/components/SiteImport";
 import Studio from "@/components/Studio";
 import { loadMedia } from "@/lib/studio";
 import CourseFacts, { type Fact } from "@/components/CourseFacts";
@@ -239,6 +240,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
       <section className="card">
         <h2 className="font-semibold mb-3">קבצים (מצגות, מבחני עבר, סילבוס)</h2>
         <Materials courseId={id} userId={userId} items={materials ?? []} isLab={c.kind === "lab"} />
+        <SiteImport courseId={id} imported={(materials ?? []).some((m) => m.storage_path.endsWith("/site.md"))} />
       </section>
 
       <section className="card">

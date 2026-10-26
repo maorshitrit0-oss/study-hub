@@ -24,12 +24,15 @@ export async function GET() {
   }
   const res = await gh("/dispatches", { method: "POST", body: JSON.stringify({ ref: "main", inputs: { mode: slot } }) });
   // Mornings also continue rewriting old chapters into his structure (stops on quota, resumes the next day).
+  // Also re-read imported course sites (new weeks/files) and continue their chapters (course_site.py pending).
   if (slot === "daily") {
-    await fetch(`https://api.github.com/repos/${repo}/actions/workflows/enrich.yml/dispatches`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
-      body: JSON.stringify({ ref: "main", inputs: { lesson_id: "" } }),
-    }).catch(() => null);
+    const start = (workflow: string, inputs: Record<string, string>) =>
+      fetch(`https://api.github.com/repos/${repo}/actions/workflows/${workflow}/dispatches`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
+        body: JSON.stringify({ ref: "main", inputs }),
+      }).catch(() => null);
+    await Promise.all([start("enrich.yml", { lesson_id: "" }), start("site.yml", { url: "", course_id: "" })]);
   }
   return Response.json({ sent: res.ok, slot, status: res.status }, { status: res.ok ? 200 : 502 });
 }

@@ -56,7 +56,9 @@ def download(url, work_dir, log=print):
 
     # Prefer the screen-share stream: slides/board in full resolution, no camera overlay.
     log("מוריד את ההקלטה (זה יכול לקחת כמה דקות)...")
-    video, info = fetch("share/view_with_share/view/b", "video")
+    # YouTube's single-file formats stop at 360p (unreadable board): take video + audio and merge them.
+    youtube = re.search(r"youtube\.com/|youtu\.be/", url)
+    video, info = fetch("bv*[height<=1080]+ba/b" if youtube else "share/view_with_share/view/b", "video")
     audio = video
     if not has_audio(video):
         log("לזרם שיתוף המסך אין אודיו - מוריד גם את זרם המצלמה בשביל הקול...")

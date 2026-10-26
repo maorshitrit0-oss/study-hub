@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
-import { dispatchLesson, dispatchNotify, dispatchStudio } from "@/lib/github";
+import { dispatchLesson, dispatchNotify, dispatchSite, dispatchStudio } from "@/lib/github";
 import { parseIcs } from "@/lib/ics";
 import { isoFromNow, israelLocalToIso } from "@/lib/format";
 import { extractSyllabus, looksLikeSyllabus } from "@/lib/syllabus";
@@ -81,8 +81,8 @@ export async function addLesson(courseId: string, _: AddLessonState, f: FormData
   const sourcePath = str(f, "source_path");
   const kind = str(f, "kind") ?? "lecture";
   if (!url && !sourcePath) return { error: "צריך קישור או קובץ" };
-  if (url && kind !== "web" && !/zoom\.us\/|drive\.google\.com|docs\.google\.com/.test(url)) {
-    return { error: "צריך קישור להקלטת זום או לקובץ בגוגל דרייב" };
+  if (url && kind !== "web" && !/zoom\.us\/|drive\.google\.com|docs\.google\.com|youtube\.com\/watch|youtu\.be\//.test(url)) {
+    return { error: "צריך קישור להקלטת זום, ליוטיוב או לקובץ בגוגל דרייב" };
   }
   if (url && /drive\.google\.com\/drive\/folders/.test(url)) {
     return { error: "זה קישור לתיקייה - צריך קישור לקובץ עצמו (פותחים את הקובץ ← שיתוף ← העתקת קישור)" };
@@ -158,6 +158,19 @@ export async function answerQuestion(questionId: string, chosen: number) {
 }
 
 // ---------- materials ----------
+
+/** Imports the lecturer's course site: its files, and a chapter + quiz per week (runs on GitHub, ~10-30 minutes). */
+export async function importSite(courseId: string, url: string): Promise<string> {
+  const { sb } = await requireUser();
+  const link = url.trim();
+  if (!/^https:\/\/[\w.-]*notion\.(site|so|com)\/\S*[0-9a-f]{32}/i.test(link.replace(/-/g, ""))) {
+    return "כרגע אפשר לייבא רק אתר Notion ציבורי (כתובת שמסתיימת במזהה ארוך של הדף)";
+  }
+  const { data } = await sb.from("courses").select("id").eq("id", courseId).single();
+  if (!data) return "הקורס לא נמצא";
+  const err = await dispatchSite(courseId, link);
+  return err ?? "✓ הייבוא התחיל. בעוד כ-10 דקות הקבצים יופיעו כאן, והפרקים ייכתבו אחד אחרי השני (מה שלא ייכנס היום ימשיך מחר בבוקר).";
+}
 
 export async function addMaterial(courseId: string, m: { title: string; kind: string; path: string; mime: string; size: number }) {
   const { sb } = await requireUser();

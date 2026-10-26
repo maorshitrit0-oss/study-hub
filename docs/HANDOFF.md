@@ -181,6 +181,24 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   lines (applies to old chapters too). Quiz text renders math via `Rich` (Chapter.tsx). Prompts ask for short inline math.
 - Chat errors never show an empty "⚠️": `friendlyGeminiError` falls back to a message; an empty stream says so.
 
+## Course sites (2026-10-26)
+- Micro (Dr. Yozevitch) lives on a public Notion site: https://roi.notion.site/Micro-Controllers-Course-for-EE-CE-2027-327e0f376194801c9db4e823a019b259
+  (weekly topics with slides/code, review-questions page, 2 past exams, 2026 recordings on YouTube/Zoom, TA page).
+- `worker/course_site.py` + `.github/workflows/site.yml`: reads a public Notion page through Notion's own JSON
+  endpoints (loadPageChunk; syncRecordValues is refused on notion.site, so closed toggles load as their own chunks;
+  files via getSignedFileUrls). `show <url>` = dry run; `import <course> <url>` = files -> materials
+  (`<user>/materials/<course>/site_<block>_<name>`, videos and >50 MB skipped), all text -> `site.md` material (first
+  line "מקור: <url>"), and a `web` lesson per "Week N" section (+ its sub-page, its PDFs attached via `[[file:path]]`
+  lines in the transcript), per long extra page (review questions -> solved), per past-exam PDF -> solved.
+  Lessons start with `<!-- course-site -->` in `transcript`; `hub.cmd_process` reads them through the reuse path.
+- Course page: "🌐 ייבוא אתר הקורס" (`SiteImport.tsx`, `importSite` action). Daily cron dispatches `site.yml` with no
+  inputs = `pending`: re-import every site (new weeks/files only, dedupe by source_url / storage_path) and continue
+  chapters until the Gemini quota ends.
+- This container cannot reach notion.site and cannot download Actions logs: test with `site.yml` (course_id empty)
+  and read the output from the job's annotations (`check-runs/<job>/annotations`).
+- addLesson also accepts YouTube links; media.download merges best video+audio for YouTube (GitHub runners may be
+  refused by YouTube's bot check - not verified yet).
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so

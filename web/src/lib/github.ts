@@ -25,3 +25,6 @@ export const dispatchNotify = (mode: "setup" | "test", userId = "") =>
 
 /** Podcast / video / everyday examples from lesson chapters (worker/studio.py). */
 export const dispatchStudio = (mediaId: string) => dispatch("media.yml", { media_id: mediaId });
+
+/** A lecturer's course site (public Notion page) -> course files + a chapter per week (worker/course_site.py). */
+export const dispatchSite = (courseId: string, url: string) => dispatch("site.yml", { course_id: courseId, url });
