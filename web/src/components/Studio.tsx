@@ -1,5 +1,6 @@
 "use client";
 
+import Fold from "./Fold";
 import { useState, useTransition } from "react";
 import { createMedia, deleteMedia } from "@/app/(app)/actions";
 import type { Media } from "@/lib/studio";
@@ -34,8 +35,8 @@ export default function Studio({ courseId, lessons, items, canVideo = false }: {
   });
 
   return (
-    <section className="card space-y-3">
-      <h2 className="font-semibold">🎧 סטודיו</h2>
+    <Fold id="studio" title="🎧 סטודיו (פודקאסט, סרטון, דוגמאות)" hint={items.length ? `${items.length}` : undefined}>
+     <div className="space-y-3">
       {busy && <AutoRefresh seconds={15} />}
       {!single && (
         <div className="space-y-1 max-h-48 overflow-y-auto text-sm">
@@ -84,6 +85,7 @@ export default function Studio({ courseId, lessons, items, canVideo = false }: {
           ))}
         </ul>
       )}
-    </section>
+     </div>
+    </Fold>
   );
 }

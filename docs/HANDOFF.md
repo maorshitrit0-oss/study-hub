@@ -258,6 +258,12 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   as unread (home, plan, morning push), no push per chapter (hub), one "📼 נוספו X פרקים" line in the morning.
   Week lessons carry `number` = week N (backfilled by the daily site run).
 
+## Collapsed sections (2026-10-27)
+- He wants course pages short: every section of a course page (state vs class, syllabus, course info, add lesson,
+  course material, where I stand, studio, files, tasks) and of a self-study track is a `Fold`
+  (`web/src/components/Fold.tsx`): one line with title + short summary, closed by default, open/closed remembered per
+  section id in localStorage (same section in every course), opens itself on `#<id>` (e.g. `#add`).
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so

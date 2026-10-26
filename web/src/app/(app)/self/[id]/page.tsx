@@ -3,6 +3,7 @@ import TrackTabs from "@/components/TrackTabs";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import SkillRow from "@/components/SkillRow";
+import Fold from "@/components/Fold";
 import { addSkill } from "@/app/(app)/actions";
 import { FREEZES, weekDates, type Skill } from "@/lib/skills";
 import { ensureSyllabus, parseModules } from "@/lib/vlsiSyllabus";
@@ -57,8 +58,7 @@ export default async function Track({ params }: PageProps<"/self/[id]">) {
         </div>
       </div>
 
-      <section className="card">
-        <h2 className="font-semibold mb-1">מפת הלימוד</h2>
+      <Fold id="self-map" title="מפת הלימוד" hint={`סגורים ${topics.filter((t) => t.level >= 3).length}/${topics.length}`}>
         <p className="text-xs text-muted mb-2">נושא נחשב סגור רק אחרי שתי שאלות חדשות שפתרת והסברת בעצמך. המורה מעדכן את הרמה אחרי כל מפגש, ואפשר גם לשנות ידנית.</p>
         {groups.map((g) => {
           const done = g.items.filter((t) => t.level >= 3).length;
@@ -74,16 +74,15 @@ export default async function Track({ params }: PageProps<"/self/[id]">) {
             </details>
           );
         })}
-      </section>
+      </Fold>
 
-      <section className="card">
-        <h2 className="font-semibold mb-2">הפרויקט</h2>
+      <Fold id="self-project" title="הפרויקט" hint={`${list.filter((s) => s.kind === "project").length} שלבים`}>
         <ul className="divide-y divide-line">{list.filter((s) => s.kind === "project").map((s) => <SkillRow key={s.id} s={s} />)}</ul>
         {(deadlines ?? []).length > 0 && <ul className="mt-2">{((deadlines ?? []) as Deadline[]).map((d) => <DeadlineRow key={d.id} d={d} />)}</ul>}
-      </section>
+      </Fold>
 
-      <form action={addSkill.bind(null, id)} className="card space-y-2">
-        <h2 className="font-semibold">הוספת נושא או שלב</h2>
+      <Fold id="self-add" title="➕ הוספת נושא או שלב">
+      <form action={addSkill.bind(null, id)} className="space-y-2">
         <div className="flex gap-2">
           <input className="input flex-1" name="title" required placeholder="למשל: מכונת מצבים (FSM)" />
           <select className="input w-28" name="kind" defaultValue="topic">
@@ -93,13 +92,13 @@ export default async function Track({ params }: PageProps<"/self/[id]">) {
         </div>
         <button className="btn w-full">הוספה</button>
       </form>
+      </Fold>
 
       {course.notes && (
-        <details className="card">
-          <summary className="cursor-pointer font-semibold">ההקשר והכללים שהמורה עובד לפיהם</summary>
-          <p className="text-sm whitespace-pre-line mt-3">{course.notes}</p>
+        <Fold id="self-rules" title="ההקשר והכללים שהמורה עובד לפיהם">
+          <p className="text-sm whitespace-pre-line">{course.notes}</p>
           <Link href={`/courses/${id}/edit`} className="text-sm text-accent mt-2 inline-block">עריכה</Link>
-        </details>
+        </Fold>
       )}
     </div>
   );

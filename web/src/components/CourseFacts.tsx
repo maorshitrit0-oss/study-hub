@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Fold from "./Fold";
 import { addFact, deleteFact } from "@/app/(app)/actions";
 
 export type Fact = { id: string; category: string; text: string; lesson_id: string | null };
@@ -30,8 +31,7 @@ export default function CourseFacts({ courseId, facts, reservist, lessonNames }:
     .filter(([, list]) => list.length);
 
   return (
-    <section className="card">
-      <h2 className="font-semibold mb-1">מידע על הקורס</h2>
+    <Fold id="facts" title="מידע על הקורס" hint={`${facts.length}`}>
       <p className="text-xs text-muted mb-3">
         {groups.length ? "נאסף אוטומטית מהסילבוס ומההרצאות, ומה שהוספת בעצמך." : "יתמלא מהסילבוס ומההרצאות. אפשר גם להוסיף בעצמך למטה."}
       </p>
@@ -68,6 +68,6 @@ export default function CourseFacts({ courseId, facts, reservist, lessonNames }:
           <button className="btn w-full">הוספה</button>
         </form>
       </details>
-    </section>
+    </Fold>
   );
 }

@@ -5,6 +5,7 @@ import AddLesson from "@/components/AddLesson";
 import DeadlineRow from "@/components/DeadlineRow";
 import Materials from "@/components/Materials";
 import SiteImport from "@/components/SiteImport";
+import Fold from "@/components/Fold";
 import { isSiteLesson } from "@/lib/week";
 import Studio from "@/components/Studio";
 import { loadMedia } from "@/lib/studio";
@@ -113,11 +114,8 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
       </div>
 
       {plan && (
-        <section className="card">
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="font-semibold">המצב שלי מול הכיתה</h2>
-            <span className={`text-xs rounded-full px-2 py-0.5 ${LEVEL_TONE[plan.level]}`}>{LEVEL_LABEL[plan.level]}</span>
-          </div>
+        <Fold id="plan" title="המצב שלי מול הכיתה"
+          hint={<span className={`text-xs rounded-full px-2 py-0.5 ${LEVEL_TONE[plan.level]}`}>{LEVEL_LABEL[plan.level]}</span>}>
           {/* Lectures and practices are counted separately in every course; a lab counts experiments. */}
           <div className={`grid ${c.kind === "lab" ? "grid-cols-3" : "grid-cols-4"} gap-2 text-center`}>
             {(c.kind === "lab"
@@ -140,15 +138,12 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
               {plan.reminders.map((r) => <li key={r.text}><Link href={r.href}>📌 {r.text}</Link></li>)}
             </ul>
           )}
-        </section>
+        </Fold>
       )}
 
       {(c.syllabus_topics?.length ?? 0) > 0 && plan && (
-        <details className="card">
-          <summary className="cursor-pointer font-semibold">
-            הסילבוס · נלמדו בכיתה {plan.covered.size} מתוך {c.syllabus_topics!.length} נושאים
-          </summary>
-          <ol className="mt-3 space-y-1.5 text-sm">
+        <Fold id="syllabus" title="הסילבוס" hint={`נלמדו ${plan.covered.size}/${c.syllabus_topics!.length}`}>
+          <ol className="space-y-1.5 text-sm">
             {c.syllabus_topics!.map((t, i) => {
               const n = i + 1;
               const taught = plan.covered.has(n);
@@ -162,22 +157,17 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
             })}
           </ol>
           <p className="text-xs text-muted mt-3">✅ נלמד וקראתי · 🟡 נלמד בכיתה ועוד לא קראתי · ⚪ עוד לא נלמד</p>
-        </details>
+        </Fold>
       )}
 
       <CourseFacts courseId={id} facts={(facts ?? []) as Fact[]} reservist={!!settings?.is_reservist}
         lessonNames={new Map(ls.map((l) => [l.id, lessonName(l)]))} />
 
-      <section className="card scroll-mt-4" id="add">
-        <h2 className="font-semibold mb-3">{c.kind === "lab" ? "הוספת ניסוי" : "הוספת הרצאה / תרגול"}</h2>
+      <Fold id="add" title={c.kind === "lab" ? "➕ הוספת ניסוי" : "➕ הוספת הרצאה / תרגול"}>
         <AddLesson courseId={id} userId={userId} nextByKind={nextByKind} isLab={c.kind === "lab"} />
-      </section>
+      </Fold>
 
-      <section className="card">
-        <div className="flex justify-between items-baseline mb-1">
-          <h2 className="font-semibold">חומר הקורס</h2>
-          {readyCount > 0 && <span className="text-sm text-muted">קראת {readCount} מתוך {readyCount}</span>}
-        </div>
+      <Fold id="lessons" title="חומר הקורס" hint={readyCount > 0 ? `קראת ${readCount}/${readyCount}` : `${ls.length}`}>
         {readyCount > 0 && (
           <div className="h-1.5 rounded-full bg-bg overflow-hidden mb-2">
             <div className="h-full bg-good" style={{ width: `${(100 * readCount) / readyCount}%` }} />
@@ -206,11 +196,10 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
         ) : (
           <p className="text-sm text-muted py-2">עוד אין חומר. הדבק קישור לזום למעלה.</p>
         )}
-      </section>
+      </Fold>
 
       {stats.length > 0 && (
-        <section className="card">
-          <h2 className="font-semibold mb-1">איפה אני עומד</h2>
+        <Fold id="stats" title="איפה אני עומד" hint={stats.some(isWeak) ? `${stats.filter(isWeak).length} לחזק` : `${stats.length} נושאים`}>
           <p className="text-xs text-muted mb-3">
             לפי התשובה האחרונה לכל שאלה. {answered ? "" : "פתור שאלונים כדי לראות את המצב."}
           </p>
@@ -233,7 +222,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
               );
             })}
           </ul>
-        </section>
+        </Fold>
       )}
 
       {readyCount > 0 && (
@@ -241,23 +230,19 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
           lessons={ls.filter((l) => l.status === "ready").map((l) => ({ id: l.id, label: `${lessonName(l)}${l.title && l.kind !== "web" ? ` · ${l.title}` : ""}` }))} />
       )}
 
-      <section className="card">
-        <h2 className="font-semibold mb-3">קבצים (מצגות, מבחני עבר, סילבוס)</h2>
+      <Fold id="files" title="קבצים (מצגות, מבחני עבר, סילבוס)" hint={`${(materials ?? []).length}`}>
         <Materials courseId={id} userId={userId} items={materials ?? []} isLab={c.kind === "lab"} />
         <SiteImport courseId={id} imported={(materials ?? []).some((m) => m.storage_path.endsWith("/site.md"))} />
-      </section>
+      </Fold>
 
-      <section className="card">
-        <div className="flex justify-between items-center mb-1">
-          <h2 className="font-semibold">משימות ומבחנים</h2>
-          <Link href={`/deadlines?course=${id}`} className="text-sm text-accent">+ הוספה</Link>
-        </div>
+      <Fold id="tasks" title="משימות ומבחנים" hint={`${upcoming.length} פתוחות`}>
+        <Link href={`/deadlines?course=${id}`} className="text-sm text-accent">+ הוספה</Link>
         {upcoming.length ? (
           <ul className="divide-y divide-line">{upcoming.map((d) => <DeadlineRow key={d.id} d={d} />)}</ul>
         ) : (
           <p className="text-sm text-muted py-2">אין משימות פתוחות.</p>
         )}
-      </section>
+      </Fold>
     </div>
   );
 }
