@@ -223,7 +223,10 @@ def _generate_json(parts, system, schema, thinking="MEDIUM"):
 
     def call(client, model):
         def run(with_thinking, with_schema):
-            cfg = dict(system_instruction=system, response_mime_type="application/json", max_output_tokens=65536)
+            # A call that never answers must not hold the whole job (micro lecture 1, 27/10: stuck past 2.5 hours);
+            # a timeout counts as "busy" in _with_gemini: retried, then the next model.
+            cfg = dict(system_instruction=system, response_mime_type="application/json", max_output_tokens=65536,
+                       http_options=types.HttpOptions(timeout=12 * 60 * 1000))
             contents = list(parts)
             if with_schema:
                 cfg["response_json_schema"] = schema
@@ -339,7 +342,8 @@ def _search_check(claims):
         resp = _with_gemini(lambda client, model: client.models.generate_content(
             model=model,
             contents=f"בדוק בחיפוש כל טענה, וענה לכל אחת בשורה אחת בעברית בפורמט: <הטענה> - נכון / לא נכון / לא חד-משמעי: <הסבר קצר>\n{listing}",
-            config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())]),
+            config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())],
+                                               http_options=types.HttpOptions(timeout=5 * 60 * 1000)),
         ))
         lines = [l.strip(" -*") for l in (resp.text or "").splitlines() if l.strip()]
         return lines or claims

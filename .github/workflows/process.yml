@@ -23,7 +23,7 @@ concurrency:
 jobs:
   process:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 240   # a YouTube lecture + waiting for last year's + writing; public repo: minutes are free
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

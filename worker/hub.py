@@ -104,6 +104,11 @@ def cmd_process(lesson_id, do_author=True):
         job.update(status="processing", error=None)
         slides, docs = [], []
         url = job.lesson.get("source_url") or ""
+        if do_author:
+            try:  # start last year's lecture N now, so it transcribes in parallel with this one
+                course_site.previous_lecture(job.sb, job.lesson)
+            except Exception as e:  # noqa: BLE001
+                print(f"previous year lookup failed: {e}", flush=True)
         source = None
         reuse = bool(job.lesson.get("transcript")) and do_author
         if reuse:
@@ -195,7 +200,7 @@ COMPARE = """=== ההרצאה המקבילה משנה שעברה (אותו מר�
 
 
 def with_previous_year(job, transcript):
-    """Lecture N of a course with an imported site: add last year's lecture N (waits up to 30 min for its transcript)."""
+    """Lecture N of a course with an imported site: add last year's lecture N (waits up to an hour for its transcript)."""
     try:
         prev = course_site.previous_lecture(job.sb, job.lesson)
     except Exception as e:  # noqa: BLE001 - the comparison is a bonus, never a reason to fail
@@ -203,7 +208,7 @@ def with_previous_year(job, transcript):
         return transcript
     if not prev:
         return transcript
-    for _ in range(30):
+    for _ in range(60):  # it started with this job; a 3-hour Zoom takes ~65 minutes
         row = job.sb.table("lessons").select("transcript, status").eq("id", prev["id"]).single().execute().data
         if row.get("transcript") or row["status"] == "error":
             break

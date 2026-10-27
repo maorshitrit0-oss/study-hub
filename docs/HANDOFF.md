@@ -242,6 +242,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   Segments are 15 min (~83k tokens). URLs normalised to youtube.com/watch?v=ID. If the first segment comes back empty
   / "END" (a lite fallback that cannot watch video, after the daily quota ran out) it is a quota failure. Lessons that
   failed on the quota are re-dispatched by the half-hourly `check` run between 10:30-11:00 Israel (after the reset).
+- 27/10: micro lecture 1 (YouTube) transcribed in ~30 min, then a chapter call hung until the 2.5 h job limit. Now:
+  every structured Gemini call has a 12-min HTTP timeout (5 min for the search check) -> retry / next model; last
+  year's lecture is started at the START of the job (parallel) and waited for up to 60 min; process.yml 240 min.
 - site.yml also runs every 30 minutes on a schedule -> `course_site.py check` (re-read every imported site, no
   chapter writing): new files/weeks are added and a new recording (YouTube included) starts process.yml at once.
 
