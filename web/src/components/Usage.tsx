@@ -19,6 +19,15 @@ export function UsagePanel({ snap }: { snap: Snapshot | null }) {
       {ROWS.map((r) => {
         const used = snap.used[r.key];
         if (used == null) return null;
+        // Limit 0 = no cap (a public GitHub repository runs Actions minutes for free).
+        if (!snap.limits[r.key]) {
+          return (
+            <div key={r.key} className="flex justify-between text-sm">
+              <span>{r.label}</span>
+              <span className="text-muted">{r.fmt(used)} · ללא הגבלה (מאגר ציבורי)</span>
+            </div>
+          );
+        }
         const share = Math.min(1, used / snap.limits[r.key]);
         return (
           <div key={r.key}>

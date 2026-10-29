@@ -49,6 +49,16 @@ def actions_minutes():
     return round(total_ms / 60000)
 
 
+def repo_is_public():
+    """Public repositories run standard GitHub Actions for free, without a minutes cap."""
+    repo, token = os.environ.get("GITHUB_REPOSITORY"), os.environ.get("GITHUB_TOKEN")
+    if not repo or not token:
+        return False
+    req = urllib.request.Request(f"https://api.github.com/repos/{repo}",
+                                 headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"})
+    return not json.load(urllib.request.urlopen(req)).get("private", True)
+
+
 def main():
     sb = notify.db()
     stats = sb.rpc("usage_stats").execute().data or {}
@@ -61,9 +71,15 @@ def main():
     quota_errors = (sb.table("lessons").select("id", count="exact").eq("status", "error").gte("updated_at", since)
                     .or_("error.ilike.%429%,error.ilike.%RESOURCE_EXHAUSTED%,error.ilike.%quota%").execute().count or 0)
 
+    limits = dict(LIMITS)
+    try:
+        if repo_is_public():
+            limits["actions_min"] = 0  # 0 = no cap (the app shows "ללא הגבלה")
+    except Exception as e:  # noqa: BLE001
+        print(f"repo visibility unavailable: {e}")
     alerts = []
-    for key, limit in LIMITS.items():
-        if used.get(key) is None:
+    for key, limit in limits.items():
+        if used.get(key) is None or not limit:
             continue
         share = used[key] / limit
         if share >= WARN:
@@ -74,7 +90,7 @@ def main():
         title, fix = ADVICE["gemini"]
         alerts.append({"key": "gemini", "level": "warning", "text": f"{title} נגמרה ({quota_errors} הרצאות נכשלו)", "fix": fix})
 
-    data = {"used": used, "limits": LIMITS, "alerts": alerts, "checked_at": datetime.now(timezone.utc).isoformat()}
+    data = {"used": used, "limits": limits, "alerts": alerts, "checked_at": datetime.now(timezone.utc).isoformat()}
     sb.table("usage_snapshot").upsert({"id": 1, "data": data, "updated_at": data["checked_at"]}).execute()
     print(json.dumps(data, ensure_ascii=False))
 

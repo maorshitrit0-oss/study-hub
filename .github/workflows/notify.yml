@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "daily / evening / setup / test"
+        description: "daily / evening / setup / test / usage (only the free-plan check, no push)"
         default: daily
       user_id:
         description: "for test: who gets the notification"
@@ -35,11 +35,12 @@ jobs:
           MODE: ${{ inputs.mode || 'daily' }}
           TARGET_USER: ${{ inputs.user_id }}
         run: |
-          case "$MODE" in daily|evening|setup|test) ;; *) echo "::error::bad mode"; exit 1;; esac
+          case "$MODE" in daily|evening|setup|test|usage) ;; *) echo "::error::bad mode"; exit 1;; esac
+          [ "$MODE" = "usage" ] && exit 0
           [[ -z "$TARGET_USER" || "$TARGET_USER" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad user id"; exit 1; }
           python notify.py "$MODE" $TARGET_USER
       - name: Check free-plan usage (morning run)
-        if: inputs.mode == 'daily'
+        if: inputs.mode == 'daily' || inputs.mode == 'usage'
         working-directory: worker
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
