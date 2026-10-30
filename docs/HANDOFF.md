@@ -303,6 +303,17 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   שבוע N" (last week that taught one of its topics, `fileReadyWeek`).
 - Lab practical exams: MIDTERM = experiments 1-5 (incl. 5), FINAL = all; same structure (theory/graph, verbal, build).
   His lab-1 example: two sine inputs -> make a triangle -> summing amplifier. The practical page has mock exams for both.
+- 30/10 feedback round: exercises are read AUTOMATICALLY - on every file upload (`addMaterial` dispatches exercises.yml),
+  daily, and lessons written before summaries get their exercises extracted once (`exercises.from_lessons`, key
+  `lesson:<id>` in exercises_read.json). Each run annotates per course which files were skipped as "not exercise files".
+  Every exercise shows its source ("מקור: 🎓 הרצאה 2" / "📄 <file>").
+- Formula sheets build themselves (`worker/docs.py`, daily + after exercises.yml) for courses whose facts/notes mention
+  "דף נוסחאות"; rebuilt when lessons are newer than the sheet. The app page still has "🔄 לעדכן".
+- Home: reminders are about submissions/exams/entry quizzes, not reading; the deadlines card hides automatic
+  prep/ex/site-week/upload tasks; "🎯 היום מעבדה" card on lab days; "חזרה יומית" explains itself (spaced repetition of
+  quiz questions he answered: 1/3/7/14/30/60 days, wrong -> tomorrow). He hardly uses the course chat (only admin info).
+- Timetable: `WeekGrid` - days across (Sunday on the right), hours down, short course names - for the phone; the full
+  list + editing is folded below.
 - Later (end of semester): exam variations per course as files, from past exams and each lecturer's style.
 
 ## Open items

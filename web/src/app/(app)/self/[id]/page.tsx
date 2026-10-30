@@ -77,6 +77,10 @@ export default async function Track({ params }: PageProps<"/self/[id]">) {
       </Fold>
 
       <Fold id="self-project" title="הפרויקט" hint={`${list.filter((s) => s.kind === "project").length} שלבים`}>
+        <p className="text-xs text-muted mb-2">
+          פרויקט מעשי אחד שמלווה את המסלול: שלבים קטנים שבונים לאט (תכנון, סימולציה, בדיקה), כדי ליישם את מה שלמדת
+          ולהראות בראיון עבודה. לא חובה - המורה מציע שלב כשמתאים.
+        </p>
         <ul className="divide-y divide-line">{list.filter((s) => s.kind === "project").map((s) => <SkillRow key={s.id} s={s} />)}</ul>
         {(deadlines ?? []).length > 0 && <ul className="mt-2">{((deadlines ?? []) as Deadline[]).map((d) => <DeadlineRow key={d.id} d={d} />)}</ul>}
       </Fold>

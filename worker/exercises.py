@@ -23,7 +23,7 @@ INLINE_LIMIT = 18 * 1024 * 1024
 FILE_TYPES = re.compile(r"\.(pdf|png|jpe?g|webp)$", re.I)
 EXAM = re.compile(r"מבחן|מועד|בוחן|exam|quiz", re.I)
 HOMEWORK = re.compile(r"מטלה|עבודת בית|תרגיל בית|שיעורי בית|homework|\bhw\b|assignment", re.I)
-SHEET = re.compile(r"תרגיל|תרגול|exercise|problem|שאלות", re.I)
+SHEET = re.compile(r"תרגיל|תרגול|חוברת|שאלות|דף עבודה|exercise|problem|tutorial|worksheet", re.I)
 SOLUTION = re.compile(r"פתרון|פתרונות|solution", re.I)
 
 PROMPT = """הקובץ המצורף הוא {kind} בקורס "{course}" (הנדסת חשמל). הסטודנט לומד מפתרון תרגילים בעצמו.
@@ -131,6 +131,55 @@ def read_file(sb, course, m, materials, topics, work):
     return found
 
 
+LESSON_PROMPT = """לפניך שיעור ({kind}) בקורס "{course}" - הפרק שנכתב עליו ותמלול ההקלטה. הסטודנט לומד מפתרון תרגילים בעצמו.
+הוצא את **כל** התרגילים, הדוגמאות המספריות, השאלות וההוכחות שנפתרו או ניתנו בשיעור, לפי הסדר:
+- title: כותרת קצרה. question_md: נוסח מלא שאפשר לפתור בלי ההקלטה - כל הנתונים, ושרטוט/מעגל מתואר במילים.
+- solution_md: פתרון מלא שלב אחרי שלב (לפי הדרך של המרצה אם פתר; אחרת פתור), עם ההצבות והתשובה ביחידות.
+- topic: אחד מהנושאים של השיעור: {topics}. exam_style: true אם נאמר שזה בסגנון מבחן. uncertain: true אם אינך בטוח.
+נוסחאות ב-LaTeX (משוואה מלאה בשורה נפרדת $$...$$). אם לא היו תרגילים בכלל - רשימה ריקה."""
+
+
+def from_lessons(sb, course, budget_end):
+    """Lessons written before summaries came with exercises (30/10/2026): read their exercises once."""
+    from google.genai import types
+    read = read_list(sb, course)
+    have = {r["lesson_id"] for r in sb.table("exercises").select("lesson_id").eq("course_id", course["id"])
+            .not_.is_("lesson_id", "null").execute().data}
+    lessons = (sb.table("lessons").select("id, user_id, kind, number, title, topics, chapter_md, transcript")
+               .eq("course_id", course["id"]).eq("status", "ready").in_("kind", ["lecture", "practice"])
+               .order("created_at").execute().data)
+    for l in lessons:
+        if l["id"] in have or f"lesson:{l['id']}" in read:
+            continue
+        if time.time() > budget_end:
+            return False
+        kind = f"{'תרגול' if l['kind'] == 'practice' else 'הרצאה'} {l.get('number') or ''}".strip()
+        text = f"=== הפרק ===\n{(l.get('chapter_md') or '')[:60000]}\n\n=== התמלול ===\n{(l.get('transcript') or '')[:120000]}"
+        parts = [types.Part.from_text(text=LESSON_PROMPT.format(kind=kind, course=course["name"],
+                                                               topics=", ".join(l.get("topics") or []) or "-")),
+                 types.Part.from_text(text=text)]
+        try:
+            found = gen(parts, None)
+            if found:
+                checked = gen(parts + [types.Part.from_text(text="=== התרגילים לבדיקה ===\n" + json.dumps(found, ensure_ascii=False))], CHECK)
+                if len(checked) >= len(found):
+                    found = checked
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Exercises {course['name']} {kind}::{str(e)[:300]}", flush=True)
+            if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota", "המכסה"):
+                raise
+            continue
+        rows = [{"user_id": course["user_id"], "course_id": course["id"], "lesson_id": l["id"], "source": "lesson",
+                 "ord": i, "title": x.get("title"), "question_md": x["question_md"], "solution_md": x.get("solution_md"),
+                 "topic": x.get("topic"), "exam_style": bool(x.get("exam_style")), "uncertain": bool(x.get("uncertain"))}
+                for i, x in enumerate(found)]
+        if rows:
+            sb.table("exercises").insert(rows).execute()
+        mark_read(sb, course, f"lesson:{l['id']}")
+        print(f"::notice title=Exercises::{course['name']} / {kind}: {len(rows)} from the lesson", flush=True)
+    return True
+
+
 def run(only=None):
     sb, start = db(), time.time()
     q = sb.table("courses").select("id, name, user_id, kind").eq("archived", False).neq("kind", "self")
@@ -140,6 +189,15 @@ def run(only=None):
         done = {r["material_id"] for r in sb.table("exercises").select("material_id").eq("course_id", course["id"])
                 .not_.is_("material_id", "null").execute().data} | read_list(sb, course)
         todo = [m for m in materials if m["id"] not in done and wanted(m)]
+        skipped = [m["title"] for m in materials if m["id"] not in done and not wanted(m)]
+        print(f"::notice title=Exercises {course['name']}::{len(todo)} files to read; not exercise files: "
+              f"{', '.join(skipped)[:600] or '-'}", flush=True)
+        try:
+            if not from_lessons(sb, course, start + BUDGET_SEC):
+                print("::notice title=Exercises::time budget used - the rest continue tomorrow", flush=True)
+                return
+        except Exception:  # noqa: BLE001 - quota: stop for today
+            return
         if not todo:
             continue
         topics = sorted({t for l in sb.table("lessons").select("topics").eq("course_id", course["id"]).execute().data

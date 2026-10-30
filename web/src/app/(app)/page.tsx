@@ -21,7 +21,7 @@ export default async function Home() {
   const now = israelNow();
   const [{ data: courses }, { data: deadlines }, { data: lessons }, stats, { data: today }, missing] = await Promise.all([
     sb.from("courses").select("*").eq("archived", false).order("year").order("name"),
-    sb.from("deadlines").select("*").eq("done", false).lte("due_at", in14).order("due_at").limit(8),
+    sb.from("deadlines").select("*").eq("done", false).lte("due_at", in14).order("due_at").limit(40),
     sb.from("lessons").select("id, course_id, kind, number, title, status, progress, read_at, created_at, source_url")
       .order("created_at", { ascending: false }).limit(30),
     topicStats(sb),
@@ -33,6 +33,11 @@ export default async function Home() {
     sb.from("usage_snapshot").select("data").eq("id", 1).maybeSingle(),
     dueReviews(sb).catch(() => ({ total: 0 })),
   ]);
+  // Home lists submissions, exams and quizzes; the automatic reading / exercise / upload tasks live in their own places
+  // (the week page, the exercises page, "להעלות").
+  const AUTO = /^(prep|ex|site-week|upload):/;
+  const dueSoon = ((deadlines ?? []) as (Deadline & { external_uid?: string | null })[])
+    .filter((d) => !AUTO.test(d.external_uid ?? "")).slice(0, 8);
   const usageAlerts = (usage?.data as Snapshot | undefined)?.alerts ?? [];
   const focus = plan.filter((p) => p.score > 0).slice(0, 3);
   const reminders = plan.flatMap((p) => p.reminders).slice(0, 6);
@@ -70,10 +75,24 @@ export default async function Home() {
         </section>
       )}
 
+      {/* Lab later today: practise the entry quiz. */}
+      {todaySlots.filter((s) => s.kind === "lab").map((s) => (
+        <Link key={s.id} href={`/courses/${s.course_id}/entry`} className="card flex justify-between items-center">
+          <span className="font-semibold">🎯 היום מעבדה - בוחן כניסה</span>
+          <span className="text-sm text-accent">לתרגל ←</span>
+        </Link>
+      ))}
+
       {review.total > 0 && (
-        <Link href="/review" className="card flex justify-between items-center">
-          <span className="font-semibold">🔁 חזרה יומית</span>
-          <span className="text-sm text-accent">{review.total} שאלות מחכות ←</span>
+        <Link href="/review" className="card block">
+          <span className="flex justify-between items-center">
+            <span className="font-semibold">🔁 חזרה יומית</span>
+            <span className="text-sm text-accent">{review.total} שאלות מחכות ←</span>
+          </span>
+          <span className="block text-xs text-muted mt-1">
+            שאלות מהשאלונים שכבר ענית עליהם, שחוזרות במרווחים הולכים וגדלים (אחרי 1, 3, 7, 14, 30 ו-60 יום) כדי שלא תשכח;
+            שאלה שטעית בה חוזרת למחרת.
+          </span>
         </Link>
       )}
 
@@ -158,9 +177,9 @@ export default async function Home() {
           <h2 className="font-semibold">דדליינים קרובים</h2>
           <Link href="/deadlines" className="text-sm text-accent">הכל</Link>
         </div>
-        {deadlines?.length ? (
+        {dueSoon.length ? (
           <ul className="divide-y divide-line">
-            {(deadlines as Deadline[]).map((d) => (
+            {dueSoon.map((d) => (
               <DeadlineRow key={d.id} d={d} courseName={d.course_id ? courseName.get(d.course_id) : undefined} />
             ))}
           </ul>

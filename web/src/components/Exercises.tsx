@@ -21,12 +21,10 @@ export default function Exercises({ items, slideUrls = {} }: { items: Exercise[]
         const solved = done.has(x.id);
         return (
           <li key={x.id} className={`rounded-xl border border-line p-3 ${solved ? "opacity-60" : ""}`}>
-            <div className="flex justify-between items-start gap-2">
-              <p className="font-semibold">{i + 1}. {x.title ?? "תרגיל"}</p>
-              <span className="text-xs text-muted shrink-0">
-                {x.exam_style && "⭐ סגנון מבחן · "}{x.label ?? SOURCE[x.source] ?? ""}
-              </span>
-            </div>
+            <p className="font-semibold">{i + 1}. {x.title ?? "תרגיל"}</p>
+            <p className="text-xs text-muted">
+              מקור: {x.label ?? SOURCE[x.source] ?? "-"} · {SOURCE[x.source] ?? ""}{x.exam_style ? " · ⭐ סגנון מבחן" : ""}
+            </p>
             <div className="mt-2"><Chapter md={x.question_md} slideUrls={slideUrls} /></div>
             {x.solution_md && (
               <details className="mt-2">

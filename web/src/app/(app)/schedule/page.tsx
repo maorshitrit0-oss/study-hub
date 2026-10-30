@@ -1,5 +1,7 @@
 import { requireUser } from "@/lib/supabase/server";
 import SlotCard from "@/components/SlotCard";
+import WeekGrid from "@/components/WeekGrid";
+import Fold from "@/components/Fold";
 import SlotForm from "@/components/SlotForm";
 import { addSlot } from "../actions";
 import { israelNow } from "@/lib/format";
@@ -20,6 +22,9 @@ export default async function Schedule() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold">מערכת שעות</h1>
+      {all.length > 0 && <WeekGrid slots={all} names={names} today={now.weekday} nowTime={now.time} />}
+      <Fold id="schedule-list" title="רשימה מלאה ועריכה" hint={`${all.length} שיעורים`}>
+      <div className="space-y-5">
       {order.length ? (
         order.map((d) => (
           <section key={d}>
@@ -37,6 +42,8 @@ export default async function Schedule() {
       ) : (
         <p className="text-muted">עוד אין שיעורים במערכת.</p>
       )}
+      </div>
+      </Fold>
       <details className="card">
         <summary className="cursor-pointer font-semibold">+ הוספת שיעור</summary>
         <div className="mt-3"><SlotForm action={addSlot} courses={courses ?? []} submit="הוספה" /></div>

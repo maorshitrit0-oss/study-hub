@@ -618,6 +618,11 @@ def cmd_pending(write=True):
             exercises.run()
         except Exception as e:  # noqa: BLE001
             print(f"::warning title=Exercises::{str(e)[:300]}", flush=True)
+        try:  # formula sheets of courses whose exam allows one, when lessons were added
+            import docs
+            docs.run()
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Formula sheet::{str(e)[:300]}", flush=True)
     else:
         from datetime import datetime
         from zoneinfo import ZoneInfo

@@ -266,6 +266,8 @@ export async function addMaterial(courseId: string, m: { title: string; kind: st
     course_id: courseId, title, kind, storage_path: m.path, mime: m.mime, size_bytes: m.size,
   }).select("id").single();
   revalidatePath(`/courses/${courseId}`);
+  // Homework, exams and exercise sheets: their exercises are read right away (worker/exercises.py), no button needed.
+  dispatchExercises(courseId).catch(() => null);
   return kind === "syllabus" && data ? readSyllabus(data.id) : null;
 }
 

@@ -18,7 +18,7 @@ concurrency:
 jobs:
   exercises:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -38,3 +38,4 @@ jobs:
         run: |
           [[ -z "$COURSE_ID" || "$COURSE_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad course id"; exit 1; }
           python exercises.py $COURSE_ID
+          python docs.py

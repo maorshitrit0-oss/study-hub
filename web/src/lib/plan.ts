@@ -81,10 +81,8 @@ export async function weeklyPlan(sb: SupabaseClient): Promise<CoursePlan[]> {
       if (days > 7) continue;
       score += days < 3 ? 10 : 5;
       reasons.push(`${d.title} להגשה בעוד ${Math.max(0, Math.floor(days))} ימים`);
-      // Nudge to do the assignment once the material is read (or to read it first).
-      reminders.push(unread.length
-        ? { text: `לקרוא את ${unread.length} הפרקים ב${course.name} ואז לעשות את "${d.title}"`, href: `/courses/${course.id}` }
-        : { text: `קראת את כל החומר ב${course.name} - זה הזמן לעשות את "${d.title}"`, href: `/deadlines/${d.id}` });
+      // Reminders are about submissions and exams, not about reading (he sees that in "על מה להשקיע").
+      reminders.push({ text: `${d.kind === "exam" ? "להתכונן ל" : "להגיש את "}"${d.title}" ב${course.name} - בעוד ${Math.max(0, Math.floor(days))} ימים`, href: `/deadlines/${d.id}` });
     }
 
     const weak = cs.filter(isWeak).length;

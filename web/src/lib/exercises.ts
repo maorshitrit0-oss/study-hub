@@ -34,7 +34,13 @@ export async function exercisesByWeek(sb: SupabaseClient, courseId?: string) {
     topicsOf.set(k, set);
   }
   const fileName = new Map((materials ?? []).map((m) => [m.id, m.title as string]));
-  const labeled = rows.map((x) => ({ ...x, label: x.material_id ? fileName.get(x.material_id) ?? undefined : undefined }));
+  const KIND: Record<string, string> = { lecture: "הרצאה", practice: "תרגול" };
+  const lessonName = new Map((lessons ?? []).map((l) => [l.id, `${KIND[l.kind] ?? "שיעור"}${l.number ? ` ${l.number}` : ""}`]));
+  // Where each exercise comes from, shown on it: the lesson, or the file (homework / past exam / exercise booklet).
+  const labeled = rows.map((x) => ({
+    ...x,
+    label: x.material_id ? `📄 ${fileName.get(x.material_id) ?? "קובץ"}` : x.lesson_id ? `🎓 ${lessonName.get(x.lesson_id) ?? "שיעור"}` : undefined,
+  }));
 
   /** The exercises of semester week w in a course: from its lessons, then files on the topics it taught. */
   function forWeek(course: string, w: number) {
