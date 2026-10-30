@@ -270,6 +270,32 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   (`web/src/components/Fold.tsx`): one line with title + short summary, closed by default, open/closed remembered per
   section id in localStorage (same section in every course), opens itself on `#<id>` (e.g. `#add`).
 
+## Practice first (2026-10-30) - how he studies now
+- He does NOT read long chapters or answer MCQ quizzes (useless for calculation/proof courses). He learns by solving.
+  Deep courses (he listens to lectures + practices himself and solves): digital circuits, micro, lab 2, Java.
+  Summary courses (short summary of each lesson, then exercises/homework/exam practice): waves, linear, communication.
+- Lectures/practices are now authored in SUMMARY mode (`author.SUMMARY_SYSTEM`, `summary_mode`): chapter_md = a short
+  summary (🎯 message, main points + formulas, ⭐ what the lecturer stressed, 🏭 why it matters), `lessons.summary_md`
+  = the same, NO questions, and `exercises` (every exercise of the lesson with question_md + full solution_md, checked by
+  re-solving in the verify pass). Labs, site material and "📖 פרק מלא" (process.yml input mode=full,
+  `requestFullChapter`) still get the full chapter; the full chapter replaces chapter_md only (summary_md kept).
+- `exercises` table (`supabase/exercises.sql`): from lessons (source lesson) and from files (`worker/exercises.py`:
+  homework / past exams / exercise sheets, official solution file "פתרון ..." sent along, else solved + re-solved;
+  each file once - `exercises_read.json` next to the course files). Runs daily after the site run and on demand
+  (exercises.yml, button on the exercises page).
+- `/courses/[id]/exercises?w=` (course card "✍️ תרגילים"): the week's lesson exercises + file exercises on the topics
+  taught that week (`lib/exercises.ts`, week = week of the class the lesson recorded); `?files=1` all file exercises.
+  Solutions hidden until opened; "✓ פתרתי" (`done_at`). Task per course and study week "✍️ לפתור: ..." (`ex:<course>:<w>`),
+  closes when all are solved. Automatic tasks link to what they are about (DeadlineRow `taskHref`).
+- Course documents (`lib/courseDocs.ts`, `/courses/[id]/doc/formulas|practical`): formula sheet for 2 A4 pages (print CSS
+  `.formula-sheet`, two columns) for every course; for a lab, "🧪 המבחן המעשי" - per experiment theory/verbal questions,
+  circuits to build with wiring + instrument settings, must-build list, 3 mock exams. Rebuilt on request; stored as
+  course files (the chat sees them).
+- Board snapshots: taken at the END of a scene, now marked in the transcript at that moment ("מראה את מה שהוסבר עד
+  כאן") and the prompts say a snapshot shows what was said BEFORE its marker; verify checks image/topic match. Old
+  transcripts keep the old (start-time) markers.
+- Later (end of semester): exam variations per course as files, from past exams and each lecturer's style.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so

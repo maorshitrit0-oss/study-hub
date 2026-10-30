@@ -89,3 +89,10 @@ input, select, textarea { font-size: max(16px, 1em); }
 .katex-display { direction: ltr; overflow-x: auto; overflow-y: hidden; padding: .3em 0; font-size: .92em; }
 .katex { direction: ltr; unicode-bidi: isolate; white-space: nowrap; }
 :not(.katex-display) > .katex { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: middle; padding: .1em 0; }
+
+/* Formula sheet: two A4 pages when printed (the one double-sided page allowed in the exam). */
+@media print {
+  .formula-sheet { columns: 2; column-gap: 1.2rem; font-size: 9pt; line-height: 1.25; border: 0; box-shadow: none; padding: 0; background: #fff; color: #000; }
+  .formula-sheet h3 { break-after: avoid; margin-top: 0.4rem; }
+  .formula-sheet .katex-display { margin: 0.15rem 0; }
+}

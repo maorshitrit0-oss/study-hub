@@ -11,6 +11,7 @@ import { DRIVE_PREFIX, cleanTitle, driveId, materialBlob } from "@/lib/files";
 import { fillGlossary } from "@/lib/glossary";
 import { closePrepTask } from "@/lib/prep";
 import { importEntryFiles, processReport } from "@/lib/entryQuiz";
+import { buildDoc, type DocKind } from "@/lib/courseDocs";
 import { friendlyGeminiError } from "@/lib/gemini";
 
 const str = (f: FormData, k: string) => {
@@ -117,6 +118,18 @@ export async function readExerciseFiles(courseId: string): Promise<string> {
   await requireUser();
   const err = await dispatchExercises(courseId);
   return err ?? "✓ התחיל. בעוד כמה דקות התרגילים יופיעו בלשונית 'מכל הקבצים' (מרענן את הדף).";
+}
+
+/** Builds (or rebuilds) a course document: formula sheet / practical-exam preparation. */
+export async function rebuildDoc(courseId: string, kind: DocKind): Promise<string> {
+  const { sb } = await requireUser();
+  try {
+    await buildDoc(sb, courseId, kind);
+    revalidatePath(`/courses/${courseId}/doc/${kind}`);
+    return "✓ עודכן";
+  } catch (e) {
+    return (e as Error).message;
+  }
 }
 
 /** Marks an exercise solved (or not). */
