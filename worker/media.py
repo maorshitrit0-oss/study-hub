@@ -216,7 +216,8 @@ def save_slides(video, scenes, out_dir):
         run_ffmpeg(["-ss", f"{end:.2f}", "-i", str(video), "-frames:v", "1",
                     "-vf", "scale='min(1280,iw)':-2", "-c:v", "libwebp", "-quality", "70", str(p)])
         if p.exists():
-            paths.append((n, start, p))
+            # Marked in the transcript at the moment it was taken (the scene's end): it shows what was said BEFORE.
+            paths.append((n, end, p))
     return paths
 
 

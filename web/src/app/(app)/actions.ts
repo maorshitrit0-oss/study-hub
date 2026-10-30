@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
-import { dispatchLesson, dispatchNotify, dispatchSite, dispatchStudio } from "@/lib/github";
+import { dispatchExercises, dispatchLesson, dispatchNotify, dispatchSite, dispatchStudio } from "@/lib/github";
 import { parseIcs } from "@/lib/ics";
 import { isoFromNow, israelLocalToIso } from "@/lib/format";
 import { extractSyllabus, looksLikeSyllabus } from "@/lib/syllabus";
@@ -103,6 +103,26 @@ export async function addLesson(courseId: string, _: AddLessonState, f: FormData
   }
   revalidatePath(`/courses/${courseId}`);
   return { ok: true };
+}
+
+/** The full reading chapter of one lesson, on request (lessons get a summary + exercises by default). */
+export async function requestFullChapter(id: string) {
+  const { sb } = await requireUser();
+  await sb.from("lessons").update({ status: "processing", progress: "כותב פרק מלא...", error: null }).eq("id", id);
+  await dispatchLesson(id, "gemini", "full");
+  revalidatePath(`/lessons/${id}`);
+}
+
+export async function readExerciseFiles(courseId: string): Promise<string> {
+  await requireUser();
+  const err = await dispatchExercises(courseId);
+  return err ?? "✓ התחיל. בעוד כמה דקות התרגילים יופיעו בלשונית 'מכל הקבצים' (מרענן את הדף).";
+}
+
+/** Marks an exercise solved (or not). */
+export async function toggleExercise(id: string, done: boolean) {
+  const { sb } = await requireUser();
+  await sb.from("exercises").update({ done_at: done ? new Date().toISOString() : null }).eq("id", id);
 }
 
 export async function retryLesson(id: string) {

@@ -42,6 +42,7 @@ class Job:
         self.lesson = self.sb.table("lessons").select("*").eq("id", lesson_id).single().execute().data
         self.course = self.sb.table("courses").select("*").eq("id", self.lesson["course_id"]).single().execute().data
         self.prefix = f"{self.lesson['user_id']}/lessons/{lesson_id}"
+        self.mode = os.environ.get("AUTHOR_MODE", "auto")  # "full" = he asked for the full chapter of this lesson
 
     def update(self, **fields):
         fields["updated_at"] = now()
@@ -78,7 +79,7 @@ def transcript_with_markers(segments, slides):
     for t, kind, payload in events:
         if kind == 0:
             flush()
-            lines.append(f"===== שקף {payload} ({media.fmt_time(t)}) =====")
+            lines.append(f"===== שקף {payload} (צולם ב-{media.fmt_time(t)} - מראה את מה שהוסבר עד כאן) =====")
         else:
             para_start = t if para_start is None else para_start
             para.append(payload[2])
@@ -173,7 +174,8 @@ def cmd_process(lesson_id, do_author=True):
         if do_author and os.environ.get("GEMINI_API_KEY"):
             transcript = with_previous_year(job, transcript)
             ch = author.author_with_gemini(job.course, job.lesson, transcript,
-                                           [(n, p) for n, _, p in slides], job.previous_topics(), log=job.log, docs=docs)
+                                           [(n, p) for n, _, p in slides], job.previous_topics(), log=job.log, docs=docs,
+                                           mode=job.mode)
             save_chapter(job, ch, "gemini")
         elif "(להשוואה)" in (job.lesson.get("title") or ""):
             job.log("התמלול מוכן - משמש להשוואה עם ההרצאה של השנה")
@@ -235,14 +237,37 @@ def load_slides(job, work):
     return slides
 
 
+def save_exercises(job, exercises):
+    """The lesson's exercises (summary mode). Ones he already marked solved stay as they are."""
+    try:
+        kept = (job.sb.table("exercises").select("title").eq("lesson_id", job.lesson["id"])
+                .not_.is_("done_at", "null").execute().data)
+        job.sb.table("exercises").delete().eq("lesson_id", job.lesson["id"]).is_("done_at", "null").execute()
+    except Exception as e:  # noqa: BLE001 - database without the exercises table yet (supabase/exercises.sql)
+        print(f"exercises not saved: {e}", flush=True)
+        return
+    done = {k["title"] for k in kept}
+    rows = [{
+        "user_id": job.lesson["user_id"], "course_id": job.course["id"], "lesson_id": job.lesson["id"], "source": "lesson",
+        "ord": i, "title": x.get("title"), "question_md": x["question_md"], "solution_md": x.get("solution_md"),
+        "topic": x.get("topic"), "exam_style": bool(x.get("exam_style")), "uncertain": bool(x.get("uncertain")),
+    } for i, x in enumerate(exercises) if x.get("title") not in done]
+    if rows:
+        job.sb.table("exercises").insert(rows).execute()
+
+
 def save_chapter(job, ch, by):
     ch = author.validate(ch)
-    # Only the chapter's own quiz is replaced: lab entry-quiz questions (source set) stay.
-    try:
-        job.sb.table("questions").delete().eq("lesson_id", job.lesson["id"]).is_("source", "null").execute()
-    except Exception:  # noqa: BLE001 - database without the source column yet (supabase/entry_quiz.sql)
-        job.sb.table("questions").delete().eq("lesson_id", job.lesson["id"]).execute()
+    short = bool(ch.get("exercises")) or (by != "claude" and author.summary_mode(job.lesson, job.mode))
+    if short:
+        save_exercises(job, ch["exercises"])
     if ch["questions"]:
+        # Only the chapter's own quiz is replaced: lab entry-quiz questions (source set) stay. A summary has no quiz,
+        # so an earlier quiz of the lesson is kept.
+        try:
+            job.sb.table("questions").delete().eq("lesson_id", job.lesson["id"]).is_("source", "null").execute()
+        except Exception:  # noqa: BLE001 - database without the source column yet (supabase/entry_quiz.sql)
+            job.sb.table("questions").delete().eq("lesson_id", job.lesson["id"]).execute()
         job.sb.table("questions").insert([{
             "user_id": job.lesson["user_id"], "course_id": job.course["id"], "lesson_id": job.lesson["id"],
             "topic": q.get("topic"), "question": q["question"], "options": q["options"],
@@ -251,26 +276,31 @@ def save_chapter(job, ch, by):
     save_course_facts(job, ch)
     save_glossary(job, ch)
     chapter_md = ch["chapter_md"] + (author.verification_md(ch) if ch.get("verification") else "")
+    count = f"{len(ch['exercises'])} תרגילים" if short else f"{len(ch['questions'])} שאלות"
     fields = dict(chapter_md=chapter_md, topics=ch["topics"], status="ready",
                   syllabus_covered=[i for i in ch.get("syllabus_covered") or [] if isinstance(i, int)],
-                  progress=f"מוכן - {len(ch['questions'])} שאלות", author=by, error=None)
+                  progress=f"מוכן - {count}", author=by, error=None)
+    if short:
+        fields["summary_md"] = chapter_md  # the full chapter, if he asks for one later, replaces chapter_md only
     if not job.lesson.get("title") or job.lesson["kind"] == "web":
         fields["title"] = ch.get("title")
     try:
         job.update(**fields)
-    except Exception:  # noqa: BLE001 - database without the syllabus_covered column yet
+    except Exception:  # noqa: BLE001 - database without the syllabus_covered / summary_md column yet
         fields.pop("syllabus_covered", None)
+        fields.pop("summary_md", None)
         job.update(**fields)
     try:  # written in the new structure already: enrich.py must not rewrite it
         import enrich
         enrich.mark(job.sb, job.lesson, chapter_md)
     except Exception as e:  # noqa: BLE001
         print(f"structure mark not saved: {e}")
-    print(f"published: {len(ch['questions'])} questions", flush=True)
+    print(f"published: {count}", flush=True)
     if (job.lesson.get("transcript") or "").startswith(course_site.SITE_NOTE):
         return  # last year's material from the course site: one line in the morning summary, not a push each
-    notify.send(job.sb, job.lesson["user_id"], f"✅ {job.label()} מוכן לקריאה",
-                f"{ch.get('title') or ''}\n{len(ch['questions'])} שאלות בשאלון".strip(), f"/lessons/{job.lesson['id']}")
+    notify.send(job.sb, job.lesson["user_id"], f"✅ {job.label()} מוכן" + ("" if short else " לקריאה"),
+                f"{ch.get('title') or ''}\n" + (f"תקציר + {count} לפתרון" if short else f"{count} בשאלון"),
+                f"/lessons/{job.lesson['id']}")
 
 
 def save_course_facts(job, ch):

@@ -108,7 +108,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
 
       <div className={`grid ${c.kind === "lab" ? "grid-cols-2" : "grid-cols-3"} gap-3`}>
         <Link href={`/courses/${id}/chat`} className="card text-center font-medium">💬 צ&apos;אט על הקורס</Link>
-        <Link href={`/courses/${id}/practice`} className="card text-center font-medium">✍️ תרגול שאלות</Link>
+        <Link href={`/courses/${id}/exercises`} className="card text-center font-medium">✍️ תרגילים</Link>
         {c.kind === "lab" && <Link href={`/courses/${id}/entry`} className="card text-center font-medium">🎯 בוחן כניסה</Link>}
         <Link href={`/words?course=${id}`} className="card text-center font-medium">🔤 מילים באנגלית</Link>
       </div>

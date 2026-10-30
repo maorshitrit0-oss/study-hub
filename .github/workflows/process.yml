@@ -16,6 +16,9 @@ on:
       author:
         description: "gemini = write the chapter automatically, none = transcribe only (Claude writes it)"
         default: gemini
+      mode:
+        description: "auto = summary + exercises for lectures/practices, full = the full reading chapter (he asked)"
+        default: auto
 
 concurrency:
   group: lesson-${{ inputs.lesson_id }}
@@ -48,7 +51,9 @@ jobs:
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
           LESSON_ID: ${{ inputs.lesson_id }}
           AUTHOR: ${{ inputs.author }}
+          AUTHOR_MODE: ${{ inputs.mode || 'auto' }}
         # Inputs arrive as environment variables (never pasted into the script) and the id must be a UUID.
         run: |
           [[ "$LESSON_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad lesson id"; exit 1; }
+          [[ "$AUTHOR_MODE" =~ ^(auto|full)$ ]] || { echo "::error::bad mode"; exit 1; }
           if [ "$AUTHOR" = "none" ]; then python hub.py process "$LESSON_ID" --no-author; else python hub.py process "$LESSON_ID"; fi

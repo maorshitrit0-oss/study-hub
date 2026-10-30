@@ -5,6 +5,15 @@ import { daysLeft, fmtDue, urgency } from "@/lib/format";
 
 const tone = { bad: "text-bad bg-bad-soft", warn: "text-warn bg-warn-soft", muted: "text-muted bg-bg" };
 
+function taskHref(d: Deadline) {
+  const uid = (d as Deadline & { external_uid?: string | null }).external_uid ?? "";
+  const ex = uid.match(/^ex:([0-9a-f-]{36}):(\d+)$/);
+  if (ex) return `/courses/${ex[1]}/exercises?w=${ex[2]}`;
+  const prep = uid.match(/^(?:prep|site-week):([0-9a-f-]{36})$/);
+  if (prep) return `/lessons/${prep[1]}`;
+  return `/deadlines/${d.id}`;
+}
+
 export default function DeadlineRow({ d, courseName }: { d: Deadline; courseName?: string }) {
   return (
     <li className="flex items-center gap-3 py-2.5">
@@ -16,7 +25,8 @@ export default function DeadlineRow({ d, courseName }: { d: Deadline; courseName
           {d.done && "✓"}
         </button>
       </form>
-      <Link href={`/deadlines/${d.id}`} className="flex-1 min-w-0">
+      {/* Automatic tasks open what they are about: exercises to solve, a lesson to read. */}
+      <Link href={taskHref(d)} className="flex-1 min-w-0">
         <div className={`font-medium truncate ${d.done ? "line-through text-muted" : ""}`}>{d.title}</div>
         <div className="text-xs text-muted">
           {DEADLINE_LABEL[d.kind]}

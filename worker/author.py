@@ -1,4 +1,4 @@
-"""Turn a transcript + board snapshots into a reading chapter and a multiple-choice quiz."""
+"""Turn a transcript + board snapshots into a summary + exercises with solutions (or a full chapter + quiz)."""
 import json
 import os
 from pathlib import Path
@@ -58,6 +58,10 @@ FACT_LABEL = {"exam": "המבחן", "exam_hint": "מה יהיה במבחן", "gr
               "assignments": "מטלות והגשות", "attendance": "נוכחות", "materials": "חומרים מותרים וספרות",
               "industry": "מהתעשייה ולראיונות עבודה", "other": "כללי"}
 
+SLIDES_RULE = """- צילומי לוח/שקפים בתחביר ![תיאור קצר](slide:N). כל צילום נלקח בסוף קטע, ולכן הוא מראה את מה שהוסבר **לפני** הסימון שלו בתמלול
+  (===== שקף N ... =====), לא את מה שבא אחריו. לפני ששמים צילום: הסתכל בו ובדוק שמה שרואים בו הוא בדיוק הנושא של הפסקה שלידה;
+  אם הוא שייך לנושא אחר - שים אותו שם או אל תשתמש בו. צילום שאינך בטוח לאיזה נושא הוא שייך - השמט. בחר רק צילומים שבאמת מוסיפים."""
+
 SYSTEM = """אתה מרצה ומתרגל מעולה בהנדסת חשמל. הסטודנט לא צפה בהקלטה ולומד רק מקריאה ומשאלונים.
 כתוב הכל בעברית - גם כשהשקפים, הקוד או הקובץ באנגלית: תרגם את התוכן לעברית (בקוד - ההערות וההסברים בעברית, הקוד עצמו כמו שהוא).
 מונחים טכניים - בעברית, ובפעם הראשונה גם המונח באנגלית בסוגריים. השאלון וההסברים - בעברית.
@@ -73,7 +77,7 @@ SYSTEM = """אתה מרצה ומתרגל מעולה בהנדסת חשמל. הס�
   תו לכל חצי מחזור (מקום זוגי = עליית שעון), כניסות משתנות רק במקומות אי-זוגיים; type: none / sync / async.
 - נוסחאות ב-LaTeX. בתוך משפט ($...$) רק סמל או ביטוי קצר (כמו $\vec{E}$ או $f=1/T$); כל משוואה מלאה - בשורה נפרדת עם $$...$$, כי טקסט עברי מימין לשמאל שובר נוסחאות ארוכות בתוך שורה.
 - גם בשאלות, בתשובות ובהסברים של השאלון - נוסחאות ב-$...$ (לא טקסט קוד), קצרות. קוד בבלוקים עם שם השפה.
-- שלב צילומי לוח/שקפים רלוונטיים בדיוק במקום שבו הם מוסברים, בתחביר: ![תיאור קצר](slide:N) כאשר N הוא מספר השקף. בחר את הצילומים שבאמת מוסיפים (בדרך כלל 5-20).
+""" + SLIDES_RULE + """
 - כל מה שהמרצה הדגיש כחשוב / "יופיע במבחן" - בשורה: > ⭐ **חשוב למבחן:** ...
 - אם המרצה טעה או שהתמלול סותר את השקפים - ציין: > ⚠️ ... ותן את הנכון.
 - השמט פטפוט, ענייני זום וניהול כיתה. שמור כל מידע מנהלי חשוב (משקל ציונים, סוג מבחן, מטלות, תאריכים) בסעיף "מידע על הקורס" בתחילת הפרק.
@@ -104,6 +108,55 @@ glossary: 10-30 מונחים באנגלית מהחומר (מהשקפים, מהק
 en - המונח כמו שהוא מופיע באנגלית; he - התרגום/המונח המקובל בעברית; explanation - משפט קצר בעברית מה זה אומר בקורס הזה.
 כלול גם מילים באנגלית שאינן מונחים טכניים אבל מופיעות בשקפים/בשאלות (למשל assume, derive, respectively).
 syllabus_covered: אם צורפה רשימת נושאי הסילבוס - המספרים של הנושאים שהשיעור הזה לימד (גם חלקית). אחרת רשימה ריקה."""
+
+# Default for lectures and practices (30/10/2026): he learns by solving, not by reading - a short summary of the
+# lesson's message + every exercise it had, with full solutions he opens only after trying. The full chapter (SYSTEM)
+# is written only when he asks for it on a lesson ("📖 פרק מלא"), and always for labs and site material.
+SUMMARY_SYSTEM = """אתה מתרגל מעולה בהנדסת חשמל. הסטודנט לומד בעיקר מפתרון תרגילים, לא מקריאה. כתוב הכל בעברית
+(מונחים טכניים בעברית, ובפעם הראשונה גם באנגלית בסוגריים; קוד כמו שהוא, הערות בעברית).
+
+chapter_md - תקציר קצר (300-700 מילים), לא פרק:
+## 🎯 המסר של השיעור
+2-4 שורות: מה המרצה רצה להעביר בשיעור הזה, בשורה התחתונה.
+## עיקרי השיעור
+לכל נושא (לפי הסדר): שורה-שתיים של העיקר, ההגדרות והנוסחאות המרכזיות (כל משוואה בשורה נפרדת $$...$$).
+""" + SLIDES_RULE + """
+## ⭐ מה המרצה הדגיש
+כל מה שנאמר שחשוב / יופיע במבחן / טעות נפוצה, ושורה > ⚠️ אם המרצה טעה או שהתמלול סותר את הלוח.
+## 🏭 למה זה חשוב
+2-4 נקודות: מה המרצה אמר על התעשייה (🎙️ המרצה:), ואיפה הנושא פועל בעולם האמיתי - רק דברים נכונים ומבוססים.
+אל תמציא תוכן שלא היה בשיעור. התמלול אוטומטי - תקן שגיאות מונחים לפי ההקשר והלוח.
+
+exercises - **כל** תרגיל, דוגמה מספרית, שאלה או הוכחה שנפתרו או ניתנו בשיעור (בתרגול - כל התרגילים), לפי הסדר:
+- title: כותרת קצרה (למשל "מסנן RC - תדר קטעון").
+- question_md: נוסח מלא שאפשר לפתור בלי ההקלטה: כל הנתונים והמספרים, ושרטוט/מעגל מתואר במילים
+  (או ![](slide:N) אם הצילום מראה בדיוק את השאלה). אם המרצה נתן רק רעיון - נסח שאלה מלאה לפי מה שנאמר.
+- solution_md: פתרון מלא שלב אחרי שלב, עם ההסבר למה עושים כל צעד, כל ההצבות, התשובה הסופית ביחידות, וטעות נפוצה אם יש.
+  אם המרצה פתר - לפי הדרך שלו (ותקן טעויות עם > ⚠️). אם לא פתר - פתור בעצמך.
+- topic: אחד מ-topics. exam_style: true אם המרצה אמר שזה בסגנון מבחן / יופיע במבחן.
+- uncertain: true אם אינך בטוח בפתרון (נתונים חסרים בהקלטה וכו').
+questions: רשימה ריקה (אין שאלון אמריקאי).
+topics: 3-8 נושאים קצרים שהשיעור מכסה.
+
+course_facts: כל מידע מנהלי חשוב שנאמר (גם בפטפוט), משפט ברור לכל פריט, עם מספרים ותאריכים:
+exam (מבנה המבחן, חומר עזר, מועדים), exam_hint (מה יהיה / לא יהיה במבחן), grading, reservist (כל האפשרויות ומה לעשות ועד מתי),
+assignments, attendance, materials (ספרים, דף נוסחאות), industry (מה שנאמר על תעשייה וקריירה), other. אם לא נאמר - ריק. אל תמציא.
+exam_type ו-grade_weights: רק אם נאמרו במפורש, אחרת "unknown" ורשימה ריקה.
+glossary: 10-30 מונחים באנגלית מהחומר (en, he, explanation קצר בעברית), כולל מילים כמו assume, derive.
+syllabus_covered: אם צורפה רשימת נושאי הסילבוס - מספרי הנושאים שהשיעור לימד. אחרת ריק."""
+
+EXERCISE = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string"},
+        "question_md": {"type": "string"},
+        "solution_md": {"type": "string"},
+        "topic": {"type": "string"},
+        "exam_style": {"type": "boolean"},
+        "uncertain": {"type": "boolean"},
+    },
+    "required": ["title", "question_md", "solution_md", "topic", "exam_style", "uncertain"],
+}
 
 KIND_TASK = {
     "lecture": "זו הרצאה. כתוב פרק קריאה מלא שמחליף צפייה בהרצאה.",
@@ -265,14 +318,22 @@ def _source_parts(course, lesson, transcript, slides, previous_topics, docs=()):
     return parts
 
 
-def author_with_gemini(course, lesson, transcript, slides, previous_topics, log=print, docs=()):
+def summary_mode(lesson, mode="auto"):
+    """Lectures and practices get summary + exercises unless he asked for the full chapter; labs and site material
+    keep the full chapter (the entry quiz and last year's material read it)."""
+    return mode != "full" and lesson["kind"] in ("lecture", "practice")
+
+
+def author_with_gemini(course, lesson, transcript, slides, previous_topics, log=print, docs=(), mode="auto"):
     """slides: list of (number, Path); docs: list of (bytes, mime) files to read.
-    Writes the chapter, then has it fact-checked. Returns the chapter dict."""
-    log("כותב פרק קריאה ושאלון...")
+    Writes the summary + exercises (or the full chapter), then has it fact-checked. Returns the chapter dict."""
+    short = summary_mode(lesson, mode)
+    log("כותב תקציר ותרגילים עם פתרונות..." if short else "כותב פרק קריאה ושאלון...")
     sources = _source_parts(course, lesson, transcript, slides, previous_topics, docs)
-    draft = validate(_generate_json(sources, SYSTEM, CHAPTER_SCHEMA, "MEDIUM"))
-    log("בודק את הפרק והשאלון מול ההקלטה, השקפים והידע המקצועי...")
-    return verify_with_gemini(sources, draft, log)
+    draft = validate(_generate_json(sources, SUMMARY_SYSTEM if short else SYSTEM,
+                                    SUMMARY_SCHEMA if short else CHAPTER_SCHEMA, "MEDIUM"))
+    log("בודק את התקציר ופותר מחדש כל תרגיל..." if short else "בודק את הפרק והשאלון מול ההקלטה, השקפים והידע המקצועי...")
+    return verify_with_gemini(sources, draft, log, short)
 
 
 VERIFY_SYSTEM = """אתה בודק עובדות קפדן בהנדסת חשמל. הסטודנט ייבחן על החומר, ולכן אסור שתישאר בפרק או בשאלון אף טעות.
@@ -300,6 +361,12 @@ VERIFY_SYSTEM = """אתה בודק עובדות קפדן בהנדסת חשמל. 
 - uncertain: טענות שנשארו ושכדאי לוודא מול המרצה/הספר.
 אל תקצר את הפרק ואל תשמיט תוכן נכון."""
 
+SUMMARY_SCHEMA = {
+    **CHAPTER_SCHEMA,
+    "properties": {**CHAPTER_SCHEMA["properties"], "exercises": {"type": "array", "items": EXERCISE}},
+    "required": CHAPTER_SCHEMA["required"] + ["exercises"],
+}
+
 VERIFY_SCHEMA = {
     **CHAPTER_SCHEMA,
     "properties": {
@@ -315,14 +382,26 @@ VERIFY_SCHEMA = {
     },
     "required": CHAPTER_SCHEMA["required"] + ["verification"],
 }
+VERIFY_SUMMARY_SCHEMA = {
+    **VERIFY_SCHEMA,
+    "properties": {**VERIFY_SCHEMA["properties"], "exercises": {"type": "array", "items": EXERCISE}},
+    "required": VERIFY_SCHEMA["required"] + ["exercises"],
+}
+VERIFY_EXERCISES = """
+7. exercises (אם יש): פתור כל תרגיל מחדש מאפס בלי להסתכל על הפתרון, והשווה. תקן כל טעות בפתרון, בהצבה או בתשובה הסופית,
+   וודא שבנוסח השאלה יש את כל הנתונים הדרושים. פתרון שאינך בטוח בו - uncertain=true. אל תשמיט תרגילים.
+8. צילומי לוח: ודא שכל ![...](slide:N) מראה בדיוק את הנושא של הטקסט שלידו; צילום של נושא אחר - הזז למקום הנכון או הסר."""
 
 
-def verify_with_gemini(sources, draft, log=print):
-    """Second, independent pass: fact-check the chapter and re-solve every quiz question."""
+def verify_with_gemini(sources, draft, log=print, short=False):
+    """Second, independent pass: fact-check the chapter and re-solve every quiz question / exercise."""
     from google.genai import types
     parts = list(sources) + [types.Part.from_text(text="=== הטיוטה לבדיקה (JSON) ===\n" + json.dumps(draft, ensure_ascii=False))]
     try:
-        checked = validate(_generate_json(parts, VERIFY_SYSTEM, VERIFY_SCHEMA, "HIGH"))
+        checked = validate(_generate_json(parts, VERIFY_SYSTEM + VERIFY_EXERCISES,
+                                          VERIFY_SUMMARY_SCHEMA if short else VERIFY_SCHEMA, "HIGH"))
+        if short and not checked.get("exercises") and draft.get("exercises"):
+            checked["exercises"] = draft["exercises"]  # a check must not drop the exercises
     except Exception as e:  # noqa: BLE001 - keep the draft rather than lose the lesson, but say so
         log(f"הבדיקה נכשלה ({e}); נשמרת הטיוטה עם סימון")
         draft["verification"] = {"fixes": [], "uncertain": ["הבדיקה האוטומטית לא רצה על הפרק הזה - כדאי לבדוק אותו בזהירות."]}
@@ -354,8 +433,10 @@ def _search_check(claims):
 def verification_md(ch):
     v = ch.get("verification") or {}
     fixes, unsure = v.get("fixes") or [], v.get("uncertain") or []
-    out = ["", "---", "### ✅ בדיקת עובדות",
-           "הפרק והשאלון נבדקו בבדיקה נפרדת מול ההקלטה, צילומי הלוח והידע המקצועי, וכל שאלה נפתרה מחדש."]
+    what = ("התקציר והתרגילים נבדקו בבדיקה נפרדת מול ההקלטה, צילומי הלוח והידע המקצועי, וכל תרגיל נפתר מחדש."
+            if ch.get("exercises") else
+            "הפרק והשאלון נבדקו בבדיקה נפרדת מול ההקלטה, צילומי הלוח והידע המקצועי, וכל שאלה נפתרה מחדש.")
+    out = ["", "---", "### ✅ בדיקת עובדות", what]
     if fixes:
         out += ["", "**תוקן בבדיקה:**"] + [f"- {f}" for f in fixes]
     if unsure:
@@ -373,6 +454,7 @@ def validate(ch):
         if len(opts) >= 2 and isinstance(q.get("correct"), int) and 0 <= q["correct"] < len(opts):
             good.append(q)
     ch["questions"] = good
+    ch["exercises"] = [x for x in ch.get("exercises") or [] if isinstance(x, dict) and (x.get("question_md") or "").strip()]
     ch.setdefault("topics", [])
     ch["glossary"] = [g for g in ch.get("glossary") or [] if isinstance(g, dict) and g.get("en") and g.get("he")]
     return ch

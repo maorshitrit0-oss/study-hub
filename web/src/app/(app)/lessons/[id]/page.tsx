@@ -6,7 +6,9 @@ import Chapter from "@/components/Chapter";
 import Quiz from "@/components/Quiz";
 import Studio from "@/components/Studio";
 import { loadMedia } from "@/lib/studio";
-import { deleteLesson, markRead, retryLesson, updateLesson } from "../../actions";
+import { deleteLesson, markRead, requestFullChapter, retryLesson, updateLesson } from "../../actions";
+import Exercises, { type Exercise } from "@/components/Exercises";
+import Fold from "@/components/Fold";
 import { LESSON_LABEL, lessonName, type Lesson } from "@/lib/types";
 
 export default async function LessonPage({ params }: PageProps<"/lessons/[id]">) {
@@ -30,6 +32,10 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
   // "*" also brings `source` where it exists: lab entry-quiz questions live on their own page, not in the chapter quiz.
   const { data: all } = await sb.from("questions").select("*").eq("lesson_id", id).order("created_at");
   const questions = (all ?? []).filter((q) => !q.source);
+  // Lectures and practices: a short summary + the exercises (supabase/exercises.sql); the full chapter on request.
+  const { data: exercises } = await sb.from("exercises").select("*").eq("lesson_id", id).order("ord");
+  const summary = (lesson as Lesson & { summary_md?: string | null }).summary_md ?? null;
+  const fullChapter = lesson.chapter_md && lesson.chapter_md !== summary ? lesson.chapter_md : null;
 
   return (
     <article className="space-y-5">
@@ -81,7 +87,33 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
         </section>
       )}
 
-      {lesson.chapter_md && (
+      {summary && (
+        <section className="card">
+          <Chapter md={summary} slideUrls={slideUrls} />
+        </section>
+      )}
+
+      {(exercises ?? []).length > 0 && (
+        <section className="card">
+          <h2 className="font-semibold mb-1">✍️ תרגילים מהשיעור ({exercises!.length})</h2>
+          <p className="text-xs text-muted mb-3">לפתור על דף, ורק אחר כך לפתוח את הפתרון.</p>
+          <Exercises items={(exercises ?? []) as Exercise[]} slideUrls={slideUrls} />
+        </section>
+      )}
+
+      {summary && !fullChapter && lesson.status === "ready" && (
+        <form action={requestFullChapter.bind(null, id)}>
+          <button className="btn-ghost w-full">📖 לכתוב גם פרק מלא לשיעור הזה</button>
+        </form>
+      )}
+
+      {fullChapter && summary && (
+        <Fold id="full-chapter" title="📖 פרק מלא">
+          <Chapter md={fullChapter} slideUrls={slideUrls} />
+        </Fold>
+      )}
+
+      {lesson.chapter_md && !summary && (
         <section className="card">
           {examples && (
             <details open className="rounded-xl bg-accent-soft p-3 mb-4">
@@ -102,10 +134,10 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
             {lesson.read_at ? (
               <button className="w-full text-sm text-muted py-2">✓ סומן כנקרא · לחץ לביטול הסימון</button>
             ) : (
-              <button className="btn-ghost w-full">✓ סיימתי לקרוא</button>
+              <button className="btn-ghost w-full">✓ סיימתי עם השיעור הזה</button>
             )}
           </form>
-          <Quiz questions={questions} title="שאלון סיכום" />
+          {questions.length > 0 && <Quiz questions={questions} title="שאלון סיכום" />}
           {lesson.kind === "lab" && lesson.number && (
             <Link href={`/courses/${lesson.course_id}/entry?n=${lesson.number}`} className="btn-ghost w-full mt-3">🎯 תרגול לבוחן הכניסה של ניסוי {lesson.number}</Link>
           )}

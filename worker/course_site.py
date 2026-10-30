@@ -613,6 +613,11 @@ def cmd_pending(write=True):
             print(f"::warning title=Site {m['course_id']}::{str(e)[:300]}", flush=True)
     if write:
         process_pending(sb)
+        try:  # exercises from homework / past-exam files of every course, with what is left of the quota
+            import exercises
+            exercises.run()
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Exercises::{str(e)[:300]}", flush=True)
     else:
         from datetime import datetime
         from zoneinfo import ZoneInfo

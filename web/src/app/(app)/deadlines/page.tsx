@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
 import { attachOrphanTasks, syncPrepTasks } from "@/lib/prep";
+import { syncExerciseTasks } from "@/lib/exercises";
 import { syncWeekTasks } from "@/lib/week";
 import DeadlineRow from "@/components/DeadlineRow";
 import DeadlineForm from "@/components/DeadlineForm";
@@ -10,7 +11,7 @@ import type { Course, Deadline } from "@/lib/types";
 export default async function Deadlines({ searchParams }: PageProps<"/deadlines">) {
   const preset = (await searchParams).course as string | undefined;
   const { sb } = await requireUser();
-  await Promise.all([syncPrepTasks(sb).catch(() => {}), attachOrphanTasks(sb).catch(() => {}), syncWeekTasks(sb).catch(() => {})]);
+  await Promise.all([syncPrepTasks(sb).catch(() => {}), attachOrphanTasks(sb).catch(() => {}), syncWeekTasks(sb).catch(() => {}), syncExerciseTasks(sb).catch(() => {})]);
   const [{ data: courses }, { data: deadlines }] = await Promise.all([
     sb.from("courses").select("id, name").eq("archived", false).order("name"),
     sb.from("deadlines").select("*").neq("kind", "exam").order("due_at"),

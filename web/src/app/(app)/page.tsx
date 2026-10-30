@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
 import { dueReviews } from "@/lib/review";
 import { attachOrphanTasks, syncPrepTasks } from "@/lib/prep";
+import { syncExerciseTasks } from "@/lib/exercises";
 import { isSiteLesson, studyWeek, syncWeekTasks, todayWeek } from "@/lib/week";
 import DeadlineRow from "@/components/DeadlineRow";
 import { isWeak, pct, topicStats } from "@/lib/progress";
@@ -15,7 +16,7 @@ import { DAYS, lessonName, type Course, type Deadline, type Lesson, type Slot } 
 
 export default async function Home() {
   const { sb } = await requireUser();
-  await Promise.all([syncPrepTasks(sb).catch(() => {}), attachOrphanTasks(sb).catch(() => {}), syncWeekTasks(sb).catch(() => {})]);
+  await Promise.all([syncPrepTasks(sb).catch(() => {}), attachOrphanTasks(sb).catch(() => {}), syncWeekTasks(sb).catch(() => {}), syncExerciseTasks(sb).catch(() => {})]);
   const in14 = isoFromNow(14);
   const now = israelNow();
   const [{ data: courses }, { data: deadlines }, { data: lessons }, stats, { data: today }, missing] = await Promise.all([
