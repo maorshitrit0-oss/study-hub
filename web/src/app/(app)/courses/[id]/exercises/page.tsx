@@ -15,7 +15,7 @@ export default async function CourseExercises({ params, searchParams }: PageProp
   const { sb } = await requireUser();
   const { data: course } = await sb.from("courses").select("id, name").eq("id", id).maybeSingle();
   if (!course) notFound();
-  const { forWeek, fileExercises } = await exercisesByWeek(sb, id);
+  const { forWeek, fileExercises, fileReadyWeek } = await exercisesByWeek(sb, id);
   const files = sp.files === "1";
   const w = Math.max(1, Number(sp.w) || studyWeek());
   const { fromLessons, fromFiles } = forWeek(id, w);
@@ -44,7 +44,20 @@ export default async function CourseExercises({ params, searchParams }: PageProp
         <section className="card">
           <h2 className="font-semibold mb-1">שיעורי בית, מבחנים קודמים ודפי תרגילים</h2>
           <p className="text-xs text-muted mb-3">כל תרגיל מקובץ של הקורס, עם פתרון (רשמי אם היה בקובץ). ⭐ = סגנון מבחן.</p>
-          <Exercises items={allFiles} />
+          {[...new Set(allFiles.map((x) => x.material_id))].map((mid) => {
+            const items = allFiles.filter((x) => x.material_id === mid);
+            const ready = mid ? fileReadyWeek(id, mid) : null;
+            return (
+              <div key={mid ?? "none"} className="mt-4">
+                <h3 className="font-semibold">📄 {items[0].label ?? "קובץ"}</h3>
+                <p className="text-xs text-muted mb-2">
+                  {ready ? `אפשר לפתור אחרי שבוע ${ready} (החומר שלו נלמד עד אז)` : "עוד לא ברור אחרי איזה שיעור - הנושאים שלו עוד לא נלמדו"}
+                  {" · "}{items.filter((x) => x.done_at).length}/{items.length} נפתרו
+                </p>
+                <Exercises items={items} />
+              </div>
+            );
+          })}
         </section>
       ) : (
         <>

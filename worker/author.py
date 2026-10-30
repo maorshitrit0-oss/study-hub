@@ -1,6 +1,7 @@
 """Turn a transcript + board snapshots into a summary + exercises with solutions (or a full chapter + quiz)."""
 import json
 import os
+import re
 from pathlib import Path
 
 CHAPTER_SCHEMA = {
@@ -135,6 +136,8 @@ exercises - **כל** תרגיל, דוגמה מספרית, שאלה או הוכח
   אם המרצה פתר - לפי הדרך שלו (ותקן טעויות עם > ⚠️). אם לא פתר - פתור בעצמך.
 - topic: אחד מ-topics. exam_style: true אם המרצה אמר שזה בסגנון מבחן / יופיע במבחן.
 - uncertain: true אם אינך בטוח בפתרון (נתונים חסרים בהקלטה וכו').
+homework: כל מה שהמרצה/המתרגל ביקשו לעשות עד הפעם הבאה או הזכירו כמטלה (מטלה במודל, תרגיל בית, "תפתרו את X",
+"תסתכלו על Y") - משפט מדויק לכל פריט: מה בדיוק, ומתי להגיש אם נאמר. אם לא נאמר כלום - ריק.
 questions: רשימה ריקה (אין שאלון אמריקאי).
 topics: 3-8 נושאים קצרים שהשיעור מכסה.
 
@@ -144,6 +147,22 @@ assignments, attendance, materials (ספרים, דף נוסחאות), industry (
 exam_type ו-grade_weights: רק אם נאמרו במפורש, אחרת "unknown" ורשימה ריקה.
 glossary: 10-30 מונחים באנגלית מהחומר (en, he, explanation קצר בעברית), כולל מילים כמו assume, derive.
 syllabus_covered: אם צורפה רשימת נושאי הסילבוס - מספרי הנושאים שהשיעור לימד. אחרת ריק."""
+
+# He passes these by practising exercises only (does not watch them); the others he watches, and the summary just
+# confirms he got the message (30/10/2026).
+PRACTICE_ONLY = re.compile(r"גלים|לינאר|ליניאר|תקשורת", re.I)
+
+
+def summary_task(course, lesson):
+    kind = "תרגול" if lesson["kind"] == "practice" else "הרצאה"
+    if PRACTICE_ONLY.search(course.get("name") or ""):
+        focus = ("בקורס הזה הסטודנט לא צופה בשיעורים - הוא עובר את המבחן רק מפתרון תרגילים. התקציר צריך לתת את כל מה "
+                 "שצריך כדי לפתור תרגילים: הנוסחאות, השיטות וסדר הצעדים, ומתי משתמשים בכל אחת.")
+    else:
+        focus = ("את הקורס הזה הסטודנט צופה בעצמו. התקציר הוא 'סיכומון' לוודא שהבין: המסר, הרעיונות המרכזיים והקשר "
+                 "ביניהם - קצר.")
+    return f"זה {kind}. {focus} התרגילים (exercises) הם העיקר: כל תרגיל שנפתר או ניתן בשיעור."
+
 
 EXERCISE = {
     "type": "object",
@@ -181,7 +200,7 @@ KIND_NAME = {"lecture": "הרצאה", "practice": "תרגול", "lab": "ניסו
 EXAM_NAME = {"mcq": "אמריקאי", "open": "פתוח", "mixed": "משולב", "none": "ללא מבחן"}
 
 
-def build_prompt(course, lesson, transcript, slide_count, previous_topics):
+def build_prompt(course, lesson, transcript, slide_count, previous_topics, mode="auto"):
     lines = [
         f"קורס: {course['name']}",
         f"סוג המבחן בקורס: {EXAM_NAME.get(course.get('exam_type'), 'לא ידוע')}",
@@ -195,7 +214,7 @@ def build_prompt(course, lesson, transcript, slide_count, previous_topics):
                      "; ".join(f"{i + 1}. {t}" for i, t in enumerate(course["syllabus_topics"])))
     lines += [
         f"פריט: {KIND_NAME.get(lesson['kind'], '')} {lesson.get('number') or ''} {lesson.get('title') or ''}".strip(),
-        KIND_TASK.get(lesson["kind"], KIND_TASK["other"]),
+        summary_task(course, lesson) if summary_mode(lesson, mode) else KIND_TASK.get(lesson["kind"], KIND_TASK["other"]),
     ]
     if slide_count:
         lines.append(f"מצורפים {slide_count} צילומי לוח/שקפים, ממוספרים 1..{slide_count} לפי הסדר. בתמלול מסומן מתי כל אחד הופיע.")
@@ -306,9 +325,9 @@ def _generate_json(parts, system, schema, thinking="MEDIUM"):
     return json.loads(text)
 
 
-def _source_parts(course, lesson, transcript, slides, previous_topics, docs=()):
+def _source_parts(course, lesson, transcript, slides, previous_topics, docs=(), mode="auto"):
     from google.genai import types
-    parts = [types.Part.from_text(text=build_prompt(course, lesson, transcript, len(slides), previous_topics))]
+    parts = [types.Part.from_text(text=build_prompt(course, lesson, transcript, len(slides), previous_topics, mode))]
     for data, mime in docs:
         parts.append(types.Part.from_text(text="הקובץ המצורף (המקור לפרק):"))
         parts.append(types.Part.from_bytes(data=data, mime_type=mime))
@@ -329,7 +348,7 @@ def author_with_gemini(course, lesson, transcript, slides, previous_topics, log=
     Writes the summary + exercises (or the full chapter), then has it fact-checked. Returns the chapter dict."""
     short = summary_mode(lesson, mode)
     log("כותב תקציר ותרגילים עם פתרונות..." if short else "כותב פרק קריאה ושאלון...")
-    sources = _source_parts(course, lesson, transcript, slides, previous_topics, docs)
+    sources = _source_parts(course, lesson, transcript, slides, previous_topics, docs, mode)
     draft = validate(_generate_json(sources, SUMMARY_SYSTEM if short else SYSTEM,
                                     SUMMARY_SCHEMA if short else CHAPTER_SCHEMA, "MEDIUM"))
     log("בודק את התקציר ופותר מחדש כל תרגיל..." if short else "בודק את הפרק והשאלון מול ההקלטה, השקפים והידע המקצועי...")
@@ -361,10 +380,11 @@ VERIFY_SYSTEM = """אתה בודק עובדות קפדן בהנדסת חשמל. 
 - uncertain: טענות שנשארו ושכדאי לוודא מול המרצה/הספר.
 אל תקצר את הפרק ואל תשמיט תוכן נכון."""
 
+HOMEWORK = {"type": "array", "items": {"type": "string"}}
 SUMMARY_SCHEMA = {
     **CHAPTER_SCHEMA,
-    "properties": {**CHAPTER_SCHEMA["properties"], "exercises": {"type": "array", "items": EXERCISE}},
-    "required": CHAPTER_SCHEMA["required"] + ["exercises"],
+    "properties": {**CHAPTER_SCHEMA["properties"], "exercises": {"type": "array", "items": EXERCISE}, "homework": HOMEWORK},
+    "required": CHAPTER_SCHEMA["required"] + ["exercises", "homework"],
 }
 
 VERIFY_SCHEMA = {
@@ -384,8 +404,8 @@ VERIFY_SCHEMA = {
 }
 VERIFY_SUMMARY_SCHEMA = {
     **VERIFY_SCHEMA,
-    "properties": {**VERIFY_SCHEMA["properties"], "exercises": {"type": "array", "items": EXERCISE}},
-    "required": VERIFY_SCHEMA["required"] + ["exercises"],
+    "properties": {**VERIFY_SCHEMA["properties"], "exercises": {"type": "array", "items": EXERCISE}, "homework": HOMEWORK},
+    "required": VERIFY_SCHEMA["required"] + ["exercises", "homework"],
 }
 VERIFY_EXERCISES = """
 7. exercises (אם יש): פתור כל תרגיל מחדש מאפס בלי להסתכל על הפתרון, והשווה. תקן כל טעות בפתרון, בהצבה או בתשובה הסופית,
@@ -402,6 +422,8 @@ def verify_with_gemini(sources, draft, log=print, short=False):
                                           VERIFY_SUMMARY_SCHEMA if short else VERIFY_SCHEMA, "HIGH"))
         if short and not checked.get("exercises") and draft.get("exercises"):
             checked["exercises"] = draft["exercises"]  # a check must not drop the exercises
+        if short and not checked.get("homework") and draft.get("homework"):
+            checked["homework"] = draft["homework"]
     except Exception as e:  # noqa: BLE001 - keep the draft rather than lose the lesson, but say so
         log(f"הבדיקה נכשלה ({e}); נשמרת הטיוטה עם סימון")
         draft["verification"] = {"fixes": [], "uncertain": ["הבדיקה האוטומטית לא רצה על הפרק הזה - כדאי לבדוק אותו בזהירות."]}

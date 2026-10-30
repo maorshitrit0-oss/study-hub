@@ -44,7 +44,19 @@ export async function exercisesByWeek(sb: SupabaseClient, courseId?: string) {
     return { fromLessons, fromFiles };
   }
   const fileExercises = (course: string) => labeled.filter((x) => x.course_id === course && !x.lesson_id);
-  return { forWeek, fileExercises, all: labeled };
+  /** The week after which a file (e.g. "מטלה 3") can be solved: the last week that taught one of its topics. */
+  function fileReadyWeek(course: string, materialId: string) {
+    let last = 0;
+    for (const x of labeled) {
+      if (x.material_id !== materialId || !x.topic) continue;
+      for (const [k, set] of topicsOf) {
+        const [c, w] = k.split("|");
+        if (c === course && set.has(x.topic)) last = Math.max(last, Number(w));
+      }
+    }
+    return last || null;
+  }
+  return { forWeek, fileExercises, fileReadyWeek, all: labeled };
 }
 
 /**

@@ -294,6 +294,15 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Board snapshots: taken at the END of a scene, now marked in the transcript at that moment ("מראה את מה שהוסבר עד
   כאן") and the prompts say a snapshot shows what was said BEFORE its marker; verify checks image/topic match. Old
   transcripts keep the old (start-time) markers.
+- Summary flavour by course (`author.summary_task`, `PRACTICE_ONLY` = waves / linear / communication): those he never
+  watches - the summary gives everything needed to solve exercises (formulas, methods, step order); the others (Java,
+  micro, digital) he watches - a short "סיכומון" to confirm he got the message. Lab 2: nothing for him except the
+  practical-exam page (he does the experiments and entry quizzes himself / with GPT).
+- Homework said in class (`homework` in the summary JSON) -> tasks "📝 ..." due at the course's next class
+  (`hub.save_homework`, uid `hw:<lesson>:<i>`). Homework/exam files: the exercises tab shows per file "אפשר לפתור אחרי
+  שבוע N" (last week that taught one of its topics, `fileReadyWeek`).
+- Lab practical exams: MIDTERM = experiments 1-5 (incl. 5), FINAL = all; same structure (theory/graph, verbal, build).
+  His lab-1 example: two sine inputs -> make a triangle -> summing amplifier. The practical page has mock exams for both.
 - Later (end of semester): exam variations per course as files, from past exams and each lecturer's style.
 
 ## Open items

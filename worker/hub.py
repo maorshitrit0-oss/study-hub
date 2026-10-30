@@ -256,11 +256,43 @@ def save_exercises(job, exercises):
         job.sb.table("exercises").insert(rows).execute()
 
 
+def next_class(sb, course_id):
+    """Start of the course's next class (any kind) in the timetable, ISO; a week from now if none is set."""
+    from datetime import timedelta
+    from zoneinfo import ZoneInfo
+    tz = ZoneInfo("Asia/Jerusalem")
+    now = datetime.now(tz)
+    slots = sb.table("schedule_slots").select("weekday, start_time").eq("course_id", course_id).execute().data
+    for k in range(1, 15):
+        d = now + timedelta(days=k)
+        todays = sorted(s["start_time"] for s in slots if s["weekday"] == (d.weekday() + 1) % 7)
+        if todays:
+            h, m = map(int, todays[0][:5].split(":"))
+            return d.replace(hour=h, minute=m, second=0, microsecond=0).isoformat()
+    return (now + timedelta(days=7)).isoformat()
+
+
+def save_homework(job, items):
+    """What the lecturer / TA asked to do by next time -> tasks due at the course's next class."""
+    if not items:
+        return
+    due = next_class(job.sb, job.course["id"])
+    rows = [{"user_id": job.lesson["user_id"], "course_id": job.course["id"], "kind": "assignment",
+             "title": f"📝 {text[:180]}", "due_at": due, "done": False,
+             "notes": f"נאמר ב{job.label()}. עד השיעור הבא (אם נאמר מועד אחר - לעדכן).",
+             "external_uid": f"hw:{job.lesson['id']}:{i}"} for i, text in enumerate(items) if text.strip()]
+    try:
+        job.sb.table("deadlines").upsert(rows, on_conflict="user_id,external_uid", ignore_duplicates=True).execute()
+    except Exception as e:  # noqa: BLE001
+        print(f"homework tasks not saved: {e}", flush=True)
+
+
 def save_chapter(job, ch, by):
     ch = author.validate(ch)
     short = bool(ch.get("exercises")) or (by != "claude" and author.summary_mode(job.lesson, job.mode))
     if short:
         save_exercises(job, ch["exercises"])
+        save_homework(job, [h for h in ch.get("homework") or [] if isinstance(h, str)])
     if ch["questions"]:
         # Only the chapter's own quiz is replaced: lab entry-quiz questions (source set) stay. A summary has no quiz,
         # so an earlier quiz of the lesson is kept.
