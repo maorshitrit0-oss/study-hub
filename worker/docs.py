@@ -3,6 +3,7 @@ when new lessons are ready. Same document as the app's "📄 דף נוסחאות
 
   python docs.py     (run by the daily site run, after the chapters and exercises)
 """
+import json
 import os
 import re
 from datetime import datetime, timezone
@@ -35,10 +36,22 @@ def allows_sheet(sb, course):
     return any(ALLOWED.search(f["text"] or "") for f in facts) or bool(ALLOWED.search(course.get("notes") or ""))
 
 
+def formula_notes(sb, course):
+    """Formulas read from the course files (worker/exercises.py), by file."""
+    try:
+        return json.loads(sb.storage.from_(BUCKET).download(f"{course['user_id']}/materials/{course['id']}/formula_notes.json").decode())
+    except Exception:  # noqa: BLE001
+        return {}
+
+
 def build(sb, course, lessons):
     from google.genai import types
     text = "\n\n".join(f"######## {l['kind']} {l.get('number') or ''} {l.get('title') or ''}\n{(l.get('chapter_md') or '')[:40000]}"
                        for l in lessons)
+    notes = formula_notes(sb, course)
+    if notes:
+        text += "\n\n######## נוסחאות מקבצי הקורס (מצגות, חוברות, מבחנים)\n" + "\n".join(
+            f"[{name}] {f}" for name, fs in notes.items() for f in fs)
 
     def call(client, model):
         return client.models.generate_content(model=model, contents=[types.Content(role="user", parts=[
@@ -67,8 +80,11 @@ def run():
         if not lessons:
             continue
         path = f"{course['user_id']}/materials/{course['id']}/{FILE}"
-        built = next((f for f in sb.storage.from_(BUCKET).list(path.rsplit("/", 1)[0], {"limit": 1000}) if f.get("name") == FILE), None)
-        newest = max(l["updated_at"] for l in lessons)
+        listing = sb.storage.from_(BUCKET).list(path.rsplit("/", 1)[0], {"limit": 1000})
+        built = next((f for f in listing if f.get("name") == FILE), None)
+        notes = next((f for f in listing if f.get("name") == "formula_notes.json"), None)
+        # Rebuilt when a lesson or a file with formulas came after the last build.
+        newest = max([l["updated_at"] for l in lessons] + ([notes.get("updated_at") or ""] if notes else []))
         if built and (built.get("updated_at") or "") >= newest:
             continue  # up to date
         try:

@@ -114,12 +114,6 @@ export async function requestFullChapter(id: string) {
   revalidatePath(`/lessons/${id}`);
 }
 
-export async function readExerciseFiles(courseId: string): Promise<string> {
-  await requireUser();
-  const err = await dispatchExercises(courseId);
-  return err ?? "✓ התחיל. בעוד כמה דקות התרגילים יופיעו בלשונית 'מכל הקבצים' (מרענן את הדף).";
-}
-
 /** Builds (or rebuilds) a course document: formula sheet / practical-exam preparation. */
 export async function rebuildDoc(courseId: string, kind: DocKind): Promise<string> {
   const { sb } = await requireUser();

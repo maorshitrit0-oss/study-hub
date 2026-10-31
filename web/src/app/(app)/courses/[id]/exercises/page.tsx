@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import Exercises from "@/components/Exercises";
-import ReadExerciseFiles from "@/components/ReadExerciseFiles";
 import { exercisesByWeek } from "@/lib/exercises";
 import { studyWeek, todayWeek, weekDays } from "@/lib/week";
 
@@ -75,7 +74,10 @@ export default async function CourseExercises({ params, searchParams }: PageProp
           )}
         </>
       )}
-      <ReadExerciseFiles courseId={id} />
+      <p className="text-xs text-muted">
+        כל קובץ שמעלים לקורס נקרא לבד: התרגילים שבו נכנסים לשבוע שאחריו אפשר לפתור אותם, הדגשים למבחן נרשמים במידע על
+        הקורס, והנוסחאות נכנסות לדף הנוסחאות.
+      </p>
     </div>
   );
 }

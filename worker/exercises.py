@@ -42,6 +42,16 @@ CHECK = """אתה בודק קפדן בהנדסת חשמל. לפניך תרגיל
 את כל הנתונים מהקובץ. פתרון שאינך בטוח בו - uncertain=true. אל תשמיט תרגילים. החזר את כל הרשימה המתוקנת."""
 
 SCHEMA = {"type": "object", "properties": {"exercises": {"type": "array", "items": author.EXERCISE}}, "required": ["exercises"]}
+STRINGS = {"type": "array", "items": {"type": "string"}}
+FILE_SCHEMA = {"type": "object", "properties": {"exercises": {"type": "array", "items": author.EXERCISE},
+                                                "exam_hints": STRINGS, "formulas": STRINGS},
+               "required": ["exercises", "exam_hints", "formulas"]}
+FILE_EXTRA = """
+בנוסף, מהקובץ הזה:
+- exam_hints: כל דגש למבחן שמופיע בו (מה יהיה / לא יהיה במבחן, מבנה המבחן, חומר עזר מותר, "חשוב", "שאלה כזו תופיע",
+  נושא שחוזר במבחנים קודמים) - משפט ברור לכל דגש. אם אין - ריק.
+- formulas: כל נוסחה, טבלה קצרה או כלל שכדאי שיהיו בדף הנוסחאות למבחן (LaTeX בתוך $...$), שורה לכל אחת, עם מילה-שתיים
+  מתי משתמשים בה. רק מה שמופיע בקובץ. אם אין - ריק."""
 
 
 def db():
@@ -120,7 +130,7 @@ def read_file(sb, course, m, materials, topics, work):
     data, mime = blob(sb, m, work)
     if len(data) > INLINE_LIMIT:
         print(f"::warning title=Exercises::{m['title']} is over 18 MB - skipped", flush=True)
-        return []
+        return [], [], []
     kind = {"exam": "מבחן קודם", "homework": "מטלת בית", "sheet": "דף תרגילים"}[source_of(m)]
     if source_of(m) == "sheet" and (m.get("kind") == "slides" or SLIDES.search(m["title"] or "")) and not SHEET.search(m["title"] or ""):
         kind = "מצגת הרצאה - הוצא את הדוגמאות הפתורות והתרגילים שבשקפים (לא את ההסברים)"
@@ -131,12 +141,34 @@ def read_file(sb, course, m, materials, topics, work):
         sdata, smime = blob(sb, sol, work)
         if len(sdata) + len(data) < INLINE_LIMIT:
             parts += [types.Part.from_text(text="קובץ הפתרון הרשמי:"), types.Part.from_bytes(data=sdata, mime_type=smime)]
-    found = gen(parts, None)
+    parts[0] = types.Part.from_text(text=parts[0].text + FILE_EXTRA)
+    out = author._generate_json(parts, None, FILE_SCHEMA, "MEDIUM")
+    found = author.validate({"exercises": out.get("exercises") or []})["exercises"]
     if found:
         checked = gen(parts + [types.Part.from_text(text="=== התרגילים לבדיקה ===\n" + json.dumps(found, ensure_ascii=False))], CHECK)
         if len(checked) >= len(found):
             found = checked
-    return found
+    return found, [h for h in out.get("exam_hints") or [] if isinstance(h, str) and h.strip()], \
+        [f for f in out.get("formulas") or [] if isinstance(f, str) and f.strip()]
+
+
+def save_extras(sb, course, m, hints, formulas):
+    """Exam hints from a file -> the course info ("מה יהיה במבחן"); formulas -> notes the formula sheet is built from."""
+    if hints:
+        have = {f["text"] for f in sb.table("course_facts").select("text").eq("course_id", course["id"]).execute().data}
+        rows = [{"user_id": course["user_id"], "course_id": course["id"], "category": "exam_hint",
+                 "text": f"{h.strip()} (מתוך {m['title']})"} for h in hints if f"{h.strip()} (מתוך {m['title']})" not in have]
+        if rows:
+            sb.table("course_facts").insert(rows).execute()
+    if formulas:
+        path = f"{course['user_id']}/materials/{course['id']}/formula_notes.json"
+        try:
+            notes = json.loads(sb.storage.from_(BUCKET).download(path).decode())
+        except Exception:  # noqa: BLE001 - first file
+            notes = {}
+        notes[m["title"]] = formulas
+        sb.storage.from_(BUCKET).upload(path, json.dumps(notes, ensure_ascii=False).encode("utf-8"),
+                                        {"content-type": "application/json", "upsert": "true"})
 
 
 LESSON_PROMPT = """לפניך שיעור ({kind}) בקורס "{course}" - הפרק שנכתב עליו ותמלול ההקלטה. הסטודנט לומד מפתרון תרגילים בעצמו.
@@ -281,7 +313,8 @@ def run(only=None):
                 return
             work = Path(tempfile.mkdtemp(prefix="ex_"))
             try:
-                found = read_file(sb, course, m, materials, topics, work)
+                found, hints, formulas = read_file(sb, course, m, materials, topics, work)
+                save_extras(sb, course, m, hints, formulas)
             except Exception as e:  # noqa: BLE001
                 print(f"::warning title=Exercises {m['title']}::{str(e)[:300]}", flush=True)
                 if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota", "המכסה"):
@@ -295,7 +328,8 @@ def run(only=None):
             if rows:
                 sb.table("exercises").insert(rows).execute()
             mark_read(sb, course, m["id"])  # also a file with no exercises: never read again
-            print(f"::notice title=Exercises::{course['name']} / {m['title']}: {len(rows)}", flush=True)
+            print(f"::notice title=Exercises::{course['name']} / {m['title']}: {len(rows)} exercises, "
+                  f"{len(hints)} exam hints, {len(formulas)} formulas", flush=True)
         try:
             assign(sb, course)
         except Exception as e:  # noqa: BLE001

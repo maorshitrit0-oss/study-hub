@@ -315,6 +315,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   circuits had none because only its slides existed. A lesson that gave 0 exercises gets one more try (`lesson0:`).
   Lab courses are skipped. Gemini 2.5 models are gone for new keys (404): lists use flash-latest, 3.8-flash,
   flash-lite-latest, 3.5-flash-lite.
+- Nothing to press (31/10): every uploaded file is read by itself (exercises.yml on upload + daily). Reading a file
+  also saves its exam hints as course facts (`exam_hint`, "(מתוך <file>)") and its formulas to
+  `formula_notes.json`; docs.py includes those notes and rebuilds the sheet when a lesson or a file with formulas is
+  newer than it. The exercises-page button is gone.
 - Formula sheets build themselves (`worker/docs.py`, daily + after exercises.yml) for courses whose facts/notes mention
   "דף נוסחאות"; rebuilt when lessons are newer than the sheet. The app page still has "🔄 לעדכן".
 - Home: reminders are about submissions/exams/entry quizzes, not reading; the deadlines card hides automatic
