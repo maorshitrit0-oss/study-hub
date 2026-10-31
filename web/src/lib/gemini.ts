@@ -2,8 +2,8 @@ import { GoogleGenAI, type Part } from "@google/genai";
 
 // Free-tier quotas are per project AND per model (e.g. 20 requests/day on the newest Flash), so we
 // fall back across models, and across keys when GEMINI_API_KEY holds several comma-separated keys.
-const WORK_MODELS = ["gemini-flash-latest", "gemini-3.8-flash", "gemini-2.5-flash", "gemini-flash-lite-latest", "gemini-2.5-flash-lite"];
-const CHAT_MODELS = ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.5-flash"];
+const WORK_MODELS = ["gemini-flash-latest", "gemini-3.8-flash", "gemini-flash-lite-latest", "gemini-3.5-flash-lite"];
+const CHAT_MODELS = ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-3.5-flash-lite", "gemini-3.8-flash"];
 
 const list = (v: string | undefined) => (v ?? "").split(",").map((x) => x.trim()).filter(Boolean);
 export const geminiKeys = () => list(process.env.GEMINI_API_KEY);

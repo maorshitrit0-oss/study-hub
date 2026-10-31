@@ -311,6 +311,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   is placed in ONE lesson (`exercises.assign`, `fits_lesson_id`, `duplicate` - supabase/exercises_assign.sql): the
   earliest lesson after which it can be solved entirely, strict (most are "not yet" early on), re-checked daily as
   lessons come; duplicates of class exercises are hidden from the weeks. Unplaced ones show only under "מכל הקבצים".
+- Lecture slide PDFs ("הרצאה 2-0 - הדיודה.pdf", kind slides) are exercise sources too (their worked examples) - digital
+  circuits had none because only its slides existed. A lesson that gave 0 exercises gets one more try (`lesson0:`).
+  Lab courses are skipped. Gemini 2.5 models are gone for new keys (404): lists use flash-latest, 3.8-flash,
+  flash-lite-latest, 3.5-flash-lite.
 - Formula sheets build themselves (`worker/docs.py`, daily + after exercises.yml) for courses whose facts/notes mention
   "דף נוסחאות"; rebuilt when lessons are newer than the sheet. The app page still has "🔄 לעדכן".
 - Home: reminders are about submissions/exams/entry quizzes, not reading; the deadlines card hides automatic

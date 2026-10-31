@@ -76,12 +76,18 @@ def source_of(m):
     return "sheet"
 
 
+SLIDES = re.compile(r"הרצאה|שיעור|lecture|\blec\b|slides|מצגת", re.I)
+NOT_EXERCISES = re.compile(r"syllabus|סילבוס|דוח|report|הנחיות|נוסחאות|formula|datasheet|manual|pinout|guide", re.I)
+
+
 def wanted(m):
-    """Files that hold exercises (not slides, the syllabus, a lab booklet or a solution on its own)."""
+    """Files that hold exercises: homework, past exams, exercise sheets, and lecture slides (their worked examples).
+    Not the syllabus, reports, formula sheets, datasheets, code or a solution file on its own."""
     title = m["title"] or ""
-    if not (FILE_TYPES.search(title) or m["storage_path"].startswith("drive:")) or SOLUTION.search(title):
+    if not (FILE_TYPES.search(title) or m["storage_path"].startswith("drive:")) or SOLUTION.search(title) or NOT_EXERCISES.search(title):
         return False
-    return m.get("kind") in ("past_exam", "solution") or bool(EXAM.search(title) or HOMEWORK.search(title) or SHEET.search(title))
+    return (m.get("kind") in ("past_exam", "solution", "slides")
+            or bool(EXAM.search(title) or HOMEWORK.search(title) or SHEET.search(title) or SLIDES.search(title)))
 
 
 def solution_for(m, materials):
@@ -116,6 +122,8 @@ def read_file(sb, course, m, materials, topics, work):
         print(f"::warning title=Exercises::{m['title']} is over 18 MB - skipped", flush=True)
         return []
     kind = {"exam": "מבחן קודם", "homework": "מטלת בית", "sheet": "דף תרגילים"}[source_of(m)]
+    if source_of(m) == "sheet" and (m.get("kind") == "slides" or SLIDES.search(m["title"] or "")) and not SHEET.search(m["title"] or ""):
+        kind = "מצגת הרצאה - הוצא את הדוגמאות הפתורות והתרגילים שבשקפים (לא את ההסברים)"
     parts = [types.Part.from_text(text=PROMPT.format(kind=kind, course=course["name"], topics=", ".join(topics) or "-")),
              types.Part.from_bytes(data=data, mime_type=mime)]
     sol = solution_for(m, materials)
@@ -149,8 +157,13 @@ def from_lessons(sb, course, budget_end):
                .eq("course_id", course["id"]).eq("status", "ready").in_("kind", ["lecture", "practice"])
                .order("created_at").execute().data)
     for l in lessons:
-        if l["id"] in have or f"lesson:{l['id']}" in read:
+        # "lesson:" marks before 31/10/2026 were also written for lessons that gave none: those get one more try.
+        retry_zero = f"lesson:{l['id']}" in read and f"lesson0:{l['id']}" not in read and l["id"] not in have
+        if l["id"] in have or (f"lesson:{l['id']}" in read and not retry_zero):
             continue
+        if retry_zero:
+            read.add(f"lesson0:{l['id']}")
+            mark_read(sb, course, f"lesson0:{l['id']}")
         if time.time() > budget_end:
             return False
         kind = f"{'תרגול' if l['kind'] == 'practice' else 'הרצאה'} {l.get('number') or ''}".strip()
@@ -175,6 +188,10 @@ def from_lessons(sb, course, budget_end):
                 for i, x in enumerate(found)]
         if rows:
             sb.table("exercises").insert(rows).execute()
+        elif f"lesson0:{l['id']}" not in read:
+            mark_read(sb, course, f"lesson0:{l['id']}")  # none found: one more try on the next run
+            print(f"::notice title=Exercises::{course['name']} / {kind}: none found - will try once more", flush=True)
+            continue
         mark_read(sb, course, f"lesson:{l['id']}")
         print(f"::notice title=Exercises::{course['name']} / {kind}: {len(rows)} from the lesson", flush=True)
     return True
@@ -233,7 +250,8 @@ def assign(sb, course):
 
 def run(only=None):
     sb, start = db(), time.time()
-    q = sb.table("courses").select("id, name, user_id, kind").eq("archived", False).neq("kind", "self")
+    # Labs are out: he does the experiments and entry quizzes himself (30/10/2026).
+    q = sb.table("courses").select("id, name, user_id, kind").eq("archived", False).neq("kind", "self").neq("kind", "lab")
     courses = q.eq("id", only).execute().data if only else q.execute().data
     for course in courses:
         materials = sb.table("materials").select("*").eq("course_id", course["id"]).order("created_at").execute().data
