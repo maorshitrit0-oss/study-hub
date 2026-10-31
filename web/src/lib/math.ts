@@ -37,3 +37,23 @@ export function promoteLongMath(md: string) {
       .replace(/\$\$([^$]+?)\$\$/g, (_, tex: string) => `$$${splitEquation(tex.trim())}$$`);
   }).join("");
 }
+
+// LaTeX that Gemini wrote without $ around it (seen in exercises, 31/10/2026) shows as raw code. Outside code and
+// outside existing $...$, an ASCII run that contains a LaTeX command (\frac, \hat, \cos...) is a formula: wrap it.
+const RUN = /[A-Za-z0-9\\{}()[\]^_+\-=*/|.,:;<>!'~ ]*\\[A-Za-z]+[A-Za-z0-9\\{}()[\]^_+\-=*/|.,:;<>!'~ ]*/g;
+
+export function wrapBareLatex(md: string) {
+  // JSON turned "\b", "\f", "\t", "\r" at the start of \bar, \frac, \theta, \rho into control characters.
+  const text = md.replace(/\x08/g, "\\b").replace(/\x0c/g, "\\f").replace(/\t(?=[a-z]{2,})/g, "\\t").replace(/\r(?=[a-z]{2,})/g, "\\r");
+  return text.split(/(```[\s\S]*?```|`[^`\n]*`|\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/g).map((part, i) => {
+    if (i % 2 === 1) return part;
+    return part.replace(RUN, (run) => {
+      // English words at either end are prose, not part of the formula.
+      const lead = run.match(/^([\s.,:;]*[A-Za-z]{2,}[\s.,:;]+)*[\s.,:;]*/)![0];
+      const tail = run.slice(lead.length).match(/([\s.,:;]+[A-Za-z]{2,}(?![\w{(^_]))*[\s.,:;]*$/)![0];
+      const tex = run.slice(lead.length, run.length - tail.length);
+      if (!tex) return run;
+      return tex.length > 40 ? `${lead}\n\n$$${tex}$$\n\n${tail}` : `${lead}$${tex}$${tail}`;
+    });
+  }).join("");
+}

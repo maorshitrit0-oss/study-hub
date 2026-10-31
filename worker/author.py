@@ -121,6 +121,7 @@ chapter_md - תקציר קצר (300-700 מילים), לא פרק:
 2-4 שורות: מה המרצה רצה להעביר בשיעור הזה, בשורה התחתונה.
 ## עיקרי השיעור
 לכל נושא (לפי הסדר): שורה-שתיים של העיקר, ההגדרות והנוסחאות המרכזיות (כל משוואה בשורה נפרדת $$...$$).
+**כל** נוסחה, סמל או ביטוי מתמטי - בתוך $...$ או $$...$$, גם בתרגילים ובפתרונות. אף פעם לא LaTeX בלי $.
 """ + SLIDES_RULE + """
 ## ⭐ מה המרצה הדגיש
 כל מה שנאמר שחשוב / יופיע במבחן / טעות נפוצה, ושורה > ⚠️ אם המרצה טעה או שהתמלול סותר את הלוח.
@@ -134,6 +135,7 @@ exercises - **כל** תרגיל, דוגמה מספרית, שאלה או הוכח
   (או ![](slide:N) אם הצילום מראה בדיוק את השאלה). אם המרצה נתן רק רעיון - נסח שאלה מלאה לפי מה שנאמר.
 - solution_md: פתרון מלא שלב אחרי שלב, עם ההסבר למה עושים כל צעד, כל ההצבות, התשובה הסופית ביחידות, וטעות נפוצה אם יש.
   אם המרצה פתר - לפי הדרך שלו (ותקן טעויות עם > ⚠️). אם לא פתר - פתור בעצמך.
+- כל ביטוי מתמטי בשאלה ובפתרון בתוך $...$ (קצר) או $$...$$ בשורה נפרדת - אף פעם לא LaTeX חשוף.
 - topic: אחד מ-topics. exam_style: true אם המרצה אמר שזה בסגנון מבחן / יופיע במבחן.
 - uncertain: true אם אינך בטוח בפתרון (נתונים חסרים בהקלטה וכו').
 homework: כל מה שהמרצה/המתרגל ביקשו לעשות עד הפעם הבאה או הזכירו כמטלה (מטלה במודל, תרגיל בית, "תפתרו את X",
@@ -322,7 +324,16 @@ def _generate_json(parts, system, schema, thinking="MEDIUM"):
     text = (resp.text or "").strip()
     if text.startswith("```"):
         text = text.strip("`").removeprefix("json").strip()
-    return json.loads(text)
+    return json.loads(fix_latex_escapes(text))
+
+
+def fix_latex_escapes(text):
+    r"""A single backslash before a LaTeX command inside JSON (\bar, \frac, \theta, \rho, \nabla) is read as a
+    control character and the command is lost. Double it where the letters that follow make it a LaTeX command."""
+    text = re.sub(r"(?<!\\)\\([bf])(?=[a-zA-Z])", r"\\\\\1", text)
+    text = re.sub(r"(?<!\\)\\t(?=heta|ext|imes|au\b|an\b|ilde|op\b|riangle|frac)", r"\\\\t", text)
+    text = re.sub(r"(?<!\\)\\r(?=ho\b|ight|angle)", r"\\\\r", text)
+    return re.sub(r"(?<!\\)\\n(?=abla|eq\b|u\b|ot\b|orm|i\b|eg\b)", r"\\\\n", text)
 
 
 def _source_parts(course, lesson, transcript, slides, previous_topics, docs=(), mode="auto"):
