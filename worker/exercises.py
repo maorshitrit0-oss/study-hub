@@ -180,6 +180,57 @@ def from_lessons(sb, course, budget_end):
     return True
 
 
+ASSIGN = """לפניך השיעורים שנלמדו עד עכשיו בקורס "{course}" (לפי הסדר, עם מה שנלמד בכל אחד), התרגילים שנפתרו בכיתה,
+ותרגילים מקבצים (שיעורי בית, מבחנים קודמים, חוברות). לכל תרגיל מקובץ קבע:
+- lesson: המספר (מהרשימה) של השיעור **המוקדם ביותר** שאחריו אפשר לפתור את התרגיל **כולו** - כל סעיף, כל נושא שהוא דורש
+  נלמד בשיעור הזה או לפניו. היה מחמיר: אם חסר נושא אחד שעוד לא נלמד - 0 ("עוד לא"). מבחן שלם / עבודת בית על נושא
+  מאוחר - 0. בתחילת הסמסטר רוב התרגילים צריכים להיות 0.
+- duplicate: true אם זה אותו תרגיל (אותם נתונים ושאלה) כמו אחד שנפתר בכיתה.
+החזר את כל התרגילים, לפי id."""
+
+ASSIGN_SCHEMA = {"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object", "properties": {
+    "id": {"type": "integer"}, "lesson": {"type": "integer"}, "duplicate": {"type": "boolean"}},
+    "required": ["id", "lesson", "duplicate"]}}}, "required": ["items"]}
+
+
+def assign(sb, course):
+    """File exercises not placed yet -> the earliest lesson after which each can be fully solved (or not yet)."""
+    from google.genai import types
+    try:
+        todo = (sb.table("exercises").select("id, title, question_md").eq("course_id", course["id"])
+                .is_("lesson_id", "null").is_("fits_lesson_id", "null").eq("duplicate", False).execute().data)
+    except Exception as e:  # noqa: BLE001 - database without the columns yet (supabase/exercises_assign.sql)
+        print(f"assign skipped: {e}", flush=True)
+        return
+    lessons = (sb.table("lessons").select("id, kind, number, title, topics, summary_md, chapter_md").eq("course_id", course["id"])
+               .eq("status", "ready").in_("kind", ["lecture", "practice"]).order("created_at").execute().data)
+    if not todo or not lessons:
+        return
+    taught = sb.table("exercises").select("title").eq("course_id", course["id"]).not_.is_("lesson_id", "null").execute().data
+    listing = "\n\n".join(
+        f"[{i + 1}] {'תרגול' if l['kind'] == 'practice' else 'הרצאה'} {l.get('number') or ''}: {', '.join(l.get('topics') or [])}\n"
+        f"{(l.get('summary_md') or l.get('chapter_md') or '')[:1500]}" for i, l in enumerate(lessons))
+    for k in range(0, len(todo), 60):
+        batch = todo[k:k + 60]
+        ex = "\n".join(f"id {j}: {x.get('title') or ''} - {(x['question_md'] or '')[:350]}" for j, x in enumerate(batch))
+        parts = [types.Part.from_text(text=ASSIGN.format(course=course["name"])),
+                 types.Part.from_text(text=f"=== השיעורים ===\n{listing}\n\n=== נפתרו בכיתה ===\n"
+                                           + "\n".join(t["title"] or "" for t in taught)[:6000]
+                                           + f"\n\n=== התרגילים מקבצים ===\n{ex}")]
+        items = author._generate_json(parts, None, ASSIGN_SCHEMA, "MEDIUM").get("items") or []
+        placed = 0
+        for it in items:
+            if not (0 <= it.get("id", -1) < len(batch)):
+                continue
+            row = batch[it["id"]]
+            if it.get("duplicate"):
+                sb.table("exercises").update({"duplicate": True}).eq("id", row["id"]).execute()
+            elif 1 <= it.get("lesson", 0) <= len(lessons):
+                sb.table("exercises").update({"fits_lesson_id": lessons[it["lesson"] - 1]["id"]}).eq("id", row["id"]).execute()
+                placed += 1
+        print(f"::notice title=Exercises {course['name']}::placed {placed} of {len(batch)} file exercises in a lesson", flush=True)
+
+
 def run(only=None):
     sb, start = db(), time.time()
     q = sb.table("courses").select("id, name, user_id, kind").eq("archived", False).neq("kind", "self")
@@ -199,6 +250,10 @@ def run(only=None):
         except Exception:  # noqa: BLE001 - quota: stop for today
             return
         if not todo:
+            try:
+                assign(sb, course)
+            except Exception as e:  # noqa: BLE001
+                print(f"::warning title=Exercises assign {course['name']}::{str(e)[:300]}", flush=True)
             continue
         topics = sorted({t for l in sb.table("lessons").select("topics").eq("course_id", course["id"]).execute().data
                          for t in (l.get("topics") or [])})
@@ -223,6 +278,10 @@ def run(only=None):
                 sb.table("exercises").insert(rows).execute()
             mark_read(sb, course, m["id"])  # also a file with no exercises: never read again
             print(f"::notice title=Exercises::{course['name']} / {m['title']}: {len(rows)}", flush=True)
+        try:
+            assign(sb, course)
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Exercises assign {course['name']}::{str(e)[:300]}", flush=True)
 
 
 if __name__ == "__main__":

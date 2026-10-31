@@ -307,6 +307,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   daily, and lessons written before summaries get their exercises extracted once (`exercises.from_lessons`, key
   `lesson:<id>` in exercises_read.json). Each run annotates per course which files were skipped as "not exercise files".
   Every exercise shows its source ("מקור: 🎓 הרצאה 2" / "📄 <file>").
+- 31/10: file exercises matched by topic flooded every week (whole exam + homework 3 in week 1). Now each file exercise
+  is placed in ONE lesson (`exercises.assign`, `fits_lesson_id`, `duplicate` - supabase/exercises_assign.sql): the
+  earliest lesson after which it can be solved entirely, strict (most are "not yet" early on), re-checked daily as
+  lessons come; duplicates of class exercises are hidden from the weeks. Unplaced ones show only under "מכל הקבצים".
 - Formula sheets build themselves (`worker/docs.py`, daily + after exercises.yml) for courses whose facts/notes mention
   "דף נוסחאות"; rebuilt when lessons are newer than the sheet. The app page still has "🔄 לעדכן".
 - Home: reminders are about submissions/exams/entry quizzes, not reading; the deadlines card hides automatic

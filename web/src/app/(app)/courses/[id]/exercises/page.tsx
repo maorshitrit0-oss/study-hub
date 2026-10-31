@@ -51,7 +51,7 @@ export default async function CourseExercises({ params, searchParams }: PageProp
               <div key={mid ?? "none"} className="mt-4">
                 <h3 className="font-semibold">📄 {items[0].label ?? "קובץ"}</h3>
                 <p className="text-xs text-muted mb-2">
-                  {ready ? `אפשר לפתור אחרי שבוע ${ready} (החומר שלו נלמד עד אז)` : "עוד לא ברור אחרי איזה שיעור - הנושאים שלו עוד לא נלמדו"}
+                  {ready ? `אפשר לפתור את כולו אחרי שבוע ${ready}` : "חלק מהחומר שלו עוד לא נלמד - כל תרגיל יעבור לשבוע שלו כשיילמד"}
                   {" · "}{items.filter((x) => x.done_at).length}/{items.length} נפתרו
                 </p>
                 <Exercises items={items} />
@@ -69,7 +69,7 @@ export default async function CourseExercises({ params, searchParams }: PageProp
           </section>
           {fromFiles.length > 0 && (
             <section className="card">
-              <h2 className="font-semibold mb-1">מבחנים ושיעורי בית על הנושאים של השבוע</h2>
+              <h2 className="font-semibold mb-1">מקבצים: שיעורי בית ומבחנים שאפשר לפתור אחרי השבוע הזה</h2>
               <Exercises items={fromFiles} />
             </section>
           )}

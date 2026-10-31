@@ -4,7 +4,10 @@ import { classMeetings } from "./recordings";
 import { semesterWeek } from "./week";
 import type { Exercise } from "@/components/Exercises";
 
-export type ExerciseRow = Exercise & { course_id: string; lesson_id: string | null; material_id: string | null; ord: number };
+export type ExerciseRow = Exercise & {
+  course_id: string; lesson_id: string | null; material_id: string | null; ord: number;
+  fits_lesson_id?: string | null; duplicate?: boolean; // supabase/exercises_assign.sql
+};
 
 const israelDate = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem" }).format(d);
 
@@ -26,13 +29,6 @@ export async function exercisesByWeek(sb: SupabaseClient, courseId?: string) {
   const lessonWeek = new Map<string, number>();
   for (const m of held) if (m.lesson) lessonWeek.set(m.lesson.id, semesterWeek(m.date));
   for (const l of lessons ?? []) if (!lessonWeek.has(l.id)) lessonWeek.set(l.id, semesterWeek(israelDate(new Date(l.created_at))));
-  const topicsOf = new Map<string, Set<string>>(); // `${course}|${week}` -> topics taught that week
-  for (const l of lessons ?? []) {
-    const k = `${l.course_id}|${lessonWeek.get(l.id)}`;
-    const set = topicsOf.get(k) ?? new Set<string>();
-    for (const t of (l.topics ?? []) as string[]) set.add(t);
-    topicsOf.set(k, set);
-  }
   const fileName = new Map((materials ?? []).map((m) => [m.id, m.title as string]));
   const KIND: Record<string, string> = { lecture: "הרצאה", practice: "תרגול" };
   const lessonName = new Map((lessons ?? []).map((l) => [l.id, `${KIND[l.kind] ?? "שיעור"}${l.number ? ` ${l.number}` : ""}`]));
@@ -42,25 +38,23 @@ export async function exercisesByWeek(sb: SupabaseClient, courseId?: string) {
     label: x.material_id ? `📄 ${fileName.get(x.material_id) ?? "קובץ"}` : x.lesson_id ? `🎓 ${lessonName.get(x.lesson_id) ?? "שיעור"}` : undefined,
   }));
 
-  /** The exercises of semester week w in a course: from its lessons, then files on the topics it taught. */
+  /**
+   * The exercises of semester week w in a course: from its lessons, then file exercises placed in one of its lessons
+   * (worker/exercises.py assign: the earliest lesson after which the whole exercise can be solved). Each exercise is
+   * in exactly one week; one not placed yet (material not taught) or a duplicate of a class exercise is in no week.
+   */
   function forWeek(course: string, w: number) {
     const fromLessons = labeled.filter((x) => x.course_id === course && x.lesson_id && lessonWeek.get(x.lesson_id) === w);
-    const topics = topicsOf.get(`${course}|${w}`) ?? new Set<string>();
-    const fromFiles = labeled.filter((x) => x.course_id === course && !x.lesson_id && x.topic && topics.has(x.topic));
+    const fromFiles = labeled.filter((x) => x.course_id === course && !x.lesson_id && !x.duplicate && x.fits_lesson_id
+      && lessonWeek.get(x.fits_lesson_id) === w).sort((a, b) => Number(b.exam_style) - Number(a.exam_style));
     return { fromLessons, fromFiles };
   }
   const fileExercises = (course: string) => labeled.filter((x) => x.course_id === course && !x.lesson_id);
   /** The week after which a file (e.g. "מטלה 3") can be solved: the last week that taught one of its topics. */
   function fileReadyWeek(course: string, materialId: string) {
-    let last = 0;
-    for (const x of labeled) {
-      if (x.material_id !== materialId || !x.topic) continue;
-      for (const [k, set] of topicsOf) {
-        const [c, w] = k.split("|");
-        if (c === course && set.has(x.topic)) last = Math.max(last, Number(w));
-      }
-    }
-    return last || null;
+    const mine = labeled.filter((x) => x.course_id === course && x.material_id === materialId && !x.duplicate);
+    if (!mine.length || mine.some((x) => !x.fits_lesson_id)) return null; // part of it not taught yet
+    return Math.max(...mine.map((x) => lessonWeek.get(x.fits_lesson_id!) ?? 0)) || null;
   }
   return { forWeek, fileExercises, fileReadyWeek, all: labeled };
 }
