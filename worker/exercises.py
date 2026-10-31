@@ -152,6 +152,23 @@ def read_file(sb, course, m, materials, topics, work):
         [f for f in out.get("formulas") or [] if isinstance(f, str) and f.strip()]
 
 
+EXTRAS_SCHEMA = {"type": "object", "properties": {"exam_hints": STRINGS, "formulas": STRINGS}, "required": ["exam_hints", "formulas"]}
+
+
+def extras_only(sb, course, m, work):
+    """Files read for exercises before 31/10/2026: their exam hints and formulas, once."""
+    from google.genai import types
+    data, mime = blob(sb, m, work)
+    if len(data) > INLINE_LIMIT:
+        return
+    out = author._generate_json([types.Part.from_text(text=f'הקובץ המצורף שייך לקורס "{course["name"]}".' + FILE_EXTRA),
+                                 types.Part.from_bytes(data=data, mime_type=mime)], None, EXTRAS_SCHEMA, "LOW")
+    hints = [h for h in out.get("exam_hints") or [] if isinstance(h, str) and h.strip()]
+    formulas = [f for f in out.get("formulas") or [] if isinstance(f, str) and f.strip()]
+    save_extras(sb, course, m, hints, formulas)
+    print(f"::notice title=Exercises::{course['name']} / {m['title']}: {len(hints)} exam hints, {len(formulas)} formulas", flush=True)
+
+
 def save_extras(sb, course, m, hints, formulas):
     """Exam hints from a file -> the course info ("מה יהיה במבחן"); formulas -> notes the formula sheet is built from."""
     if hints:
@@ -299,12 +316,6 @@ def run(only=None):
                 return
         except Exception:  # noqa: BLE001 - quota: stop for today
             return
-        if not todo:
-            try:
-                assign(sb, course)
-            except Exception as e:  # noqa: BLE001
-                print(f"::warning title=Exercises assign {course['name']}::{str(e)[:300]}", flush=True)
-            continue
         topics = sorted({t for l in sb.table("lessons").select("topics").eq("course_id", course["id"]).execute().data
                          for t in (l.get("topics") or [])})
         for m in todo:
@@ -328,8 +339,21 @@ def run(only=None):
             if rows:
                 sb.table("exercises").insert(rows).execute()
             mark_read(sb, course, m["id"])  # also a file with no exercises: never read again
+            mark_read(sb, course, f"extras:{m['id']}")
             print(f"::notice title=Exercises::{course['name']} / {m['title']}: {len(rows)} exercises, "
                   f"{len(hints)} exam hints, {len(formulas)} formulas", flush=True)
+        # Files read before exam hints / formulas were taken from them: once more for those only.
+        read = read_list(sb, course)
+        for m in [m for m in materials if m["id"] in done and wanted(m) and f"extras:{m['id']}" not in read]:
+            if time.time() - start > BUDGET_SEC:
+                break
+            try:
+                extras_only(sb, course, m, Path(tempfile.mkdtemp(prefix="ex_")))
+                mark_read(sb, course, f"extras:{m['id']}")
+            except Exception as e:  # noqa: BLE001
+                print(f"::warning title=Exercises extras {m['title']}::{str(e)[:300]}", flush=True)
+                if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota", "המכסה"):
+                    return
         try:
             assign(sb, course)
         except Exception as e:  # noqa: BLE001
