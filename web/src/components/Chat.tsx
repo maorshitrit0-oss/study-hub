@@ -50,7 +50,16 @@ export default function Chat({ courseId, userId, initial, isLab = false, isSelf 
   // Braces matter: newer browsers return a Promise from scrollIntoView, and React would call it as the cleanup.
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
 
-  async function send(message: string) {
+  // Images can be pasted (iPhone: long-press -> Paste, computer: Ctrl+V) as well as picked with 📷.
+  function addImages(list: FileList | File[] | null | undefined) {
+    const imgs = Array.from(list ?? []).filter((f) => f.type.startsWith("image/"));
+    if (imgs.length) setFiles((old) => [...old, ...imgs].slice(0, 10));
+    return imgs.length > 0;
+  }
+
+  async function send(raw: string) {
+    // An image on its own is a question too.
+    const message = raw.trim() || (files.length ? "מה יש בתמונה? תסביר אותה, ואם יש בה תרגיל - תפתור אותו שלב אחרי שלב." : "");
     if (!message.trim() || busy) return;
     setBusy(true);
     const sb = supabaseBrowser();
@@ -149,21 +158,28 @@ export default function Chat({ courseId, userId, initial, isLab = false, isSelf 
           עם קבצי הקורס (מבחני עבר, מצגות) - איטי יותר
         </label>
         {files.length > 0 && (
-          <div className="flex gap-2 text-xs text-muted">
-            📎 {files.map((f) => f.name).join(", ")}
-            <button type="button" onClick={() => setFiles([])} className="text-bad">הסר</button>
+          <div className="flex gap-2 items-center overflow-x-auto">
+            {files.map((f, i) => (
+              <span key={i} className="relative shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={URL.createObjectURL(f)} alt="" className="h-14 w-14 object-cover rounded-lg border border-line" />
+                <button type="button" aria-label="הסרה" onClick={() => setFiles((old) => old.filter((_, k) => k !== i))}
+                  className="absolute -top-1.5 -start-1.5 bg-bad text-white rounded-full w-5 h-5 text-xs leading-5">×</button>
+              </span>
+            ))}
           </div>
         )}
         <div className="flex gap-2 items-end">
           <label className="btn-ghost px-3 cursor-pointer" aria-label="צירוף תמונה">
             📷
             <input type="file" accept="image/*" multiple className="hidden"
-              onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
+              onChange={(e) => { addImages(e.target.files); e.target.value = ""; }} />
           </label>
-          <textarea ref={input} className="input flex-1 min-h-11 max-h-40" rows={1} value={text} placeholder={isSelf ? "התשובה שלך + הנימוק..." : "שאל כל דבר על הקורס..."}
+          <textarea ref={input} className="input flex-1 min-h-11 max-h-40" rows={1} value={text} placeholder={isSelf ? "התשובה שלך + הנימוק..." : "שאל כל דבר, או הדבק תמונה..."}
             onChange={(e) => setText(e.target.value)}
+            onPaste={(e) => { if (addImages(e.clipboardData?.files)) e.preventDefault(); }}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !("ontouchstart" in window)) { e.preventDefault(); send(text); } }} />
-          <button className="btn px-4" disabled={busy || !text.trim()}>שלח</button>
+          <button className="btn px-4" disabled={busy || (!text.trim() && !files.length)}>שלח</button>
         </div>
       </form>
     </div>

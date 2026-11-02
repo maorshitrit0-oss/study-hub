@@ -7,11 +7,12 @@ const TONE: Record<string, string> = { lecture: "bg-accent/25 border-accent", pr
 
 /** A short name that fits a narrow column on the phone. */
 function short(name: string) {
-  const rules: [RegExp, string][] = [[/גלים/, "גלים"], [/תקשורת/, "תקשורת"], [/ספרתי|digital/i, "ספרתיים"], [/java/i, "Java"],
-    [/מיקרו/, "מיקרו"], [/לינאר|ליניאר/, "לינאריים"], [/מעבדה\s*(\d+)/, "מעבדה $1"]];
+  // Order matters and Hebrew has no \b: "מעגלים" contains "גלים" (digital and linear circuits showed as "גלים").
+  const rules: [RegExp, string][] = [[/ספרתי|digital/i, "ספרתיים"], [/לינאר|ליניאר/, "לינאריים"], [/(^|\s)גלים/, "גלים"],
+    [/תקשורת/, "תקשורת"], [/java/i, "Java"], [/מיקרו/, "מיקרו"], [/מעבדה\s*(\d+)/, "מעבדה $1"]];
   for (const [re, label] of rules) {
     const m = name.match(re);
-    if (m) return label.replace("$1", m[1] ?? "");
+    if (m) return label.replace("$1", m.at(-1) ?? "");
   }
   return name.split(/\s+/).slice(0, 2).join(" ");
 }

@@ -330,6 +330,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Home: reminders are about submissions/exams/entry quizzes, not reading; the deadlines card hides automatic
   prep/ex/site-week/upload tasks; "🎯 היום מעבדה" card on lab days; "חזרה יומית" explains itself (spaced repetition of
   quiz questions he answered: 1/3/7/14/30/60 days, wrong -> tomorrow). He hardly uses the course chat (only admin info).
+- Course chat: images can be pasted (onPaste on the text box) or picked, several, with thumbnails and ×; an image can
+  be sent without text (default question: explain / solve it).
+- WeekGrid short names: "מעגלים" contains "גלים" - digital/linear are matched before waves, waves only as a word.
 - Timetable: `WeekGrid` - days across (Sunday on the right), hours down, short course names - for the phone; the full
   list + editing is folded below.
 - Later (end of semester): exam variations per course as files, from past exams and each lecturer's style.
