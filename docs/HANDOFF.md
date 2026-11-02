@@ -319,6 +319,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   also saves its exam hints as course facts (`exam_hint`, "(מתוך <file>)") and its formulas to
   `formula_notes.json`; docs.py includes those notes and rebuilds the sheet when a lesson or a file with formulas is
   newer than it. The exercises-page button is gone.
+- Every solution (all courses, 02/11): per part and per calculation step "**נוסחה:** $$..$$ / **הצבה:** $$..$$ /
+  **תוצאה:** $$..$$" (✅ before each part's final answer); proofs = numbered steps with reasons. Prompts + verify pass
+  enforce it; older solutions are restructured once (`exercises.reformat`, `fmt:<id>`). Display: every $$...$$ gets its
+  own line (Gemini put them mid-sentence or glued "$$$$" -> red KaTeX errors), Arabic words stripped (`lib/math.ts`).
 - Formula sheets build themselves (`worker/docs.py`, daily + after exercises.yml) for courses whose facts/notes mention
   "דף נוסחאות"; rebuilt when lessons are newer than the sheet. The app page still has "🔄 לעדכן".
 - Home: reminders are about submissions/exams/entry quizzes, not reading; the deadlines card hides automatic

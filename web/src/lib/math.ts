@@ -42,9 +42,23 @@ export function promoteLongMath(md: string) {
 // outside existing $...$, an ASCII run that contains a LaTeX command (\frac, \hat, \cos...) is a formula: wrap it.
 const RUN = /[A-Za-z0-9\\{}()[\]^_+\-=*/|.,:;<>!'~ ]*\\[A-Za-z]+[A-Za-z0-9\\{}()[\]^_+\-=*/|.,:;<>!'~ ]*/g;
 
+/**
+ * A display formula ($$...$$) in the middle of a sentence, or two of them glued together ("...$$$$..."), renders as a
+ * red error: give every $$...$$ a line of its own (outside code).
+ */
+function displayOnOwnLine(md: string) {
+  return md.split(/(```[\s\S]*?```|`[^`\n]*`)/g).map((part, i) => i % 2 === 1 ? part
+    : part.replace(/\$\$\$\$/g, () => "$$\n\n$$") // a function: "$$" in a replacement string means "$"
+      .replace(/\$\$([\s\S]+?)\$\$/g, (_, tex: string) => `\n\n$$${tex.trim()}$$\n\n`)
+      .replace(/\$\$\n\n[.,;:](?=\s|$)/g, "$$$$\n\n") // the sentence's period after a formula moved to its own line
+      .replace(/\n{3,}/g, "\n\n")).join("");
+}
+
 export function wrapBareLatex(md: string) {
+  // Gemini sometimes slips an Arabic word into Hebrew text ("ההנחתה هي 40 dB"); his courses have no Arabic.
+  md = md.replace(/[\u0600-\u06FF]+\s?/g, "");
   // JSON turned "\b", "\f", "\t", "\r" at the start of \bar, \frac, \theta, \rho into control characters.
-  const text = md.replace(/\x08/g, "\\b").replace(/\x0c/g, "\\f").replace(/\t(?=[a-z]{2,})/g, "\\t").replace(/\r(?=[a-z]{2,})/g, "\\r");
+  const text = displayOnOwnLine(md.replace(/\x08/g, "\\b").replace(/\x0c/g, "\\f").replace(/\t(?=[a-z]{2,})/g, "\\t").replace(/\r(?=[a-z]{2,})/g, "\\r"));
   return text.split(/(```[\s\S]*?```|`[^`\n]*`|\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/g).map((part, i) => {
     if (i % 2 === 1) return part;
     return part.replace(RUN, (run) => {
