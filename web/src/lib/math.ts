@@ -43,15 +43,42 @@ export function promoteLongMath(md: string) {
 const RUN = /[A-Za-z0-9\\{}()[\]^_+\-=*/|.,:;<>!'~ ]*\\[A-Za-z]+[A-Za-z0-9\\{}()[\]^_+\-=*/|.,:;<>!'~ ]*/g;
 
 /**
- * A display formula ($$...$$) in the middle of a sentence, or two of them glued together ("...$$$$..."), renders as a
- * red error: give every $$...$$ a line of its own (outside code).
+ * Gemini's $ delimiters are not always paired: "$$x$" , "$$$$y$", a display formula mid-sentence. Pair them again in
+ * order: a pair whose content is empty is dropped, and a "pair" whose content is Hebrew text means the opener was a
+ * stray - the closer opens instead. Every formula then gets a clean delimiter: $$ on its own line when it was meant
+ * as a display formula or is long, $...$ otherwise. Code is left alone.
  */
+const HEBREW = /[\u0590-\u05FF]/;
+
+function pairDollars(text: string) {
+  const tokens: { at: number; len: number }[] = [];
+  for (const m of text.matchAll(/\$+/g)) {
+    // "$$$$" = two delimiters; "$$$" = a display one and an inline one.
+    for (let k = 0, n = m[0].length; n > 0; ) {
+      const len = n >= 2 ? 2 : 1;
+      tokens.push({ at: m.index! + k, len });
+      k += len;
+      n -= len;
+    }
+  }
+  let out = "", pos = 0, open: { at: number; len: number } | null = null;
+  for (const t of tokens) {
+    if (!open) { open = t; continue; }
+    const tex = text.slice(open.at + open.len, t.at);
+    if (!tex.trim()) { open = t; continue; } // empty pair: the second one opens
+    if (HEBREW.test(tex.replace(/\\text\{[^}]*\}/g, ""))) { open = t; continue; } // text, not math: stray opener
+    const display = open.len === 2 || t.len === 2 || tex.length > LONG;
+    out += text.slice(pos, open.at).replace(/\$/g, "") + (display ? `\n\n$$${tex.trim()}$$\n\n` : `$${tex.trim()}$`);
+    pos = t.at + t.len;
+    open = null;
+  }
+  return (out + text.slice(pos).replace(/\$/g, ""))
+    .replace(/\$\$\n\n\s*([.,;:])(?=\s|$)/g, "$$$$\n\n") // the sentence's period after a display formula
+    .replace(/\n{3,}/g, "\n\n");
+}
+
 function displayOnOwnLine(md: string) {
-  return md.split(/(```[\s\S]*?```|`[^`\n]*`)/g).map((part, i) => i % 2 === 1 ? part
-    : part.replace(/\$\$\$\$/g, () => "$$\n\n$$") // a function: "$$" in a replacement string means "$"
-      .replace(/\$\$([\s\S]+?)\$\$/g, (_, tex: string) => `\n\n$$${tex.trim()}$$\n\n`)
-      .replace(/\$\$\n\n[.,;:](?=\s|$)/g, "$$$$\n\n") // the sentence's period after a formula moved to its own line
-      .replace(/\n{3,}/g, "\n\n")).join("");
+  return md.split(/(```[\s\S]*?```|`[^`\n]*`)/g).map((part, i) => (i % 2 === 1 ? part : pairDollars(part))).join("");
 }
 
 export function wrapBareLatex(md: string) {
