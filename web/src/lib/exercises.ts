@@ -12,8 +12,8 @@ export type ExerciseRow = Exercise & {
 const israelDate = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem" }).format(d);
 
 /**
- * Exercises by semester week, per course: a lesson's exercises belong to the week of the class it recorded (or the
- * week it was uploaded); a homework / past-exam exercise belongs to every week whose lessons cover its topic.
+ * Exercises by semester week, per course: a lesson's exercises belong to the week it was taught (by the timetable); a
+ * file exercise belongs to the week of the one lesson it was placed in (worker/exercises.py assign).
  */
 export async function exercisesByWeek(sb: SupabaseClient, courseId?: string) {
   const [{ held }, rows, { data: lessons }, { data: materials }] = await Promise.all([
@@ -26,9 +26,20 @@ export async function exercisesByWeek(sb: SupabaseClient, courseId?: string) {
       : sb.from("lessons").select("id, course_id, kind, number, topics, created_at")),
     (courseId ? sb.from("materials").select("id, title").eq("course_id", courseId) : sb.from("materials").select("id, title")),
   ]);
+  // The week a lesson was TAUGHT, by the university timetable: lecture N is the course's Nth lecture meeting, practice N
+  // its Nth practice (he uploads a week late, so the upload date or upload order would put it a week off).
+  const meetingDates = new Map<string, string[]>(); // `${course}|${kind}` -> dates of its meetings, in order
+  for (const m of [...held].sort((a, b) => a.date.localeCompare(b.date))) {
+    const k = `${m.slot.course_id}|${m.slot.kind}`;
+    const list = meetingDates.get(k) ?? [];
+    if (list.at(-1) !== m.date) list.push(m.date); // two slots of the same kind on one day = one meeting
+    meetingDates.set(k, list);
+  }
   const lessonWeek = new Map<string, number>();
-  for (const m of held) if (m.lesson) lessonWeek.set(m.lesson.id, semesterWeek(m.date));
-  for (const l of lessons ?? []) if (!lessonWeek.has(l.id)) lessonWeek.set(l.id, semesterWeek(israelDate(new Date(l.created_at))));
+  for (const l of lessons ?? []) {
+    const date = l.number ? meetingDates.get(`${l.course_id}|${l.kind}`)?.[l.number - 1] : undefined;
+    lessonWeek.set(l.id, date ? semesterWeek(date) : semesterWeek(israelDate(new Date(l.created_at))));
+  }
   const fileName = new Map((materials ?? []).map((m) => [m.id, m.title as string]));
   const KIND: Record<string, string> = { lecture: "הרצאה", practice: "תרגול" };
   const lessonName = new Map((lessons ?? []).map((l) => [l.id, `${KIND[l.kind] ?? "שיעור"}${l.number ? ` ${l.number}` : ""}`]));

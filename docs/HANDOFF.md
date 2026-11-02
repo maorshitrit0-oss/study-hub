@@ -323,6 +323,8 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   **תוצאה:** $$..$$" (✅ before each part's final answer); proofs = numbered steps with reasons. Prompts + verify pass
   enforce it; older solutions are restructured once (`exercises.reformat`, `fmt:<id>`). Display: every $$...$$ gets its
   own line (Gemini put them mid-sentence or glued "$$$$" -> red KaTeX errors), Arabic words stripped (`lib/math.ts`).
+- Week of a lesson (exercises): lecture N = the course's Nth lecture meeting in the timetable, practice N = its Nth
+  practice (02/11: by upload date lecture 2 showed in week 3, since he uploads a week late). Unnumbered -> upload week.
 - Formula sheets build themselves (`worker/docs.py`, daily + after exercises.yml) for courses whose facts/notes mention
   "דף נוסחאות"; rebuilt when lessons are newer than the sheet. The app page still has "🔄 לעדכן".
 - Home: reminders are about submissions/exams/entry quizzes, not reading; the deadlines card hides automatic
