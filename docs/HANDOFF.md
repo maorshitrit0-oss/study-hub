@@ -325,6 +325,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   own line (Gemini put them mid-sentence or glued "$$$$" -> red KaTeX errors), Arabic words stripped (`lib/math.ts`).
 - Week of a lesson (exercises): lecture N = the course's Nth lecture meeting in the timetable, practice N = its Nth
   practice (02/11: by upload date lecture 2 showed in week 3, since he uploads a week late). Unnumbered -> upload week.
+- Nothing is obvious in a solution (02/11, he could not follow "X_DC = A sinc(f0T)cos(theta)", "sinc(0.5)=2/pi"):
+  `author.EXPLAIN_RULE` in every exercise prompt and check - where each formula comes from (short derivation or
+  "📘 נוסחה מההרצאה על ..."), every function defined, every intermediate value, "💡 הרעיון" at the end. All existing
+  solutions are expanded once (`exercises.reformat`, key `exp:<id>`, 6 per call). Prompts in exercises.py go through
+  .format(): the rule's LaTeX braces are doubled there.
 - Formula sheets build themselves (`worker/docs.py`, daily + after exercises.yml) for courses whose facts/notes mention
   "דף נוסחאות"; rebuilt when lessons are newer than the sheet. The app page still has "🔄 לעדכן".
 - Home: reminders are about submissions/exams/entry quizzes, not reading; the deadlines card hides automatic

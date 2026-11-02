@@ -37,6 +37,7 @@ PROMPT = """הקובץ המצורף הוא {kind} בקורס "{course}" (הנד�
   **הצבה:** $$...$$ (אותה נוסחה עם המספרים והיחידות)
   **תוצאה:** $$...$$ (המספר הסופי עם יחידות; בתשובה הסופית של הסעיף - ✅ לפניה)
   בהוכחה או בשאלה מילולית: שלבים ממוספרים, כל שלב עם הנימוק שלו. טעות נפוצה אם יש - בסוף.
+""" + author.EXPLAIN_RULE.replace("{", "{{").replace("}", "}}") + """
   אם צורף קובץ פתרון רשמי - לפיו (ותקן טעויות עם > ⚠️). אם אין - פתור בעצמך.
 - topic: הנושא של התרגיל. אם הוא מתאים לאחד מהנושאים שנלמדו בקורס (ברשימה למטה) - כתוב אותו בדיוק כמו ברשימה.
 - exam_style: true אם זה ממבחן או שכתוב שזה בסגנון מבחן. uncertain: true אם אינך בטוח בפתרון.
@@ -45,7 +46,9 @@ PROMPT = """הקובץ המצורף הוא {kind} בקורס "{course}" (הנד�
 CHECK = """אתה בודק קפדן בהנדסת חשמל. לפניך תרגילים שהוצאו מהקובץ המצורף, עם פתרונות.
 פתור כל תרגיל מחדש מאפס בלי להסתכל על הפתרון, והשווה. תקן כל טעות (הצבה, חישוב, יחידות, תשובה סופית), וודא שבנוסח יש
 את כל הנתונים מהקובץ. ודא שכל פתרון בנוי לכל שלב חישוב כ- **נוסחה:** $$..$$ / **הצבה:** $$..$$ / **תוצאה:** $$..$$
-(התשובה הסופית של כל סעיף עם ✅), ובהוכחה - שלבים ממוספרים עם נימוק; סדר מחדש פתרון שאינו כזה. עברית בלבד. פתרון שאינך בטוח בו - uncertain=true. אל תשמיט תרגילים. החזר את כל הרשימה המתוקנת."""
+(התשובה הסופית של כל סעיף עם ✅), ובהוכחה - שלבים ממוספרים עם נימוק; סדר מחדש פתרון שאינו כזה. עברית בלבד.
+ודא ששום דבר לא נלקח כמובן מאליו: לכל נוסחה מאיפה היא באה (גזירה קצרה או "📘 נוסחה מההרצאה על ..."), כל פונקציה
+מוגדרת (למשל sinc), כל חישוב ביניים כתוב, ו"💡 הרעיון" בסוף כל תרגיל. השלם מה שחסר. פתרון שאינך בטוח בו - uncertain=true. אל תשמיט תרגילים. החזר את כל הרשימה המתוקנת."""
 
 SCHEMA = {"type": "object", "properties": {"exercises": {"type": "array", "items": author.EXERCISE}}, "required": ["exercises"]}
 STRINGS = {"type": "array", "items": {"type": "string"}}
@@ -203,6 +206,7 @@ LESSON_PROMPT = """לפניך שיעור ({kind}) בקורס "{course}" - הפר
   **הצבה:** $$...$$ (אותה נוסחה עם המספרים והיחידות)
   **תוצאה:** $$...$$ (המספר הסופי עם יחידות; בתשובה הסופית של הסעיף - ✅ לפניה)
   בהוכחה או בשאלה מילולית: שלבים ממוספרים, כל שלב עם הנימוק שלו. טעות נפוצה אם יש - בסוף.
+""" + author.EXPLAIN_RULE.replace("{", "{{").replace("}", "}}") + """
   (לפי הדרך של המרצה אם פתר; אחרת פתור).
 - topic: אחד מהנושאים של השיעור: {topics}. exam_style: true אם נאמר שזה בסגנון מבחן. uncertain: true אם אינך בטוח.
 כל ביטוי מתמטי בתוך $...$, ומשוואה מלאה בשורה נפרדת $$...$$ - אף פעם לא LaTeX בלי $. אם לא היו תרגילים - רשימה ריקה."""
@@ -328,34 +332,36 @@ def assign(sb, course):
         print(f"::notice title=Exercises {course['name']}::placed {placed} of {len(batch)} file exercises in a lesson", flush=True)
 
 
-REFORMAT = """לפניך פתרונות של תרגילים (JSON). כתוב מחדש **רק את המבנה** של כל פתרון, בלי לשנות את התוכן, המספרים או התשובות:
-לכל סעיף ולכל שלב חישוב - שורת הסבר קצרה למה, ואז
-**נוסחה:** $$...$$ / **הצבה:** $$...$$ / **תוצאה:** $$...$$ (עם יחידות; התשובה הסופית של כל סעיף עם ✅ לפניה).
-בהוכחה או בשאלה מילולית - שלבים ממוספרים, כל שלב עם הנימוק שלו. כל ביטוי מתמטי בתוך $...$ או $$...$$. עברית בלבד.
-אם מצאת טעות חישוב - תקן וכתוב > ⚠️ תוקן: ... . החזר את כל הפריטים לפי id."""
+REFORMAT = """לפניך פתרונות של תרגילים (JSON). שפר כל פתרון כך שסטודנט בלי ידע מוקדם יבין כל שורה. אל תשנה תשובות נכונות.
+- מבנה לכל סעיף ולכל שלב חישוב: שורת הסבר למה, ואז **נוסחה:** $$...$$ / **הצבה:** $$...$$ / **תוצאה:** $$...$$
+  (עם יחידות; התשובה הסופית של כל סעיף עם ✅). בהוכחה / שאלה מילולית - שלבים ממוספרים עם נימוק.
+""" + author.EXPLAIN_RULE + """
+כל ביטוי מתמטי בתוך $...$ או $$...$$. עברית בלבד. אם מצאת טעות חישוב - תקן וכתוב > ⚠️ תוקן: ... .
+החזר את כל הפריטים לפי id."""
 REFORMAT_SCHEMA = {"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object", "properties": {
     "id": {"type": "integer"}, "solution_md": {"type": "string"}}, "required": ["id", "solution_md"]}}}, "required": ["items"]}
 
 
 def reformat(sb, course, budget_end):
-    """Solutions written before the fixed structure (formula -> substitution -> result, 02/11/2026): once each."""
+    """Every solution once more (02/11/2026): the fixed structure (formula -> substitution -> result) and nothing taken
+    as known - where each formula comes from, every function defined, every intermediate step, "💡 הרעיון"."""
     from google.genai import types
     read = read_list(sb, course)
     rows = [r for r in sb.table("exercises").select("id, solution_md").eq("course_id", course["id"]).execute().data
-            if r.get("solution_md") and "**הצבה:**" not in r["solution_md"] and f"fmt:{r['id']}" not in read]
-    for k in range(0, len(rows), 12):
+            if r.get("solution_md") and f"exp:{r['id']}" not in read]
+    for k in range(0, len(rows), 6):  # expanded solutions are long: six per call
         if time.time() > budget_end:
             return
-        batch = rows[k:k + 12]
+        batch = rows[k:k + 6]
         listing = json.dumps([{"id": j, "solution_md": r["solution_md"]} for j, r in enumerate(batch)], ensure_ascii=False)
         items = author._generate_json([types.Part.from_text(text=REFORMAT), types.Part.from_text(text=listing)],
-                                      None, REFORMAT_SCHEMA, "LOW").get("items") or []
+                                      None, REFORMAT_SCHEMA, "MEDIUM").get("items") or []
         for it in items:
             if 0 <= it.get("id", -1) < len(batch) and (it.get("solution_md") or "").strip():
                 sb.table("exercises").update({"solution_md": it["solution_md"]}).eq("id", batch[it["id"]]["id"]).execute()
         for r in batch:  # a proof may have no substitution at all: never again
-            mark_read(sb, course, f"fmt:{r['id']}")
-        print(f"::notice title=Exercises {course['name']}::restructured {len(batch)} solutions", flush=True)
+            mark_read(sb, course, f"exp:{r['id']}")
+        print(f"::notice title=Exercises {course['name']}::expanded {len(batch)} solutions", flush=True)
 
 
 def run(only=None):
