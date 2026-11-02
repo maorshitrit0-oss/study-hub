@@ -284,6 +284,25 @@ def assign(sb, course):
                .eq("status", "ready").in_("kind", ["lecture", "practice"]).order("created_at").execute().data)
     if not todo or not lessons:
         return
+    # Slides of "הרצאה 2" / "תרגול 3": their exercises belong to that very lesson - no judgement needed.
+    names = {m["id"]: m["title"] or "" for m in sb.table("materials").select("id, title").eq("course_id", course["id"]).execute().data}
+    material_of = {r["id"]: r["material_id"] for r in sb.table("exercises").select("id, material_id")
+                   .in_("id", [x["id"] for x in todo]).execute().data}
+    direct = 0
+    for x in list(todo):
+        m = re.search(r"(הרצאה|תרגול|lecture|lec|tutorial)\s*(\d+)", names.get(material_of.get(x["id"]), ""), re.I)
+        if not m:
+            continue
+        kind = "practice" if m[1] in ("תרגול", "tutorial") else "lecture"
+        lesson = next((l for l in lessons if l["kind"] == kind and l.get("number") == int(m[2])), None)
+        if lesson:
+            sb.table("exercises").update({"fits_lesson_id": lesson["id"]}).eq("id", x["id"]).execute()
+            todo.remove(x)
+            direct += 1
+    if direct:
+        print(f"::notice title=Exercises {course['name']}::{direct} slide exercises placed in their own lesson", flush=True)
+    if not todo:
+        return
     taught = sb.table("exercises").select("title").eq("course_id", course["id"]).not_.is_("lesson_id", "null").execute().data
     listing = "\n\n".join(
         f"[{i + 1}] {'תרגול' if l['kind'] == 'practice' else 'הרצאה'} {l.get('number') or ''}: {', '.join(l.get('topics') or [])}\n"
