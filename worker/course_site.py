@@ -600,6 +600,19 @@ def retry_after_quota(sb):
             print(f"::notice title=Retry::{r['id']} after the quota reset -> {dispatch(r['id'])}", flush=True)
 
 
+def retry_after_overload(sb):
+    """Lessons that failed because Gemini was overloaded ("השרתים של Gemini היו עמוסים"): try again on the next
+    half-hourly check, at most once every 25 minutes, for lessons added in the last two days."""
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    rows = (sb.table("lessons").select("id, updated_at").eq("status", "error").like("error", "%עמוסים%")
+            .lt("updated_at", (now - timedelta(minutes=25)).isoformat())
+            .gt("created_at", (now - timedelta(days=2)).isoformat()).execute().data)  # not forever
+    for r in rows:
+        sb.table("lessons").update({"status": "queued", "progress": "Gemini היה עמוס - מנסה שוב", "updated_at": now.isoformat()}).eq("id", r["id"]).execute()
+        print(f"::notice title=Retry::{r['id']} after an overload -> {dispatch(r['id'])}", flush=True)
+
+
 def cmd_pending(write=True):
     """Daily: re-read each imported site (new weeks, new files) and continue writing chapters.
     check (every half hour): the same re-read only - new recordings start processing right away."""
@@ -629,6 +642,7 @@ def cmd_pending(write=True):
         now = datetime.now(ZoneInfo("Asia/Jerusalem"))
         if now.hour == 10 and 30 <= now.minute < 60:  # one half-hourly run a day, after the reset
             retry_after_quota(sb)
+        retry_after_overload(sb)
 
 
 if __name__ == "__main__":

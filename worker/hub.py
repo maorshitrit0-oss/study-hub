@@ -185,8 +185,9 @@ def cmd_process(lesson_id, do_author=True):
         job.update(status="error", error=author.friendly_error(e)[:2000])
         # GitHub annotation: readable through the API even where full logs are not.
         print(f"::error title=Lesson {lesson_id}::{str(e)[:900]}".replace("\n", " "), flush=True)
-        notify.send(job.sb, job.lesson["user_id"], f"⚠️ העיבוד נכשל: {job.label()}",
-                    "לחץ כדי לראות מה קרה ולנסות שוב", f"/lessons/{job.lesson['id']}")
+        if not author._is(e, "UNAVAILABLE", "503", "overloaded", "high demand"):  # overloads are retried by themselves
+            notify.send(job.sb, job.lesson["user_id"], f"⚠️ העיבוד נכשל: {job.label()}",
+                        "לחץ כדי לראות מה קרה ולנסות שוב", f"/lessons/{job.lesson['id']}")
         raise
     finally:
         shutil.rmtree(work, ignore_errors=True)

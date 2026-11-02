@@ -330,6 +330,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   "📘 נוסחה מההרצאה על ..."), every function defined, every intermediate value, "💡 הרעיון" at the end. All existing
   solutions are expanded once (`exercises.reformat`, key `exp:<id>`, 6 per call). Prompts in exercises.py go through
   .format(): the rule's LaTeX braces are doubled there.
+- Gemini overload (503 UNAVAILABLE on every model, 02/11): longer waits between attempts (20 s, 80 s); the lesson is
+  retried by the half-hourly site check (`retry_after_overload`, lessons from the last 2 days, every 25+ min) and no
+  failure push is sent for an overload.
 - Formula sheets build themselves (`worker/docs.py`, daily + after exercises.yml) for courses whose facts/notes mention
   "דף נוסחאות"; rebuilt when lessons are newer than the sheet. The app page still has "🔄 לעדכן".
 - Home: reminders are about submissions/exams/entry quizzes, not reading; the deadlines card hides automatic

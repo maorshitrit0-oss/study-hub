@@ -271,7 +271,7 @@ def friendly_error(e):
     if _is(e, "RESOURCE_EXHAUSTED", "429", "quota"):
         return "המכסה היומית החינמית של Gemini נגמרה בכל המודלים. היא מתאפסת כל יום בסביבות 10:00 בבוקר - אז ללחוץ 'לנסות שוב'."
     if _is(e, "UNAVAILABLE", "503", "overloaded", "high demand"):
-        return "השרתים של Gemini היו עמוסים. ללחוץ 'לנסות שוב' בעוד כמה דקות."
+        return "השרתים של Gemini היו עמוסים. המערכת תנסה שוב לבד בעוד חצי שעה (אפשר גם ללחוץ 'לנסות שוב')."
     if _is(e, "confirm you", "not a bot"):
         return ("יוטיוב חוסם את השרת שמעבד את ההקלטות, אז אי אפשר להוריד ממנו. "
                 "ללחוץ 'לנסות שוב' - הקלטות יוטיוב נקראות עכשיו דרך Gemini.")
@@ -299,7 +299,7 @@ def _with_gemini(call):
                     busy = _is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "disconnected", "timed out",
                                "Connection reset", "RemoteProtocolError")
                     if busy and attempt < 2:
-                        time.sleep(5 * (attempt + 1) ** 2)
+                        time.sleep(20 * (attempt + 1) ** 2)  # 20 s, 80 s: an overload usually passes in a minute or two
                         continue
                     if busy or _is(e, "RESOURCE_EXHAUSTED", "429", "quota", "NOT_FOUND", "404", "not supported"):
                         print(f"gemini {model}: {str(e)[:120]} -> next model", flush=True)
