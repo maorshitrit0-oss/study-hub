@@ -215,6 +215,15 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   ASCII waveforms were wrong and confused him (24/10/2026).
 - CSP needs `media-src` for Supabase storage, or studio audio/video can't play (fixed 24/10/2026).
 
+## Timing diagrams - not trusting the AI (03/11/2026)
+- Gemini put "עלייה 1..4" marks on ticks 1,3,5,7 = falling edges, and drew D changing exactly on a rising edge.
+  `lib/wave.ts`: marks take {"edge": n} (rising edge n); a tick mark whose label names a rising edge snaps to it.
+  `Wave.tsx`: an input change on a rising edge is drawn SKEW px after it (the flip-flop samples the old value, as the
+  simulation does), marks are numbered, and under every flip-flop diagram a COMPUTED table "מה הדלגלג ראה בכל עליית
+  שעון": inputs just before each edge -> Q. Prompts (tutor, chapters) say: marks on edges via "edge", and the text must
+  match the table. He finds Gemini weak here; a paid model is not an option (everything free) - correctness comes
+  from computing, not from the model.
+
 ## Formulas (2026-10-23)
 - KaTeX CSS must match the KaTeX that rehype-katex renders with (pinned katex 0.16.47; a 0.19 CSS broke \vec arrows).
 - `web/src/lib/math.ts`: long inline $...$ become display math, and long display equations split at "=" into aligned

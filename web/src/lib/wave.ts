@@ -15,8 +15,10 @@ export type WaveSpec = {
   cycles: number;
   signals: Record<string, string>;
   ff?: { type: "none" | "sync" | "async"; q?: string; d?: string; reset?: string; active?: 0 | 1; init?: Level; hide?: boolean };
-  marks?: { tick: number; label: string }[];
+  // A mark sits on a tick; "edge": n puts it on rising edge n (1-based) - what the AI usually means (03/11/2026).
+  marks?: { tick?: number; edge?: number; label: string }[];
 };
+export type Edge = { n: number; inputs: [string, Level][]; q?: Level };
 export type Row = { name: string; levels: Level[]; clock?: boolean; hidden?: boolean };
 
 function expand(s: string, ticks: number): Level[] {
@@ -30,7 +32,19 @@ function expand(s: string, ticks: number): Level[] {
   return out;
 }
 
-export function parseWave(src: string): { rows: Row[]; ticks: number; marks: WaveSpec["marks"] } {
+/**
+ * Marks on whole ticks. Gemini put "עלייה 1..4" on ticks 1,3,5,7 - the falling edges: a mark that names a rising edge
+ * (or is given as "edge") goes on the rising edge itself.
+ */
+function placeMarks(marks: WaveSpec["marks"], ticks: number) {
+  return (marks ?? []).map((m) => {
+    let tick = m.edge ? 2 * (m.edge - 1) : Math.round(m.tick ?? 0);
+    if (!m.edge && tick % 2 === 1 && /עלי|↑|rising|posedge|edge/i.test(m.label)) tick -= 1;
+    return { tick: Math.max(0, Math.min(ticks - 1, tick)), label: m.label };
+  });
+}
+
+export function parseWave(src: string): { rows: Row[]; ticks: number; marks: { tick: number; label: string }[]; edges: Edge[] } {
   const spec = JSON.parse(src) as WaveSpec;
   const cycles = Math.max(1, Math.min(16, Math.round(spec.cycles || 6)));
   const ticks = cycles * 2;
@@ -61,5 +75,12 @@ export function parseWave(src: string): { rows: Row[]; ticks: number; marks: Wav
     }
     rows.push({ name: spec.ff.q ?? "Q", levels: q, hidden: !!spec.ff.hide });
   }
-  return { rows, ticks, marks: spec.marks };
+  // What the flip-flop saw at each rising edge (inputs just before it) and what Q became - computed, never written.
+  const edges: Edge[] = spec.ff ? Array.from({ length: cycles }, (_, k) => {
+    const t = 2 * k;
+    const inputs = [...sig].map(([name, lv]) => [name, t === 0 ? lv[0] : lv[t - 1]] as [string, Level]);
+    const q = rows[rows.length - 1].levels[t];
+    return { n: k + 1, inputs, q: spec.ff?.hide ? undefined : q };
+  }) : [];
+  return { rows, ticks, marks: placeMarks(spec.marks, ticks), edges };
 }
