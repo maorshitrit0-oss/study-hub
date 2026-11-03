@@ -93,6 +93,8 @@ def daily():
                   .eq("status", "ready").is_("read_at", "null").or_("source_url.is.null,source_url.not.like.*notion*").execute().count or 0)
 
         lines = entry_quiz_lines(sb, uid, (now.weekday() + 1) % 7, "היום")
+        if now.weekday() == 4:  # Friday morning
+            lines += self_study_line(sb, uid, "היום")
         for d in deadlines:
             if d.get("check_due"):
                 continue
@@ -123,6 +125,28 @@ def daily():
         title = "בוקר טוב! מה על הפרק היום" if any("היום" in l or "מחר" in l for l in lines) else "בוקר טוב"
         n = send(sb, uid, title, "\n".join(lines[:6]), "/")
         print(f"{uid}: {len(lines)} items -> {n} devices")
+
+
+def self_study_line(sb, uid, when):
+    """Friday morning / Saturday night (web/src/lib/selfPlan.ts): the next self-study topic, or the catch-ups first."""
+    try:
+        tracks = (sb.table("courses").select("id, name").eq("user_id", uid).eq("kind", "self").eq("archived", False)
+                  .order("created_at").execute().data)
+        track = next((t for t in tracks if "vlsi" in t["name"].lower()), tracks[0] if tracks else None)
+        if not track:
+            return []
+        pending = (sb.table("deadlines").select("id", count="exact").eq("user_id", uid).eq("done", False)
+                   .lt("due_at", datetime.now(timezone.utc).isoformat())
+                   .or_("external_uid.like.upload:*,external_uid.like.prep:*,external_uid.like.ex:*,external_uid.like.labrep:*")
+                   .execute().count or 0)
+        if pending:
+            return [f"🎓 {when} לימוד עצמי - אבל קודם {pending} השלמות מהשבוע"]
+        topic = (sb.table("skills").select("title").eq("course_id", track["id"]).eq("kind", "topic").lt("level", 3)
+                 .order("ord").limit(1).execute().data)
+        return [f"🎓 {when} לימוד עצמי: {topic[0]['title'] if topic else 'חזרה / פרויקט'}"]
+    except Exception as e:  # noqa: BLE001
+        print(f"self-study line failed: {e}")
+        return []
 
 
 def entry_quiz_lines(sb, uid, weekday, when):
@@ -239,6 +263,8 @@ def evening():
         tmr = (sb.table("schedule_slots").select("course_id, kind, title, start_time").eq("user_id", uid)
                .eq("weekday", (weekday + 1) % 7).order("start_time").execute().data)
         lines += entry_quiz_lines(sb, uid, (weekday + 1) % 7, "מחר")
+        if weekday == 6:  # Saturday night: the session starts right after
+            lines = self_study_line(sb, uid, "הערב") + lines
         if tmr:
             lines.append("🗓️ מחר: " + ", ".join(f"{s['start_time'][:5]} {courses.get(s['course_id'], s['title'])}" for s in tmr))
         due = (sb.table("deadlines").select("title, kind, course_id").eq("user_id", uid).eq("done", False)

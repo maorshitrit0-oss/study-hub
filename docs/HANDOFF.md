@@ -363,6 +363,20 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   list + editing is folded below.
 - Later (end of semester): exam variations per course as files, from past exams and each lecturer's style.
 
+## Self-study on Friday / Saturday night, code, order of courses (03/11/2026)
+- Self-study happens Friday 10:00-12:00 and Saturday night 20:30-22:00 (`lib/selfPlan.ts` SELF_SLOTS, added once to
+  the timetable for the main track - VLSI - and editable there), only when nothing is left to catch up on
+  (overdue upload / prep / exercise / lab-report tasks). The track page shows the next sessions with one topic each
+  (next topics with level < 3, in roadmap order; exam freeze skipped); home shows "🎓 היום לימוד עצמי" on those days;
+  pushes: Friday morning and Saturday evening (`notify.self_study_line`).
+- The tutor (TUTOR in api/chat/route.ts) asks OPEN interview-style questions and hands-on tasks in real tools (EDA
+  Playground + EPWave for SV/Verilog, Compiler Explorer / OnlineGDB for C/C++) - no multiple choice; he needs to solve
+  open questions in interviews, with AI and without.
+- He is NOT strong in code (a few C++ notions; Java and micro start 04/11): CODE_RULE in the course chat, the tutor,
+  summaries and every exercise solution - every line of code explained, new syntax defined, built up gradually, run
+  through by hand. Existing solutions with code get one more pass (`code:<id>`).
+- Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so

@@ -348,7 +348,9 @@ def reformat(sb, course, budget_end):
     from google.genai import types
     read = read_list(sb, course)
     rows = [r for r in sb.table("exercises").select("id, solution_md").eq("course_id", course["id"]).execute().data
-            if r.get("solution_md") and f"exp:{r['id']}" not in read]
+            if r.get("solution_md") and (f"exp:{r['id']}" not in read
+                                         # solutions with code: once more for the line-by-line explanation (03/11)
+                                         or ("```" in r["solution_md"] and f"code:{r['id']}" not in read))]
     for k in range(0, len(rows), 6):  # expanded solutions are long: six per call
         if time.time() > budget_end:
             return
@@ -361,6 +363,7 @@ def reformat(sb, course, budget_end):
                 sb.table("exercises").update({"solution_md": it["solution_md"]}).eq("id", batch[it["id"]]["id"]).execute()
         for r in batch:  # a proof may have no substitution at all: never again
             mark_read(sb, course, f"exp:{r['id']}")
+            mark_read(sb, course, f"code:{r['id']}")
         print(f"::notice title=Exercises {course['name']}::expanded {len(batch)} solutions", flush=True)
 
 

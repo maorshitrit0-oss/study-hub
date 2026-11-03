@@ -4,8 +4,17 @@ import { KIND_LABEL, type Course } from "@/lib/types";
 
 export default async function Courses() {
   const { sb } = await requireUser();
-  const { data } = await sb.from("courses").select("*").order("year", { ascending: false }).order("semester").order("name");
-  const courses = (data ?? []) as Course[];
+  const [{ data }, { data: slots }] = await Promise.all([
+    sb.from("courses").select("*").order("year", { ascending: false }).order("semester").order("name"),
+    sb.from("schedule_slots").select("course_id, weekday, start_time"),
+  ]);
+  // In the order he meets them in the week (Sunday first, by the hour); courses with no class last.
+  const first = new Map<string, number>();
+  for (const s of slots ?? []) {
+    const t = s.weekday * 1440 + Number(s.start_time.slice(0, 2)) * 60 + Number(s.start_time.slice(3, 5));
+    if (s.course_id && t < (first.get(s.course_id) ?? Infinity)) first.set(s.course_id, t);
+  }
+  const courses = ((data ?? []) as Course[]).sort((a, b) => (first.get(a.id) ?? Infinity) - (first.get(b.id) ?? Infinity));
   const active = courses.filter((c) => !c.archived);
   const archived = courses.filter((c) => c.archived);
 

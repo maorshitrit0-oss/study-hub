@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import SkillRow from "@/components/SkillRow";
 import Fold from "@/components/Fold";
+import { catchUps, ensureSelfSlots, mainTrack, selfPlan } from "@/lib/selfPlan";
 import { addSkill } from "@/app/(app)/actions";
 import { FREEZES, weekDates, type Skill } from "@/lib/skills";
 import { ensureSyllabus, parseModules } from "@/lib/vlsiSyllabus";
@@ -40,6 +41,11 @@ export default async function Track({ params }: PageProps<"/self/[id]">) {
   const groups = modules.length
     ? modules.map((m, i) => ({ ...m, items: topics.filter((t) => t.ord >= m.from && (i + 1 >= modules.length || t.ord < modules[i + 1].from)) }))
     : [{ from: 1, title: "", goal: "", items: topics }];
+  // Friday morning / Saturday night plan (only for the track the plan follows).
+  const main = await mainTrack(sb);
+  if (main?.id === id) await ensureSelfSlots(sb, id).catch(() => {});
+  const [plan, pending] = main?.id === id ? await Promise.all([selfPlan(sb, id), catchUps(sb)]) : [[], []];
+  const DAY = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "מוצ״ש"];
   const sessions = new Set((msgs ?? []).map((m) => m.created_at.slice(0, 10))).size;
   const freeze = FREEZES.find((f) => today >= f.from && today <= f.to);
 
@@ -57,6 +63,27 @@ export default async function Track({ params }: PageProps<"/self/[id]">) {
           <div className="text-xs text-muted">ימי לימוד השבוע</div>
         </div>
       </div>
+
+      {plan.length > 0 && (
+        <Fold id="self-plan" title="📅 התוכנית: שישי ומוצאי שבת" hint={plan[0].topic ? `הבא: ${plan[0].topic.title}` : undefined} defaultOpen>
+          {pending.length > 0 && (
+            <div className="rounded-xl bg-warn-soft p-3 mb-3 text-sm">
+              <p className="font-semibold">קודם השלמות ({pending.length}) - הלימוד העצמי מחכה:</p>
+              <ul className="list-disc ps-5 mt-1">{pending.slice(0, 5).map((t) => <li key={t}>{t}</li>)}</ul>
+              <Link href="/week" className="text-accent">לשבוע שלי ←</Link>
+            </div>
+          )}
+          <ul className="divide-y divide-line text-sm">
+            {plan.map((p, i) => (
+              <li key={`${p.date}${p.start}`} className={`py-2 flex justify-between gap-2 ${i === 0 ? "font-semibold" : ""}`}>
+                <span className="shrink-0">{DAY[p.weekday]} {p.date.slice(8, 10)}/{p.date.slice(5, 7)} · {p.start}</span>
+                <span className="text-end">{p.topic?.title ?? "חזרה / פרויקט"}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted mt-2">נושא אחד לכל מפגש, לפי הסדר של מפת הלימוד; נושא שסגרת (רמה 3+) יוצא מהתוכנית. השעות - במערכת השעות.</p>
+        </Fold>
+      )}
 
       <Fold id="self-map" title="מפת הלימוד" hint={`סגורים ${topics.filter((t) => t.level >= 3).length}/${topics.length}`}>
         <p className="text-xs text-muted mb-2">נושא נחשב סגור רק אחרי שתי שאלות חדשות שפתרת והסברת בעצמך. המורה מעדכן את הרמה אחרי כל מפגש, ואפשר גם לשנות ידנית.</p>
