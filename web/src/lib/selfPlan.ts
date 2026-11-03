@@ -10,8 +10,6 @@ export const SELF_SLOTS = [
   { weekday: 5, start: "10:00", end: "12:00" }, // Friday morning
   { weekday: 6, start: "20:30", end: "22:00" }, // Saturday night
 ];
-const DAY_MS = 864e5;
-const israelDate = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem" }).format(d);
 
 /** The track the plan follows: the VLSI one when there is one, otherwise the first self-study track. */
 export async function mainTrack(sb: SupabaseClient) {
