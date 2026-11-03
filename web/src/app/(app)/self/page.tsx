@@ -31,7 +31,15 @@ function SessionCard({ s, date, done, courseId, current, lesson }: {
       <p className="text-sm">🔧 <b>משימה:</b> {s.task}</p>
       <details className="text-sm">
         <summary className="cursor-pointer text-accent">🎤 שאלות ראיון לסיום</summary>
-        <ul className="list-disc ps-5 mt-1 space-y-1">{s.interview.map((x) => <li key={x}>{x}</li>)}</ul>
+        <ul className="list-disc ps-5 mt-1 space-y-1">
+          {s.interview.map((x) => (
+            <li key={x.q}>
+              {x.q}{" "}
+              <a href={x.url} target="_blank" rel="noopener noreferrer" className="text-xs text-accent underline">🔗 {x.src}</a>
+            </li>
+          ))}
+        </ul>
+        <p className="text-xs text-muted mt-1">כל שאלה עם הקישור לעמוד שממנו היא נלקחה.</p>
       </details>
       {s.cadence && <p className="text-xs text-muted">📺 רשות: {s.cadence}</p>}
       <div className="flex gap-2 flex-wrap">

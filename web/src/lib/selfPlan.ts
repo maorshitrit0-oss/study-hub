@@ -74,7 +74,7 @@ export async function ensureSessionLesson(sb: SupabaseClient, courseId: string, 
     `הנושאים: ${s.learn.join("; ")}`,
     s.setup ? `הכלים (מה לפתוח): ${s.setup.join(" | ")}` : "",
     `המשימה המעשית: ${s.task}`,
-    `שאלות ראיון: ${s.interview.join(" | ")}`,
+    `שאלות ראיון (עם המקור - להעתיק כמו שהן, עם הקישור): ${s.interview.map((i) => `${i.q} [${i.src}](${i.url})`).join(" | ")}`,
   ].filter(Boolean).join("\n");
   const { data } = await sb.from("lessons").insert({
     course_id: courseId, kind: "lecture", number: idx + 1, title: `שבוע ${s.week} · מפגש ${s.n}: ${s.title}`,

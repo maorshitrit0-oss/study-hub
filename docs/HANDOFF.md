@@ -396,6 +396,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   marked `<!-- vlsi-session -->`), created by `ensureSessionLesson` (current + next session automatically, others on
   "📄 להכין את השיעור") and written by the worker (author.py VLSI_NOTE / VLSI_TASK: full lecture-like summary, 4-8
   exercises with solutions, 8-12 MCQ; no homework matching). The tutor chat is only "💬 להרחיב עם המורה".
+- Interview questions must have a real source (his rule, 03/11/2026: "say where it is from, with a link to the question
+  on that site - not invented"): `Interview = {q, src, url}` in vlsiProgram.ts, every link found by web search and shown
+  next to the question ("🔗 site"). The tutor (route.ts) and VLSI_TASK may only present a question as an interview
+  question with a real link; their own questions are labelled "שאלת תרגול (לא מראיון)". Some links are explanations
+  of the topic (ChipVerify, Nayuki...) rather than an interview listing - the src label says which.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items
