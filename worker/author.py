@@ -230,6 +230,11 @@ def build_prompt(course, lesson, transcript, slide_count, previous_topics, mode=
     if course.get("syllabus_topics"):
         lines.append("נושאי הסילבוס (למילוי syllabus_covered): " +
                      "; ".join(f"{i + 1}. {t}" for i, t in enumerate(course["syllabus_topics"])))
+    if (lesson.get("title") or "").startswith("🎙️"):  # a short WhatsApp recording of the lab lecturer about the exam
+        lines += ["זו הקלטה קצרה של המרצה (מוואטסאפ). כתוב בפרק את כל מה שנאמר, ובעיקר כל דבר על המבחן המעשי / מבחן האמצע "
+                  "(מבנה, מה ישאלו, מה לבנות, מה חשוב) - כל דגש בשורה > ⭐ **חשוב למבחן:**, וכל דגש גם ב-course_facts כ-exam_hint.",
+                  "", "=== התמלול ===", transcript]
+        return "\n".join(lines)
     lines += [
         f"פריט: {KIND_NAME.get(lesson['kind'], '')} {lesson.get('number') or ''} {lesson.get('title') or ''}".strip(),
         summary_task(course, lesson) if summary_mode(lesson, mode) else KIND_TASK.get(lesson["kind"], KIND_TASK["other"]),

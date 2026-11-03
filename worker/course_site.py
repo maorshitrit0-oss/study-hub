@@ -636,6 +636,11 @@ def cmd_pending(write=True):
             docs.run()
         except Exception as e:  # noqa: BLE001
             print(f"::warning title=Formula sheet::{str(e)[:300]}", flush=True)
+        try:  # the lab's practical-exam question bank, when something new came in
+            import practical
+            practical.run()
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Practical exam::{str(e)[:300]}", flush=True)
     else:
         from datetime import datetime
         from zoneinfo import ZoneInfo

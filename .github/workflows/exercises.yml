@@ -39,3 +39,4 @@ jobs:
           [[ -z "$COURSE_ID" || "$COURSE_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad course id"; exit 1; }
           python exercises.py $COURSE_ID
           python docs.py
+          python practical.py $COURSE_ID

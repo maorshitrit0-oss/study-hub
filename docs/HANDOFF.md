@@ -80,6 +80,24 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   generator/scope/multimeter settings, expected waveform, common mistakes) + the theory/verbal questions, and practice
   in a free browser simulator with breadboard + function generator + oscilloscope + multimeter (Tinkercad Circuits;
   Falstad for quick op-amp/RC behaviour). Not built yet.
+- LAB 2 PAGE (03/11/2026) - only what he uses: 🧪 practical exam, 🎯 entry quizzes, 📝 summary reports, 🎙️ lecturer
+  recordings, course info, files, tasks (lessons/exercises/summaries hidden, not deleted; `page.tsx` early return).
+  - Reports: `LabUploads` - experiment N + "שלי"/"של השותפה", saved as "דוח מסכם ניסוי N - ....docx". On the day of
+    experiment N he hands in report N-1. `lib/labTasks.ts`: lab day i (Nth Tuesday from SEMESTER_START; a week with no
+    lab would shift it) -> tasks "📝 להעלות דוח מסכם ניסוי N-1" (labrep:) and "🎯 לרשום מה שאלו בבוחן הכניסה של ניסוי
+    N-1" (labq:), closing themselves when the file / an entry report exists. After a report upload: link to its quiz.
+  - Lecturer remarks: WhatsApp voice recordings (.opus/.ogg/...) -> lesson kind other titled "🎙️ המרצה על המבחן
+    (date)", transcribed; `build_prompt` writes every exam remark as ⭐ + exam_hint facts.
+  - `worker/practical.py` -> practical.json: question bank per experiment (graph / theory / build) from experiment
+    chapters, reports (.docx via python-docx), lecturer recordings, entry questions, past practical-exam files (title
+    with מבחן/מועד/שאלות). Rebuilt when anything newer exists (exercises.yml after every upload, daily site run).
+  - `/courses/[id]/practical`: practice (filter by experiment / type) and mock exams of 3 (graph, theory, build):
+    midterm = experiments 1-5, final = all; "🎲 מבחן אחר". Graph questions drawn by `LabGraph` from parameters
+    (1st-order LP/HP, 2nd-order BP/BS on a log axis, or time signals). Build questions: `VirtualLab` = Falstad
+    CircuitJS in an iframe (CSP frame-src www.falstad.com), empty board - he builds; the answer gives the circuit,
+    breadboard wiring steps, instrument settings, expected scope picture, mistakes. (Gemini does not write CircuitJS
+    files: a broken one would mislead.) Option B, a real breadboard simulator, was declined as too big/risky.
+  - `/courses/[id]/entry/print`: every reported entry-quiz question by experiment with answers, printable / PDF to share.
 - Entry quiz (בוחן כניסה, 2026-10-26): every experiment opens with a 3-question MCQ on the prelab + Multisim
   simulations. His group is Tuesday; Sunday/Monday groups tell what they were asked. `/courses/[id]/entry`
   (lab courses: "🎯 בוחן כניסה" card; lab lesson page links to it): paste/screenshot a report -> `processReport`

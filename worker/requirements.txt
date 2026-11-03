@@ -9,3 +9,4 @@ trafilatura
 pywebpush
 gdown
 requests
+python-docx

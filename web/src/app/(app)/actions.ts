@@ -126,6 +126,13 @@ export async function rebuildDoc(courseId: string, kind: DocKind): Promise<strin
   }
 }
 
+/** The lab's practical-exam bank, rebuilt now (worker/practical.py through exercises.yml - minutes). */
+export async function rebuildPractical(courseId: string): Promise<string> {
+  await requireUser();
+  const err = await dispatchExercises(courseId);
+  return err ?? "✓ נבנה מחדש - בעוד כמה דקות לרענן את הדף";
+}
+
 /** Marks an exercise solved (or not). */
 export async function toggleExercise(id: string, done: boolean) {
   const { sb } = await requireUser();

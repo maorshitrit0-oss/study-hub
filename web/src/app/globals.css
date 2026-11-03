@@ -96,3 +96,11 @@ input, select, textarea { font-size: max(16px, 1em); }
   .formula-sheet h3 { break-after: avoid; margin-top: 0.4rem; }
   .formula-sheet .katex-display { margin: 0.15rem 0; }
 }
+
+/* Printing a page (the entry-quiz file, the formula sheet): white paper, no app chrome. */
+@media print {
+  body { background: #fff !important; color: #000 !important; }
+  nav, .print\:hidden { display: none !important; }
+  .card { background: #fff !important; border: 1px solid #ccc !important; box-shadow: none !important; backdrop-filter: none !important; }
+  .text-muted { color: #444 !important; }
+}

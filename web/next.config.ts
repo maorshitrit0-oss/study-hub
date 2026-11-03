@@ -12,7 +12,7 @@ const CSP = [
   "font-src 'self' data:",
   `connect-src 'self' ${supabase} ${supabase.replace("https://", "wss://")}`,
   "worker-src 'self' blob:",
-  "frame-src https://drive.google.com",
+  "frame-src https://drive.google.com https://www.falstad.com", // the lab's virtual workbench (CircuitJS)
   "frame-ancestors 'none'",
   "object-src 'none'",
   "base-uri 'self'",

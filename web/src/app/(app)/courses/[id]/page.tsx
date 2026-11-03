@@ -5,6 +5,7 @@ import AddLesson from "@/components/AddLesson";
 import DeadlineRow from "@/components/DeadlineRow";
 import Materials from "@/components/Materials";
 import SiteImport from "@/components/SiteImport";
+import LabUploads from "@/components/LabUploads";
 import Fold from "@/components/Fold";
 import { isSiteLesson } from "@/lib/week";
 import Studio from "@/components/Studio";
@@ -71,8 +72,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
   const readyCount = ls.filter((l) => l.status === "ready").length;
   const readCount = ls.filter((l) => l.status === "ready" && l.read_at).length;
 
-  return (
-    <div className="space-y-5">
+  const header = (
       <header>
         <div className="flex justify-between items-start gap-3">
           <div>
@@ -105,26 +105,66 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
           </ul>
         )}
       </header>
+  );
+
+  // Lab 2 (03/11/2026): only what he uses - the practical exam, entry quizzes, summary reports, the lecturer's
+  // recorded remarks about the exam, and files. Lessons, exercises and summaries are not shown (nothing is deleted).
+  if (c.kind === "lab") {
+    const reports = (materials ?? []).filter((m) => /דוח מסכם/.test(m.title));
+    const recordings = ls.filter((l) => (l.title ?? "").startsWith("🎙️"));
+    return (
+      <div className="space-y-5">
+        {header}
+        <div className="grid grid-cols-2 gap-3">
+          <Link href={`/courses/${id}/practical`} className="card text-center font-medium">🧪 מבחן מעשי</Link>
+          <Link href={`/courses/${id}/entry`} className="card text-center font-medium">🎯 בוחני כניסה</Link>
+        </div>
+        <LabUploads courseId={id} userId={userId} reports={reports.map((m) => m.title)} />
+        {recordings.length > 0 && (
+          <Fold id="lab-recordings" title="🎙️ מה המרצה אמרה על המבחן" hint={`${recordings.length}`}>
+            <ul className="divide-y divide-line">
+              {recordings.map((l) => (
+                <li key={l.id}>
+                  <Link href={`/lessons/${l.id}`} className="flex justify-between py-2.5 text-sm">
+                    <span>{l.title}</span>
+                    <span className={`text-xs ${STATUS[l.status][1]}`}>{STATUS[l.status][0]}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Fold>
+        )}
+        <CourseFacts courseId={id} facts={(facts ?? []) as Fact[]} reservist={!!settings?.is_reservist}
+          lessonNames={new Map(ls.map((l) => [l.id, lessonName(l)]))} />
+        <Fold id="files" title="קבצים (חוברות, דוחות, מבחנים מעשיים קודמים)" hint={`${(materials ?? []).length}`}>
+          <Materials courseId={id} userId={userId} items={materials ?? []} isLab />
+        </Fold>
+        <Fold id="tasks" title="משימות" hint={`${upcoming.length} פתוחות`}>
+          {upcoming.length ? (
+            <ul className="divide-y divide-line">{upcoming.map((d) => <DeadlineRow key={d.id} d={d} />)}</ul>
+          ) : <p className="text-sm text-muted py-2">אין משימות פתוחות.</p>}
+        </Fold>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {header}
 
       <div className="grid grid-cols-2 gap-3">
         <Link href={`/courses/${id}/chat`} className="card text-center font-medium">💬 צ&apos;אט על הקורס</Link>
         <Link href={`/courses/${id}/exercises`} className="card text-center font-medium">✍️ תרגילים</Link>
-        {c.kind === "lab" && <Link href={`/courses/${id}/entry`} className="card text-center font-medium">🎯 בוחן כניסה</Link>}
         <Link href={`/words?course=${id}`} className="card text-center font-medium">🔤 מילים באנגלית</Link>
-        {c.kind === "lab"
-          ? <Link href={`/courses/${id}/doc/practical`} className="card text-center font-medium">🧪 המבחן המעשי</Link>
-          : <Link href={`/courses/${id}/doc/formulas`} className="card text-center font-medium">📄 דף נוסחאות</Link>}
+        <Link href={`/courses/${id}/doc/formulas`} className="card text-center font-medium">📄 דף נוסחאות</Link>
       </div>
 
       {plan && (
         <Fold id="plan" title="המצב שלי מול הכיתה"
           hint={<span className={`text-xs rounded-full px-2 py-0.5 ${LEVEL_TONE[plan.level]}`}>{LEVEL_LABEL[plan.level]}</span>}>
-          {/* Lectures and practices are counted separately in every course; a lab counts experiments. */}
-          <div className={`grid ${c.kind === "lab" ? "grid-cols-3" : "grid-cols-4"} gap-2 text-center`}>
-            {(c.kind === "lab"
-              ? [[plan.classLessons, "ניסויים"], [plan.read, "קראתי"]]
-              : [[plan.lectures, "הרצאות בכיתה"], [plan.practices, "תרגולים בכיתה"], [plan.read, "קראתי"]]
-            ).map(([n, label]) => (
+          {/* Lectures and practices are counted separately in every course (the lab has its own page above). */}
+          <div className="grid grid-cols-4 gap-2 text-center">
+            {[[plan.lectures, "הרצאות בכיתה"], [plan.practices, "תרגולים בכיתה"], [plan.read, "קראתי"]].map(([n, label]) => (
               <div key={label} className="rounded-xl bg-accent-soft p-2">
                 <div className="text-xl font-bold">{n}</div>
                 <div className="text-xs text-muted">{label}</div>
@@ -166,8 +206,8 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
       <CourseFacts courseId={id} facts={(facts ?? []) as Fact[]} reservist={!!settings?.is_reservist}
         lessonNames={new Map(ls.map((l) => [l.id, lessonName(l)]))} />
 
-      <Fold id="add" title={c.kind === "lab" ? "➕ הוספת ניסוי" : "➕ הוספת הרצאה / תרגול"}>
-        <AddLesson courseId={id} userId={userId} nextByKind={nextByKind} isLab={c.kind === "lab"} />
+      <Fold id="add" title="➕ הוספת הרצאה / תרגול">
+        <AddLesson courseId={id} userId={userId} nextByKind={nextByKind} isLab={false} />
       </Fold>
 
       <Fold id="lessons" title="חומר הקורס" hint={readyCount > 0 ? `קראת ${readCount}/${readyCount}` : `${ls.length}`}>
@@ -177,7 +217,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
           </div>
         )}
         {ls.length ? (
-          groupLessons(ls, c.kind === "lab").map(([label, group]) => (
+          groupLessons(ls, false).map(([label, group]) => (
             <div key={label}>
               {label && <h3 className="text-sm text-muted mt-3">{label} ({group.length})</h3>}
               <ul className="divide-y divide-line">
@@ -234,7 +274,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
       )}
 
       <Fold id="files" title="קבצים (מצגות, מבחני עבר, סילבוס)" hint={`${(materials ?? []).length}`}>
-        <Materials courseId={id} userId={userId} items={materials ?? []} isLab={c.kind === "lab"} />
+        <Materials courseId={id} userId={userId} items={materials ?? []} />
         <SiteImport courseId={id} imported={(materials ?? []).some((m) => m.storage_path.endsWith("/site.md"))} />
       </Fold>
 

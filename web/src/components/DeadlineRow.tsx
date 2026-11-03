@@ -9,6 +9,10 @@ function taskHref(d: Deadline) {
   const uid = (d as Deadline & { external_uid?: string | null }).external_uid ?? "";
   const ex = uid.match(/^ex:([0-9a-f-]{36}):(\d+)$/);
   if (ex) return `/courses/${ex[1]}/exercises?w=${ex[2]}`;
+  const labq = uid.match(/^labq:([0-9a-f-]{36}):(\d+)$/);
+  if (labq) return `/courses/${labq[1]}/entry?n=${labq[2]}`;
+  const labrep = uid.match(/^labrep:([0-9a-f-]{36}):\d+$/);
+  if (labrep) return `/courses/${labrep[1]}`;
   const prep = uid.match(/^(?:prep|site-week):([0-9a-f-]{36})$/);
   if (prep) return `/lessons/${prep[1]}`;
   return `/deadlines/${d.id}`;

@@ -47,7 +47,10 @@ export default async function EntryQuiz({ params, searchParams }: PageProps<"/co
   return (
     <div className="space-y-4">
       <Link href={`/courses/${id}`} className="text-sm text-accent">→ {course.name}</Link>
-      <h1 className="text-2xl font-bold">🎯 בוחן כניסה</h1>
+      <div className="flex justify-between items-center gap-2">
+        <h1 className="text-2xl font-bold">🎯 בוחן כניסה</h1>
+        <Link href={`/courses/${id}/entry/print`} className="btn-ghost text-sm">📄 קובץ כל השאלות</Link>
+      </div>
       {missing && <p className="card text-sm">צריך קודם להריץ ב-Supabase את הקובץ <code>supabase/entry_quiz.sql</code>.</p>}
 
       <div className="flex gap-2 flex-wrap">

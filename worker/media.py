@@ -223,7 +223,8 @@ def save_slides(video, scenes, out_dir):
 
 # ---------- Google Drive files (recordings and PDFs from the department Drive) ----------
 
-VIDEO_EXT = {".mp4", ".mkv", ".mov", ".webm", ".m4a", ".mp3", ".wav", ".m4v"}
+# Recordings: video, and audio (".opus" / ".ogg" = a WhatsApp voice recording of the lecturer).
+VIDEO_EXT = {".mp4", ".mkv", ".mov", ".webm", ".m4a", ".mp3", ".wav", ".m4v", ".opus", ".ogg", ".oga", ".aac", ".amr", ".weba"}
 MIME = {".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
         ".webp": "image/webp", ".txt": "text/plain", ".md": "text/plain"}
 

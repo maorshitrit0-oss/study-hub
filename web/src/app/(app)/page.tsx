@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/supabase/server";
 import { dueReviews } from "@/lib/review";
 import { attachOrphanTasks, syncPrepTasks } from "@/lib/prep";
 import { syncExerciseTasks } from "@/lib/exercises";
+import { syncLabTasks } from "@/lib/labTasks";
 import { isSiteLesson, studyWeek, syncWeekTasks, todayWeek } from "@/lib/week";
 import DeadlineRow from "@/components/DeadlineRow";
 import { isWeak, pct, topicStats } from "@/lib/progress";
@@ -16,7 +17,7 @@ import { DAYS, lessonName, type Course, type Deadline, type Lesson, type Slot } 
 
 export default async function Home() {
   const { sb } = await requireUser();
-  await Promise.all([syncPrepTasks(sb).catch(() => {}), attachOrphanTasks(sb).catch(() => {}), syncWeekTasks(sb).catch(() => {}), syncExerciseTasks(sb).catch(() => {})]);
+  await Promise.all([syncPrepTasks(sb).catch(() => {}), attachOrphanTasks(sb).catch(() => {}), syncWeekTasks(sb).catch(() => {}), syncExerciseTasks(sb).catch(() => {}), syncLabTasks(sb).catch(() => {})]);
   const in14 = isoFromNow(14);
   const now = israelNow();
   const [{ data: courses }, { data: deadlines }, { data: lessons }, stats, { data: today }, missing] = await Promise.all([
@@ -35,7 +36,7 @@ export default async function Home() {
   ]);
   // Home lists submissions, exams and quizzes; the automatic reading / exercise / upload tasks live in their own places
   // (the week page, the exercises page, "להעלות").
-  const AUTO = /^(prep|ex|site-week|upload):/;
+  const AUTO = /^(prep|ex|site-week|upload):/; // lab reports / entry-quiz notes (labrep, labq) do show
   const dueSoon = ((deadlines ?? []) as (Deadline & { external_uid?: string | null })[])
     .filter((d) => !AUTO.test(d.external_uid ?? "")).slice(0, 8);
   const usageAlerts = (usage?.data as Snapshot | undefined)?.alerts ?? [];
