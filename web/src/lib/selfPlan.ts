@@ -53,3 +53,33 @@ export async function syncVlsiTasks(sb: SupabaseClient, courseId: string) {
   })).filter((r) => !known.has(r.external_uid));
   if (add.length) await sb.from("deadlines").upsert(add, { onConflict: "user_id,external_uid", ignoreDuplicates: true });
 }
+
+/**
+ * The lesson of a program session (summary like a university lecture + exercises + multiple-choice quiz), written by
+ * the worker from the session plan (worker/author.py VLSI_NOTE). Lesson number = session index + 1. Created and
+ * started once; returns the lesson id and status.
+ */
+export async function ensureSessionLesson(sb: SupabaseClient, courseId: string, idx: number) {
+  const { VLSI_PROGRAM } = await import("./vlsiProgram");
+  const { dispatchLesson } = await import("./github");
+  const s = VLSI_PROGRAM[idx];
+  if (!s) return null;
+  const { data: have } = await sb.from("lessons").select("id, status").eq("course_id", courseId).eq("kind", "lecture")
+    .eq("number", idx + 1).maybeSingle();
+  if (have) return have;
+  const transcript = [
+    "<!-- vlsi-session -->",
+    `תוכנית לימוד VLSI - שבוע ${s.week}, מפגש ${s.n}: ${s.title}`,
+    `המטרה: ${s.goal}`,
+    `הנושאים: ${s.learn.join("; ")}`,
+    s.setup ? `הכלים (מה לפתוח): ${s.setup.join(" | ")}` : "",
+    `המשימה המעשית: ${s.task}`,
+    `שאלות ראיון: ${s.interview.join(" | ")}`,
+  ].filter(Boolean).join("\n");
+  const { data } = await sb.from("lessons").insert({
+    course_id: courseId, kind: "lecture", number: idx + 1, title: `שבוע ${s.week} · מפגש ${s.n}: ${s.title}`,
+    transcript, status: "queued", progress: "כותב את השיעור, התרגילים והשאלון",
+  }).select("id, status").single();
+  if (data) await dispatchLesson(data.id);
+  return data;
+}

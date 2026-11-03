@@ -343,6 +343,14 @@ export async function startSession(courseId: string, key: string, title: string)
   redirect(data ? `/self/${courseId}/chat?t=${data.id}&s=${encodeURIComponent(key)}` : `/self/${courseId}/chat`);
 }
 
+/** Writes (once) and opens the lesson of a VLSI program session. */
+export async function openSessionLesson(courseId: string, idx: number) {
+  const { sb } = await requireUser();
+  const { ensureSessionLesson } = await import("@/lib/selfPlan");
+  const lesson = await ensureSessionLesson(sb, courseId, idx);
+  redirect(lesson ? `/lessons/${lesson.id}` : "/self");
+}
+
 export async function setSessionDone(key: string, done: boolean) {
   const { sb } = await requireUser();
   await sb.from("deadlines").update({ done }).eq("external_uid", `vlsi:${key}`);

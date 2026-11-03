@@ -391,6 +391,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   tutor chat named after the session and sends the session plan (Chat `autoPrompt`); "✓ סיימתי" marks its task
   (`vlsi:<week>-<n>`, due at the slot's end, created by `syncVlsiTasks`); undone sessions carry over. The topic map
   and the Cadence tracks are links from there. Home card / Friday + Saturday pushes show the next session.
+- VLSI session lessons (03/11/2026, his wish: "like the university - slides/summary, exercises, MCQ quiz"): each
+  session has a lesson in the VLSI course (kind lecture, number = session index + 1, transcript = the session plan
+  marked `<!-- vlsi-session -->`), created by `ensureSessionLesson` (current + next session automatically, others on
+  "📄 להכין את השיעור") and written by the worker (author.py VLSI_NOTE / VLSI_TASK: full lecture-like summary, 4-8
+  exercises with solutions, 8-12 MCQ; no homework matching). The tutor chat is only "💬 להרחיב עם המורה".
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items

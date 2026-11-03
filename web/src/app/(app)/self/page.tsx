@@ -2,14 +2,18 @@ import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
 import { FREEZES, weekDates } from "@/lib/skills";
 import { ensureCadenceTracks } from "@/lib/cadenceTracks";
-import { catchUps, ensureSelfSlots, mainTrack, syncVlsiTasks } from "@/lib/selfPlan";
+import { catchUps, ensureSelfSlots, ensureSessionLesson, mainTrack, syncVlsiTasks } from "@/lib/selfPlan";
 import { VLSI_PROGRAM, sessionDates, sessionKey, type Session } from "@/lib/vlsiProgram";
-import { setSessionDone, startSession } from "../actions";
+import { openSessionLesson, setSessionDone, startSession } from "../actions";
 import Fold from "@/components/Fold";
 
 const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
-function SessionCard({ s, date, done, courseId, current }: { s: Session; date: string; done: boolean; courseId: string; current: boolean }) {
+type LessonRef = { id: string; status: string } | null | undefined;
+
+function SessionCard({ s, date, done, courseId, current, lesson }: {
+  s: Session; date: string; done: boolean; courseId: string; current: boolean; lesson: LessonRef;
+}) {
   const key = sessionKey(s);
   return (
     <article className={`rounded-xl border p-3 space-y-2 ${current ? "border-accent bg-accent-soft" : "border-line"} ${done ? "opacity-60" : ""}`}>
@@ -31,8 +35,17 @@ function SessionCard({ s, date, done, courseId, current }: { s: Session; date: s
       </details>
       {s.cadence && <p className="text-xs text-muted">📺 רשות: {s.cadence}</p>}
       <div className="flex gap-2 flex-wrap">
+        {lesson ? (
+          <Link href={`/lessons/${lesson.id}`} className="btn">
+            {lesson.status === "ready" ? "📄 השיעור: סיכום, תרגילים ושאלון" : "⏳ השיעור נכתב..."}
+          </Link>
+        ) : (
+          <form action={openSessionLesson.bind(null, courseId, VLSI_PROGRAM.indexOf(s))}>
+            <button className="btn">📄 להכין את השיעור</button>
+          </form>
+        )}
         <form action={startSession.bind(null, courseId, key, `שבוע ${s.week} · מפגש ${s.n}: ${s.title}`)}>
-          <button className="btn">📖 להתחיל מפגש עם המורה</button>
+          <button className="btn-ghost">💬 להרחיב עם המורה</button>
         </form>
         <form action={setSessionDone.bind(null, key, !done)}>
           <button className="btn-ghost">{done ? "↩️ לא סיימתי" : "✓ סיימתי את המפגש"}</button>
@@ -56,6 +69,15 @@ export default async function SelfStudy() {
     sb.from("deadlines").select("external_uid, done").like("external_uid", "vlsi:%"),
     catchUps(sb).catch(() => [] as string[]),
   ]);
+  // The current and the next session have their lesson written ahead (once each); the rest when opened.
+  if (track) {
+    const idx = VLSI_PROGRAM.findIndex((s) => !(tasks ?? []).some((t) => t.done && t.external_uid === `vlsi:${sessionKey(s)}`));
+    if (idx >= 0) await Promise.all([ensureSessionLesson(sb, track.id, idx), ensureSessionLesson(sb, track.id, idx + 1)]).catch(() => {});
+  }
+  const { data: lessonRows } = track
+    ? await sb.from("lessons").select("id, number, status").eq("course_id", track.id).eq("kind", "lecture")
+    : { data: [] };
+  const lessonOf = new Map((lessonRows ?? []).map((l) => [l.number as number, { id: l.id as string, status: l.status as string }]));
   const doneKeys = new Set((tasks ?? []).filter((t) => t.done).map((t) => (t.external_uid as string).slice(5)));
   const dates = sessionDates(FREEZES);
   const currentIdx = VLSI_PROGRAM.findIndex((s) => !doneKeys.has(sessionKey(s)));
@@ -88,7 +110,7 @@ export default async function SelfStudy() {
       {track && current && (
         <section className="space-y-2">
           <h2 className="font-semibold">המפגש הבא · שבוע {current.week}</h2>
-          <SessionCard s={current} date={dates[currentIdx]} done={false} courseId={track.id} current />
+          <SessionCard s={current} date={dates[currentIdx]} done={false} courseId={track.id} current lesson={lessonOf.get(currentIdx + 1)} />
         </section>
       )}
       {track && !current && <p className="card">🎉 סיימת את כל 12 השבועות!</p>}
@@ -101,7 +123,8 @@ export default async function SelfStudy() {
             hint={`דדליין ${ddmm(dates[list[list.length - 1].i])}`}>
             <div className="space-y-3">
               {list.map(({ s, i }) => (
-                <SessionCard key={sessionKey(s)} s={s} date={dates[i]} done={doneKeys.has(sessionKey(s))} courseId={track.id} current={i === currentIdx} />
+                <SessionCard key={sessionKey(s)} s={s} date={dates[i]} done={doneKeys.has(sessionKey(s))} courseId={track.id}
+                  current={i === currentIdx} lesson={lessonOf.get(i + 1)} />
               ))}
             </div>
           </Fold>

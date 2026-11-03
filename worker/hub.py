@@ -296,7 +296,8 @@ def save_chapter(job, ch, by):
     short = bool(ch.get("exercises")) or (by != "claude" and author.summary_mode(job.lesson, job.mode))
     if short:
         save_exercises(job, ch["exercises"])
-        save_homework(job, [h for h in ch.get("homework") or [] if isinstance(h, str)])
+        if not (job.lesson.get("transcript") or "").startswith(author.VLSI_NOTE):  # no "homework" in self-study
+            save_homework(job, [h for h in ch.get("homework") or [] if isinstance(h, str)])
     if ch["questions"]:
         # Only the chapter's own quiz is replaced: lab entry-quiz questions (source set) stay. A summary has no quiz,
         # so an earlier quiz of the lesson is kept.

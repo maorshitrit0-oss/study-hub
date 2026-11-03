@@ -383,14 +383,30 @@ def summary_mode(lesson, mode="auto"):
     return mode != "full" and lesson["kind"] in ("lecture", "practice")
 
 
+# A session of his 12-week VLSI program (web/src/lib/vlsiProgram.ts): there is no recording - the lesson is written
+# from the session plan, like a summarised university lecture (slides + summary), with exercises AND a multiple-choice
+# quiz - the format he learned well in the communication course (03/11/2026).
+VLSI_NOTE = "<!-- vlsi-session -->"
+VLSI_TASK = """זה שיעור בלימוד עצמי (בלי הקלטה): כתוב אותו בעצמך לפי תוכנית המפגש שלמטה, כמו הרצאה מסוכמת באוניברסיטה
+(מצגת + סיכום שיעור) - ברמה שסטודנט שנה ג' בהנדסת חשמל בלי רקע בקוד מבין לבד.
+chapter_md כאן הוא שיעור מלא ולא תקציר קצר: לכל נושא - למה הוא קיים, הסבר עם דוגמה, שרטוט/גרף (בלוק wave לזמנים),
+קוד SystemVerilog עם הסבר שורה-שורה, ⭐ מה חשוב לראיונות, ובסוף "🔧 המשימה המעשית" עם הוראות מדויקות ומה אמור לצאת.
+exercises: 4-8 תרגילים (חישוב, קוד לכתוב, באג למצוא, גרף לחזות) עם פתרון מלא.
+questions: 8-12 שאלות אמריקאיות, 4 תשובות בכל אחת, correct = האינדקס (0-3); הבנה ויישום, מסיחים סבירים,
+explanation למה הנכונה נכונה ולמה האחרות לא, topic מתוך topics, difficulty 1-3."""
+
+
 def author_with_gemini(course, lesson, transcript, slides, previous_topics, log=print, docs=(), mode="auto"):
     """slides: list of (number, Path); docs: list of (bytes, mime) files to read.
     Writes the summary + exercises (or the full chapter), then has it fact-checked. Returns the chapter dict."""
     short = summary_mode(lesson, mode)
-    log("כותב תקציר ותרגילים עם פתרונות..." if short else "כותב פרק קריאה ושאלון...")
+    vlsi = (transcript or "").startswith(VLSI_NOTE)
+    log("כותב את השיעור, תרגילים ושאלון..." if vlsi else "כותב תקציר ותרגילים עם פתרונות..." if short else "כותב פרק קריאה ושאלון...")
     sources = _source_parts(course, lesson, transcript, slides, previous_topics, docs, mode)
-    draft = validate(_generate_json(sources, SUMMARY_SYSTEM if short else SYSTEM,
-                                    SUMMARY_SCHEMA if short else CHAPTER_SCHEMA, "MEDIUM"))
+    system = SUMMARY_SYSTEM if short else SYSTEM
+    if vlsi:
+        system = SUMMARY_SYSTEM.replace("questions: רשימה ריקה (אין שאלון אמריקאי).", VLSI_TASK)
+    draft = validate(_generate_json(sources, system, SUMMARY_SCHEMA if short else CHAPTER_SCHEMA, "MEDIUM"))
     log("בודק את התקציר ופותר מחדש כל תרגיל..." if short else "בודק את הפרק והשאלון מול ההקלטה, השקפים והידע המקצועי...")
     return verify_with_gemini(sources, draft, log, short)
 
