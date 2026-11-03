@@ -4,7 +4,7 @@ import { dueReviews } from "@/lib/review";
 import { attachOrphanTasks, syncPrepTasks } from "@/lib/prep";
 import { syncExerciseTasks } from "@/lib/exercises";
 import { syncLabTasks } from "@/lib/labTasks";
-import { catchUps, ensureSelfSlots, mainTrack, selfPlan } from "@/lib/selfPlan";
+import { catchUps, ensureSelfSlots, mainTrack } from "@/lib/selfPlan";
 import { isSiteLesson, studyWeek, syncWeekTasks, todayWeek } from "@/lib/week";
 import DeadlineRow from "@/components/DeadlineRow";
 import { isWeak, pct, topicStats } from "@/lib/progress";
@@ -37,14 +37,18 @@ export default async function Home() {
   ]);
   // Home lists submissions, exams and quizzes; the automatic reading / exercise / upload tasks live in their own places
   // (the week page, the exercises page, "להעלות").
-  const AUTO = /^(prep|ex|site-week|upload):/; // lab reports / entry-quiz notes (labrep, labq) do show
+  const AUTO = /^(prep|ex|site-week|upload|vlsi):/; // lab reports / entry-quiz notes (labrep, labq) do show
   const dueSoon = ((deadlines ?? []) as (Deadline & { external_uid?: string | null })[])
     .filter((d) => !AUTO.test(d.external_uid ?? "")).slice(0, 8);
   // Friday / Saturday night: today's self-study topic - or the catch-ups that come first.
   const track = await mainTrack(sb).catch(() => null);
   if (track) await ensureSelfSlots(sb, track.id).catch(() => {});
+  // The VLSI session due next (the first one not done), on Friday / Saturday night.
   const selfToday = track && (now.weekday === 5 || now.weekday === 6)
-    ? await Promise.all([selfPlan(sb, track.id, 1), catchUps(sb)]).then(([p, c]) => ({ session: p.find((x) => x.weekday === now.weekday), pending: c }))
+    ? await Promise.all([
+      sb.from("deadlines").select("title, due_at").like("external_uid", "vlsi:%").eq("done", false).order("due_at").limit(1),
+      catchUps(sb),
+    ]).then(([{ data }, c]) => ({ session: data?.[0] ? { title: (data[0].title as string).replace(/^🎓 VLSI /, "") } : null, pending: c }))
     : null;
   const usageAlerts = (usage?.data as Snapshot | undefined)?.alerts ?? [];
   const focus = plan.filter((p) => p.score > 0).slice(0, 3);
@@ -84,12 +88,10 @@ export default async function Home() {
       )}
 
       {selfToday?.session && track && (
-        <Link href={selfToday.pending.length ? "/week" : `/self/${track.id}/chat`} className="card block">
-          <span className="font-semibold">🎓 היום לימוד עצמי · {selfToday.session.start}</span>
+        <Link href={selfToday.pending.length ? "/week" : "/self"} className="card block">
+          <span className="font-semibold">🎓 היום לימוד VLSI</span>
           <span className="block text-sm text-muted mt-1">
-            {selfToday.pending.length
-              ? `קודם השלמות (${selfToday.pending.length}) ←`
-              : `${selfToday.session.topic?.title ?? "חזרה / פרויקט"} ←`}
+            {selfToday.pending.length ? `קודם השלמות (${selfToday.pending.length}) ←` : `${selfToday.session.title} ←`}
           </span>
         </Link>
       )}

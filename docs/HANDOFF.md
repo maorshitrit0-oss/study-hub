@@ -375,6 +375,13 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - He is NOT strong in code (a few C++ notions; Java and micro start 04/11): CODE_RULE in the course chat, the tutor,
   summaries and every exercise solution - every line of code explained, new syntax defined, built up gradually, run
   through by hand. Existing solutions with code get one more pass (`code:<id>`).
+- "🎓 לימוד VLSI" (/self, 03/11/2026, approved): ONE place - a guided 12-week program (`lib/vlsiProgram.ts`, 24
+  sessions: Friday + Saturday night from 06/11/2026, exam freeze skipped) - each session: goal, set-up steps (EDA
+  Playground / DigitalJS in the browser, an OpenLane Colab notebook in week 11 - nothing to install), roadmap topics,
+  hands-on task with what should come out, interview questions, optional Cadence chapter. "📖 להתחיל מפגש" opens a new
+  tutor chat named after the session and sends the session plan (Chat `autoPrompt`); "✓ סיימתי" marks its task
+  (`vlsi:<week>-<n>`, due at the slot's end, created by `syncVlsiTasks`); undone sessions carry over. The topic map
+  and the Cadence tracks are links from there. Home card / Friday + Saturday pushes show the next session.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items

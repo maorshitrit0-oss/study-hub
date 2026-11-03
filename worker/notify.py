@@ -141,9 +141,10 @@ def self_study_line(sb, uid, when):
                    .execute().count or 0)
         if pending:
             return [f"🎓 {when} לימוד עצמי - אבל קודם {pending} השלמות מהשבוע"]
-        topic = (sb.table("skills").select("title").eq("course_id", track["id"]).eq("kind", "topic").lt("level", 3)
-                 .order("ord").limit(1).execute().data)
-        return [f"🎓 {when} לימוד עצמי: {topic[0]['title'] if topic else 'חזרה / פרויקט'}"]
+        # The next session of the 12-week program (web/src/lib/vlsiProgram.ts; one task per session, vlsi:<week>-<n>).
+        nxt = (sb.table("deadlines").select("title").eq("user_id", uid).like("external_uid", "vlsi:%").eq("done", False)
+               .order("due_at").limit(1).execute().data)
+        return [f"🎓 {when} לימוד VLSI: {nxt[0]['title'].replace('🎓 VLSI ', '')}"] if nxt else []
     except Exception as e:  # noqa: BLE001
         print(f"self-study line failed: {e}")
         return []

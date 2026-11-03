@@ -336,6 +336,19 @@ export async function deleteMedia(id: string) {
 
 // ---------- chats ----------
 
+/** A VLSI program session: a new tutor chat named after it, opened with the session's plan. */
+export async function startSession(courseId: string, key: string, title: string) {
+  const { sb } = await requireUser();
+  const { data } = await sb.from("chat_threads").insert({ course_id: courseId, title }).select("id").single();
+  redirect(data ? `/self/${courseId}/chat?t=${data.id}&s=${encodeURIComponent(key)}` : `/self/${courseId}/chat`);
+}
+
+export async function setSessionDone(key: string, done: boolean) {
+  const { sb } = await requireUser();
+  await sb.from("deadlines").update({ done }).eq("external_uid", `vlsi:${key}`);
+  revalidatePath("/self");
+}
+
 export async function createThread(courseId: string, base: string) {
   const { sb } = await requireUser();
   const { data } = await sb.from("chat_threads").insert({ course_id: courseId, title: "צ'אט חדש" }).select("id").single();

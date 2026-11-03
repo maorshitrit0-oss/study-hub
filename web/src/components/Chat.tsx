@@ -36,8 +36,9 @@ function hasChoices(m?: Msg) {
   return m?.role === "model" && (m.content.match(/^\s*(?:\*\*)?[1-4][.)]/gm)?.length ?? 0) >= 4;
 }
 
-export default function Chat({ courseId, userId, initial, isLab = false, isSelf = false, threadId = null }: {
+export default function Chat({ courseId, userId, initial, isLab = false, isSelf = false, threadId = null, autoPrompt }: {
   courseId: string; userId: string; initial: Msg[]; isLab?: boolean; isSelf?: boolean; threadId?: string | null;
+  autoPrompt?: string; // sent once when the chat opens empty (a VLSI program session)
 }) {
   const [msgs, setMsgs] = useState<Msg[]>(initial);
   const [text, setText] = useState("");
@@ -46,6 +47,14 @@ export default function Chat({ courseId, userId, initial, isLab = false, isSelf 
   const [withFiles, setWithFiles] = useState(isLab); // lab work always needs the booklets and reports
   const end = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
+
+  const autoSent = useRef(false);
+  useEffect(() => {
+    if (!autoPrompt || autoSent.current || initial.length) return;
+    autoSent.current = true;
+    send(autoPrompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on open
+  }, []);
 
   // Braces matter: newer browsers return a Promise from scrollIntoView, and React would call it as the cleanup.
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);

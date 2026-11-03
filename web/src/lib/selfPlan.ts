@@ -1,10 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { FREEZES, type Skill } from "./skills";
+import { FREEZES } from "./skills";
 
 /**
  * Self-study on Friday morning and Saturday night (03/11/2026), when nothing from the week is left to catch up on.
- * The two slots live in the timetable (added once, editable there); each upcoming session gets the next topic of the
- * track that is not closed yet (level < 3), in the roadmap's order.
+ * The two slots live in the timetable (added once, editable there); the sessions are the 12-week VLSI program
+ * (vlsiProgram.ts), each a task he marks done on the VLSI page.
  */
 export const SELF_SLOTS = [
   { weekday: 5, start: "10:00", end: "12:00" }, // Friday morning
@@ -36,23 +36,22 @@ export async function catchUps(sb: SupabaseClient) {
   return (data ?? []).map((d) => d.title as string);
 }
 
-export type Session = { date: string; weekday: number; start: string; topic: Skill | null };
-
-/** The next sessions (weeks ahead) with a topic each; exam-period freezes are skipped. */
-export async function selfPlan(sb: SupabaseClient, courseId: string, weeks = 6): Promise<Session[]> {
-  const [{ data: slots }, { data: skills }] = await Promise.all([
-    sb.from("schedule_slots").select("weekday, start_time").eq("course_id", courseId),
-    sb.from("skills").select("*").eq("course_id", courseId).eq("kind", "topic").order("ord"),
-  ]);
-  const todo = ((skills ?? []) as Skill[]).filter((s) => s.level < 3);
-  const out: Session[] = [];
-  for (let k = 0; k < weeks * 7; k++) {
-    const date = israelDate(new Date(Date.now() + k * DAY_MS));
-    const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
-    if (FREEZES.some((f) => date >= f.from && date <= f.to)) continue;
-    for (const s of (slots ?? []).filter((x) => x.weekday === weekday).sort((a, b) => a.start_time.localeCompare(b.start_time))) {
-      out.push({ date, weekday, start: s.start_time.slice(0, 5), topic: todo[out.length] ?? null });
-    }
-  }
-  return out;
+/**
+ * Each program session is a task "🎓 VLSI שבוע W · מפגש N" due at the end of its slot (he marks it done on the VLSI
+ * page); an unfinished one stays open, so it carries over to the next session.
+ */
+export async function syncVlsiTasks(sb: SupabaseClient, courseId: string) {
+  const { VLSI_PROGRAM, sessionDates, sessionKey } = await import("./vlsiProgram");
+  const { israelLocalToIso } = await import("./format");
+  const dates = sessionDates(FREEZES);
+  const { data: have } = await sb.from("deadlines").select("external_uid").like("external_uid", "vlsi:%");
+  const known = new Set((have ?? []).map((d) => d.external_uid));
+  const add = VLSI_PROGRAM.map((s, i) => ({
+    course_id: courseId, kind: "other", done: false,
+    title: `🎓 VLSI שבוע ${s.week} · מפגש ${s.n}: ${s.title}`,
+    due_at: israelLocalToIso(`${dates[i]}T${s.n === 1 ? SELF_SLOTS[0].end : SELF_SLOTS[1].end}`),
+    notes: "מתוכנית ה-VLSI (12 שבועות). מסמנים בדף לימוד VLSI.",
+    external_uid: `vlsi:${sessionKey(s)}`,
+  })).filter((r) => !known.has(r.external_uid));
+  if (add.length) await sb.from("deadlines").upsert(add, { onConflict: "user_id,external_uid", ignoreDuplicates: true });
 }

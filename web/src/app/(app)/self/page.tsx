@@ -1,55 +1,127 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
-import { FREEZES, LEVELS, weekDates, type Skill } from "@/lib/skills";
+import { FREEZES, weekDates } from "@/lib/skills";
 import { ensureCadenceTracks } from "@/lib/cadenceTracks";
+import { catchUps, ensureSelfSlots, mainTrack, syncVlsiTasks } from "@/lib/selfPlan";
+import { VLSI_PROGRAM, sessionDates, sessionKey, type Session } from "@/lib/vlsiProgram";
+import { setSessionDone, startSession } from "../actions";
+import Fold from "@/components/Fold";
 
-/** Self-study tracks (outside the university): roadmap, project and a private tutor each. */
+const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+
+function SessionCard({ s, date, done, courseId, current }: { s: Session; date: string; done: boolean; courseId: string; current: boolean }) {
+  const key = sessionKey(s);
+  return (
+    <article className={`rounded-xl border p-3 space-y-2 ${current ? "border-accent bg-accent-soft" : "border-line"} ${done ? "opacity-60" : ""}`}>
+      <div className="flex justify-between items-start gap-2">
+        <h3 className="font-semibold">{done ? "✅ " : current ? "▶️ " : ""}מפגש {s.n}: {s.title}</h3>
+        <span className="text-xs text-muted shrink-0">{s.n === 1 ? "שישי" : "מוצ״ש"} {ddmm(date)}</span>
+      </div>
+      <p className="text-sm">🎯 {s.goal}</p>
+      {s.setup && (
+        <details className="text-sm">
+          <summary className="cursor-pointer text-accent">🛠️ הכנה: מה לפתוח ואיך</summary>
+          <ol className="list-decimal ps-5 mt-1 space-y-1">{s.setup.map((x) => <li key={x}>{x}</li>)}</ol>
+        </details>
+      )}
+      <p className="text-sm">🔧 <b>משימה:</b> {s.task}</p>
+      <details className="text-sm">
+        <summary className="cursor-pointer text-accent">🎤 שאלות ראיון לסיום</summary>
+        <ul className="list-disc ps-5 mt-1 space-y-1">{s.interview.map((x) => <li key={x}>{x}</li>)}</ul>
+      </details>
+      {s.cadence && <p className="text-xs text-muted">📺 רשות: {s.cadence}</p>}
+      <div className="flex gap-2 flex-wrap">
+        <form action={startSession.bind(null, courseId, key, `שבוע ${s.week} · מפגש ${s.n}: ${s.title}`)}>
+          <button className="btn">📖 להתחיל מפגש עם המורה</button>
+        </form>
+        <form action={setSessionDone.bind(null, key, !done)}>
+          <button className="btn-ghost">{done ? "↩️ לא סיימתי" : "✓ סיימתי את המפגש"}</button>
+        </form>
+      </div>
+    </article>
+  );
+}
+
+/** "🎓 לימוד VLSI": the guided 12-week program (Friday + Saturday night), the topic map, and Cadence as an extra. */
 export default async function SelfStudy() {
   const { sb } = await requireUser();
-  const load = () => Promise.all([
-    sb.from("courses").select("id, name").eq("kind", "self").eq("archived", false).order("created_at"),
-    sb.from("skills").select("*").order("ord"),
-  ]);
-  let [{ data: courses }, { data: skills, error }] = await load();
-  // His Cadence courses get their own tracks (once).
   const { data: all } = await sb.from("courses").select("name").eq("kind", "self");
-  if (!error && await ensureCadenceTracks(sb, (all ?? []).map((c) => c.name)).catch(() => 0)) {
-    [{ data: courses }, { data: skills, error }] = await load();
-  }
+  await ensureCadenceTracks(sb, (all ?? []).map((c) => c.name)).catch(() => 0);
+  const [track, { data: tracks }] = await Promise.all([
+    mainTrack(sb),
+    sb.from("courses").select("id, name").eq("kind", "self").eq("archived", false).order("created_at"),
+  ]);
+  if (track) await Promise.all([ensureSelfSlots(sb, track.id).catch(() => {}), syncVlsiTasks(sb, track.id).catch(() => {})]);
+  const [{ data: tasks }, pending] = await Promise.all([
+    sb.from("deadlines").select("external_uid, done").like("external_uid", "vlsi:%"),
+    catchUps(sb).catch(() => [] as string[]),
+  ]);
+  const doneKeys = new Set((tasks ?? []).filter((t) => t.done).map((t) => (t.external_uid as string).slice(5)));
+  const dates = sessionDates(FREEZES);
+  const currentIdx = VLSI_PROGRAM.findIndex((s) => !doneKeys.has(sessionKey(s)));
+  const current = VLSI_PROGRAM[currentIdx];
   const { today } = weekDates();
   const freeze = FREEZES.find((f) => today >= f.from && today <= f.to);
+  const weeks = [...new Set(VLSI_PROGRAM.map((s) => s.week))];
+  const doneCount = VLSI_PROGRAM.filter((s) => doneKeys.has(sessionKey(s))).length;
 
   return (
     <div className="space-y-5">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">לימוד עצמי</h1>
-        <Link href="/courses/new?kind=self" className="btn-ghost text-sm">+ מסלול</Link>
+      <h1 className="text-2xl font-bold">🎓 לימוד VLSI</h1>
+      <p className="text-sm text-muted">
+        תוכנית מודרכת של 12 שבועות: בשישי בבוקר ובמוצאי שבת. בכל מפגש כתוב מה לפתוח, מה ללמוד עם המורה, מה לבנות ומה אמור
+        לצאת. דדליין: סוף המפגש של מוצ״ש; מפגש שלא סיימת עובר לפעם הבאה.
+      </p>
+      <div className="h-1.5 rounded-full bg-bg overflow-hidden">
+        <div className="h-full bg-good" style={{ width: `${(100 * doneCount) / VLSI_PROGRAM.length}%` }} />
       </div>
-      <p className="text-sm text-muted">לימוד שלך, בלי האוניברסיטה: מפת נושאים, פרויקט, ומורה פרטי שמלמד לפי הכללים שלך.</p>
-      {error && <p className="card text-sm text-warn">צריך להריץ את קוד ה-SQL של הלימוד העצמי ב-Supabase.</p>}
+      <p className="text-xs text-muted">{doneCount} מתוך {VLSI_PROGRAM.length} מפגשים</p>
       {freeze && <p className="card text-sm text-warn">⏸️ {freeze.text}</p>}
-      {(courses ?? []).map((c) => {
-        const mine = ((skills ?? []) as Skill[]).filter((s) => s.course_id === c.id);
-        const topics = mine.filter((s) => s.kind === "topic");
-        const next = topics.find((s) => s.level < 3);
-        const nextProject = mine.filter((s) => s.kind === "project").find((s) => s.level < 4);
+      {pending.length > 0 && (
+        <div className="card bg-warn-soft text-sm">
+          <p className="font-semibold">קודם השלמות ({pending.length}) - ואז לימוד VLSI:</p>
+          <ul className="list-disc ps-5 mt-1">{pending.slice(0, 5).map((t) => <li key={t}>{t}</li>)}</ul>
+          <Link href="/week" className="text-accent">לשבוע שלי ←</Link>
+        </div>
+      )}
+
+      {track && current && (
+        <section className="space-y-2">
+          <h2 className="font-semibold">המפגש הבא · שבוע {current.week}</h2>
+          <SessionCard s={current} date={dates[currentIdx]} done={false} courseId={track.id} current />
+        </section>
+      )}
+      {track && !current && <p className="card">🎉 סיימת את כל 12 השבועות!</p>}
+
+      {track && weeks.map((w) => {
+        const list = VLSI_PROGRAM.map((s, i) => ({ s, i })).filter(({ s }) => s.week === w);
+        const allDone = list.every(({ s }) => doneKeys.has(sessionKey(s)));
         return (
-          <Link key={c.id} href={`/self/${c.id}`} className="card block space-y-2">
-            <h2 className="font-semibold">{c.name}</h2>
-            {topics.length > 0 && (
-              <>
-                <div className="h-1.5 rounded-full bg-bg overflow-hidden">
-                  <div className="h-full bg-good" style={{ width: `${(100 * topics.filter((s) => s.level >= 3).length) / topics.length}%` }} />
-                </div>
-                <p className="text-xs text-muted">{topics.filter((s) => s.level >= 3).length} מתוך {topics.length} נושאים ברמת &quot;פותר ומסביר לבד&quot; ומעלה</p>
-              </>
-            )}
-            {next && <p className="text-sm">▶️ הנושא הבא: {next.title} <span className="text-muted">({LEVELS[next.level]})</span></p>}
-            {nextProject && <p className="text-sm">🛠️ בפרויקט: {nextProject.title}</p>}
-          </Link>
+          <Fold key={w} id={`vlsi-week-${w}`} title={`${allDone ? "✅ " : ""}שבוע ${w}: ${list[0].s.title}`}
+            hint={`דדליין ${ddmm(dates[list[list.length - 1].i])}`}>
+            <div className="space-y-3">
+              {list.map(({ s, i }) => (
+                <SessionCard key={sessionKey(s)} s={s} date={dates[i]} done={doneKeys.has(sessionKey(s))} courseId={track.id} current={i === currentIdx} />
+              ))}
+            </div>
+          </Fold>
         );
       })}
-      {!courses?.length && !error && <p className="card text-sm text-muted">עוד אין מסלולים. לחץ &quot;+ מסלול&quot;.</p>}
+
+      {track && (
+        <Link href={`/self/${track.id}`} className="card block">
+          <span className="font-semibold">🗺️ מפת הנושאים והרמות שלי</span>
+          <span className="block text-xs text-muted">איפה אתה בכל נושא (המורה מעדכן אחרי כל מפגש), והפרויקט.</span>
+        </Link>
+      )}
+      <Fold id="vlsi-cadence" title="📺 קורסי Cadence (רשות)" hint={`${(tracks ?? []).filter((t) => t.id !== track?.id).length}`}>
+        <ul className="divide-y divide-line">
+          {(tracks ?? []).filter((t) => t.id !== track?.id).map((t) => (
+            <li key={t.id}><Link href={`/self/${t.id}`} className="block py-2.5 text-sm">{t.name}</Link></li>
+          ))}
+        </ul>
+        <p className="text-xs text-muted mt-2">הסרטונים באנגלית; בכל מפגש בתוכנית כתוב איזה פרק מתאים לו.</p>
+      </Fold>
     </div>
   );
 }
