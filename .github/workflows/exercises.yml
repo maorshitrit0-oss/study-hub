@@ -39,4 +39,13 @@ jobs:
           [[ -z "$COURSE_ID" || "$COURSE_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad course id"; exit 1; }
           python exercises.py $COURSE_ID
           python docs.py
-          python practical.py $COURSE_ID
+      # Its own step: its report lines are not crowded out (GitHub keeps 10 notices per step).
+      - name: Practical exam bank (lab)
+        working-directory: worker
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          COURSE_ID: ${{ inputs.course_id }}
+        run: python practical.py $COURSE_ID
