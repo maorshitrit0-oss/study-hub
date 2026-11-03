@@ -153,9 +153,12 @@ def cmd_process(lesson_id, do_author=True):
             if length:
                 # Measured on GitHub's runners: ~0.4 minutes of processing per minute of recording.
                 job.log(f"אורך ההקלטה {media.fmt_time(length)} · זמן עיבוד משוער: כ-{max(5, round(length * 0.4 / 60))} דקות")
-            job.log("מזהה שקפים / מצבי לוח...")
-            scenes = media.detect_slides(video, log=job.log)
-            slides = media.save_slides(video, scenes, work)
+            if media.has_video(video):
+                job.log("מזהה שקפים / מצבי לוח...")
+                scenes = media.detect_slides(video, log=job.log)
+                slides = media.save_slides(video, scenes, work)
+            else:  # sound only (e.g. a WhatsApp recording of the lecturer): straight to the transcript
+                slides = []
             job.log(f"מעלה {len(slides)} צילומי לוח...")
             store = job.sb.storage.from_(BUCKET)
             for n, _, p in slides:

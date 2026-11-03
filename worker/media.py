@@ -30,6 +30,13 @@ def duration(path):
     return int(m[1]) * 3600 + int(m[2]) * 60 + int(m[3]) if m else 0
 
 
+def has_video(path):
+    """False for a sound-only file (a WhatsApp voice recording): no board snapshots to take."""
+    p = subprocess.run([FFMPEG, "-hide_banner", "-i", str(path)],
+                       capture_output=True, text=True, errors="ignore", creationflags=NO_WINDOW)
+    return "Video:" in p.stderr
+
+
 def has_audio(path):
     p = subprocess.run([FFMPEG, "-hide_banner", "-i", str(path)],
                        capture_output=True, text=True, errors="ignore", creationflags=NO_WINDOW)
