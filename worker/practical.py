@@ -124,6 +124,8 @@ def sources(sb, course):
 def build(sb, course):
     from google.genai import types
     texts, files = sources(sb, course)
+    print(f"::notice title=Practical exam {course['name']}::sources: {len(texts)} texts "
+          f"({sum(len(t) for t in texts)} chars), {len(files) // 2} PDF files", flush=True)
     if not texts and not files:
         return False
     parts = [types.Part.from_text(text=PROMPT), types.Part.from_text(text="\n\n".join(texts))] + files
@@ -158,7 +160,11 @@ def stale(sb, course):
 def run(only=None, force=False):
     sb = db()
     q = sb.table("courses").select("id, name, user_id").eq("kind", "lab").eq("archived", False)
-    for course in (q.eq("id", only) if only else q).execute().data:
+    courses = (q.eq("id", only) if only else q).execute().data
+    print(f"::notice title=Practical exam::{len(courses)} lab courses: {', '.join(c['name'] for c in courses) or '-'}", flush=True)
+    for course in courses:
+        if not (force or stale(sb, course)):
+            print(f"::notice title=Practical exam {course['name']}::up to date", flush=True)
         if force or stale(sb, course):
             try:
                 build(sb, course)
