@@ -443,6 +443,20 @@ def cmd_sheet(match, path):
     docs.save(sb, course, Path(path).read_text(encoding="utf-8"), "נכתב ע״י Claude")
 
 
+def cmd_inspect(match, kind, number):
+    """Diagnostics for a lesson's text (no content printed beyond a short sample): line breaks, odd separators."""
+    sb = db()
+    course = find_course(sb, match)
+    for l in (sb.table("lessons").select("id, title, status, author, chapter_md, summary_md, transcript").eq("course_id", course["id"])
+              .eq("kind", kind).eq("number", int(number)).execute().data):
+        for f in ("chapter_md", "summary_md"):
+            t = l.get(f) or ""
+            print(f"::notice title=Inspect {l['id']} {f}::len={len(t)} lf={t.count(chr(10))} cr={t.count(chr(13))} "
+                  f"u2028={t.count(chr(0x2028))} u2029={t.count(chr(0x2029))} lit_bs_n={t.count(chr(92) + 'n')} "
+                  f"author={l.get('author')} status={l['status']} transcript={(l.get('transcript') or '')[:60]!r} "
+                  f"sample={t[:160]!r}", flush=True)
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -453,6 +467,7 @@ if __name__ == "__main__":
     p = sub.add_parser("add"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
     p.add_argument("title"); p.add_argument("chapter_json")
     p = sub.add_parser("sheet"); p.add_argument("course"); p.add_argument("md")
+    p = sub.add_parser("inspect"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
     a = ap.parse_args()
     if a.cmd == "process":
         cmd_process(a.lesson_id, not a.no_author)
@@ -462,6 +477,8 @@ if __name__ == "__main__":
         cmd_fetch(a.lesson_id, a.out_dir)
     elif a.cmd == "add":
         cmd_add(a.course, a.kind, a.number, a.title, a.chapter_json)
+    elif a.cmd == "inspect":
+        cmd_inspect(a.course, a.kind, a.number)
     elif a.cmd == "sheet":
         cmd_sheet(a.course, a.md)
     else:

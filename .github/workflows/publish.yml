@@ -20,6 +20,9 @@ on:
       sheet:
         description: "chapters/*.md to save as the course help sheet (empty = none)"
         default: ""
+      inspect:
+        description: "true = only print diagnostics for course/kind/number"
+        default: "false"
 
 permissions:
   contents: read
@@ -45,9 +48,11 @@ jobs:
           NUMBER: ${{ inputs.number }}
           TITLE: ${{ inputs.title }}
           SHEET: ${{ inputs.sheet }}
+          INSPECT: ${{ inputs.inspect }}
         run: |
           ok() { [[ -z "$1" || "$1" =~ ^chapters/[A-Za-z0-9_.-]+\.$2$ ]] || { echo "::error::bad path $1"; exit 1; }; }
           ok "$CHAPTER" json; ok "$SHEET" md
+          if [ "$INSPECT" = "true" ]; then python hub.py inspect "$COURSE" "$KIND" "$NUMBER"; exit 0; fi
           [[ "$KIND" =~ ^(lecture|practice|other)$ && "$NUMBER" =~ ^[0-9]+$ ]] || { echo "::error::bad kind/number"; exit 1; }
           if [ -n "$SHEET" ]; then python hub.py sheet "$COURSE" "../$SHEET"; fi
           if [ -n "$CHAPTER" ]; then python hub.py add "$COURSE" "$KIND" "$NUMBER" "$TITLE" "../$CHAPTER"; fi
