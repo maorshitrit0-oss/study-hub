@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Fold from "./Fold";
-import { addFact, deleteFact } from "@/app/(app)/actions";
+import { addFact, deleteFacts } from "@/app/(app)/actions";
+import type { MergedFact } from "@/lib/facts";
 
 export type Fact = { id: string; category: string; text: string; lesson_id: string | null };
 
@@ -16,13 +17,19 @@ const LABEL: Record<string, string> = {
   other: "ℹ️ כללי",
 };
 
-/** Admin info the lecturers said in class, grouped; reservist rules first for reservists. */
-export default function CourseFacts({ courseId, facts, reservist, lessonNames }: {
+/**
+ * Admin info the lecturers said in class, grouped; reservist rules first for reservists. Repeats are merged
+ * (lib/facts.ts, worker/facts.py): one line per piece of information, with the lessons it came from.
+ */
+export default function CourseFacts({ courseId, facts: raw, merged, reservist, lessonNames }: {
   courseId: string;
   facts: Fact[];
+  merged: MergedFact[];
   reservist: boolean;
   lessonNames: Map<string, string>;
 }) {
+  const byId = new Map(raw.map((f) => [f.id, f]));
+  const facts = merged.map((m) => ({ ...m, id: m.ids.join(","), lessons: [...new Set(m.ids.map((i) => byId.get(i)?.lesson_id).filter((x): x is string => !!x && lessonNames.has(x)))] }));
   const order = reservist
     ? ["reservist", "exam", "exam_hint", "grading", "assignments", "attendance", "materials", "industry", "other"]
     : ["exam", "exam_hint", "grading", "assignments", "reservist", "attendance", "materials", "industry", "other"];
@@ -45,11 +52,12 @@ export default function CourseFacts({ courseId, facts, reservist, lessonNames }:
                   <span className="text-muted">•</span>
                   <span className="flex-1">
                     {f.text}
-                    {f.lesson_id && lessonNames.get(f.lesson_id) && (
-                      <Link href={`/lessons/${f.lesson_id}`} className="text-xs text-accent"> ({lessonNames.get(f.lesson_id)})</Link>
-                    )}
+                    {f.lessons.slice(0, 3).map((l) => (
+                      <Link key={l} href={`/lessons/${l}`} className="text-xs text-accent"> ({lessonNames.get(l)})</Link>
+                    ))}
+                    {f.lessons.length > 3 && <span className="text-xs text-muted"> +{f.lessons.length - 3}</span>}
                   </span>
-                  <form action={deleteFact.bind(null, f.id, courseId)}>
+                  <form action={deleteFacts.bind(null, f.ids, courseId)}>
                     <button className="text-muted text-xs px-1" aria-label="מחיקה">✕</button>
                   </form>
                 </li>

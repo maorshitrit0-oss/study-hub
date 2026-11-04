@@ -448,6 +448,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   (github.com/Brown-Programming-Academy/microcontroller-public). Projects live in C:\esp - the default
   OneDrive\מסמכים path broke the linker (Hebrew in the path). Course is theoretical: buying hardware is optional
   (site suggests an ESP32-S3 dev board + an electronics kit).
+- "מידע על הקורס" without repeats (04/11/2026, micro had the same facts many times - each lesson, last year's site,
+  the syllabus repeat them): `worker/facts.py` merges a course's facts with Gemini (every row in exactly one merged line,
+  contradictions -> newer kept + "(earlier: ...)"; fallback = exact-text merge) into facts_merged.json {sig, items[ids]}.
+  Rows are NOT deleted; lib/facts.ts shows the merged lines (deleted rows drop out, newer rows shown as is), ✕ on a
+  line deletes its rows (deleteFacts). Runs daily (enrich.yml) and on demand (publish.yml inspect=facts).
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items

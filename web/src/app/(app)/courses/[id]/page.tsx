@@ -15,6 +15,7 @@ import { isWeak, pct, topicStats } from "@/lib/progress";
 import { isPast } from "@/lib/format";
 import { forProjection, needed, pending, sameCode, totals, type GradeRow } from "@/lib/gradeGoal";
 import { LEVEL_LABEL, LEVEL_TONE, weeklyPlan } from "@/lib/plan";
+import { mergedFacts } from "@/lib/facts";
 import { DAYS, EXAM_LABEL, KIND_LABEL, SLOT_LABEL, hhmm, type Slot, lessonName, type Course, type Deadline, type Lesson } from "@/lib/types";
 
 const STATUS: Record<Lesson["status"], [string, string]> = {
@@ -82,6 +83,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
   const sofar = totals(gradeRows);
   const need90 = mine ? needed(90, sofar.sum, sofar.credits, open.reduce((a, r) => a + Number(r.credits), 0)) : null;
   const ls = (lessons ?? []) as Lesson[];
+  const merged = await mergedFacts(sb, userId, id, (facts ?? []) as Fact[]);
   const nextByKind = Object.fromEntries(["lecture", "practice", "lab", "other"]
     .map((k) => [k, Math.max(0, ...ls.filter((l) => l.kind === k).map((l) => l.number ?? 0)) + 1]));
   const upcoming = ((deadlines ?? []) as Deadline[]).filter((d) => !d.done || !isPast(d.due_at));
@@ -151,7 +153,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
             </ul>
           </Fold>
         )}
-        <CourseFacts courseId={id} facts={(facts ?? []) as Fact[]} reservist={!!settings?.is_reservist}
+        <CourseFacts courseId={id} facts={(facts ?? []) as Fact[]} merged={merged} reservist={!!settings?.is_reservist}
           lessonNames={new Map(ls.map((l) => [l.id, lessonName(l)]))} />
         <Fold id="files" title="קבצים (חוברות, דוחות, מבחנים מעשיים קודמים)" hint={`${(materials ?? []).length}`}>
           <Materials courseId={id} userId={userId} items={materials ?? []} isLab />
@@ -220,7 +222,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
         </Fold>
       )}
 
-      <CourseFacts courseId={id} facts={(facts ?? []) as Fact[]} reservist={!!settings?.is_reservist}
+      <CourseFacts courseId={id} facts={(facts ?? []) as Fact[]} merged={merged} reservist={!!settings?.is_reservist}
         lessonNames={new Map(ls.map((l) => [l.id, lessonName(l)]))} />
 
       <Fold id="add" title="➕ הוספת הרצאה / תרגול">

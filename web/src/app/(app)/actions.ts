@@ -621,3 +621,10 @@ export async function deleteFact(id: string, courseId: string) {
   await sb.from("course_facts").delete().eq("id", id);
   revalidatePath(`/courses/${courseId}`);
 }
+
+/** A merged line of course info (lib/facts.ts) is removed with all the rows it stands for - only when he presses ✕. */
+export async function deleteFacts(ids: string[], courseId: string) {
+  const { sb } = await requireUser();
+  if (ids.length) await sb.from("course_facts").delete().in("id", ids);
+  revalidatePath(`/courses/${courseId}`);
+}
