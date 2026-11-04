@@ -31,8 +31,11 @@ jobs:
           LESSON_ID: ${{ inputs.lesson_id }}
           PUBKEY: ${{ inputs.pubkey }}
         run: |
-          [[ "$LESSON_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad lesson id"; exit 1; }
-          python hub.py fetch "$LESSON_ID" /tmp/lesson
+          if [ "$LESSON_ID" = "summaries" ]; then python hub.py summaries /tmp/lesson
+          else
+            [[ "$LESSON_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad lesson id"; exit 1; }
+            python hub.py fetch "$LESSON_ID" /tmp/lesson
+          fi
           tar czf /tmp/l.tgz -C /tmp lesson
           echo "$PUBKEY" | base64 -d > /tmp/pub.pem
           openssl rand -out /tmp/k.bin 32

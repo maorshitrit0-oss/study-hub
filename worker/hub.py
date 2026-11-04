@@ -445,6 +445,23 @@ def cmd_sheet(match, path):
     docs.save(sb, course, Path(path).read_text(encoding="utf-8"), "נכתב ע״י Claude")
 
 
+def cmd_summaries(out_dir):
+    """Timetable + each course's grade / exam / formula-sheet summary (facts.py) -> summaries.json, for a picture."""
+    sb = db()
+    courses = sb.table("courses").select("id, name, user_id, kind, exam_type, grade_weights").eq("archived", False).execute().data
+    slots = sb.table("schedule_slots").select("course_id, title, kind, weekday, start_time, end_time").execute().data
+    for c in courses:
+        try:
+            c["summary"] = json.loads(sb.storage.from_(BUCKET).download(
+                f"{c['user_id']}/materials/{c['id']}/facts_merged.json").decode()).get("summary") or {}
+        except Exception:  # noqa: BLE001
+            c["summary"] = {}
+        c.pop("user_id", None)
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    (Path(out_dir) / "summaries.json").write_text(json.dumps({"courses": courses, "slots": slots}, ensure_ascii=False, indent=1),
+                                                  encoding="utf-8")
+
+
 def cmd_flat():  # noqa: D401
     """Every ready lesson whose chapter is squashed onto a few lines (author.is_flat) - to write again."""
     sb = db()
@@ -480,6 +497,7 @@ if __name__ == "__main__":
     p.add_argument("title"); p.add_argument("chapter_json")
     p = sub.add_parser("sheet"); p.add_argument("course"); p.add_argument("md")
     sub.add_parser("flat")
+    p = sub.add_parser("summaries"); p.add_argument("out_dir")
     p = sub.add_parser("inspect"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
     a = ap.parse_args()
     if a.cmd == "process":
@@ -490,6 +508,8 @@ if __name__ == "__main__":
         cmd_fetch(a.lesson_id, a.out_dir)
     elif a.cmd == "add":
         cmd_add(a.course, a.kind, a.number, a.title, a.chapter_json)
+    elif a.cmd == "summaries":
+        cmd_summaries(a.out_dir)
     elif a.cmd == "flat":
         cmd_flat()
     elif a.cmd == "inspect":
