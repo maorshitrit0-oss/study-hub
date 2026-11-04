@@ -443,6 +443,16 @@ def cmd_sheet(match, path):
     docs.save(sb, course, Path(path).read_text(encoding="utf-8"), "נכתב ע״י Claude")
 
 
+def cmd_flat():
+    """Every ready lesson whose chapter is squashed onto a few lines (author.is_flat) - to write again."""
+    sb = db()
+    names = {c["id"]: c["name"] for c in sb.table("courses").select("id, name").execute().data}
+    rows = sb.table("lessons").select("id, course_id, kind, number, chapter_md").eq("status", "ready").execute().data
+    flat = [r for r in rows if author.is_flat(r.get("chapter_md"))]
+    print(f"::notice title=Flat::{len(flat)} squashed chapters: " + "; ".join(
+        f"{r['id']} {names.get(r['course_id'], '')} {r['kind']} {r.get('number') or ''}" for r in flat)[:3500], flush=True)
+
+
 def cmd_inspect(match, kind, number):
     """Diagnostics for a lesson's text (no content printed beyond a short sample): line breaks, odd separators."""
     sb = db()
@@ -467,6 +477,7 @@ if __name__ == "__main__":
     p = sub.add_parser("add"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
     p.add_argument("title"); p.add_argument("chapter_json")
     p = sub.add_parser("sheet"); p.add_argument("course"); p.add_argument("md")
+    sub.add_parser("flat")
     p = sub.add_parser("inspect"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
     a = ap.parse_args()
     if a.cmd == "process":
@@ -477,6 +488,8 @@ if __name__ == "__main__":
         cmd_fetch(a.lesson_id, a.out_dir)
     elif a.cmd == "add":
         cmd_add(a.course, a.kind, a.number, a.title, a.chapter_json)
+    elif a.cmd == "flat":
+        cmd_flat()
     elif a.cmd == "inspect":
         cmd_inspect(a.course, a.kind, a.number)
     elif a.cmd == "sheet":

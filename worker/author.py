@@ -413,6 +413,9 @@ def author_with_gemini(course, lesson, transcript, slides, previous_topics, log=
     if vlsi:
         system = SUMMARY_SYSTEM.replace("questions: רשימה ריקה (אין שאלון אמריקאי).", VLSI_TASK)
     draft = validate(_generate_json(sources, system, SUMMARY_SCHEMA if short else CHAPTER_SCHEMA, "MEDIUM"))
+    if is_flat(draft.get("chapter_md")):  # all on one line (Java practice 2, 04/11/2026): write it again
+        log("הפרק יצא בלי שורות וכותרות - כותב שוב...")
+        draft = validate(_generate_json(sources, system, SUMMARY_SCHEMA if short else CHAPTER_SCHEMA, "MEDIUM"))
     log("בודק את התקציר ופותר מחדש כל תרגיל..." if short else "בודק את הפרק והשאלון מול ההקלטה, השקפים והידע המקצועי...")
     return verify_with_gemini(sources, draft, log, short)
 
@@ -479,6 +482,12 @@ VERIFY_EXERCISES = """
 8. צילומי לוח: ודא שכל ![...](slide:N) מראה בדיוק את הנושא של הטקסט שלידו; צילום של נושא אחר - הזז למקום הנכון או הסר."""
 
 
+def is_flat(md):
+    """A chapter squashed onto a few lines: headings, lists and quotes all run together on the page."""
+    md = md or ""
+    return len(md) > 1500 and md.count("\n") < len(md) / 250
+
+
 def verify_with_gemini(sources, draft, log=print, short=False):
     """Second, independent pass: fact-check the chapter and re-solve every quiz question / exercise."""
     from google.genai import types
@@ -494,6 +503,12 @@ def verify_with_gemini(sources, draft, log=print, short=False):
         log(f"הבדיקה נכשלה ({e}); נשמרת הטיוטה עם סימון")
         draft["verification"] = {"fixes": [], "uncertain": ["הבדיקה האוטומטית לא רצה על הפרק הזה - כדאי לבדוק אותו בזהירות."]}
         return draft
+    # The check re-emits the whole chapter; sometimes squashed onto a few lines or cut short. Then the draft's
+    # chapter stays (its quiz/exercise fixes are still taken).
+    before, after = draft.get("chapter_md") or "", checked.get("chapter_md") or ""
+    if before and not is_flat(before) and (is_flat(after) or len(after) < 0.7 * len(before)):
+        checked["chapter_md"] = before
+        log("הבדיקה קיצרה או מחצה את הפרק - נשמר הפרק המקורי")
     v = checked.get("verification") or {}
     if v.get("uncertain"):
         v["uncertain"] = _search_check(v["uncertain"])
