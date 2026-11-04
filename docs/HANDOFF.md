@@ -409,6 +409,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Quiz "🤷 לא יודע - תראה לי את התשובה" (04/11/2026, he was guessing on questions he didn't know): shows the right
   answer + explanation, recorded as a miss (attempts.chosen = -1) so the topic counts as weak and comes back in review.
   In every quiz (lesson, review, practice, lab entry quizzes - all use components/Quiz.tsx).
+- Course page "חומר הקורס" (04/11/2026): one list "הרצאות ותרגולים" in study order - lecture N (its parts by "חלק 1/2"
+  or "חלק א/ב" in the title, then upload time), then practice N, then lecture N+1... (`byMeeting`); other material
+  and last year's site after it.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items

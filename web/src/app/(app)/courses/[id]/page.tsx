@@ -25,12 +25,29 @@ const STATUS: Record<Lesson["status"], [string, string]> = {
   error: ["שגיאה", "text-bad"],
 };
 
-/** Lectures, practices and other material as separate groups (a lab keeps one list). */
+const HEB_PART: Record<string, number> = { א: 1, ב: 2, ג: 3, ד: 4 };
+/** "חלק 2" / "חלק ב" in the title -> 2 (parts of one lecture share its number). */
+function partOf(l: Lesson) {
+  const m = (l.title ?? "").match(/חלק\s*['׳]?\s*(\d+|[אבגד](?![א-ת]))/);
+  return m ? Number(m[1]) || HEB_PART[m[1]] || 0 : 0;
+}
+
+/**
+ * In the order he studies them (04/11/2026): lecture N (part 1, part 2...) and then practice N - lecture, practice,
+ * lecture, practice. Without a number they go last, by upload time.
+ */
+function byMeeting(a: Lesson, b: Lesson) {
+  return (a.number ?? 999) - (b.number ?? 999)
+    || (a.kind === b.kind ? 0 : a.kind === "lecture" ? -1 : 1)
+    || partOf(a) - partOf(b)
+    || a.created_at.localeCompare(b.created_at);
+}
+
+/** Lectures and practices interleaved, then other material (a lab keeps one list). */
 function groupLessons(ls: Lesson[], isLab: boolean): [string, Lesson[]][] {
   if (isLab) return [["", ls]];
   const groups: [string, Lesson[]][] = [
-    ["הרצאות", ls.filter((l) => l.kind === "lecture")],
-    ["תרגולים", ls.filter((l) => l.kind === "practice")],
+    ["הרצאות ותרגולים", ls.filter((l) => (l.kind === "lecture" || l.kind === "practice") && !isSiteLesson(l)).sort(byMeeting)],
     ["חומר נוסף", ls.filter((l) => l.kind !== "lecture" && l.kind !== "practice" && !isSiteLesson(l))],
     // Last year's material from the lecturer's site: reference and backup, after this year's own lessons.
     ["📼 חומר משנה שעברה (מאתר המרצה)", ls.filter(isSiteLesson).sort((a, b) => (a.number ?? 99) - (b.number ?? 99))],
