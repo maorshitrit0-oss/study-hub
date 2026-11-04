@@ -431,6 +431,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Arabic letters in Hebrew (04/11/2026, quiz showed "لבין", "وטיפוסי"): Gemini glues an Arabic prefix letter to a
   Hebrew word. `fixArabic` (lib/math.ts; used by Chapter, Rich, CodeLines) and `author.fix_arabic` (in validate, so
   new content is saved clean) turn و ل ب ك ه م ش before a Hebrew letter into ו ל ב כ ה מ ש and drop other Arabic.
+- Squashed chapters (04/11/2026, Java practice 2: 4.4k chars on 6 lines - headings, lists, "🏠" all run together):
+  `author.is_flat`; a squashed draft is written again once, and the verify pass may not squash or cut the chapter
+  (<70% of the draft -> the draft's chapter is kept). `hub.py flat` lists squashed ready chapters (publish.yml
+  inspect=flat); found Java practice 2 + micro web 7, re-dispatched through process.yml.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items
