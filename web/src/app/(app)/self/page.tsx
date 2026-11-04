@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/supabase/server";
 import { FREEZES, weekDates } from "@/lib/skills";
 import { ensureCadenceTracks } from "@/lib/cadenceTracks";
 import { catchUps, ensureSelfSlots, ensureSessionLesson, mainTrack, syncVlsiTasks } from "@/lib/selfPlan";
-import { VLSI_PROGRAM, sessionDates, sessionKey, type Session } from "@/lib/vlsiProgram";
+import { PROJECT, VLSI_PROGRAM, sessionDates, sessionKey, type Session } from "@/lib/vlsiProgram";
 import { openSessionLesson, setSessionDone, startSession } from "../actions";
 import Fold from "@/components/Fold";
 
@@ -41,6 +41,7 @@ function SessionCard({ s, date, done, courseId, current, lesson }: {
         </ul>
         <p className="text-xs text-muted mt-1">כל שאלה עם הקישור לעמוד שממנו היא נלקחה.</p>
       </details>
+      {s.board && <p className="text-sm rounded-lg bg-accent-soft p-2">🔧 <b>על הלוח (הפרויקט):</b> {s.board}</p>}
       {s.cadence && <p className="text-xs text-muted">📺 רשות: {s.cadence}</p>}
       <div className="flex gap-2 flex-wrap">
         {lesson ? (
@@ -98,6 +99,8 @@ export default async function SelfStudy() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold">🎓 לימוד VLSI</h1>
+      <p className="card text-sm">🚀 <b>הפרויקט לקורות החיים:</b> {PROJECT}. כל מפגש מוסיף לו חלק אחד (🔧 על הלוח), ובסוף 12
+        השבועות יש פרויקט שלם עם GitHub, דוחות וסרטון. <a href="https://github.com/maorshitrit0-oss/study-hub/blob/main/fpga/pa35t_edu.xdc" className="text-accent" target="_blank" rel="noopener noreferrer">קובץ הפינים של הלוח</a></p>
       <p className="text-sm text-muted">
         תוכנית מודרכת של 12 שבועות: בשישי בבוקר ובמוצאי שבת. בכל מפגש כתוב מה לפתוח, מה ללמוד עם המורה, מה לבנות ומה אמור
         לצאת. דדליין: סוף המפגש של מוצ״ש; מפגש שלא סיימת עובר לפעם הבאה.

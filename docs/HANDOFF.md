@@ -466,9 +466,17 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - His FPGA board (04/11/2026): PuZhi A7-EDU (AliExpress "PUZHI FPGA SDR Store"), Artix-7 **XC7A35T** (listing:
   XC7A35T-2FGG484I -> Vivado part xc7a35tfgg484-2), 8-digit 7-seg, HDMI out, Gigabit Ethernet, UART, onboard JTAG,
   1GB DDR3. Pin file (XDC) / schematic NOT received yet - asked him to get them from the seller; never guess pins.
-  Proposed (not yet approved): the 12-week program builds one CV project - "Mini-TPU" systolic-array int8 NN
+  APPROVED 04/11/2026 ("if this is what boosts my CV for those companies, I'm in"): the 12-week program builds one CV project - "Mini-TPU" systolic-array int8 NN
   accelerator classifying drone sound clips sent over UART (targets NVIDIA/Google/Amazon/Apple/Intel/Marvell/Elbit/
   Rafael); alternatives on the same accelerator: ECG arrhythmia, keyword spotting, motor faults.
+- Board project in the program (04/11/2026): manual received (PA35T-EDU V1.0) -> `fpga/pa35t_edu.xdc` (all pins: 200MHz
+  diff clock R4/T4 DIFF_SSTL15 [bank 34 = DDR3 1.5V - verify], rst R14, 6 LEDs active-high, 3 keys active-low, 16 DIP,
+  UART P15/P14 via CH340, two 4-digit 7-seg on bank 16 - polarity unknown, found on the board in week 3).
+  vlsiProgram.ts: PROJECT, BOARD_PINS, VIVADO install steps (session 1 setup), `board` step on every session (MAC ->
+  FSM -> perf counter -> systolic PE/2x2 -> timing/pipeline -> UART/FIFO -> int8 weights in BRAM -> 4x4 array classifies
+  drone clips -> reports/GitHub/video -> interview). Shown on the VLSI page, sent to the tutor and the lesson writer
+  (VLSI_TASK "## 🔧 על הלוח"); unread session lessons written before this are re-written once (ensureSessionLesson).
+  Dataset: DroneAudioDataset (github.com/saraalemadi/DroneAudioDataset), features computed in Python on the PC.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items

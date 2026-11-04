@@ -60,13 +60,10 @@ export async function syncVlsiTasks(sb: SupabaseClient, courseId: string) {
  * started once; returns the lesson id and status.
  */
 export async function ensureSessionLesson(sb: SupabaseClient, courseId: string, idx: number) {
-  const { VLSI_PROGRAM } = await import("./vlsiProgram");
+  const { VLSI_PROGRAM, PROJECT, BOARD_PINS } = await import("./vlsiProgram");
   const { dispatchLesson } = await import("./github");
   const s = VLSI_PROGRAM[idx];
   if (!s) return null;
-  const { data: have } = await sb.from("lessons").select("id, status").eq("course_id", courseId).eq("kind", "lecture")
-    .eq("number", idx + 1).maybeSingle();
-  if (have) return have;
   const transcript = [
     "<!-- vlsi-session -->",
     `תוכנית לימוד VLSI - שבוע ${s.week}, מפגש ${s.n}: ${s.title}`,
@@ -74,8 +71,21 @@ export async function ensureSessionLesson(sb: SupabaseClient, courseId: string, 
     `הנושאים: ${s.learn.join("; ")}`,
     s.setup ? `הכלים (מה לפתוח): ${s.setup.join(" | ")}` : "",
     `המשימה המעשית: ${s.task}`,
+    s.board ? `🔧 על הלוח - הפרויקט לקורות החיים (${PROJECT}): ${s.board}` : "",
+    s.board ? `הלוח והפינים: ${BOARD_PINS.join(" ")}` : "",
     `שאלות ראיון (עם המקור - להעתיק כמו שהן, עם הקישור): ${s.interview.map((i) => `${i.q} [${i.src}](${i.url})`).join(" | ")}`,
   ].filter(Boolean).join("\n");
+  const { data: have } = await sb.from("lessons").select("id, status, transcript, read_at").eq("course_id", courseId)
+    .eq("kind", "lecture").eq("number", idx + 1).maybeSingle();
+  if (have) {
+    // Written before the board project (04/11/2026) and not read yet: written again with its board step.
+    if (s.board && !(have.transcript ?? "").includes("🔧 על הלוח") && !have.read_at && have.status !== "processing") {
+      await sb.from("lessons").update({ transcript, status: "queued", progress: "כותב מחדש עם הפרויקט על הלוח" }).eq("id", have.id);
+      await dispatchLesson(have.id);
+      return { id: have.id as string, status: "queued" };
+    }
+    return { id: have.id as string, status: have.status as string };
+  }
   const { data } = await sb.from("lessons").insert({
     course_id: courseId, kind: "lecture", number: idx + 1, title: `שבוע ${s.week} · מפגש ${s.n}: ${s.title}`,
     transcript, status: "queued", progress: "כותב את השיעור, התרגילים והשאלון",
