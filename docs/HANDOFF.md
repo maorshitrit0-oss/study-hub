@@ -415,6 +415,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - iPhone rendering bug (04/11/2026, dark blurred rectangles over long pages while scrolling): `.card` had
   backdrop-blur; WebKit tiles tall blurred layers and left stale tiles. Removed the blur from cards (card bg 0.93);
   only the small bottom nav keeps it. Don't put backdrop-filter back on large elements.
+- "📖 מה כל שורה עושה" (04/11/2026, he can't read code yet): under EVERY code block rendered by components/Chapter
+  (chapters, exercise questions and solutions, docs, chat) a table code line -> what it does in Hebrew
+  (components/CodeLines.tsx -> /api/explain-code, one Gemini call per block when it scrolls into view, cached in
+  localStorage). ```wave and ```text/output blocks are skipped.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items

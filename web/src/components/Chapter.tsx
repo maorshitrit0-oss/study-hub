@@ -4,6 +4,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { promoteLongMath, wrapBareLatex } from "@/lib/math";
 import Wave from "./Wave";
+import CodeLines from "./CodeLines";
 
 /** Renders a reading chapter; images written as ![..](slide:N) resolve to signed slide URLs. */
 export default function Chapter({ md, slideUrls }: { md: string; slideUrls: Record<number, string> }) {
@@ -33,7 +34,11 @@ export default function Chapter({ md, slideUrls }: { md: string; slideUrls: Reco
               const text = code.children.map((c) => ("value" in c ? c.value : "")).join("");
               return <Wave src={text} />;
             }
-            return <pre>{children}</pre>;
+            // Every other code block: the code, and under it each line in Hebrew (CodeLines).
+            const text = code && "children" in code ? code.children.map((c) => ("value" in c ? c.value : "")).join("") : "";
+            const lang = cls.match(/language-(\S+)/)?.[1] ?? "";
+            if (!text.trim() || /^(text|txt|output|console)$/.test(lang)) return <pre>{children}</pre>;
+            return <><pre>{children}</pre><CodeLines code={text} lang={lang} /></>;
           },
           a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" className="text-accent underline">{children}</a>,
         }}

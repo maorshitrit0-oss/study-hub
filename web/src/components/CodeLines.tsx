@@ -1,0 +1,73 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+type Line = { code: string; he: string };
+
+function hash(s: string) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+/**
+ * Under every code block (04/11/2026, he is not strong in code): "מה כל שורה עושה" - each line and what it does in
+ * Hebrew. Loaded when the block scrolls into view (one Gemini call per block), kept in this browser afterwards.
+ */
+export default function CodeLines({ code, lang }: { code: string; lang: string }) {
+  const key = `codelines:${hash(code)}`;
+  const box = useRef<HTMLDetailsElement>(null);
+  const [lines, setLines] = useState<Line[] | null>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    let started = false;
+    const load = async () => {
+      if (started) return;
+      started = true;
+      try {
+        const saved = localStorage.getItem(key);
+        if (saved) { setLines(JSON.parse(saved)); return; }
+      } catch { /* private mode */ }
+      setLoading(true);
+      try {
+        const res = await fetch("/api/explain-code", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code, lang }) });
+        const out = await res.json();
+        if (!res.ok) throw new Error(out.error || "שגיאה");
+        setLines(out.lines);
+        try { localStorage.setItem(key, JSON.stringify(out.lines)); } catch { /* full */ }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+        started = false;
+      } finally {
+        setLoading(false);
+      }
+    };
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); load(); } }, { rootMargin: "300px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [code, lang, key]);
+
+  return (
+    <details ref={box} open className="codelines">
+      <summary className="cursor-pointer text-sm text-accent">📖 מה כל שורה עושה</summary>
+      {loading && <p className="text-xs text-muted py-1">מתרגם את הקוד לעברית, שורה-שורה...</p>}
+      {error && <p className="text-xs text-bad py-1">{error}</p>}
+      {lines && (
+        <table>
+          <tbody>
+            {lines.map((l, i) => (
+              <tr key={i}>
+                <td><code>{l.code}</code></td>
+                <td>{l.he}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </details>
+  );
+}
