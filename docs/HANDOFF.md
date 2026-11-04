@@ -438,6 +438,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Java = always the full reading chapter (04/11/2026, practice 2 came out as a short summary, "not what I expect"):
   `author.FULL_COURSES`; summary_mode(lesson, mode, course) is False for it, and a full chapter clears summary_md so the
   lesson page shows the chapter first (exercises already saved stay).
+- Claude writing a chapter from a cloud session (no DB keys): `fetch.yml` (lesson_id + a one-time RSA public key) runs
+  `hub.py fetch`, encrypts it and pushes it to branch fetch/<id>; the session decrypts it, writes chapters/<name>.json and
+  runs `publish.yml` (course + kind + number -> `hub.py add` updates the existing lesson), which also deletes fetch/*.
+  Done first for Java practice 2 (04/11/2026, chapters/java-practice-2.json: EX1, EX3-EX6 from the screen + EX2).
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items
