@@ -1,0 +1,45 @@
+# Lets a Claude session (no database keys) read a lesson to write its chapter itself (CLAUDE.md "Writing a chapter
+# with Claude"): `hub.py fetch` output, encrypted to the session's one-time public key (the repo is public), kept 1 day.
+name: fetch
+
+on:
+  workflow_dispatch:
+    inputs:
+      lesson_id:
+        required: true
+      pubkey:
+        description: "base64 of the session's one-time RSA public key (PEM)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q supabase google-genai python-docx requests trafilatura pywebpush imageio-ffmpeg numpy pillow
+      - working-directory: worker
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          LESSON_ID: ${{ inputs.lesson_id }}
+          PUBKEY: ${{ inputs.pubkey }}
+        run: |
+          [[ "$LESSON_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad lesson id"; exit 1; }
+          python hub.py fetch "$LESSON_ID" /tmp/lesson
+          tar czf /tmp/l.tgz -C /tmp lesson
+          echo "$PUBKEY" | base64 -d > /tmp/pub.pem
+          openssl rand -out /tmp/k.bin 32
+          openssl enc -aes-256-cbc -pbkdf2 -salt -in /tmp/l.tgz -out /tmp/out/l.enc -pass file:/tmp/k.bin 2>/dev/null || { mkdir -p /tmp/out; openssl enc -aes-256-cbc -pbkdf2 -salt -in /tmp/l.tgz -out /tmp/out/l.enc -pass file:/tmp/k.bin; }
+          openssl pkeyutl -encrypt -pubin -inkey /tmp/pub.pem -in /tmp/k.bin -out /tmp/out/k.enc
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lesson
+          path: /tmp/out
+          retention-days: 1
