@@ -463,6 +463,12 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Timetable "📋 הקורסים: ציון ומבחן" (04/11/2026): per course grade components, exam format, and the formula sheet only
   when allowed - from facts.py's `summary` {grade, exam, formula_sheet} in facts_merged.json (only what the facts say),
   falling back to courses.grade_weights / exam_type. Rebuild all: publish.yml inspect=facts-force.
+- His FPGA board (04/11/2026): PuZhi A7-EDU (AliExpress "PUZHI FPGA SDR Store"), Artix-7 **XC7A35T** (listing:
+  XC7A35T-2FGG484I -> Vivado part xc7a35tfgg484-2), 8-digit 7-seg, HDMI out, Gigabit Ethernet, UART, onboard JTAG,
+  1GB DDR3. Pin file (XDC) / schematic NOT received yet - asked him to get them from the seller; never guess pins.
+  Proposed (not yet approved): the 12-week program builds one CV project - "Mini-TPU" systolic-array int8 NN
+  accelerator classifying drone sound clips sent over UART (targets NVIDIA/Google/Amazon/Apple/Intel/Marvell/Elbit/
+  Rafael); alternatives on the same accelerator: ECG arrhythmia, keyword spotting, motor faults.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items
