@@ -1,5 +1,5 @@
 # Lets a Claude session (no database keys) read a lesson to write its chapter itself (CLAUDE.md "Writing a chapter
-# with Claude"): `hub.py fetch` output, encrypted to the session's one-time public key (the repo is public), kept 1 day.
+# with Claude"): `hub.py fetch` output, encrypted to the session's one-time public key (the repo is public), pushed to a throwaway branch.
 name: fetch
 
 on:
@@ -12,7 +12,7 @@ on:
         required: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   fetch:
@@ -36,10 +36,15 @@ jobs:
           tar czf /tmp/l.tgz -C /tmp lesson
           echo "$PUBKEY" | base64 -d > /tmp/pub.pem
           openssl rand -out /tmp/k.bin 32
-          openssl enc -aes-256-cbc -pbkdf2 -salt -in /tmp/l.tgz -out /tmp/out/l.enc -pass file:/tmp/k.bin 2>/dev/null || { mkdir -p /tmp/out; openssl enc -aes-256-cbc -pbkdf2 -salt -in /tmp/l.tgz -out /tmp/out/l.enc -pass file:/tmp/k.bin; }
+          mkdir -p /tmp/out
+          openssl enc -aes-256-cbc -pbkdf2 -salt -in /tmp/l.tgz -out /tmp/out/l.enc -pass file:/tmp/k.bin
           openssl pkeyutl -encrypt -pubin -inkey /tmp/pub.pem -in /tmp/k.bin -out /tmp/out/k.enc
-      - uses: actions/upload-artifact@v4
-        with:
-          name: lesson
-          path: /tmp/out
-          retention-days: 1
+      # Artifacts' storage host is not reachable from the session: the encrypted pair goes to a throwaway branch
+      # (fetch/<lesson>), which the session deletes after reading.
+      - env:
+          LESSON_ID: ${{ inputs.lesson_id }}
+        run: |
+          git config user.name "study-hub fetch"; git config user.email "fetch@users.noreply.github.com"
+          git checkout --orphan "fetch/$LESSON_ID"; git rm -rfq .
+          cp /tmp/out/* .; git add l.enc k.enc; git commit -qm "encrypted lesson material"
+          git push -f origin "fetch/$LESSON_ID"
