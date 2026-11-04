@@ -26,6 +26,16 @@ FORMULAS = """בנה דף נוסחאות למבחן בקורס, מכל החומ�
 החזר רק את הדף (Markdown), בלי הקדמה."""
 
 
+# Code courses (Java, 04/11/2026): the sheet is a syntax help sheet - templates of how to write each thing - written
+# by Claude (hub.py sheet); new lessons only ADD to it.
+CODE = re.compile(r"ג'אווה|ג׳אווה|java", re.I)
+CODE_UPDATE = """לפניך דף עזר תחביר למבחן בקורס תכנות (Java), ולפניו כל השיעורים עד עכשיו.
+עדכן את הדף: הוסף כל תחביר, תבנית, מתודת ספרייה, כלל או טעות נפוצה שנלמדו בשיעורים וחסרים בדף - באותו סגנון
+(בלוק קוד קצר עם הערה בעברית בסוף כל שורה, או שורה קצרה), במקום המתאים לפי הנושא.
+אל תמחק ואל תקצר שום דבר שכבר בדף. הדף צריך להישאר בשני עמודי A4. בדוק שכל קוד נכון ומתהדר.
+החזר רק את הדף המלא (Markdown), בלי הקדמה."""
+
+
 def db():
     from supabase import create_client
     return create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
@@ -53,21 +63,40 @@ def build(sb, course, lessons):
         text += "\n\n######## נוסחאות מקבצי הקורס (מצגות, חוברות, מבחנים)\n" + "\n".join(
             f"[{name}] {f}" for name, fs in notes.items() for f in fs)
 
+    base = current(sb, course) if CODE.search(course["name"] or "") else ""
+    prompt = f"{CODE_UPDATE}\n\n=== הדף הנוכחי ===\n{base}" if base else FORMULAS
+
     def call(client, model):
         return client.models.generate_content(model=model, contents=[types.Content(role="user", parts=[
-            types.Part.from_text(text=f"קורס: {course['name']}\n\n{FORMULAS}"), types.Part.from_text(text=text)])],
+            types.Part.from_text(text=f"קורס: {course['name']}\n\n{prompt}"), types.Part.from_text(text=text)])],
             config=types.GenerateContentConfig(http_options=types.HttpOptions(timeout=12 * 60 * 1000)))
     md = re.sub(r"^```(?:markdown|md)?\s*|\s*```$", "", (author._with_gemini(call).text or "").strip())
     if not md:
         return
-    stamp = f"> נבנה {datetime.now(timezone.utc):%d/%m/%Y} מ-{len(lessons)} שיעורים (מתעדכן לבד כשנוספים שיעורים).\n\n"
+    if base and len(md) < 0.9 * len(base):  # the update lost content: keep the sheet as it is
+        print(f"::warning title=Formula sheet {course['name']}::update rejected (shorter than the sheet)", flush=True)
+        return
+    save(sb, course, md, f"מ-{len(lessons)} שיעורים")
+
+
+def current(sb, course):
+    """The sheet as it is now, without its date line."""
+    try:
+        md = sb.storage.from_(BUCKET).download(f"{course['user_id']}/materials/{course['id']}/{FILE}").decode()
+    except Exception:  # noqa: BLE001
+        return ""
+    return re.sub(r"^> נבנה .*\n\n", "", md)
+
+
+def save(sb, course, md, how):
+    stamp = f"> נבנה {datetime.now(timezone.utc):%d/%m/%Y} {how} (מתעדכן לבד כשנוספים שיעורים).\n\n"
     path = f"{course['user_id']}/materials/{course['id']}/{FILE}"
     sb.storage.from_(BUCKET).upload(path, (stamp + md).encode("utf-8"),
                                     {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
     if not sb.table("materials").select("id").eq("storage_path", path).execute().data:
         sb.table("materials").insert({"user_id": course["user_id"], "course_id": course["id"], "title": TITLE,
                                       "kind": "other", "storage_path": path, "mime": "text/plain"}).execute()
-    print(f"::notice title=Formula sheet::{course['name']}: built from {len(lessons)} lessons", flush=True)
+    print(f"::notice title=Formula sheet::{course['name']}: {how}", flush=True)
 
 
 def run():

@@ -1,0 +1,53 @@
+# Publishes content Claude wrote in a session (it has no database keys there): a lesson from chapters/<name>.json
+# (hub.py add) and/or a course help sheet from chapters/<name>.md (hub.py sheet). Dispatched by hand.
+name: publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      course:
+        description: "course name (regex, must match one course)"
+        required: true
+      chapter:
+        description: "chapters/*.json to add as a lesson (empty = none)"
+        default: ""
+      kind:
+        default: "practice"
+      number:
+        default: "0"
+      title:
+        default: ""
+      sheet:
+        description: "chapters/*.md to save as the course help sheet (empty = none)"
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q -r worker/requirements.txt
+      - working-directory: worker
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          COURSE: ${{ inputs.course }}
+          CHAPTER: ${{ inputs.chapter }}
+          KIND: ${{ inputs.kind }}
+          NUMBER: ${{ inputs.number }}
+          TITLE: ${{ inputs.title }}
+          SHEET: ${{ inputs.sheet }}
+        run: |
+          ok() { [[ -z "$1" || "$1" =~ ^chapters/[A-Za-z0-9_.-]+\.$2$ ]] || { echo "::error::bad path $1"; exit 1; }; }
+          ok "$CHAPTER" json; ok "$SHEET" md
+          [[ "$KIND" =~ ^(lecture|practice|other)$ && "$NUMBER" =~ ^[0-9]+$ ]] || { echo "::error::bad kind/number"; exit 1; }
+          if [ -n "$SHEET" ]; then python hub.py sheet "$COURSE" "../$SHEET"; fi
+          if [ -n "$CHAPTER" ]; then python hub.py add "$COURSE" "$KIND" "$NUMBER" "$TITLE" "../$CHAPTER"; fi

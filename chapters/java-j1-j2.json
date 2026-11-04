@@ -1,0 +1,249 @@
+{
+ "title": "השלמה J0–J4 · J1–J2: סביבת העבודה ובסיס התכנות",
+ "chapter_md": "> 📌 **מה זה J0–J4?** אלה מעבדות תרגול מוכנות (hands-on labs) מסדרת הקורסים של Sang Shin (javapassion) שהמרצה העלה לקורס:\n> J1 = LAB-1001 \"להכיר את סביבת העבודה של Java\", J2 = LAB-1002 \"בסיס התכנות ב-Java\". המרצה ביקש להשלים אותן לבד,\n> ובתרגול 1 כבר מניחים שאתה יודע את זה. כאן: J1 ו-J2. J0, J3, J4 - יתווספו כשתעלה אותם.\n\n> ⚠️ **שים לב לגרסאות:** המעבדות נכתבו ב-2008 (JDK 6, NetBeans 6.1). היום מתקינים JDK חדש (למשל 21) ו-NetBeans / IntelliJ חדשים -\n> הקוד והפקודות `javac` / `java` עובדים בדיוק אותו דבר. בלי להתקין כלום אפשר להריץ כל קוד כאן ב-onlinegdb.com (לבחור Language: Java). (הרחבה)\n\n## J1 · סביבת העבודה: איך תוכנית Java נכתבת, מתהדרת ורצה\n\n**רקע:** מחשב לא מבין את הטקסט שאנחנו כותבים. צריך כלי שיתרגם את הקוד לשפה שהמחשב מריץ. ב-Java זה נעשה בשני שלבים, וזה מה שמאפשר לאותה תוכנית לרוץ על Windows, Mac ו-Linux בלי לשנות אותה.\n\n**מה צריך להתקין (תרגיל 0 במעבדה):**\n1. **JDK** (Java Development Kit) - ערכת הפיתוח: כוללת את המהדר `javac` ואת `java` שמריץ.\n2. **NetBeans** - סביבת פיתוח (IDE): עורך קוד שמסמן שגיאות, ובלחיצה אחת מהדר ומריץ.\n\n### שני השלבים: מהידור (compile) להרצה (run)\n\n| שלב | פקודה | מה נכנס | מה יוצא |\n|---|---|---|---|\n| 1. הידור | `javac Hello.java` | קוד המקור - קובץ `.java` (טקסט שאנחנו כותבים) | קובץ `Hello.class` - **bytecode** |\n| 2. הרצה | `java Hello` | קובץ ה-`.class` | התוכנית רצה - הפלט על המסך |\n\n- **bytecode** - \"שפת ביניים\": לא קוד מכונה של מעבד מסוים, אלא קוד ל-**JVM** (Java Virtual Machine - \"מחשב וירטואלי\" שהפקודה `java` מפעילה).\n- לכן אותו `.class` רץ על כל מחשב שיש בו JVM - זה ה-**portability** (ניידות) של Java.\n- ההבדל מ-C/C++: שם המהדר מייצר ישר קוד מכונה למעבד ולמערכת הפעלה מסוימים.\n- שים לב: ב-`javac` כותבים את שם **הקובץ** עם הסיומת (`Hello.java`), וב-`java` את שם **המחלקה** בלי סיומת (`Hello`).\n\n> 🏠 **מהחיים:** אפליקציות אנדרואיד נכתבות ב-Java (או Kotlin) ומתהדרות ל-bytecode - כך אותה אפליקציה רצה על מאות דגמי טלפונים עם מעבדים שונים.\n\n### התוכנית הראשונה: Hello\n\n```java\npublic class Hello {\n    /**\n     * My first Java program\n     */\n    public static void main( String[] args ){\n        // Print the string \"Hello world\" on screen\n        System.out.println(\"Hello world\");\n    }\n}\n```\n\nשורה-שורה:\n- `public class Hello {` - מגדירים **מחלקה** (class) בשם `Hello`. ב-Java כל קוד חייב להיות בתוך מחלקה. `public` = גלויה לכולם. **שם הקובץ חייב להיות בדיוק כמו שם המחלקה**: `Hello.java`. הסוגר `{` פותח את גוף המחלקה.\n- `/** ... */` - הערה (comment) שהמהדר מתעלם ממנה; נכתבת לבני אדם.\n- `public static void main( String[] args ){` - המתודה **main**: נקודת ההתחלה. כשמריצים `java Hello` ה-JVM מחפש בדיוק את השורה הזו ומתחיל ממנה.\n  - `static` - אפשר להריץ אותה בלי ליצור אובייקט (יוסבר בהמשך הקורס).\n  - `void` - היא לא מחזירה ערך.\n  - `String[] args` - מערך של מחרוזות: מה שכותבים אחרי שם התוכנית בשורת הפקודה (פה לא בשימוש).\n- `// Print ...` - הערה של שורה אחת.\n- `System.out.println(\"Hello world\");` - מדפיס את הטקסט שבמירכאות וירידת שורה. `System.out` = \"הפלט הסטנדרטי\" (המסך), `println` = print line. **כל פקודה מסתיימת ב-`;`**.\n- `}` הראשון סוגר את `main`, השני סוגר את המחלקה.\n\n**הפלט:** `Hello world`\n\n### שגיאות נפוצות (Troubleshooting מהמעבדה)\n\n| ההודעה | מה קרה | מה עושים |\n|---|---|---|\n| `'javac' is not recognized as an internal or external command` | המחשב לא מוצא את `javac` - תיקיית `bin` של ה-JDK לא נמצאת ב-PATH | להוסיף את `...\\Java\\jdk...\\bin` למשתנה הסביבה PATH, או לכתוב את הנתיב המלא ל-`javac` |\n| `UnsupportedClassVersionError` | הקוד הודר עם JDK אחד ומורץ עם גרסת Java ישנה יותר | לשים את ה-`bin` של ה-JDK הנכון בתחילת ה-PATH |\n| `NoClassDefFoundError: Hello` | ה-JVM לא מוצא את `Hello.class` (משתנה CLASSPATH מוגדר בלי התיקייה הנוכחית) | `java -classpath . Hello` (הנקודה = \"התיקייה הנוכחית\") |\n| `<identifier> expected` / `';' expected` | שגיאת תחביר (syntax error) - למשל `statict` במקום `static` | לתקן את המילה; המהדר מראה את מספר השורה (`Hello.java:6`) |\n\n- `javac -help` / `java -help` - רשימת האפשרויות. `-verbose` - מראה מה הכלי עושה (אילו מחלקות נטענות). `java -version` - איזו גרסה מותקנת.\n- ב-NetBeans: File ← New Project ← Java ← Java Application, שם פרויקט (למשל MyHelloProject) ושם מחלקה ראשית (Hello) ← Finish. הקלדה שגויה (למשל `voidx`) מסומנת מיד באדום. הרצה: קליק ימני על הפרויקט ← Run, והפלט בחלון Output.\n\n> 🏠 **מהחיים:** כמו בוורד שמסמן מילה שגויה בקו אדום עוד לפני ההדפסה - ה-IDE מסמן שגיאת תחביר עוד לפני ההידור.\n\n## J2 · בסיס התכנות: משתנים, אופרטור תנאי, ממוצע, מקסימום\n\n**רקע:** תוכנית צריכה \"לזכור\" ערכים (ציון, משכורת) ולהחליט לפי תנאים (עבר/נכשל). לזה משמשים **משתנים** ו**אופרטורים**.\n\n### משתנים וטיפוסים בסיסיים (תרגיל 1)\n\n**משתנה** (variable) = תא בזיכרון עם שם וטיפוס. **הצהרה** (declaration) = יוצרים אותו; **אתחול** (initialization) = נותנים לו ערך ראשון.\n\n| טיפוס | מה שומר | דוגמה |\n|---|---|---|\n| `int` | מספר שלם | `int value = 10;` |\n| `char` | תו אחד, בגרשיים בודדים | `char x = 'A';` |\n| `double` | מספר עם נקודה עשרונית | `double grade = 11;` ← נשמר `11.0` |\n| `String` | מחרוזת (טקסט), במירכאות כפולות | `String status = \"\";` |\n\n`int`, `char`, `double` הם **primitive types** (טיפוסים פרימיטיביים - ערך פשוט). `String` הוא מחלקה (אובייקט).\n\n```java\npublic class OutputVariable {\n    public static void main(String[] args) {\n        int value = 10;\n        char x;\n        x = 'A';\n        double grade = 11;\n        System.out.println( value );\n        System.out.println( \"The value of x=\" + x );\n        System.out.println( \"The value of grade =\" + grade );\n    }\n}\n```\n\nשורה-שורה:\n- `int value = 10;` - הצהרה ואתחול בשורה אחת: משתנה שלם בשם `value` עם הערך 10.\n- `char x;` - הצהרה בלבד (עוד אין ערך). `x = 'A';` - השמה (assignment) בשורה נפרדת.\n- `double grade = 11;` - נותנים מספר שלם למשתנה `double`: Java ממירה אוטומטית ל-`11.0`.\n- `System.out.println( value );` - מדפיס את ערך המשתנה: `10`.\n- `\"The value of x=\" + x` - `+` בין מחרוזת למשהו אחר = **שרשור** (concatenation): הערך הופך לטקסט ומודבק.\n\n**הפלט:**\n```text\n10\nThe value of x=A\nThe value of grade =11.0\n```\n\n> 🏠 **מהחיים:** באפליקציית הבנק: היתרה היא `double`, מספר החשבון `int` (או `long`), שם הלקוח `String`.\n\n### האופרטור המותנה `? :` (תרגיל 2)\n\nתחביר: `תנאי ? ערך_אם_אמת : ערך_אם_שקר` - \"if קצר\" שמחזיר ערך. **אופרטור טרנארי** (ternary) - כי יש לו שלושה חלקים.\n\n```java\nString status = \"\";\nint grade = 80;\nstatus = (grade >= 60) ? \"Passed\" : \"Fail\";\nSystem.out.println( status );\n```\n\n- `(grade >= 60)` - האם הציון גדול או שווה ל-60? (80 ≥ 60 ← אמת)\n- אמת ← `status` מקבל `\"Passed\"`; שקר ← `\"Fail\"`.\n- **הפלט:** `Passed`. עם `grade = 50` היה `Fail`.\n\n> 🏠 **מהחיים:** מד דלק ברכב: \"אם הדלק מתחת ל-10% ← נורה דולקת, אחרת ← כבויה\".\n\n### ממוצע של שלושה מספרים (תרגיל 3)\n\n```java\nint num1 = 10;\nint num2 = 20;\nint num3 = 45;\nint ave = (num1+num2+num3)/3;\nSystem.out.println(\"Average is = \"+ave);\n```\n\n- הסוגריים קודם: $10+20+45=75$, ואז $75/3=25$. **הפלט:** `Average is = 25`.\n- ⭐ **חשוב:** `/` בין שני `int` = **חילוק שלמים** - החלק העשרוני נזרק (לא מעוגל!). למשל $70/3=23$ (ולא 23.33). כדי לקבל 23.33: `double ave = (num1+num2+num3)/3.0;`\n- בלי הסוגריים: `num1+num2+num3/3` = $10+20+15=45$ - כי חילוק קודם לחיבור.\n\n> 🏠 **מהחיים:** חישוב ממוצע ציונים במערכת של האוניברסיטה - אם מישהו שכח את חילוק השלמים, ממוצע 89.7 היה מוצג כ-89.\n\n### המספר הגדול ביותר (תרגיל 4)\n\n```java\nint num1 = 10;\nint num2 = 23;\nint num3 = 5;\nint max = 0;\nmax = (num1>num2)?num1:num2;\nmax = (max>num3)?max:num3;\nSystem.out.println(\"The highest number is = \"+max);\n```\n\n- שורה 5: $10>23$? לא ← `max = num2` = 23.\n- שורה 6: $23>5$? כן ← `max` נשאר 23.\n- **הפלט:** `The highest number is = 23`. השיטה: משווים שניים, ואת המנצח משווים לשלישי.\n\n> 🏠 **מהחיים:** אפליקציית השוואת מחירים - עוברת על המחירים ושומרת כל פעם את הזול ביותר שראתה עד עכשיו.\n",
+ "topics": [
+  "סביבת העבודה: הידור והרצה",
+  "משתנים וטיפוסים",
+  "האופרטור המותנה"
+ ],
+ "course_facts": [
+  {
+   "category": "materials",
+   "text": "המרצה ביקש להשלים לבד את מעבדות J0–J4 (מעבדות javapassion של Sang Shin); תרגול 1 מניח שהן ידועות."
+  },
+  {
+   "category": "exam",
+   "text": "מותר להכניס למבחן דף נוסחאות / דף עזר אחד (לפי הסטודנט) - באפליקציה: דף עזר Java עם תבניות קוד."
+  }
+ ],
+ "syllabus_covered": [],
+ "glossary": [
+  {
+   "en": "bytecode",
+   "he": "קוד ביניים",
+   "explanation": "מה ש-javac מייצר בקובץ .class; רץ על ה-JVM ולא ישירות על המעבד."
+  },
+  {
+   "en": "JVM (Java Virtual Machine)",
+   "he": "המכונה הווירטואלית של Java",
+   "explanation": "התוכנה שהפקודה java מפעילה ומריצה bytecode."
+  },
+  {
+   "en": "JDK",
+   "he": "ערכת הפיתוח של Java",
+   "explanation": "כוללת את javac ואת java."
+  },
+  {
+   "en": "ternary operator ?:",
+   "he": "האופרטור המותנה",
+   "explanation": "תנאי ? ערך אם אמת : ערך אם שקר."
+  }
+ ],
+ "exam_type": "unknown",
+ "grade_weights": [],
+ "questions": [
+  {
+   "question": "מה מייצרת הפקודה `javac Hello.java`?",
+   "options": [
+    "את `Hello.class` עם bytecode",
+    "קובץ exe שרץ רק ב-Windows",
+    "מריצה את התוכנית ומדפיסה את הפלט",
+    "את `Hello.java` מחדש"
+   ],
+   "correct": 0,
+   "explanation": "`javac` הוא המהדר: מתרגם את קוד המקור ל-bytecode בקובץ `.class`. הוא לא מריץ (זה `java`), ולא מייצר קוד מכונה של Windows (זה מה שקורה ב-C).",
+   "topic": "סביבת העבודה: הידור והרצה",
+   "difficulty": 1
+  },
+  {
+   "question": "למה אותה תוכנית Java רצה על Windows ועל Linux בלי הידור מחדש?",
+   "options": [
+    "כי ה-bytecode רץ על ה-JVM, שקיים לכל מערכת",
+    "כי Java מתהדרת לקוד מכונה של כל המעבדים",
+    "כי NetBeans ממיר אותה",
+    "כי `println` עובד בכל מקום"
+   ],
+   "correct": 0,
+   "explanation": "ה-bytecode לא תלוי במעבד; כל מערכת הפעלה מריצה אותו דרך JVM משלה (portability). Java לא מייצרת קוד מכונה בהידור, ו-NetBeans הוא רק עורך.",
+   "topic": "סביבת העבודה: הידור והרצה",
+   "difficulty": 2
+  },
+  {
+   "question": "מה הפקודה הנכונה להרצת התוכנית אחרי `javac Hello.java`?",
+   "options": [
+    "`java Hello`",
+    "`java Hello.java`",
+    "`java Hello.class`",
+    "`javac Hello`"
+   ],
+   "correct": 0,
+   "explanation": "ב-`java` כותבים את שם המחלקה בלי סיומת. עם סיומת `.class` זו שגיאה ישנה (בגרסאות חדשות `java Hello.java` מריץ קובץ מקור ישירות - אבל זו לא ההרצה של ה-class שנוצר); `javac` מהדר ולא מריץ.",
+   "topic": "סביבת העבודה: הידור והרצה",
+   "difficulty": 2
+  },
+  {
+   "question": "קיבלת `'javac' is not recognized as an internal or external command`. מה הסיבה?",
+   "options": [
+    "תיקיית bin של ה-JDK לא נמצאת ב-PATH",
+    "יש שגיאת תחביר בקוד",
+    "חסר `;`",
+    "שם המחלקה לא תואם לשם הקובץ"
+   ],
+   "correct": 0,
+   "explanation": "ההודעה מגיעה ממערכת ההפעלה: היא לא מוצאת את התוכנה `javac` בכלל - עוד לפני שהקוד נקרא. שגיאות קוד נותנות הודעה מ-javac עצמו עם מספר שורה.",
+   "topic": "סביבת העבודה: הידור והרצה",
+   "difficulty": 2
+  },
+  {
+   "question": "מה מדפיס `double grade = 11; System.out.println(grade);`?",
+   "options": [
+    "11.0",
+    "11",
+    "11.00",
+    "שגיאת הידור"
+   ],
+   "correct": 0,
+   "explanation": "מספר שלם שנשמר ב-`double` מומר אוטומטית, ו-`println` של double מדפיס עם נקודה: `11.0` (כמו בפלט של המעבדה).",
+   "topic": "משתנים וטיפוסים",
+   "difficulty": 1
+  },
+  {
+   "question": "מה הערך של `ave` אם `int ave = (10+20+40)/3;`?",
+   "options": [
+    "23",
+    "23.33",
+    "24",
+    "70"
+   ],
+   "correct": 0,
+   "explanation": "$10+20+40=70$, ו-`70/3` בין שני `int` הוא חילוק שלמים: 23 - החלק העשרוני נזרק (לא מעגלים ל-24, ו-`int` לא יכול לשמור 23.33).",
+   "topic": "משתנים וטיפוסים",
+   "difficulty": 2
+  },
+  {
+   "question": "מה הערך של `status` אחרי `int grade = 55; String status = (grade >= 60) ? \"Passed\" : \"Fail\";`?",
+   "options": [
+    "\"Fail\"",
+    "\"Passed\"",
+    "false",
+    "55"
+   ],
+   "correct": 0,
+   "explanation": "$55\\ge60$ שקר ← הערך שאחרי `:` נבחר: \"Fail\". האופרטור מחזיר אחד משני הערכים, לא את התנאי ולא את הציון.",
+   "topic": "האופרטור המותנה",
+   "difficulty": 1
+  },
+  {
+   "question": "מה הערך של `max` בסוף? `int a=8,b=3,c=12; int max=(a>b)?a:b; max=(max>c)?max:c;`",
+   "options": [
+    "12",
+    "8",
+    "3",
+    "23"
+   ],
+   "correct": 0,
+   "explanation": "$8>3$ ← max=8; $8>12$? לא ← max=c=12.",
+   "topic": "האופרטור המותנה",
+   "difficulty": 2
+  },
+  {
+   "question": "איזו הצהרה תקינה למשתנה מסוג `char`?",
+   "options": [
+    "`char x = 'A';`",
+    "`char x = \"A\";`",
+    "`char x = A;`",
+    "`char x = 'AB';`"
+   ],
+   "correct": 0,
+   "explanation": "`char` הוא תו אחד בגרשיים בודדים. מירכאות כפולות = String; בלי גרשיים `A` הוא שם משתנה; `'AB'` הם שני תווים.",
+   "topic": "משתנים וטיפוסים",
+   "difficulty": 1
+  },
+  {
+   "question": "מה מדפיס `System.out.println(\"x=\" + 5 + 3);`?",
+   "options": [
+    "x=53",
+    "x=8",
+    "x=5+3",
+    "שגיאה"
+   ],
+   "correct": 0,
+   "explanation": "משמאל לימין: `\"x=\" + 5` = \"x=5\" (מחרוזת), ואז `+ 3` שוב שרשור ← \"x=53\". כדי לקבל 8: `\"x=\" + (5 + 3)`.",
+   "topic": "משתנים וטיפוסים",
+   "difficulty": 3
+  },
+  {
+   "question": "הקובץ `Hello.java` מכיל `public class Hi`. מה יקרה בהידור?",
+   "options": [
+    "שגיאה: מחלקה public חייבת להיות בקובץ בשמה",
+    "יעבור וייווצר Hello.class",
+    "יעבור וייווצר Hi.class",
+    "שגיאה רק בהרצה"
+   ],
+   "correct": 0,
+   "explanation": "ב-Java מחלקה `public` חייבת להיות בקובץ ששמו זהה לשמה (Hi.java), אחרת javac נותן שגיאת הידור - עוד לפני ההרצה.",
+   "topic": "סביבת העבודה: הידור והרצה",
+   "difficulty": 2
+  }
+ ],
+ "exercises": [
+  {
+   "title": "J1 תרגיל בית: MyHelloProject2",
+   "topic": "סביבת העבודה: הידור והרצה",
+   "exam_style": false,
+   "uncertain": false,
+   "question_md": "צור פרויקט חדש בשם MyHelloProject2 שעושה כמו MyHelloProject, אבל מדפיס שתי שורות:\n\n`Hello, this is the first line from MyHelloProject2.`\n\n`This is the second line from the same project.`",
+   "solution_md": "**השיטה:** כל `println` מדפיס שורה וירידת שורה, אז שתי שורות = שתי פקודות `println`.\n\n```java\npublic class Hello {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, this is the first line from MyHelloProject2.\");\n        System.out.println(\"This is the second line from the same project.\");\n    }\n}\n```\n\n- `public class Hello {` - המחלקה (בקובץ `Hello.java`).\n- `public static void main(String[] args) {` - כאן התוכנית מתחילה.\n- `System.out.println(\"...\");` הראשון - מדפיס את השורה הראשונה ויורד שורה.\n- השני - מדפיס את השורה השנייה.\n- `}` `}` - סוגרים את main ואת המחלקה.\n\nב-NetBeans: File ← New Project ← Java Application ← Project Name: `MyHelloProject2` ← Finish, להדביק ← קליק ימני ← Run.\n\n✅ הפלט: שתי השורות, כל אחת בשורה משלה.\n\n💡 **הרעיון:** `println` = הדפסה + ירידת שורה; `print` (בלי ln) לא יורד שורה."
+  },
+  {
+   "title": "J2 תרגיל 2 סעיף 4: עשיר או עני",
+   "topic": "האופרטור המותנה",
+   "exam_style": false,
+   "uncertain": false,
+   "question_md": "הוסף לתוכנית `ConditionalOperator` את המשתנה `int salary = 100000;` והדפס `You are rich!` אם המשכורת מעל 50000, ואחרת `You are poor!`.",
+   "solution_md": "**השיטה:** אותו מבנה כמו `status` - אופרטור `? :` שבוחר בין שתי מחרוזות.\n\n```java\nint salary = 100000;\nString money = (salary > 50000) ? \"You are rich!\" : \"You are poor!\";\nSystem.out.println(money);\n```\n\n- `int salary = 100000;` - משתנה שלם עם המשכורת.\n- `(salary > 50000)` - \"מעל 50000\" = גדול ממש (`>`), לא `>=`.\n- `? \"You are rich!\" : \"You are poor!\"` - אם אמת הראשון, אחרת השני; התוצאה נשמרת ב-`money`.\n- `System.out.println(money);` - מדפיס.\n\n**בדיקה:** $100000>50000$ ← אמת.\n\n✅ הפלט: `You are rich!`\n\n💡 **הרעיון:** `? :` מחליף if/else כשצריך לבחור **ערך** אחד מתוך שניים."
+  },
+  {
+   "title": "J2 תרגיל בית: המספר הקטן ביותר",
+   "topic": "האופרטור המותנה",
+   "exam_style": false,
+   "uncertain": false,
+   "question_md": "שנה את GreatestValue (num1=10, num2=23, num3=5): חשב והדפס את המספר **הקטן** ביותר. אם הוא קטן מ-10 הדפס `The smallest number is less than 10!`, אחרת `The smallest number is greater than or equal to 10!`.",
+   "solution_md": "**השיטה:** כמו max, רק עם `<`: משווים שניים, את הקטן לשלישי.\n\n```java\nint num1 = 10;\nint num2 = 23;\nint num3 = 5;\nint min = 0;\nmin = (num1<num2)?num1:num2;\nmin = (min<num3)?min:num3;\nSystem.out.println(\"The smallest number is = \"+min);\nString msg = (min<10) ? \"The smallest number is less than 10!\" : \"The smallest number is greater than or equal to 10!\";\nSystem.out.println(msg);\n```\n\n- `min = (num1<num2)?num1:num2;` - $10<23$? כן ← `min` = 10.\n- `min = (min<num3)?min:num3;` - $10<5$? לא ← `min` = 5.\n- `(min<10)` - $5<10$ ← אמת ← ההודעה הראשונה.\n\n✅ הפלט:\n```text\nThe smallest number is = 5\nThe smallest number is less than 10!\n```\n\n💡 **הרעיון:** מינימום של שלושה = שתי השוואות בשרשרת."
+  },
+  {
+   "title": "מה יודפס? חילוק שלמים",
+   "topic": "משתנים וטיפוסים",
+   "exam_style": true,
+   "uncertain": false,
+   "question_md": "מה מדפיס הקוד?\n\n```java\nint a = 7;\nint b = 2;\ndouble d = a / b;\nSystem.out.println(a / b);\nSystem.out.println(d);\nSystem.out.println(a / 2.0);\n```",
+   "solution_md": "- `a / b` - שני `int` ← חילוק שלמים: $7/2=3$ (החלק .5 נזרק).\n- `double d = a / b;` - קודם מחושב `a / b` = 3 (שלם!), ורק אז נשמר כ-`double` ← `3.0`.\n- `a / 2.0` - `2.0` הוא `double` ← חילוק רגיל: $7/2.0=3.5$.\n\n✅ הפלט:\n```text\n3\n3.0\n3.5\n```\n\n💡 **הרעיון:** סוג החילוק נקבע לפי הטיפוסים **בתוך** הביטוי, לא לפי המשתנה שאליו שומרים."
+  },
+  {
+   "title": "מצא את השגיאות",
+   "topic": "סביבת העבודה: הידור והרצה",
+   "exam_style": true,
+   "uncertain": false,
+   "question_md": "הקוד נשמר בקובץ `Hello.java`. מצא את שלוש השגיאות:\n\n```java\npublic class Hi {\n    public statict void main(String[] args) {\n        System.out.println(\"Hello world\")\n    }\n}\n```",
+   "solution_md": "1. `public class Hi` בקובץ `Hello.java` - מחלקה `public` חייבת להיות בשם הקובץ ← `public class Hello`.\n2. `statict` ← `static` (שגיאת כתיב במילה שמורה; המהדר: `<identifier> expected`).\n3. חסר `;` בסוף `System.out.println(\"Hello world\")` (המהדר: `';' expected`).\n\n✅ אחרי התיקון: `javac Hello.java` ואז `java Hello` ← `Hello world`.\n\n💡 **הרעיון:** המהדר מציין קובץ ומספר שורה (`Hello.java:2`) - מתחילים מהשגיאה הראשונה."
+  },
+  {
+   "title": "הפקודות הנכונות",
+   "topic": "סביבת העבודה: הידור והרצה",
+   "exam_style": true,
+   "uncertain": false,
+   "question_md": "כתבת את `Average.java` (המחלקה `Average`). כתוב את שתי הפקודות להידור ולהרצה, ואיזה קובץ נוצר בין השתיים.",
+   "solution_md": "1. **הידור:** `javac Average.java` - שם הקובץ **עם** הסיומת. נוצר `Average.class` (bytecode).\n2. **הרצה:** `java Average` - שם המחלקה **בלי** סיומת. ה-JVM טוען את `Average.class` ומריץ את `main`.\n\n✅ `javac Average.java` ← `Average.class` ← `java Average`.\n\n💡 **הרעיון:** javac = מתרגם (מקור ← bytecode), java = מריץ (JVM)."
+  }
+ ],
+ "homework": [],
+ "verification": {
+  "fixes": [
+   "כל הפלטים חושבו מחדש: 75/3=25, 70/3=23, 7/2=3, 7/2.0=3.5, max(10,23,5)=23, min=5, \"x=\"+5+3=\"x=53\"."
+  ],
+  "uncertain": [
+   "J0, J3, J4 לא היו בקבצים שהועלו - יתווספו כשיועלו.",
+   "ההנחיות במעבדה (JDK 6, NetBeans 6.1) ישנות; הוספתי הערה על גרסאות עדכניות."
+  ]
+ }
+}

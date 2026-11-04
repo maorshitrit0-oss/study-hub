@@ -419,6 +419,15 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   (chapters, exercise questions and solutions, docs, chat) a table code line -> what it does in Hebrew
   (components/CodeLines.tsx -> /api/explain-code, one Gemini call per block when it scrolls into view, cached in
   localStorage). ```wave and ```text/output blocks are skipped.
+- Java J0-J4 (04/11/2026): the lecturer told them to complete these alone - they are Sang Shin's javapassion labs
+  (J1 = LAB-1001 environment, J2 = LAB-1002 basics; he uploaded J1+J2 zips in the session). Claude wrote "תרגול 0 ·
+  השלמה J0–J4" (chapters/java-j1-j2.json: chapter + 6 exercises incl. the labs' homework + 11 MCQ). J0, J3, J4 still
+  missing - when he uploads them, extend the same JSON and re-run publish (same lesson is updated).
+- Content Claude writes in a session without DB keys goes through `.github/workflows/publish.yml` (dispatch:
+  course regex + chapters/*.json -> `hub.py add`, chapters/*.md -> `hub.py sheet`).
+- Java help sheet (his request: one page allowed in the exam, "how to write a class" templates): chapters/java-sheet.md,
+  saved as the course's formula_sheet.md ("📄 דף נוסחאות" button). For Java, docs.py / courseDocs.ts only ADD new
+  syntax to it (CODE_UPDATE, rejected if shorter) - never rebuild from scratch.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items

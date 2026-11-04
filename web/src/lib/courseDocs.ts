@@ -22,6 +22,13 @@ const FORMULAS = `בנה דף נוסחאות למבחן בקורס, מכל הח�
 - בסוף: "### טעויות נפוצות" - 3-6 שורות.
 החזר רק את הדף (Markdown), בלי הקדמה.`;
 
+const CODE = /ג'אווה|ג׳אווה|java/i;
+const CODE_UPDATE = `לפניך דף עזר תחביר למבחן בקורס תכנות (Java), ולפניו כל השיעורים עד עכשיו.
+עדכן את הדף: הוסף כל תחביר, תבנית, מתודת ספרייה, כלל או טעות נפוצה שנלמדו בשיעורים וחסרים בדף - באותו סגנון
+(בלוק קוד קצר עם הערה בעברית בסוף כל שורה, או שורה קצרה), במקום המתאים לפי הנושא.
+אל תמחק ואל תקצר שום דבר שכבר בדף. הדף צריך להישאר בשני עמודי A4. בדוק שכל קוד נכון ומתהדר.
+החזר רק את הדף המלא (Markdown), בלי הקדמה.`;
+
 const PRACTICAL = `בנה דף הכנה למבחנים המעשיים במעבדה, מכל החומר המצורף (פרקי הניסויים, הדוחות המכינים ושאלות בוחני הכניסה).
 המבנה של המבחן (לפי מה שהסטודנט סיפר על המבחן המעשי במעבדה הקודמת): 3 שאלות -
 (1) שאלה תיאורטית או שאלה על גרף, על כל החומר של הסמסטר; (2) שאלה מילולית;
@@ -57,14 +64,19 @@ export async function buildDoc(sb: SupabaseClient, courseId: string, kind: DocKi
     if (qs?.length) parts.push("######## שאלות בוחני כניסה שנשאלו\n" + qs.map((q) => `ניסוי ${q.experiment}: ${q.question} -> ${q.options[q.correct]}`).join("\n"));
   }
   if (!parts.length) throw new Error("אין עדיין שיעורים מוכנים בקורס");
+  // A code course (Java) has a syntax help sheet written by Claude: a rebuild only adds to it (worker/docs.py CODE_UPDATE).
+  const base = kind === "formulas" && CODE.test(course.name)
+    ? ((await readDoc(sb, course.user_id, courseId, kind)) ?? "").replace(/^> נבנה .*\n\n/, "") : "";
+  const prompt = base ? `${CODE_UPDATE}\n\n=== הדף הנוכחי ===\n${base}` : kind === "formulas" ? FORMULAS : PRACTICAL;
   const text = await withGemini("work", async (ai, model) => {
     const res = await ai.models.generateContent({
       model,
-      contents: [{ role: "user", parts: [{ text: `קורס: ${course.name}\n\n${kind === "formulas" ? FORMULAS : PRACTICAL}` }, { text: parts.join("\n\n") }] }],
+      contents: [{ role: "user", parts: [{ text: `קורס: ${course.name}\n\n${prompt}` }, { text: parts.join("\n\n") }] }],
     });
     return (res.text ?? "").replace(/^```(?:markdown|md)?\s*|\s*```$/g, "").trim();
   });
   if (!text) throw new Error("Gemini החזיר דף ריק - לנסות שוב");
+  if (base && text.length < 0.9 * base.length) throw new Error("העדכון קיצר את הדף - הדף נשאר כמו שהיה");
   const path = `${course.user_id}/materials/${courseId}/${DOCS[kind].file}`;
   const stamp = `> נבנה ${new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" })} מ-${(lessons ?? []).length} שיעורים.\n\n`;
   const { error } = await sb.storage.from("study").upload(path, new Blob([stamp + text], { type: "text/markdown" }), { upsert: true, contentType: "text/markdown; charset=utf-8" });

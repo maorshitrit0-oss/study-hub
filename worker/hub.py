@@ -409,6 +409,40 @@ def cmd_publish(lesson_id, path):
     save_chapter(Job(lesson_id), json.loads(Path(path).read_text(encoding="utf-8")), "claude")
 
 
+def find_course(sb, match):
+    rx = re.compile(match, re.I)
+    courses = [c for c in sb.table("courses").select("*").eq("archived", False).execute().data if rx.search(c.get("name") or "")]
+    if len(courses) != 1:
+        raise SystemExit(f"course '{match}': {len(courses)} matches ({', '.join(c['name'] for c in courses)})")
+    return courses[0]
+
+
+def cmd_add(match, kind, number, title, path):
+    """A lesson written by Claude without a recording (e.g. the Java self-study labs J0-J4): created once in the course
+    (kind + number), then published like `publish`. Running it again updates the same lesson."""
+    sb = db()
+    course = find_course(sb, match)
+    have = (sb.table("lessons").select("id").eq("course_id", course["id"]).eq("kind", kind).eq("number", int(number))
+            .execute().data)
+    if have:
+        lesson_id = have[0]["id"]
+    else:
+        lesson_id = sb.table("lessons").insert({
+            "user_id": course["user_id"], "course_id": course["id"], "kind": kind, "number": int(number), "title": title,
+            "transcript": "<!-- written by Claude from course files -->", "status": "processing",
+            "progress": "Claude כותב את השיעור"}).execute().data[0]["id"]
+    cmd_publish(lesson_id, path)
+    print(f"::notice title=Added::{course['name']} {kind} {number}: {lesson_id}", flush=True)
+
+
+def cmd_sheet(match, path):
+    """His course help sheet ("📄 דף נוסחאות" / Java syntax sheet) written by Claude; docs.py later only adds to it."""
+    import docs
+    sb = db()
+    course = find_course(sb, match)
+    docs.save(sb, course, Path(path).read_text(encoding="utf-8"), "נכתב ע״י Claude")
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -416,6 +450,9 @@ if __name__ == "__main__":
     sub.add_parser("queued")
     p = sub.add_parser("fetch"); p.add_argument("lesson_id"); p.add_argument("out_dir")
     p = sub.add_parser("publish"); p.add_argument("lesson_id"); p.add_argument("chapter_json")
+    p = sub.add_parser("add"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
+    p.add_argument("title"); p.add_argument("chapter_json")
+    p = sub.add_parser("sheet"); p.add_argument("course"); p.add_argument("md")
     a = ap.parse_args()
     if a.cmd == "process":
         cmd_process(a.lesson_id, not a.no_author)
@@ -423,6 +460,10 @@ if __name__ == "__main__":
         cmd_queued()
     elif a.cmd == "fetch":
         cmd_fetch(a.lesson_id, a.out_dir)
+    elif a.cmd == "add":
+        cmd_add(a.course, a.kind, a.number, a.title, a.chapter_json)
+    elif a.cmd == "sheet":
+        cmd_sheet(a.course, a.md)
     else:
         cmd_publish(a.lesson_id, a.chapter_json)
     sys.exit(0)
