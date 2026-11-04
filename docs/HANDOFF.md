@@ -435,6 +435,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   `author.is_flat`; a squashed draft is written again once, and the verify pass may not squash or cut the chapter
   (<70% of the draft -> the draft's chapter is kept). `hub.py flat` lists squashed ready chapters (publish.yml
   inspect=flat); found Java practice 2 + micro web 7, re-dispatched through process.yml.
+- Java = always the full reading chapter (04/11/2026, practice 2 came out as a short summary, "not what I expect"):
+  `author.FULL_COURSES`; summary_mode(lesson, mode, course) is False for it, and a full chapter clears summary_md so the
+  lesson page shows the chapter first (exercises already saved stay).
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items

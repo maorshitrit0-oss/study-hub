@@ -293,7 +293,7 @@ def save_homework(job, items):
 
 def save_chapter(job, ch, by):
     ch = author.validate(ch)
-    short = bool(ch.get("exercises")) or (by != "claude" and author.summary_mode(job.lesson, job.mode))
+    short = bool(ch.get("exercises")) or (by != "claude" and author.summary_mode(job.lesson, job.mode, job.course))
     if short:
         save_exercises(job, ch["exercises"])
         if not (job.lesson.get("transcript") or "").startswith(author.VLSI_NOTE):  # no "homework" in self-study
@@ -319,6 +319,8 @@ def save_chapter(job, ch, by):
                   progress=f"מוכן - {count}", author=by, error=None)
     if short:
         fields["summary_md"] = chapter_md  # the full chapter, if he asks for one later, replaces chapter_md only
+    elif author.FULL_COURSES.search(job.course.get("name") or ""):
+        fields["summary_md"] = None  # Java: the full chapter is the lesson (an earlier short summary is not shown first)
     if not job.lesson.get("title") or job.lesson["kind"] == "web":
         fields["title"] = ch.get("title")
     try:
