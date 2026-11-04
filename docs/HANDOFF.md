@@ -401,6 +401,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   next to the question ("🔗 site"). The tutor (route.ts) and VLSI_TASK may only present a question as an interview
   question with a real link; their own questions are labelled "שאלת תרגול (לא מראיון)". Some links are explanations
   of the topic (ChipVerify, Nayuki...) rather than an interview listing - the src label says which.
+- Board snapshots written out (04/11/2026, his request - the Java lecturer writes white chalk on black and he can't
+  read it): before every snapshot with text, "**📝 מה כתוב בלוח:**" and its content in clean words (comparison -> table,
+  steps -> list, code -> code block, [לא קריא] where unreadable). New chapters: author.SLIDES_RULE + VERIFY_SYSTEM.
+  Existing chapters: `worker/boards.py` (one Gemini call per lesson, Java courses first, backup
+  `chapter_before_boards.md` that also marks it done), first step of enrich.yml (every morning, until all are done).
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items

@@ -1,4 +1,4 @@
-# Rewrites existing chapters into his structure (background -> explanation -> everyday example -> worked example).
+# First writes out the board snapshots in words (boards.py), then rewrites existing chapters into his structure (background -> explanation -> everyday example -> worked example).
 # Dispatched by hand and every morning by /api/cron/notify; lessons already done are skipped, and when the free
 # Gemini quota runs out it stops and continues the next morning.
 name: enrich
@@ -19,13 +19,24 @@ concurrency:
 jobs:
   enrich:
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 110
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install supabase google-genai
+      - name: board snapshots written out in words (Java first)
+        working-directory: worker
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LESSON_ID: ${{ inputs.lesson_id }}
+        run: |
+          [[ -z "$LESSON_ID" || "$LESSON_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad lesson id"; exit 1; }
+          python boards.py $LESSON_ID
       - working-directory: worker
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
