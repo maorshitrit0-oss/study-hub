@@ -3,7 +3,7 @@
 :root {
   /* Deep-blue "circuit board" theme, the same on every screen */
   --bg: #050e1c;
-  --card: rgba(9, 24, 44, 0.9);
+  --card: rgba(9, 24, 44, 0.93);
   --fg: #e4eef9;
   --muted: #8fa6c0;
   --line: rgba(80, 150, 220, 0.22);
@@ -56,7 +56,10 @@ body::before {
     #050e1c;
 }
 
-.card { @apply bg-card border border-line rounded-2xl p-4 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,0.35)]; }
+/* No backdrop-filter on cards: on the iPhone a tall blurred card (a long course page, an open fold) is drawn in tiles,
+   and while scrolling tiles were left as dark blurred rectangles over the text (04/11/2026). The card is nearly
+   opaque, so the blur added almost nothing. */
+.card { @apply bg-card border border-line rounded-2xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.35)]; }
 .fold > summary::-webkit-details-marker { display: none; }
 .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-medium bg-accent text-white active:opacity-80 disabled:opacity-50; }
 .btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 font-medium text-accent bg-accent-soft active:opacity-80; }
