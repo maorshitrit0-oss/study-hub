@@ -453,6 +453,13 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   contradictions -> newer kept + "(earlier: ...)"; fallback = exact-text merge) into facts_merged.json {sig, items[ids]}.
   Rows are NOT deleted; lib/facts.ts shows the merged lines (deleted rows drop out, newer rows shown as is), ✕ on a
   line deletes its rows (deleteFacts). Runs daily (enrich.yml) and on demand (publish.yml inspect=facts).
+- One name per topic (04/11/2026, same as the facts): `worker/topics.py` groups a course's topic names (questions,
+  exercises, lessons.topics) with Gemini into topics_merged.json {sig, map original -> merged}; lib/topics.ts applies it
+  in topicStats ("איפה אני עומד", home, exams, plan) and in the practice page's ?topic= filter. DB names untouched.
+  Daily in enrich.yml, on demand publish.yml inspect=topics.
+- Lesson page: exercises come AFTER the summary / chapter, just before the quiz (04/11/2026).
+- Code blocks never wrap (04/11/2026, "like the formulas"): `.chapter pre` white-space: pre + sideways scroll, .82em;
+  CodeLines shows each code line whole on its own row with its Hebrew under it.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items

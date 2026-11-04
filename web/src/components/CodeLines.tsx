@@ -58,16 +58,15 @@ export default function CodeLines({ code, lang }: { code: string; lang: string }
       {loading && <p className="text-xs text-muted py-1">מתרגם את הקוד לעברית, שורה-שורה...</p>}
       {error && <p className="text-xs text-bad py-1">{error}</p>}
       {lines && (
-        <table>
-          <tbody>
-            {lines.map((l, i) => (
-              <tr key={i}>
-                <td><code>{l.code}</code></td>
-                <td>{fixArabic(l.he)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        // Each code line whole on its own row (scrolls sideways, never wraps), its Hebrew under it.
+        <ol>
+          {lines.map((l, i) => (
+            <li key={i}>
+              <pre className="cl-code">{l.code}</pre>
+              <div className="cl-he">{fixArabic(l.he)}</div>
+            </li>
+          ))}
+        </ol>
       )}
     </details>
   );

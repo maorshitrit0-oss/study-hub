@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/supabase/server";
 import Quiz from "@/components/Quiz";
 import { fetchAll } from "@/lib/fetchAll";
 import type { Question } from "@/lib/types";
+import { mergedTopic, topicMaps } from "@/lib/topics";
 
 const SIZE = 10;
 
@@ -17,8 +18,8 @@ export default async function Practice({ params, searchParams }: PageProps<"/cou
   const topic = (await searchParams).topic as string | undefined;
   const { sb } = await requireUser();
   const q = () => {
-    const base = sb.from("questions").select("id, lesson_id, topic, question, options, correct, explanation, difficulty").eq("course_id", id).order("id");
-    return topic ? base.eq("topic", topic) : base;
+    // A topic is its merged name (lib/topics.ts): filtered below over every name it stands for.
+    return sb.from("questions").select("id, lesson_id, topic, question, options, correct, explanation, difficulty").eq("course_id", id).order("id");
   };
   const [{ data: course }, questions, attempts] = await Promise.all([
     sb.from("courses").select("name").eq("id", id).single(),
@@ -27,7 +28,9 @@ export default async function Practice({ params, searchParams }: PageProps<"/cou
   ]);
   const last = new Map<string, boolean>();
   for (const a of attempts ?? []) last.set(a.question_id, a.is_correct);
-  const set = pickPractice((questions ?? []) as Question[], last, SIZE);
+  const maps = topic ? await topicMaps(sb, [id]) : new Map();
+  const pool = ((questions ?? []) as Question[]).filter((x) => !topic || mergedTopic(maps, id, x.topic) === topic);
+  const set = pickPractice(pool, last, SIZE);
 
   return (
     <div className="space-y-4">

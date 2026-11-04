@@ -93,14 +93,6 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
         </section>
       )}
 
-      {(exercises ?? []).length > 0 && (
-        <section className="card">
-          <h2 className="font-semibold mb-1">✍️ תרגילים מהשיעור ({exercises!.length})</h2>
-          <p className="text-xs text-muted mb-3">לפתור על דף, ורק אחר כך לפתוח את הפתרון.</p>
-          <Exercises items={(exercises ?? []) as Exercise[]} slideUrls={slideUrls} />
-        </section>
-      )}
-
       {summary && !fullChapter && lesson.status === "ready" && (
         <form action={requestFullChapter.bind(null, id)}>
           <button className="btn-ghost w-full">📖 לכתוב גם פרק מלא לשיעור הזה</button>
@@ -125,6 +117,15 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
             </details>
           )}
           <Chapter md={lesson.chapter_md} slideUrls={slideUrls} />
+        </section>
+      )}
+
+      {/* Exercises after the lesson's text, not before it (04/11/2026). */}
+      {(exercises ?? []).length > 0 && (
+        <section className="card">
+          <h2 className="font-semibold mb-1">✍️ תרגילים מהשיעור ({exercises!.length})</h2>
+          <p className="text-xs text-muted mb-3">לפתור על דף, ורק אחר כך לפתוח את הפתרון.</p>
+          <Exercises items={(exercises ?? []) as Exercise[]} slideUrls={slideUrls} />
         </section>
       )}
 

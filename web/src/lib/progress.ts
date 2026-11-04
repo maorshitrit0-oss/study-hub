@@ -1,4 +1,5 @@
 import { fetchAll } from "./fetchAll";
+import { mergedTopic, topicMaps } from "./topics";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type TopicStat = { topic: string; answered: number; correct: number; total: number };
@@ -23,10 +24,13 @@ export async function topicStats(sb: SupabaseClient, courseId?: string) {
   const latest = new Map<string, boolean>();
   for (const a of attempts ?? []) latest.set(a.question_id, a.is_correct);
 
+  // Topics under several names count as one (worker/topics.py).
+  const maps = await topicMaps(sb, (questions ?? []).map((q) => q.course_id));
   const byTopic = new Map<string, TopicStat & { course_id: string }>();
   for (const q of questions ?? []) {
-    const key = `${q.course_id}|${q.topic || "כללי"}`;
-    const s = byTopic.get(key) ?? { topic: q.topic || "כללי", answered: 0, correct: 0, total: 0, course_id: q.course_id };
+    const topic = mergedTopic(maps, q.course_id, q.topic);
+    const key = `${q.course_id}|${topic}`;
+    const s = byTopic.get(key) ?? { topic, answered: 0, correct: 0, total: 0, course_id: q.course_id };
     s.total++;
     if (latest.has(q.id)) {
       s.answered++;

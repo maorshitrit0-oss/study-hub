@@ -54,6 +54,7 @@ jobs:
           ok "$CHAPTER" json; ok "$SHEET" md
           if [ "$INSPECT" = "flat" ]; then python hub.py flat; exit $?; fi
           if [ "$INSPECT" = "facts" ]; then python facts.py; exit $?; fi
+          if [ "$INSPECT" = "topics" ]; then python topics.py; exit $?; fi
           if [ "$INSPECT" = "true" ]; then python hub.py inspect "$COURSE" "$KIND" "$NUMBER"; exit $?; fi
           [[ "$KIND" =~ ^(lecture|practice|other)$ && "$NUMBER" =~ ^[0-9]+$ ]] || { echo "::error::bad kind/number"; exit 1; }
           if [ -n "$SHEET" ]; then python hub.py sheet "$COURSE" "../$SHEET"; fi
