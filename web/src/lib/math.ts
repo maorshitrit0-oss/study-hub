@@ -81,9 +81,21 @@ function displayOnOwnLine(md: string) {
   return md.split(/(```[\s\S]*?```|`[^`\n]*`)/g).map((part, i) => (i % 2 === 1 ? part : pairDollars(part))).join("");
 }
 
+// The Arabic twin of a Hebrew one-letter prefix: Gemini writes "لבין" / "وטיפוסי" for "לבין" / "וטיפוסי" (04/11/2026).
+const PREFIX: Record<string, string> = { "و": "ו", "ل": "ל", "ب": "ב", "ك": "כ", "ه": "ה", "م": "מ", "ش": "ש" };
+
+/**
+ * Gemini sometimes slips Arabic into Hebrew text: a prefix letter glued to a Hebrew word becomes the Hebrew letter,
+ * any other Arabic ("ההנחתה هي 40 dB") is dropped - his courses have no Arabic.
+ */
+export function fixArabic(text: string) {
+  return text
+    .replace(/[\u0600-\u06FF](?=[\u0590-\u05FF])/g, (c) => PREFIX[c] ?? "")
+    .replace(/[\u0600-\u06FF]+\s?/g, "");
+}
+
 export function wrapBareLatex(md: string) {
-  // Gemini sometimes slips an Arabic word into Hebrew text ("ההנחתה هي 40 dB"); his courses have no Arabic.
-  md = md.replace(/[\u0600-\u06FF]+\s?/g, "");
+  md = fixArabic(md);
   // JSON turned "\b", "\f", "\t", "\r" at the start of \bar, \frac, \theta, \rho into control characters.
   const text = displayOnOwnLine(md.replace(/\x08/g, "\\b").replace(/\x0c/g, "\\f").replace(/\t(?=[a-z]{2,})/g, "\\t").replace(/\r(?=[a-z]{2,})/g, "\\r"));
   return text.split(/(```[\s\S]*?```|`[^`\n]*`|\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/g).map((part, i) => {

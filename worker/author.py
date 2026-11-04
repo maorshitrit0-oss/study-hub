@@ -534,8 +534,25 @@ def verification_md(ch):
     return "\n".join(out)
 
 
+ARABIC_PREFIX = {"و": "ו", "ل": "ל", "ب": "ב", "ك": "כ", "ه": "ה", "م": "מ", "ش": "ש"}
+
+
+def fix_arabic(v):
+    """Gemini slips Arabic into Hebrew ("لבין", "وטיפוסי"): a prefix letter glued to a Hebrew word becomes the Hebrew
+    letter, other Arabic is dropped (his courses have no Arabic). Same as web/src/lib/math.ts fixArabic."""
+    if isinstance(v, str):
+        v = re.sub(r"[\u0600-\u06FF](?=[\u0590-\u05FF])", lambda m: ARABIC_PREFIX.get(m.group(0), ""), v)
+        return re.sub(r"[\u0600-\u06FF]+\s?", "", v)
+    if isinstance(v, list):
+        return [fix_arabic(x) for x in v]
+    if isinstance(v, dict):
+        return {k: fix_arabic(x) for k, x in v.items()}
+    return v
+
+
 def validate(ch):
     """Drop malformed questions instead of failing the whole lesson."""
+    ch = fix_arabic(ch)
     good = []
     for q in ch.get("questions", []):
         opts = q.get("options") or []

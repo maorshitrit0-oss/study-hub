@@ -2,7 +2,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import { promoteLongMath, wrapBareLatex } from "@/lib/math";
+import { fixArabic, promoteLongMath, wrapBareLatex } from "@/lib/math";
 import Wave from "./Wave";
 import CodeLines from "./CodeLines";
 
@@ -55,7 +55,7 @@ export function Rich({ text }: { text: string }) {
     <span className="rich">
       <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}
         components={{ p: ({ children }) => <span className="block">{children}</span> }}>
-        {text}
+        {fixArabic(text)}
       </ReactMarkdown>
     </span>
   );

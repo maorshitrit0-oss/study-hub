@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { fixArabic } from "@/lib/math";
 
 type Line = { code: string; he: string };
 
@@ -62,7 +63,7 @@ export default function CodeLines({ code, lang }: { code: string; lang: string }
             {lines.map((l, i) => (
               <tr key={i}>
                 <td><code>{l.code}</code></td>
-                <td>{l.he}</td>
+                <td>{fixArabic(l.he)}</td>
               </tr>
             ))}
           </tbody>

@@ -428,6 +428,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Java help sheet (his request: one page allowed in the exam, "how to write a class" templates): chapters/java-sheet.md,
   saved as the course's formula_sheet.md ("📄 דף נוסחאות" button). For Java, docs.py / courseDocs.ts only ADD new
   syntax to it (CODE_UPDATE, rejected if shorter) - never rebuild from scratch.
+- Arabic letters in Hebrew (04/11/2026, quiz showed "لבין", "وטיפוסי"): Gemini glues an Arabic prefix letter to a
+  Hebrew word. `fixArabic` (lib/math.ts; used by Chapter, Rich, CodeLines) and `author.fix_arabic` (in validate, so
+  new content is saved clean) turn و ل ب ك ه م ش before a Hebrew letter into ו ל ב כ ה מ ש and drop other Arabic.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items
