@@ -442,6 +442,12 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   `hub.py fetch`, encrypts it and pushes it to branch fetch/<id>; the session decrypts it, writes chapters/<name>.json and
   runs `publish.yml` (course + kind + number -> `hub.py add` updates the existing lesson), which also deletes fetch/*.
   Done first for Java practice 2 (04/11/2026, chapters/java-practice-2.json: EX1, EX3-EX6 from the screen + EX2).
+- Micro environment (04/11/2026, done with him, works - "Am Israel Chai" in the simulator): VS Code + PlatformIO IDE +
+  Wokwi Simulator (free 30-day license, renew by "Wokwi: Request a New License"; his runs to 4/12/2026), board
+  Espressif ESP32-S3-DevKitC-1-N8 (`esp32-s3-devkitc-1`), framework Arduino, the TA's wokwi.toml + diagram.json
+  (github.com/Brown-Programming-Academy/microcontroller-public). Projects live in C:\esp - the default
+  OneDrive\מסמכים path broke the linker (Hebrew in the path). Course is theoretical: buying hardware is optional
+  (site suggests an ESP32-S3 dev board + an electronics kit).
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items
