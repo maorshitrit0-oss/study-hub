@@ -7,7 +7,10 @@ import { Rich } from "./Chapter";
 
 type Q = Omit<Question, "explanation"> & { explanation?: string | null };
 
-/** One question at a time; feedback is instant and the answer is recorded in the background. */
+/**
+ * One question at a time; feedback is instant and the answer is recorded in the background. "לא יודע" shows the answer
+ * with its explanation instead of a random guess; it counts as a miss (chosen -1), so the topic comes back in review.
+ */
 export default function Quiz({ questions, title = "שאלון" }: { questions: Q[]; title?: string }) {
   const [i, setI] = useState(0);
   const [chosen, setChosen] = useState<number | null>(null);
@@ -30,7 +33,7 @@ export default function Quiz({ questions, title = "שאלון" }: { questions: Q
 
   const q = questions[i];
   function pick(k: number) {
-    if (chosen !== null) return;
+    if (chosen !== null || correct !== null) return;
     setChosen(k);
     setCorrect(q.correct);
     if (q.correct === k) setScore((s) => s + 1);
@@ -61,9 +64,12 @@ export default function Quiz({ questions, title = "שאלון" }: { questions: Q
           );
         })}
       </ol>
+      {correct === null && (
+        <button className="btn-ghost w-full" onClick={() => pick(-1)}>🤷 לא יודע - תראה לי את התשובה</button>
+      )}
       {correct !== null && (
         <div className={`rounded-xl p-3 ${chosen === correct ? "bg-good-soft" : "bg-bad-soft"}`}>
-          <p className="font-semibold mb-1">{chosen === correct ? "נכון ✓" : `לא נכון - התשובה היא ${correct + 1}`}</p>
+          <p className="font-semibold mb-1">{chosen === correct ? "נכון ✓" : chosen === -1 ? `התשובה היא ${correct + 1} - קרא את ההסבר` : `לא נכון - התשובה היא ${correct + 1}`}</p>
           {q.explanation && <div className="text-sm"><Rich text={q.explanation} /></div>}
         </div>
       )}
