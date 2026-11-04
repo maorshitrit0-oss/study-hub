@@ -25,3 +25,18 @@ export async function mergedFacts(sb: SupabaseClient, userId: string, courseId: 
   const covered = new Set(merged.flatMap((it) => it.ids));
   return [...merged, ...facts.filter((f) => !covered.has(f.id)).map(own)];
 }
+
+/** Grade components, exam format and formula sheet per course, for the timetable (worker/facts.py "summary"). */
+export type CourseSummary = { grade?: string; exam?: string; formula_sheet?: string };
+
+export async function courseSummaries(sb: SupabaseClient, courses: { id: string; user_id: string }[]) {
+  const out = await Promise.all(courses.map(async (c) => {
+    try {
+      const { data } = await sb.storage.from("study").download(`${c.user_id}/materials/${c.id}/facts_merged.json`);
+      return [c.id, data ? ((JSON.parse(await data.text()).summary ?? {}) as CourseSummary) : {}] as const;
+    } catch {
+      return [c.id, {}] as const;
+    }
+  }));
+  return new Map<string, CourseSummary>(out);
+}

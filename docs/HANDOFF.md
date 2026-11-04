@@ -460,6 +460,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Lesson page: exercises come AFTER the summary / chapter, just before the quiz (04/11/2026).
 - Code blocks never wrap (04/11/2026, "like the formulas"): `.chapter pre` white-space: pre + sideways scroll, .82em;
   CodeLines shows each code line whole on its own row with its Hebrew under it.
+- Timetable "📋 הקורסים: ציון ומבחן" (04/11/2026): per course grade components, exam format, and the formula sheet only
+  when allowed - from facts.py's `summary` {grade, exam, formula_sheet} in facts_merged.json (only what the facts say),
+  falling back to courses.grade_weights / exam_type. Rebuild all: publish.yml inspect=facts-force.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items

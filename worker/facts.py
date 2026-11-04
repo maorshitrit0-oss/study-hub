@@ -25,11 +25,17 @@ PROMPT = """לפניך רשימת פריטי מידע מנהלי על קורס �
   קודם ומאיפה, למשל "(בסילבוס נכתב 30%)".
 - כל מספר חייב להופיע בדיוק בפריט אחד. אל תמציא מידע. עברית, משפט קצר וברור לכל פריט.
 - category: אחד מ: exam, exam_hint, grading, reservist, assignments, attendance, materials, industry, other.
-- מידע שהסטודנט הוסיף בעצמו (מסומן "ידני") - שמור את הניסוח שלו."""
+- מידע שהסטודנט הוסיף בעצמו (מסומן "ידני") - שמור את הניסוח שלו.
+בנוסף summary - תקציר לטבלת מערכת השעות, רק ממה שכתוב בפריטים (לא לנחש; מה שלא נאמר - להשאיר ריק):
+- grade: מרכיבי הציון הסופי בשורה אחת, למשל "80% מבחן, 20% מטלות" או "100% מבחן סופי".
+- exam: אופן הבחינה בשורה אחת, למשל "מבחן אמריקאי, 3 שעות, בכיתה" או "מבחן פתוח + שאלות קוד".
+- formula_sheet: אם מותר דף נוסחאות / דף עזר - כמה ומה (למשל "דף נוסחאות אחד, דו-צדדי, בכתב יד"); אם אסור או לא נאמר - ריק."""
 
 SCHEMA = {"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object", "properties": {
     "category": {"type": "string"}, "text": {"type": "string"}, "ids": {"type": "array", "items": {"type": "integer"}}},
-    "required": ["category", "text", "ids"]}}}, "required": ["items"]}
+    "required": ["category", "text", "ids"]}},
+    "summary": {"type": "object", "properties": {"grade": {"type": "string"}, "exam": {"type": "string"},
+                                                  "formula_sheet": {"type": "string"}}}}, "required": ["items"]}
 
 
 def db():
@@ -83,7 +89,8 @@ def merge(sb, course, facts):
         items.append({"category": cat, "text": it["text"].strip(), "ids": [facts[i]["id"] for i in ids]})
     # Nothing may get lost: a fact the merge left out stays as its own item.
     items += [{"category": f["category"], "text": f["text"], "ids": [f["id"]]} for i, f in enumerate(facts) if i not in seen]
-    return items
+    summary = {k: (v or "").strip() for k, v in (out.get("summary") or {}).items() if k in ("grade", "exam", "formula_sheet")}
+    return items, summary
 
 
 def run(only=None, force=False):
@@ -97,7 +104,7 @@ def run(only=None, force=False):
         except Exception as e:  # noqa: BLE001
             print(f"::warning title=Facts {course['name']}::{e}", flush=True)
             continue
-        if len(facts) < 2:
+        if not facts:
             continue
         path = f"{course['user_id']}/materials/{course['id']}/{FILE}"
         sig = signature(facts)
@@ -107,12 +114,13 @@ def run(only=None, force=False):
                     continue  # merged already for exactly these facts
             except Exception:  # noqa: BLE001 - not merged yet
                 pass
+        summary = {}
         try:
-            items = merge(sb, course, facts)
+            items, summary = merge(sb, course, facts)
         except Exception as e:  # noqa: BLE001
             print(f"::warning title=Facts {course['name']}::{author.friendly_error(e)[:200]} - exact duplicates only", flush=True)
             items = exact_merge(facts)
-        sb.storage.from_(BUCKET).upload(path, json.dumps({"sig": sig, "items": items}, ensure_ascii=False).encode("utf-8"),
+        sb.storage.from_(BUCKET).upload(path, json.dumps({"sig": sig, "items": items, "summary": summary}, ensure_ascii=False).encode("utf-8"),
                                         {"content-type": "application/json", "upsert": "true"})
         report.append(f"{course['name']}: {len(facts)} -> {len(items)}")
     print(f"::notice title=Facts merged::{'; '.join(report) or 'nothing changed'}", flush=True)

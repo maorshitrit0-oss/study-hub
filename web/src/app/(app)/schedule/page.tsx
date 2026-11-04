@@ -5,14 +5,16 @@ import Fold from "@/components/Fold";
 import SlotForm from "@/components/SlotForm";
 import { addSlot } from "../actions";
 import { israelNow } from "@/lib/format";
-import { DAYS, type Slot } from "@/lib/types";
+import { DAYS, EXAM_LABEL, type Course, type Slot } from "@/lib/types";
+import { courseSummaries } from "@/lib/facts";
 
 export default async function Schedule() {
   const { sb } = await requireUser();
   const [{ data: slots }, { data: courses }] = await Promise.all([
     sb.from("schedule_slots").select("*").order("weekday").order("start_time"),
-    sb.from("courses").select("id, name").eq("archived", false).order("name"),
+    sb.from("courses").select("id, name, user_id, kind, exam_type, grade_weights").eq("archived", false).order("name"),
   ]);
+  const summaries = await courseSummaries(sb, (courses ?? []) as { id: string; user_id: string }[]);
   const names = new Map((courses ?? []).map((c) => [c.id, c.name]));
   const now = israelNow();
   const all = (slots ?? []) as Slot[];
@@ -43,6 +45,26 @@ export default async function Schedule() {
         <p className="text-muted">עוד אין שיעורים במערכת.</p>
       )}
       </div>
+      </Fold>
+      {/* Under each course: grade components, exam format, formula sheet (only when allowed) - 04/11/2026. */}
+      <Fold id="schedule-courses" title="📋 הקורסים: ציון ומבחן" hint={`${(courses ?? []).filter((c) => c.kind !== "self").length}`}>
+        <ul className="divide-y divide-line">
+          {(courses ?? []).filter((c) => c.kind !== "self").map((c) => {
+            const sm = summaries.get(c.id) ?? {};
+            const weights = (c.grade_weights as Course["grade_weights"] | null) ?? [];
+            const grade = sm.grade || (weights.length ? weights.map((w) => `${w.weight}% ${w.name}`).join(", ") : "");
+            const exam = sm.exam || (c.exam_type ? EXAM_LABEL[c.exam_type as keyof typeof EXAM_LABEL] : "");
+            return (
+              <li key={c.id} className="py-2.5 text-sm space-y-0.5">
+                <p className="font-semibold">{c.name}</p>
+                {grade && <p>📊 <span className="text-muted">ציון:</span> {grade}</p>}
+                {exam && <p>📝 <span className="text-muted">בחינה:</span> {exam}</p>}
+                {sm.formula_sheet && <p>📄 <span className="text-muted">דף נוסחאות:</span> {sm.formula_sheet}</p>}
+                {!grade && !exam && <p className="text-xs text-muted">עוד לא נאמר בשיעורים או בסילבוס.</p>}
+              </li>
+            );
+          })}
+        </ul>
       </Fold>
       <details className="card">
         <summary className="cursor-pointer font-semibold">+ הוספת שיעור</summary>
