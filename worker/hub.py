@@ -443,7 +443,7 @@ def cmd_sheet(match, path):
     docs.save(sb, course, Path(path).read_text(encoding="utf-8"), "נכתב ע״י Claude")
 
 
-def cmd_flat():
+def cmd_flat():  # noqa: D401
     """Every ready lesson whose chapter is squashed onto a few lines (author.is_flat) - to write again."""
     sb = db()
     names = {c["id"]: c["name"] for c in sb.table("courses").select("id, name").execute().data}
