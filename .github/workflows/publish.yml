@@ -30,7 +30,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -56,6 +56,7 @@ jobs:
           if [ "$INSPECT" = "facts" ]; then python facts.py; exit $?; fi
           if [ "$INSPECT" = "facts-force" ]; then python facts.py --force; exit $?; fi
           if [ "$INSPECT" = "topics" ]; then python topics.py; exit $?; fi
+          if [ "$INSPECT" = "queue" ]; then python queue_runner.py; exit $?; fi
           if [ "$INSPECT" = "archive" ]; then python hub.py archive "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "true" ]; then python hub.py inspect "$COURSE" "$KIND" "$NUMBER"; exit $?; fi
           [[ "$KIND" =~ ^(lecture|practice|other)$ && "$NUMBER" =~ ^[0-9]+$ ]] || { echo "::error::bad kind/number"; exit 1; }
