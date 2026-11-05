@@ -18,7 +18,7 @@ import author
 import hub
 
 BUCKET = "study"
-STATE = "system/queue_state.json"   # {"quota_until": iso} - skip Gemini work until the daily reset
+STATE = "system/queue_state.json"   # {"quota_until": iso, "claude": {day: count}}
 BUDGET_SEC = 100 * 60
 WAITING = "⏳ בתור"
 
@@ -43,9 +43,50 @@ def quota_blocked(sb):
 
 
 def block_quota(sb):
-    sb.storage.from_(BUCKET).upload(STATE, json.dumps({"quota_until": next_reset().isoformat()}).encode(),
-                                    {"content-type": "application/json", "upsert": "true"})
+    st = state(sb)
+    st["quota_until"] = next_reset().isoformat()
+    save_state(sb, st)
     print(f"::notice title=Queue::daily Gemini quota used up - waiting until {next_reset().isoformat()}", flush=True)
+
+
+CLAUDE_PER_DAY = 4   # chapters a day Claude may write instead of Gemini (his Pro usage is shared with his chats)
+
+
+def state(sb):
+    try:
+        return json.loads(sb.storage.from_(BUCKET).download(STATE).decode())
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def save_state(sb, st):
+    sb.storage.from_(BUCKET).upload(STATE, json.dumps(st).encode(), {"content-type": "application/json", "upsert": "true"})
+
+
+def to_claude(sb, r):
+    """When Gemini can't (overloaded / quota): his Claude Pro writes the chapter (claude-chapter.yml), a few a day.
+    The recording is transcribed first if needed (no Gemini in that). Returns True if handed over."""
+    if os.environ.get("HAS_CLAUDE") != "true":
+        return False
+    st = state(sb)
+    today = datetime.now(ZoneInfo("Asia/Jerusalem")).date().isoformat()
+    used = st.get("claude", {}).get(today, 0)
+    if used >= CLAUDE_PER_DAY:
+        return False
+    row = sb.table("lessons").select("transcript").eq("id", r["id"]).single().execute().data
+    if not (row.get("transcript") or "").strip():
+        hub.cmd_process(r["id"], do_author=False)
+    import course_site
+    res = course_site.dispatch(r["id"], workflow="claude-chapter.yml")
+    if res != "started":
+        print(f"::warning title=Queue::Claude not started for {r['id']}: {res}", flush=True)
+        return False
+    sb.table("lessons").update({"status": "processing", "error": None,
+                                "progress": "Gemini לא זמין - Claude כותב את הפרק"}).eq("id", r["id"]).execute()
+    st.setdefault("claude", {})[today] = used + 1
+    save_state(sb, st)
+    print(f"::notice title=Queue::{r['id']} -> Claude ({used + 1}/{CLAUDE_PER_DAY} today)", flush=True)
+    return True
 
 
 def candidates(sb):
@@ -96,7 +137,12 @@ def write_full(r):
 def run():
     sb = hub.db()
     if quota_blocked(sb):
-        print("::notice title=Queue::quota used up earlier today - nothing until the reset", flush=True)
+        # Gemini is out for today: lessons he is waiting for go to Claude (a few a day); fill-ins wait for the reset.
+        for r, mode in candidates(sb):
+            if r["status"] != "ready" and mode != "summary":
+                if not to_claude(sb, r):
+                    break
+        print("::notice title=Queue::Gemini quota used up earlier today - fill-ins wait for the reset", flush=True)
         return
     start, done = time.time(), []
     for r, mode in candidates(sb):
@@ -118,8 +164,13 @@ def run():
         except Exception as e:  # noqa: BLE001
             if filling:  # a fill that failed: the lesson keeps what it had
                 sb.table("lessons").update({"status": "ready", "error": None, "progress": None}).eq("id", r["id"]).execute()
+            gemini_down = is_quota(e) or author._is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "עמוסים")
+            if gemini_down and not filling:
+                to_claude(sb, r)
             if is_quota(e):
                 block_quota(sb)
+                break
+            if gemini_down:  # overloaded now: don't spend the run retrying the next lessons - again in half an hour
                 break
     print(f"::notice title=Queue::{len(done)} done: {'; '.join(done)[:3000] or '-'}", flush=True)
 

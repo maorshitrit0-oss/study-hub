@@ -1,0 +1,65 @@
+# Writes a lesson's chapter with Claude (his Claude Pro subscription) instead of Gemini - used when Gemini is
+# overloaded or its free quota is gone (worker/queue_runner.py dispatches it, a few a day), or by hand.
+# Needs the repository secret CLAUDE_CODE_OAUTH_TOKEN (made on his computer with `claude setup-token`).
+name: claude-chapter
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      lesson_id:
+        description: Lesson id (its transcript must be ready)
+        required: true
+
+concurrency:
+  group: claude-chapter   # one at a time - his Pro usage is shared with his own chats
+
+jobs:
+  write:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q supabase google-genai python-docx requests trafilatura pywebpush imageio-ffmpeg numpy pillow
+      - name: Lesson material
+        working-directory: worker
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          LESSON_ID: ${{ inputs.lesson_id }}
+        run: |
+          [[ "$LESSON_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad lesson id"; exit 1; }
+          python hub.py fetch "$LESSON_ID" /tmp/lesson
+          python -c "import hub; hub.mark_progress('$LESSON_ID', 'Claude כותב את הפרק...')"
+      - uses: anthropics/claude-code-action@v1
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--allowedTools "Bash(python:*),Bash(cd:*),Read,Write,Edit,Glob,Grep" --max-turns 80'
+          prompt: |
+            Write the chapter of lesson ${{ inputs.lesson_id }} for the student, exactly as CLAUDE.md
+            ("Writing a chapter with Claude") and worker/author.py describe. The material is already in /tmp/lesson
+            (transcript.txt, meta.json, slides/slide_NNN.webp). Read worker/author.py first: SYSTEM, KIND_TASK,
+            SLIDES_RULE, CODE_RULE, EXPLAIN_RULE, VERIFY_SYSTEM, CHAPTER_SCHEMA.
+            Write /tmp/lesson/chapter.json with: the FULL reading chapter (chapter_md), "summary_md" (a condensed
+            summary of 1-2 pages: the message of the lesson, main points per topic, formulas / syntax, what is
+            important for the exam), 10-15 multiple-choice questions, topics, course_facts, glossary, and a
+            "verification" object (fixes, uncertain) after you fact-checked your own draft as VERIFY_SYSTEM says.
+            Hebrew only (English technical terms in brackets). Do not invent content that is not in the lesson.
+            Then run: cd worker && python hub.py publish ${{ inputs.lesson_id }} /tmp/lesson/chapter.json
+      - name: If Claude did not finish
+        if: failure()
+        working-directory: worker
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          LESSON_ID: ${{ inputs.lesson_id }}
+        run: |
+          python -c "import hub; hub.db().table('lessons').update({'status': 'error', 'error': 'Claude לא סיים לכתוב (אולי נגמרה מכסת השימוש של Claude Pro ל-5 השעות). אפשר ללחוץ לנסות שוב.'}).eq('id', '$LESSON_ID').execute()"

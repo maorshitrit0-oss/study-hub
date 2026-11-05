@@ -496,6 +496,13 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   Session lessons without "גרסה: פרק מלא" in the transcript are rewritten once when not read.
 - Cadence tracks archived 05/11/2026 (not deleted): their labs need licensed Cadence tools he does not have, and the
   program already covers SystemVerilog. Semester-B self-study plan: proposed, waiting for his approval.
+- 05/11/2026 (2): failures all day = Gemini free tier OVERLOADED (503), not only quota. He asked why depend on Gemini.
+  Added Claude as the fallback writer on HIS Claude Pro subscription: `.github/workflows/claude-chapter.yml`
+  (anthropics/claude-code-action@v1, secret CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` on his PC - he adds it in
+  GitHub repo Settings -> Secrets; never pasted in chat). It runs `hub.py fetch`, Claude writes chapter.json (full
+  chapter + summary_md + quiz + verification) and `hub.py publish`. queue_runner hands a lesson to Claude when Gemini
+  is overloaded / out of quota (CLAUDE_PER_DAY = 4, counted in system/queue_state.json; site.yml passes HAS_CLAUDE),
+  and stops the run on an overload instead of grinding through every lesson. Fill-ins stay on Gemini only.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items

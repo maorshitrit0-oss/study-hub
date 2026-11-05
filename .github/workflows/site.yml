@@ -43,6 +43,7 @@ jobs:
           YT_COOKIES: ${{ secrets.YT_COOKIES }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          HAS_CLAUDE: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
           EVENT: ${{ github.event_name }}
           SITE_URL: ${{ inputs.url }}
           COURSE_ID: ${{ inputs.course_id }}

@@ -292,6 +292,10 @@ def save_homework(job, items):
         print(f"homework tasks not saved: {e}", flush=True)
 
 
+def mark_progress(lesson_id, text):
+    db().table("lessons").update({"status": "processing", "progress": text, "error": None}).eq("id", lesson_id).execute()
+
+
 def answered(job):
     """Has he answered any question of this lesson's own quiz?"""
     ids = [q["id"] for q in job.sb.table("questions").select("id").eq("lesson_id", job.lesson["id"]).execute().data]
@@ -332,6 +336,8 @@ def save_chapter(job, ch, by):
                   progress=f"מוכן - {count}", author=by, error=None)
     if short:
         fields["summary_md"] = chapter_md  # the full chapter, if he asks for one later, replaces chapter_md only
+    if (ch.get("summary_md") or "").strip():  # Claude writes both: the full chapter and a condensed summary
+        fields["summary_md"] = author.fix_arabic(ch["summary_md"].strip())
     if not job.lesson.get("title") or job.lesson["kind"] == "web":
         fields["title"] = ch.get("title")
     try:

@@ -532,14 +532,15 @@ def recordings(sb, course, pages, links):
                  {"content-type": "application/json", "upsert": "true"})
 
 
-def dispatch(lesson_id, author="gemini"):
-    """Starts process.yml for a lesson (GitHub Actions; GITHUB_TOKEN with actions: write)."""
+def dispatch(lesson_id, author="gemini", workflow="process.yml"):
+    """Starts process.yml (or claude-chapter.yml) for a lesson (GitHub Actions; GITHUB_TOKEN with actions: write)."""
     repo, token = os.environ.get("GITHUB_REPOSITORY"), os.environ.get("GITHUB_TOKEN")
     if not repo or not token:
         return "no GITHUB_TOKEN - not started"
-    r = requests.post(f"https://api.github.com/repos/{repo}/actions/workflows/process.yml/dispatches",
+    inputs = {"lesson_id": lesson_id} if workflow != "process.yml" else {"lesson_id": lesson_id, "author": author}
+    r = requests.post(f"https://api.github.com/repos/{repo}/actions/workflows/{workflow}/dispatches",
                       headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
-                      json={"ref": "main", "inputs": {"lesson_id": lesson_id, "author": author}}, timeout=30)
+                      json={"ref": "main", "inputs": inputs}, timeout=30)
     return "started" if r.ok else f"GitHub {r.status_code}: {r.text[:200]}"
 
 
