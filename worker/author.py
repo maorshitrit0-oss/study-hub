@@ -286,7 +286,7 @@ def _is(e, *words):
 def friendly_error(e):
     if _is(e, "RESOURCE_EXHAUSTED", "429", "quota"):
         return "המכסה היומית החינמית של Gemini נגמרה בכל המודלים. היא מתאפסת כל יום בסביבות 10:00 בבוקר - אז ללחוץ 'לנסות שוב'."
-    if _is(e, "UNAVAILABLE", "503", "overloaded", "high demand"):
+    if _is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "500 INTERNAL", "Internal error encountered"):
         return "השרתים של Gemini היו עמוסים. המערכת תנסה שוב לבד בעוד חצי שעה (אפשר גם ללחוץ 'לנסות שוב')."
     if _is(e, "confirm you", "not a bot"):
         return ("יוטיוב חוסם את השרת שמעבד את ההקלטות, אז אי אפשר להוריד ממנו. "
@@ -312,8 +312,9 @@ def _with_gemini(call):
                 except Exception as e:  # noqa: BLE001
                     last = e
                     # Overload, or a dropped connection ("Server disconnected without sending a response"): retry.
+                    # 500 INTERNAL is Google's side too (05/11/2026 on a site lesson with PDFs): retried, then next model.
                     busy = _is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "disconnected", "timed out",
-                               "Connection reset", "RemoteProtocolError")
+                               "Connection reset", "RemoteProtocolError", "500 INTERNAL", "Internal error encountered")
                     if busy and attempt < 2:
                         time.sleep(20 * (attempt + 1) ** 2)  # 20 s, 80 s: an overload usually passes in a minute or two
                         continue

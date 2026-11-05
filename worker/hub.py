@@ -192,7 +192,7 @@ def cmd_process(lesson_id, do_author=True):
         # No push for Gemini being busy or out of quota: the queue retries those by itself (05/11/2026 - he got
         # "העיבוד נכשל" every few minutes while the queue was retrying).
         if not os.environ.get("QUIET") and not author._is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "עמוסים",
-                                                          "RESOURCE_EXHAUSTED", "429", "quota", "מכסה"):
+                                                          "RESOURCE_EXHAUSTED", "429", "quota", "מכסה", "INTERNAL"):
             notify.send(job.sb, job.lesson["user_id"], f"⚠️ העיבוד נכשל: {job.label()}",
                         "לחץ כדי לראות מה קרה ולנסות שוב", f"/lessons/{job.lesson['id']}")
         raise

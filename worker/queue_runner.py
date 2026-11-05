@@ -100,9 +100,14 @@ def candidates(sb):
     waiting = [(r, "full" if "פרק מלא" in (r.get("progress") or "") else "auto") for r in rows
                if r["status"] == "queued" and r["updated_at"] < old]
     quota = [(r, "auto") for r in rows if r["status"] == "error" and "מכסה" in (r.get("error") or "")]
-    busy = [(r, "auto") for r in rows if r["status"] == "error" and "עמוסים" in (r.get("error") or "")
+    busy = [(r, "auto") for r in rows if r["status"] == "error" and ("עמוסים" in (r.get("error") or "") or "INTERNAL" in (r.get("error") or ""))
             and r["updated_at"] < (now - timedelta(minutes=10)).isoformat()
             and r["created_at"] > (now - timedelta(days=2)).isoformat()]
+    # A lesson that already failed 3 times today waits for tomorrow (no hammering one lesson all day).
+    st = state(sb)
+    today = datetime.now(ZoneInfo("Asia/Jerusalem")).date().isoformat()
+    tries = st.get("tries", {}).get(today, {})
+    busy = [x for x in busy if tries.get(x[0]["id"], 0) < 3]
     fill = []
     for r in rows:
         t = r.get("transcript") or ""
@@ -165,7 +170,12 @@ def run():
         except Exception as e:  # noqa: BLE001
             if filling:  # a fill that failed: the lesson keeps what it had
                 sb.table("lessons").update({"status": "ready", "error": None, "progress": None}).eq("id", r["id"]).execute()
-            gemini_down = is_quota(e) or author._is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "עמוסים")
+            gemini_down = is_quota(e) or author._is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "עמוסים", "INTERNAL")
+            if not filling:
+                st = state(sb)
+                day = datetime.now(ZoneInfo("Asia/Jerusalem")).date().isoformat()
+                st["tries"] = {day: {**st.get("tries", {}).get(day, {}), r["id"]: st.get("tries", {}).get(day, {}).get(r["id"], 0) + 1}}
+                save_state(sb, st)
             if gemini_down and not filling:
                 to_claude(sb, r)
             if is_quota(e):

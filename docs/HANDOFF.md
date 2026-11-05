@@ -517,6 +517,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - 05/11/2026 (3): diagnosis by `hub.py ping` + a queue pass: strong models (3.8-flash, flash-latest) 429 daily quota,
   lite models 503 on real lessons. He got "⚠️ העיבוד נכשל" pushes every few minutes while the queue retried - now
   no push for busy / quota failures (retried by themselves), and a mix of busy + quota is reported as busy.
+- 05/11/2026 (4): the repeated "⚠️ העיבוד נכשל: מאמר 3" = micro site lesson 52d677c0 (week 3, analog/digital signals,
+  with PDFs) failing with Gemini "500 INTERNAL" - not classified as busy, so it pushed each retry. Now 500 INTERNAL =
+  busy (retried, next model, no push), and the queue tries one lesson at most 3 times a day (state "tries").
+  Note: micro has 4 site lessons numbered web 3 (one per section of week 3 on the Notion site) - by design.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items
