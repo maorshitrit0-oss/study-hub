@@ -44,6 +44,13 @@ function byMeeting(a: Lesson, b: Lesson) {
     || a.created_at.localeCompare(b.created_at);
 }
 
+/** Status label; last year's lecture kept only for comparison is done once transcribed (it gets no chapter). */
+function statusOf(l: Lesson): [string, string] {
+  if (l.status === "transcribed" && (l.title ?? "").includes("(להשוואה)")) return ["📼 להשוואה - מוכן", "text-muted"];
+  if (l.status === "queued" && (l.progress ?? "").startsWith("⏳")) return ["⏳ בתור", "text-muted"];
+  return STATUS[l.status];
+}
+
 /** Lectures and practices interleaved, then other material (a lab keeps one list). */
 function groupLessons(ls: Lesson[], isLab: boolean): [string, Lesson[]][] {
   if (isLab) return [["", ls]];
@@ -146,7 +153,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
                 <li key={l.id}>
                   <Link href={`/lessons/${l.id}`} className="flex justify-between py-2.5 text-sm">
                     <span>{l.title}</span>
-                    <span className={`text-xs ${STATUS[l.status][1]}`}>{STATUS[l.status][0]}</span>
+                    <span className={`text-xs ${statusOf(l)[1]}`}>{statusOf(l)[0]}</span>
                   </Link>
                 </li>
               ))}
@@ -248,7 +255,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
                         {l.title && l.kind !== "web" && <span className="text-sm text-muted"> · {l.title}</span>}
                         {l.read_at && <span className="text-xs text-good"> ✓ נקרא</span>}
                       </span>
-                      <span className={`text-xs shrink-0 ${STATUS[l.status][1]}`}>{STATUS[l.status][0]}</span>
+                      <span className={`text-xs shrink-0 ${statusOf(l)[1]}`}>{statusOf(l)[0]}</span>
                     </Link>
                   </li>
                 ))}
