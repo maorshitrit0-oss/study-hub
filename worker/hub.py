@@ -189,7 +189,10 @@ def cmd_process(lesson_id, do_author=True):
         # GitHub annotation: readable through the API even where full logs are not.
         print(f"::error title=Lesson {lesson_id}::{str(e)[:900]}".replace("\n", " "), flush=True)
         # Overloads are retried by themselves; a background fill (queue_runner, QUIET) never pushes.
-        if not os.environ.get("QUIET") and not author._is(e, "UNAVAILABLE", "503", "overloaded", "high demand"):
+        # No push for Gemini being busy or out of quota: the queue retries those by itself (05/11/2026 - he got
+        # "העיבוד נכשל" every few minutes while the queue was retrying).
+        if not os.environ.get("QUIET") and not author._is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "עמוסים",
+                                                          "RESOURCE_EXHAUSTED", "429", "quota", "מכסה"):
             notify.send(job.sb, job.lesson["user_id"], f"⚠️ העיבוד נכשל: {job.label()}",
                         "לחץ כדי לראות מה קרה ולנסות שוב", f"/lessons/{job.lesson['id']}")
         raise

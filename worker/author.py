@@ -302,7 +302,7 @@ def _with_gemini(call):
     keys = _keys()
     if not keys:
         raise RuntimeError("לא הוגדר GEMINI_API_KEY")
-    last = None
+    last = busy_seen = None
     for key in keys:
         client = genai.Client(api_key=key)
         for model in _models():
@@ -317,11 +317,14 @@ def _with_gemini(call):
                     if busy and attempt < 2:
                         time.sleep(20 * (attempt + 1) ** 2)  # 20 s, 80 s: an overload usually passes in a minute or two
                         continue
+                    if busy:
+                        busy_seen = e
                     if busy or _is(e, "RESOURCE_EXHAUSTED", "429", "quota", "NOT_FOUND", "404", "not supported"):
                         print(f"::notice title=Gemini {model}::{str(e)[:200]} -> next model".replace("\n", " "), flush=True)
                         break
                     raise
-    raise RuntimeError(friendly_error(last))
+    # Some models busy and the others out of quota = busy (it passes within minutes or hours); quota only if all are.
+    raise RuntimeError(friendly_error(busy_seen if busy_seen and _is(last, "RESOURCE_EXHAUSTED", "429", "quota") else last))
 
 
 def _generate_json(parts, system, schema, thinking="MEDIUM"):

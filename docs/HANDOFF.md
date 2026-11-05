@@ -514,6 +514,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   out of time with work left -> dispatches the next queue.yml. Started by the app whenever a lesson is put in line
   (lib/queue.ts dispatchQueue) + backup schedule every 2 h. Home: "⚙️ בעיבוד עכשיו" and "⏳ בתור" are separate folds,
   each open by itself only when it has 5 items or fewer (6+ stays closed).
+- 05/11/2026 (3): diagnosis by `hub.py ping` + a queue pass: strong models (3.8-flash, flash-latest) 429 daily quota,
+  lite models 503 on real lessons. He got "⚠️ העיבוד נכשל" pushes every few minutes while the queue retried - now
+  no push for busy / quota failures (retried by themselves), and a mix of busy + quota is reported as busy.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items
