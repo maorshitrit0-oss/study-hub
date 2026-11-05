@@ -521,6 +521,15 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   with PDFs) failing with Gemini "500 INTERNAL" - not classified as busy, so it pushed each retry. Now 500 INTERNAL =
   busy (retried, next model, no push), and the queue tries one lesson at most 3 times a day (state "tries").
   Note: micro has 4 site lessons numbered web 3 (one per section of week 3 on the Notion site) - by design.
+- Digital circuits practices 1-3 (05/11/2026): none took place (elections, engineering festival); written by Claude from
+  the uploaded "3-מחברת תרגול 1.pdf" (26 handwritten pages: noise margins + NMOS/R inverter VTC & delays; CMOS, drive
+  strength, NAND/NOR/complex-gate sizing; Logical Effort) -> chapters/digital-practice-{1,2,3}.json (full chapter +
+  summary_md + exercises + MCQ). Notebook errors flagged: NMH 1.92 (not 1.972), tr = 2.197*tau = 22ns (not 2.197ns),
+  b = mu_n/mu_p (written inverted once). `hub.py materials` + fetch.yml "files:<course>:<title regex>" pull course
+  files encrypted for a session.
+- Claude token: he created CLAUDE_CODE_OAUTH_TOKEN (verified set=true via publish.yml inspect=claude). claude-chapter.yml
+  needed `id-token: write` + github_token; the first real run then ended "is_error" - diagnosing with the execution
+  file printed as annotations.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items
