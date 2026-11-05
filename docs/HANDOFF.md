@@ -533,6 +533,8 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Home "מחכה לקריאה · שבוע לימוד N" (05/11/2026): only this study week's lessons (lecture/practice number == studyWeek,
   ready, unread, not self-study / site) - he settles the week on Saturday night; earlier unread weeks show as one line
   "⏪ N משבועות קודמים" linking to /week.
+- His PC already has Vivado (checked 05/11/2026 via reg query / dir): Vivado ML Standard 2024.2 in C:\Xilinx (with the
+  Xilinx cable drivers) and 2025.2 in C:\AMDDesignTools\2025.2; both have Artix-7 parts. Use 2025.2; no install needed.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items
