@@ -465,6 +465,27 @@ def cmd_sheet(match, path):
     docs.save(sb, course, Path(path).read_text(encoding="utf-8"), "נכתב ע״י Claude")
 
 
+def cmd_materials(match, title_rx, out_dir):
+    """Downloads a course's files whose title matches (e.g. a practice booklet) into out_dir, with a list."""
+    sb = db()
+    course = find_course(sb, match)
+    rx = re.compile(title_rx, re.I)
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    rows = sb.table("materials").select("title, storage_path, created_at").eq("course_id", course["id"]).order("created_at").execute().data
+    listing = []
+    for m in rows:
+        listing.append(f"{m['created_at'][:16]} | {m['title']} | {m['storage_path'][:12]}")
+        if rx.search(m["title"] or "") and not m["storage_path"].startswith("drive:"):
+            try:
+                (out / Path(m["storage_path"]).name).write_bytes(sb.storage.from_(BUCKET).download(m["storage_path"]))
+            except Exception as e:  # noqa: BLE001
+                listing.append(f"   download failed: {e}")
+    lessons = sb.table("lessons").select("id, kind, number, title, status").eq("course_id", course["id"]).order("created_at").execute().data
+    (out / "course.json").write_text(json.dumps({"course": course, "files": listing, "lessons": lessons}, ensure_ascii=False,
+                                                indent=1, default=str), encoding="utf-8")
+
+
 def cmd_ping():
     """Is Gemini answering right now? One tiny call per model and key (no retries)."""
     from google import genai
@@ -558,6 +579,7 @@ if __name__ == "__main__":
     sub.add_parser("flat")
     sub.add_parser("stuck")
     sub.add_parser("ping")
+    p = sub.add_parser("materials"); p.add_argument("course"); p.add_argument("title"); p.add_argument("out_dir")
     p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
     p = sub.add_parser("inspect"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
@@ -570,6 +592,8 @@ if __name__ == "__main__":
         cmd_fetch(a.lesson_id, a.out_dir)
     elif a.cmd == "add":
         cmd_add(a.course, a.kind, a.number, a.title, a.chapter_json)
+    elif a.cmd == "materials":
+        cmd_materials(a.course, a.title, a.out_dir)
     elif a.cmd == "ping":
         cmd_ping()
     elif a.cmd == "stuck":
