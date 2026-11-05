@@ -120,7 +120,9 @@ def candidates(sb):
             fill.append((r, "summary"))    # has only the full chapter -> condensed summary from it (text only)
     # Summaries first among the fills: one cheap call each.
     fill.sort(key=lambda x: x[1] != "summary")
-    return waiting + quota + busy + fill
+    # His courses first; self-study sessions (written ahead of time) after them - they are not due yet.
+    later = lambda x: (x[0].get("transcript") or "").startswith(author.VLSI_NOTE)  # noqa: E731
+    return sorted(waiting + quota + busy, key=later) + fill
 
 
 def write_summary(sb, r):
