@@ -642,12 +642,10 @@ def cmd_pending(write=True):
         except Exception as e:  # noqa: BLE001
             print(f"::warning title=Practical exam::{str(e)[:300]}", flush=True)
     else:
-        from datetime import datetime
-        from zoneinfo import ZoneInfo
-        now = datetime.now(ZoneInfo("Asia/Jerusalem"))
-        if now.hour == 10 and 30 <= now.minute < 60:  # one half-hourly run a day, after the reset
-            retry_after_quota(sb)
-        retry_after_overload(sb)
+        # The line of lessons, one at a time (worker/queue_runner.py): waiting ones, quota and overload failures, and
+        # filling in summaries / full chapters. Replaces the old parallel re-dispatching (05/11/2026).
+        import queue_runner
+        queue_runner.run()
 
 
 if __name__ == "__main__":

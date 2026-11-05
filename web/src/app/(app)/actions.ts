@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
-import { dispatchExercises, dispatchLesson, dispatchNotify, dispatchSite, dispatchStudio } from "@/lib/github";
+import { dispatchExercises, dispatchNotify, dispatchSite, dispatchStudio } from "@/lib/github";
+import { startLesson } from "@/lib/queue";
 import { parseIcs } from "@/lib/ics";
 import { isoFromNow, israelLocalToIso } from "@/lib/format";
 import { extractSyllabus, looksLikeSyllabus } from "@/lib/syllabus";
@@ -98,7 +99,7 @@ export async function addLesson(courseId: string, _: AddLessonState, f: FormData
   if (error) return { error: error.message };
 
   const author = f.get("author") === "claude" ? "none" : "gemini";
-  const dispatchError = await dispatchLesson(data.id, author);
+  const dispatchError = await startLesson(sb, data.id, author);
   if (dispatchError) {
     await sb.from("lessons").update({ status: "error", error: dispatchError }).eq("id", data.id);
   }
@@ -110,7 +111,7 @@ export async function addLesson(courseId: string, _: AddLessonState, f: FormData
 export async function requestFullChapter(id: string) {
   const { sb } = await requireUser();
   await sb.from("lessons").update({ status: "processing", progress: "כותב פרק מלא...", error: null }).eq("id", id);
-  await dispatchLesson(id, "gemini", "full");
+  await startLesson(sb, id, "gemini", "full");
   revalidatePath(`/lessons/${id}`);
 }
 
@@ -144,7 +145,7 @@ export async function retryLesson(id: string) {
   // Row-level security limits the update to the user's own lessons; dispatch only if it matched.
   const { data } = await sb.from("lessons").update({ status: "queued", error: null, progress: null }).eq("id", id).select("id");
   if (!data?.length) return;
-  const err = await dispatchLesson(id);
+  const err = await startLesson(sb, id);
   if (err) await sb.from("lessons").update({ status: "error", error: err }).eq("id", id);
   revalidatePath(`/lessons/${id}`);
 }
@@ -172,7 +173,7 @@ export async function updateLesson(id: string, f: FormData) {
       ...(relink ? { source_url: url, status: "queued", error: null, transcript: null, progress: "קישור חדש - בתור" } : {}),
     })
     .eq("id", id).select("course_id").single();
-  if (relink) await dispatchLesson(id);
+  if (relink) await startLesson(sb, id);
   revalidatePath(`/lessons/${id}`);
   if (data) revalidatePath(`/courses/${data.course_id}`);
 }

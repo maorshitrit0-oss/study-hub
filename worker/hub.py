@@ -188,7 +188,8 @@ def cmd_process(lesson_id, do_author=True):
         job.update(status="error", error=author.friendly_error(e)[:2000])
         # GitHub annotation: readable through the API even where full logs are not.
         print(f"::error title=Lesson {lesson_id}::{str(e)[:900]}".replace("\n", " "), flush=True)
-        if not author._is(e, "UNAVAILABLE", "503", "overloaded", "high demand"):  # overloads are retried by themselves
+        # Overloads are retried by themselves; a background fill (queue_runner, QUIET) never pushes.
+        if not os.environ.get("QUIET") and not author._is(e, "UNAVAILABLE", "503", "overloaded", "high demand"):
             notify.send(job.sb, job.lesson["user_id"], f"⚠️ העיבוד נכשל: {job.label()}",
                         "לחץ כדי לראות מה קרה ולנסות שוב", f"/lessons/{job.lesson['id']}")
         raise
@@ -291,6 +292,14 @@ def save_homework(job, items):
         print(f"homework tasks not saved: {e}", flush=True)
 
 
+def answered(job):
+    """Has he answered any question of this lesson's own quiz?"""
+    ids = [q["id"] for q in job.sb.table("questions").select("id").eq("lesson_id", job.lesson["id"]).execute().data]
+    if not ids:
+        return False
+    return bool(job.sb.table("attempts").select("id").in_("question_id", ids[:500]).limit(1).execute().data)
+
+
 def save_chapter(job, ch, by):
     ch = author.validate(ch)
     short = bool(ch.get("exercises")) or (by != "claude" and author.summary_mode(job.lesson, job.mode, job.course))
@@ -298,7 +307,11 @@ def save_chapter(job, ch, by):
         save_exercises(job, ch["exercises"])
         if not (job.lesson.get("transcript") or "").startswith(author.VLSI_NOTE):  # no "homework" in self-study
             save_homework(job, [h for h in ch.get("homework") or [] if isinstance(h, str)])
-    if ch["questions"]:
+    if ch["questions"] and answered(job):
+        # He already answered this lesson's quiz: replacing it would delete his answers (attempts cascade) - his
+        # study history is never deleted (05/11/2026). The old quiz stays.
+        print("quiz kept: it already has his answers", flush=True)
+    elif ch["questions"]:
         # Only the chapter's own quiz is replaced: lab entry-quiz questions (source set) stay. A summary has no quiz,
         # so an earlier quiz of the lesson is kept.
         try:
@@ -319,8 +332,6 @@ def save_chapter(job, ch, by):
                   progress=f"מוכן - {count}", author=by, error=None)
     if short:
         fields["summary_md"] = chapter_md  # the full chapter, if he asks for one later, replaces chapter_md only
-    elif author.FULL_COURSES.search(job.course.get("name") or ""):
-        fields["summary_md"] = None  # Java: the full chapter is the lesson (an earlier short summary is not shown first)
     if not job.lesson.get("title") or job.lesson["kind"] == "web":
         fields["title"] = ch.get("title")
     try:
@@ -335,8 +346,8 @@ def save_chapter(job, ch, by):
     except Exception as e:  # noqa: BLE001
         print(f"structure mark not saved: {e}")
     print(f"published: {count}", flush=True)
-    if (job.lesson.get("transcript") or "").startswith(course_site.SITE_NOTE):
-        return  # last year's material from the course site: one line in the morning summary, not a push each
+    if (job.lesson.get("transcript") or "").startswith(course_site.SITE_NOTE) or os.environ.get("QUIET"):
+        return  # last year's material from the course site / a background fill: no push for each
     notify.send(job.sb, job.lesson["user_id"], f"✅ {job.label()} מוכן" + ("" if short else " לקריאה"),
                 f"{ch.get('title') or ''}\n" + (f"תקציר + {count} לפתרון" if short else f"{count} בשאלון"),
                 f"/lessons/{job.lesson['id']}")
@@ -445,6 +456,16 @@ def cmd_sheet(match, path):
     docs.save(sb, course, Path(path).read_text(encoding="utf-8"), "נכתב ע״י Claude")
 
 
+def cmd_archive(match):
+    """Hides courses whose name matches (archived = true). Nothing is deleted; un-archive from the courses page."""
+    sb = db()
+    rx = re.compile(match, re.I)
+    hit = [c for c in sb.table("courses").select("id, name").eq("archived", False).execute().data if rx.search(c["name"] or "")]
+    for c in hit:
+        sb.table("courses").update({"archived": True}).eq("id", c["id"]).execute()
+    print(f"::notice title=Archived::{'; '.join(c['name'] for c in hit) or 'nothing matched'}", flush=True)
+
+
 def cmd_summaries(out_dir):
     """Timetable + each course's grade / exam / formula-sheet summary (facts.py) -> summaries.json, for a picture."""
     sb = db()
@@ -497,6 +518,7 @@ if __name__ == "__main__":
     p.add_argument("title"); p.add_argument("chapter_json")
     p = sub.add_parser("sheet"); p.add_argument("course"); p.add_argument("md")
     sub.add_parser("flat")
+    p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
     p = sub.add_parser("inspect"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
     a = ap.parse_args()
@@ -508,6 +530,8 @@ if __name__ == "__main__":
         cmd_fetch(a.lesson_id, a.out_dir)
     elif a.cmd == "add":
         cmd_add(a.course, a.kind, a.number, a.title, a.chapter_json)
+    elif a.cmd == "archive":
+        cmd_archive(a.match)
     elif a.cmd == "summaries":
         cmd_summaries(a.out_dir)
     elif a.cmd == "flat":

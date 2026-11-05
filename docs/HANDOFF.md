@@ -477,6 +477,25 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   drone clips -> reports/GitHub/video -> interview). Shown on the VLSI page, sent to the tutor and the lesson writer
   (VLSI_TASK "## 🔧 על הלוח"); unread session lessons written before this are re-written once (ensureSessionLesson).
   Dataset: DroneAudioDataset (github.com/saraalemadi/DroneAudioDataset), features computed in Python on the PC.
+- 05/11/2026 failures: he opened ~20 lessons at once -> all ran in parallel -> free Gemini daily quota gone (annotations:
+  "המכסה היומית... נגמרה"; one overload). Fix: lib/queue.ts `startLesson` - at most 2 lessons written at a time, the rest
+  "queued" with progress "⏳ בתור" (+ "(פרק מלא)"); `worker/queue_runner.py` (every half hour from site.yml check,
+  replacing the parallel retry_after_quota/overload) works ONE at a time: waiting -> quota errors -> overloads (25 min)
+  -> fill-ins, and stops until 10:30 Israel when the quota runs out (state in storage system/queue_state.json).
+- Every lecture/practice gets BOTH a condensed summary (summary_md) and a full chapter (chapter_md) (his request
+  05/11/2026): queue_runner fills them in - full chapter via hub.cmd_process mode full (QUIET: no pushes; a failed fill
+  leaves the lesson ready), summary from the full chapter text (author.summary_from_chapter, one cheap call). Java is
+  full by default and gets its summary that way. Lesson page: everything folded by default (summary, full chapter,
+  exercises, quiz - fold ids per lesson).
+- DATA SAFETY (05/11/2026): re-writing a lesson used to replace its quiz -> attempts cascade-deleted. save_chapter now
+  keeps the old quiz when he has answered any of it (hub.answered).
+- Self-study sessions are written as ONE full chapter (SYSTEM + VLSI_TASK, schema with exercises): first exercise =
+  "🔧 משימת הפרויקט: ..." as homework with full solution for his board, then 2-4 practice exercises, 10-15 MCQ. Page
+  order for them: full chapter -> quiz -> project task. VLSI page: per session "1. 📖 פרק 2. ✅ שאלון 3. 🔧 משימה",
+  and "📋 אפיון הפרויקט" (PROJECT_SPEC: problem, architecture table, spec, deliverables, CV line, interview pitch).
+  Session lessons without "גרסה: פרק מלא" in the transcript are rewritten once when not read.
+- Cadence tracks archived 05/11/2026 (not deleted): their labs need licensed Cadence tools he does not have, and the
+  program already covers SystemVerilog. Semester-B self-study plan: proposed, waiting for his approval.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items

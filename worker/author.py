@@ -398,19 +398,27 @@ def summary_mode(lesson, mode="auto", course=None):
 # from the session plan, like a summarised university lecture (slides + summary), with exercises AND a multiple-choice
 # quiz - the format he learned well in the communication course (03/11/2026).
 VLSI_NOTE = "<!-- vlsi-session -->"
-VLSI_TASK = """זה שיעור בלימוד עצמי (בלי הקלטה): כתוב אותו בעצמך לפי תוכנית המפגש שלמטה, כמו הרצאה מסוכמת באוניברסיטה
-(מצגת + סיכום שיעור) - ברמה שסטודנט שנה ג' בהנדסת חשמל בלי רקע בקוד מבין לבד.
-chapter_md כאן הוא שיעור מלא ולא תקציר קצר: לכל נושא - למה הוא קיים, הסבר עם דוגמה, שרטוט/גרף (בלוק wave לזמנים),
-קוד SystemVerilog עם הסבר שורה-שורה, ⭐ מה חשוב לראיונות, ובסוף "🔧 המשימה המעשית" עם הוראות מדויקות ומה אמור לצאת.
-אם בתוכנית יש "🔧 על הלוח" - סעיף "## 🔧 על הלוח: הפרויקט" מפורט צעד-צעד ללוח שלו (PuZhi PA35T-EDU, Artix-7
-xc7a35tfgg484-2, Vivado): הקוד המלא של המודול (SystemVerilog, כל שורה מוסברת), אילו שורות להשאיר בקובץ הפינים
-(pa35t_edu.xdc - שמות הפורטים: sys_clk_p/sys_clk_n דרך IBUFDS, rst_n, led[5:0], key_n[2:0], sw[15:0], uart_tx, uart_rx,
-seg1/dig1/seg2/dig2), הלחיצות ב-Vivado עד הצריבה, מה אמור לקרות על הלוח, ומה לבדוק אם לא. רק הפינים שבתוכנית - לא להמציא.
-exercises: 4-8 תרגילים (חישוב, קוד לכתוב, באג למצוא, גרף לחזות) עם פתרון מלא.
-questions: 8-12 שאלות אמריקאיות, 4 תשובות בכל אחת, correct = האינדקס (0-3); הבנה ויישום, מסיחים סבירים,
-explanation למה הנכונה נכונה ולמה האחרות לא, topic מתוך topics, difficulty 1-3.
+VLSI_TASK = """זה מפגש בלימוד עצמי (בלי הקלטה). כתוב אותו בעצמך לפי תוכנית המפגש שלמטה. המטרה של הסטודנט: לדעת הרבה,
+מהר ולעומק, ולבנות פרויקט לקורות החיים. הוא בשנה ג' בהנדסת חשמל ולא חזק בקוד. סדר המפגש קבוע:
+(1) לומד את הפרק -> (2) שאלון אמריקאי -> (3) משימת הפרויקט (אם יש בתוכנית "🔧 על הלוח").
+chapter_md = פרק קריאה מלא ועמוק (לא תקציר), לפי כל כללי הכתיבה שלמעלה. לכל נושא בתוכנית: רקע, הסבר עם דוגמה,
+שרטוט או גרף (בלוק wave לזמנים), קוד SystemVerilog שבו כל שורה מוסברת, ⭐ מה חשוב לראיונות, ו-🏠 מהחיים.
+בסוף הפרק: "## 🔧 מה עושים היום בפרויקט" - פסקה אחת: מה החלק של היום בפרויקט ולמה הוא נחוץ (או "היום אין משימת
+פרויקט" אם אין "🔧 על הלוח").
+exercises: התרגיל הראשון הוא משימת הפרויקט, אם יש "🔧 על הלוח". title מתחיל ב-"🔧 משימת הפרויקט:". הוא כתוב כמו
+תרגיל בית: מה לבנות, הכניסות והיציאות, ומה אמור לקרות על הלוח. solution_md הוא הפתרון המלא, צעד-צעד, ללוח שלו
+(PuZhi PA35T-EDU, Artix-7 xc7a35tfgg484-2, Vivado):
+- הקוד המלא של המודול ב-SystemVerilog, וכל שורה מוסברת.
+- אילו שורות להשאיר בקובץ הפינים pa35t_edu.xdc. שמות הפורטים: sys_clk_p/sys_clk_n דרך IBUFDS, rst_n, led[5:0],
+  key_n[2:0], sw[15:0], uart_tx, uart_rx, seg1/dig1/seg2/dig2.
+- הלחיצות ב-Vivado עד הצריבה, מה אמור לקרות על הלוח, ומה לבדוק אם לא.
+- רק הפינים שבתוכנית. אסור להמציא פינים.
+אחרי משימת הפרויקט: 2-4 תרגילי תרגול (חישוב, קוד לכתוב, באג למצוא, גרף לחזות), כל אחד עם פתרון מלא.
+questions: 10-15 שאלות אמריקאיות, 4 תשובות בכל אחת, correct = האינדקס (0-3). שאלות הבנה ויישום, מסיחים סבירים,
+explanation שמסביר למה הנכונה נכונה ולמה כל אחת מהאחרות לא, topic מתוך topics, difficulty 1-3.
+homework: רשימה ריקה.
 שאלות ראיון: רק אלה שבתוכנית המפגש, כל אחת עם המקור והקישור שלה בדיוק כמו שהם (קישור markdown). אל תוסיף "שאלת ראיון"
-בלי מקור ואל תמציא קישור או חברה; שאלת תרגול שלך - כתוב "שאלת תרגול (לא מראיון)"."""
+בלי מקור, ואל תמציא קישור או חברה. שאלת תרגול שלך - סמן "שאלת תרגול (לא מראיון)"."""
 
 
 def author_with_gemini(course, lesson, transcript, slides, previous_topics, log=print, docs=(), mode="auto"):
@@ -421,12 +429,13 @@ def author_with_gemini(course, lesson, transcript, slides, previous_topics, log=
     log("כותב את השיעור, תרגילים ושאלון..." if vlsi else "כותב תקציר ותרגילים עם פתרונות..." if short else "כותב פרק קריאה ושאלון...")
     sources = _source_parts(course, lesson, transcript, slides, previous_topics, docs, mode)
     system = SUMMARY_SYSTEM if short else SYSTEM
-    if vlsi:
-        system = SUMMARY_SYSTEM.replace("questions: רשימה ריקה (אין שאלון אמריקאי).", VLSI_TASK)
-    draft = validate(_generate_json(sources, system, SUMMARY_SCHEMA if short else CHAPTER_SCHEMA, "MEDIUM"))
+    schema = SUMMARY_SCHEMA if short else CHAPTER_SCHEMA
+    if vlsi:  # self-study session (05/11/2026): the FULL chapter + the project task as a homework with solution + MCQ
+        system, schema, short = SYSTEM + "\n\n" + VLSI_TASK, SUMMARY_SCHEMA, True
+    draft = validate(_generate_json(sources, system, schema, "MEDIUM"))
     if is_flat(draft.get("chapter_md")):  # all on one line (Java practice 2, 04/11/2026): write it again
         log("הפרק יצא בלי שורות וכותרות - כותב שוב...")
-        draft = validate(_generate_json(sources, system, SUMMARY_SCHEMA if short else CHAPTER_SCHEMA, "MEDIUM"))
+        draft = validate(_generate_json(sources, system, schema, "MEDIUM"))
     log("בודק את התקציר ופותר מחדש כל תרגיל..." if short else "בודק את הפרק והשאלון מול ההקלטה, השקפים והידע המקצועי...")
     return verify_with_gemini(sources, draft, log, short)
 
@@ -589,3 +598,23 @@ def validate(ch):
     ch.setdefault("topics", [])
     ch["glossary"] = [g for g in ch.get("glossary") or [] if isinstance(g, dict) and g.get("en") and g.get("he")]
     return ch
+
+
+SUMMARY_FROM_CHAPTER = """לפניך פרק קריאה מלא של שיעור (Markdown, עברית). כתוב ממנו "סיכום מתומצת" - מסקנות השיעור בעמוד-שניים:
+## 🎯 המסר של השיעור - 2-4 שורות.
+## עיקרי השיעור - לכל נושא לפי הסדר: העיקר בשורה-שתיים, ההגדרות והנוסחאות (כל משוואה בשורה נפרדת $$...$$) או
+התחביר (בלוק קוד קצר, שורה אחת לכל פקודה, עם הערה בעברית).
+## ⭐ חשוב למבחן - כל מה שסומן ⭐ / ⚠️ בפרק.
+רק מה שבפרק, בלי להוסיף. בלי תמונות. עברית בלבד; מונחים באנגלית בסוגריים. החזר רק את הסיכום."""
+
+
+def summary_from_chapter(chapter_md):
+    """A condensed summary written from an existing full chapter (text only - cheap on the quota)."""
+    from google.genai import types
+
+    def call(client, model):
+        return client.models.generate_content(model=model, contents=[types.Content(role="user", parts=[
+            types.Part.from_text(text=SUMMARY_FROM_CHAPTER), types.Part.from_text(text=chapter_md[:120000])])],
+            config=types.GenerateContentConfig(http_options=types.HttpOptions(timeout=8 * 60 * 1000)))
+    text = (_with_gemini(call).text or "").strip()
+    return fix_arabic(re.sub(r"^```(?:markdown|md)?\s*|\s*```$", "", text))

@@ -3,7 +3,8 @@ import { requireUser } from "@/lib/supabase/server";
 import { FREEZES, weekDates } from "@/lib/skills";
 import { ensureCadenceTracks } from "@/lib/cadenceTracks";
 import { catchUps, ensureSelfSlots, ensureSessionLesson, mainTrack, syncVlsiTasks } from "@/lib/selfPlan";
-import { PROJECT, VLSI_PROGRAM, sessionDates, sessionKey, type Session } from "@/lib/vlsiProgram";
+import { PROJECT, PROJECT_SPEC, VLSI_PROGRAM, sessionDates, sessionKey, type Session } from "@/lib/vlsiProgram";
+import Chapter from "@/components/Chapter";
 import { openSessionLesson, setSessionDone, startSession } from "../actions";
 import Fold from "@/components/Fold";
 
@@ -22,6 +23,11 @@ function SessionCard({ s, date, done, courseId, current, lesson }: {
         <span className="text-xs text-muted shrink-0">{s.n === 1 ? "שישי" : "מוצ״ש"} {ddmm(date)}</span>
       </div>
       <p className="text-sm">🎯 {s.goal}</p>
+      <ol className="text-sm list-decimal ps-5 space-y-0.5">
+        <li>📖 לומדים את הפרק המלא של המפגש</li>
+        <li>✅ פותרים את השאלון האמריקאי</li>
+        <li>{s.board ? <>🔧 משימת הפרויקט (תרגיל בית עם פתרון): {s.board}</> : "🔧 היום אין משימת פרויקט"}</li>
+      </ol>
       {s.setup && (
         <details className="text-sm">
           <summary className="cursor-pointer text-accent">🛠️ הכנה: מה לפתוח ואיך</summary>
@@ -41,16 +47,15 @@ function SessionCard({ s, date, done, courseId, current, lesson }: {
         </ul>
         <p className="text-xs text-muted mt-1">כל שאלה עם הקישור לעמוד שממנו היא נלקחה.</p>
       </details>
-      {s.board && <p className="text-sm rounded-lg bg-accent-soft p-2">🔧 <b>על הלוח (הפרויקט):</b> {s.board}</p>}
       {s.cadence && <p className="text-xs text-muted">📺 רשות: {s.cadence}</p>}
       <div className="flex gap-2 flex-wrap">
         {lesson ? (
           <Link href={`/lessons/${lesson.id}`} className="btn">
-            {lesson.status === "ready" ? "📄 השיעור: סיכום, תרגילים ושאלון" : "⏳ השיעור נכתב..."}
+            {lesson.status === "ready" ? "📖 למפגש: פרק, שאלון ומשימת הפרויקט" : "⏳ המפגש נכתב..."}
           </Link>
         ) : (
           <form action={openSessionLesson.bind(null, courseId, VLSI_PROGRAM.indexOf(s))}>
-            <button className="btn">📄 להכין את השיעור</button>
+            <button className="btn">📖 להכין את המפגש</button>
           </form>
         )}
         <form action={startSession.bind(null, courseId, key, `שבוע ${s.week} · מפגש ${s.n}: ${s.title}`)}>
@@ -101,6 +106,9 @@ export default async function SelfStudy() {
       <h1 className="text-2xl font-bold">🎓 לימוד VLSI</h1>
       <p className="card text-sm">🚀 <b>הפרויקט לקורות החיים:</b> {PROJECT}. כל מפגש מוסיף לו חלק אחד (🔧 על הלוח), ובסוף 12
         השבועות יש פרויקט שלם עם GitHub, דוחות וסרטון. <a href="https://github.com/maorshitrit0-oss/study-hub/blob/main/fpga/pa35t_edu.xdc" className="text-accent" target="_blank" rel="noopener noreferrer">קובץ הפינים של הלוח</a></p>
+      <Fold id="vlsi-spec" title="📋 אפיון הפרויקט: Mini-TPU לזיהוי רחפנים">
+        <Chapter md={PROJECT_SPEC} slideUrls={{}} />
+      </Fold>
       <p className="text-sm text-muted">
         תוכנית מודרכת של 12 שבועות: בשישי בבוקר ובמוצאי שבת. בכל מפגש כתוב מה לפתוח, מה ללמוד עם המורה, מה לבנות ומה אמור
         לצאת. דדליין: סוף המפגש של מוצ״ש; מפגש שלא סיימת עובר לפעם הבאה.

@@ -61,11 +61,12 @@ export async function syncVlsiTasks(sb: SupabaseClient, courseId: string) {
  */
 export async function ensureSessionLesson(sb: SupabaseClient, courseId: string, idx: number) {
   const { VLSI_PROGRAM, PROJECT, BOARD_PINS } = await import("./vlsiProgram");
-  const { dispatchLesson } = await import("./github");
+  const { startLesson } = await import("./queue");
   const s = VLSI_PROGRAM[idx];
   if (!s) return null;
   const transcript = [
     "<!-- vlsi-session -->",
+    "גרסה: פרק מלא + שאלון + משימת פרויקט עם פתרון",
     `תוכנית לימוד VLSI - שבוע ${s.week}, מפגש ${s.n}: ${s.title}`,
     `המטרה: ${s.goal}`,
     `הנושאים: ${s.learn.join("; ")}`,
@@ -78,10 +79,10 @@ export async function ensureSessionLesson(sb: SupabaseClient, courseId: string, 
   const { data: have } = await sb.from("lessons").select("id, status, transcript, read_at").eq("course_id", courseId)
     .eq("kind", "lecture").eq("number", idx + 1).maybeSingle();
   if (have) {
-    // Written before the board project (04/11/2026) and not read yet: written again with its board step.
-    if (s.board && !(have.transcript ?? "").includes("🔧 על הלוח") && !have.read_at && have.status !== "processing") {
+    // Written before the full-chapter format with the project task (05/11/2026) and not read yet: written again.
+    if (!(have.transcript ?? "").includes("גרסה: פרק מלא") && !have.read_at && have.status !== "processing") {
       await sb.from("lessons").update({ transcript, status: "queued", progress: "כותב מחדש עם הפרויקט על הלוח" }).eq("id", have.id);
-      await dispatchLesson(have.id);
+      await startLesson(sb, have.id);
       return { id: have.id as string, status: "queued" };
     }
     return { id: have.id as string, status: have.status as string };
@@ -90,6 +91,6 @@ export async function ensureSessionLesson(sb: SupabaseClient, courseId: string, 
     course_id: courseId, kind: "lecture", number: idx + 1, title: `שבוע ${s.week} · מפגש ${s.n}: ${s.title}`,
     transcript, status: "queued", progress: "כותב את השיעור, התרגילים והשאלון",
   }).select("id, status").single();
-  if (data) await dispatchLesson(data.id);
+  if (data) await startLesson(sb, data.id);
   return data;
 }

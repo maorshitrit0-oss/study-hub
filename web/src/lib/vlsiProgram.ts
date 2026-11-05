@@ -38,6 +38,56 @@ const DIGITALJS = [
  */
 export const PROJECT = "Mini-TPU: מאיץ AI בחומרה (מערך סיסטולי של יחידות MAC ב-int8) שמזהה רחפנים לפי קול - על לוח PuZhi PA35T-EDU (Artix-7 XC7A35T)";
 
+/** The project specification (אפיון) - what he builds, how it works, how to talk about it. Shown on the VLSI page. */
+export const PROJECT_SPEC = `## 🎯 הבעיה
+רחפנים קטנים הם איום גדל - בשטח, ליד בסיסים, שדות תעופה ואירועים. מכ"ם מתקשה לזהות אותם (קטנים, נמוכים, מפלסטיק),
+אבל למדחפים יש **חתימת קול** ברורה. זיהוי בזמן אמת צריך לקרות **ליד החיישן (Edge)**: בלי ענן, בתוך מילי-שניות,
+ובהספק נמוך (מכשיר על סוללה).
+
+## 💡 הפתרון
+**Mini-TPU** - מאיץ AI בחומרה על FPGA, שמריץ רשת נוירונים קטנה ב-int8 ומסווג קטעי קול ל"רחפן" / "לא רחפן".
+העיקרון זהה למאיצי ה-AI של Google (TPU), NVIDIA (Tensor Cores), Amazon (Inferentia) ו-Apple (Neural Engine):
+**מערך סיסטולי** של יחידות כפל-וחיבור (MAC) שעובדות במקביל, והנתונים "זורמים" ביניהן בלי לחזור לזיכרון.
+
+## 🧱 ארכיטקטורה (בלוקים)
+| בלוק | מה הוא עושה | נבנה בשבוע |
+|---|---|---|
+| UART RX/TX | מקבל מהמחשב את מאפייני הקול, מחזיר את התוצאה | 9 |
+| FIFO + valid/ready | מאזן בין קצב ה-UART לקצב החישוב, בלי לאבד נתונים | 9-10 |
+| זיכרון משקלים (BRAM) | משקלי הרשת ב-int8, נטענים מקובץ .mem | 10 |
+| מערך סיסטולי 4x4 של PE | 16 יחידות MAC שמכפילות מטריצות במקביל | 7, 10 |
+| PE (processing element) | MAC עם pipeline: acc += a*b, ומעביר נתונים לשכן | 5, 7-8 |
+| בקר (FSM) | מנהל את סדר השכבות: טעינה, חישוב, אקטיבציה (ReLU), תוצאה | 6 |
+| מונה ביצועים | סופר מחזורי שעון לכל סיווג | 6 |
+| תצוגה ולדים | תוצאה, זמן חישוב, LED אדום ברחפן | 3-4 |
+
+**זרימה:** קובץ קול ← (Python במחשב) מאפייני תדר ← UART ← FIFO ← Mini-TPU ← תוצאה ← UART + לדים + תצוגה.
+
+## 📏 מפרט (מה נמדוד ונכתוב)
+- שבב: AMD Artix-7 XC7A35T, שעון 200MHz (המטרה: לעבור תזמון ב-200MHz אחרי pipeline).
+- דיוק: נמדד ב-Python על המשקלים המקוריים מול int8 (כמה מפסידים בהקטנה).
+- זמן: מחזורי שעון לסיווג על הלוח מול זמן ב-Python על המחשב.
+- משאבים: LUT, DSP, BRAM מתוך דוח Vivado; הספק משוער מ-Report Power.
+- צוואר בקבוק: כמה זמן הולך על UART וכמה על החישוב.
+
+## 🗂️ תוצרים בסוף 12 השבועות
+1. קוד SystemVerilog + testbenches שבודקים את עצמם.
+2. סקריפטי Python: אימון, quantization, שליחה ב-UART.
+3. GitHub עם README, תרשים בלוקים, דוחות ותוצאות.
+4. סרטון של דקה: הלוח מזהה רחפן.
+
+## 📝 שורה לקורות החיים
+**Mini-TPU: Edge-AI drone detector on FPGA** - designed a 4x4 systolic-array int8 neural-network accelerator in
+SystemVerilog on AMD Artix-7 (UART streaming, FIFO, FSM control, pipelined MACs at 200 MHz); self-checking
+testbenches; measured latency, resources and accuracy vs. CPU.
+
+## 🎤 איך מדברים עליו בראיון (בקצרה)
+- **הבעיה:** זיהוי רחפנים בזמן אמת ליד החיישן - בלי ענן, מהר, בהספק נמוך.
+- **למה FPGA ולא CPU:** חישוב מקבילי - 16 MAC בכל מחזור; זמן קבוע וצפוי.
+- **למה מערך סיסטולי:** כל נתון נקרא מהזיכרון פעם אחת ועובר בין השכנים - פחות גישות לזיכרון, פחות הספק.
+- **למה int8:** פי 4 פחות זיכרון ויחידות כפל קטנות, במחיר דיוק קטן שמדדנו.
+- **מה הייתי משפר:** מערך גדול יותר, חישוב המאפיינים על הלוח, Ethernet במקום UART.`;
+
 /** His board (PuZhi PA35T-EDU manual V1.0); the full pin file is fpga/pa35t_edu.xdc in the repository. */
 export const BOARD_PINS = [
   "שבב: xc7a35tfgg484-2. שעון: 200MHz דיפרנציאלי R4/T4 (צריך IBUFDS). כפתור reset: R14.",

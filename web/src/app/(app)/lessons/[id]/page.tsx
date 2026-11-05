@@ -35,7 +35,36 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
   // Lectures and practices: a short summary + the exercises (supabase/exercises.sql); the full chapter on request.
   const { data: exercises } = await sb.from("exercises").select("*").eq("lesson_id", id).order("ord");
   const summary = (lesson as Lesson & { summary_md?: string | null }).summary_md ?? null;
-  const fullChapter = lesson.chapter_md && lesson.chapter_md !== summary ? lesson.chapter_md : null;
+  // A self-study session is written as one full chapter (with the project task among its exercises).
+  const self = (lesson.transcript ?? "").startsWith("<!-- vlsi-session -->");
+  const summaryText = self ? null : summary;
+  const full = self ? lesson.chapter_md : lesson.chapter_md && lesson.chapter_md !== summary ? lesson.chapter_md : null;
+  const project = (exercises ?? []).filter((x) => (x.title ?? "").startsWith("🔧"));
+  const exerciseFold = (exercises ?? []).length > 0 && (
+    <Fold id={`exercises-${id}`} title={self && project.length ? "🔧 משימת הפרויקט ותרגילים" : "✍️ תרגילים מהשיעור"} hint={`${exercises!.length}`}>
+      <p className="text-xs text-muted mb-3">{self && project.length ? "המשימה של היום בפרויקט - כמו תרגיל בית: לנסות לבד, ורק אחר כך לפתוח את הפתרון." : "לפתור על דף, ורק אחר כך לפתוח את הפתרון."}</p>
+      <Exercises items={(exercises ?? []) as Exercise[]} slideUrls={slideUrls} />
+    </Fold>
+  );
+  const quizFold = lesson.status === "ready" && (
+    <section className="space-y-3" id="quiz">
+      {questions.length > 0 && (
+        <Fold id={`quiz-${id}`} title="✅ שאלון אמריקאי" hint={`${questions.length}`}>
+          <Quiz questions={questions} title="שאלון סיכום" />
+        </Fold>
+      )}
+      <form action={markRead.bind(null, id, !lesson.read_at)}>
+        {lesson.read_at ? (
+          <button className="w-full text-sm text-muted py-2">✓ סומן כנקרא · לחץ לביטול הסימון</button>
+        ) : (
+          <button className="btn-ghost w-full">✓ סיימתי עם השיעור הזה</button>
+        )}
+      </form>
+      {lesson.kind === "lab" && lesson.number && (
+        <Link href={`/courses/${lesson.course_id}/entry?n=${lesson.number}`} className="btn-ghost w-full">🎯 תרגול לבוחן הכניסה של ניסוי {lesson.number}</Link>
+      )}
+    </section>
+  );
 
   return (
     <article className="space-y-5">
@@ -87,28 +116,18 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
         </section>
       )}
 
-      {summary && (
-        <section className="card">
-          <Chapter md={summary} slideUrls={slideUrls} />
-        </section>
-      )}
-
-      {summary && !fullChapter && lesson.status === "ready" && (
-        <form action={requestFullChapter.bind(null, id)}>
-          <button className="btn-ghost w-full">📖 לכתוב גם פרק מלא לשיעור הזה</button>
-        </form>
-      )}
-
-      {fullChapter && summary && (
-        <Fold id="full-chapter" title="📖 פרק מלא">
-          <Chapter md={fullChapter} slideUrls={slideUrls} />
+      {/* Everything folded by default (05/11/2026) - he opens what he wants: the condensed summary, the full chapter,
+          the exercises, the quiz. Self-study sessions: full chapter -> quiz -> the project task (his order). */}
+      {lesson.status === "ready" && !self && summaryText && (
+        <Fold id={`summary-${id}`} title="📝 סיכום מתומצת - מסקנות השיעור">
+          <Chapter md={summaryText} slideUrls={slideUrls} />
         </Fold>
       )}
 
-      {lesson.chapter_md && !summary && (
-        <section className="card">
+      {full && (
+        <Fold id={`chapter-${id}`} title="📖 פרק מלא">
           {examples && (
-            <details open className="rounded-xl bg-accent-soft p-3 mb-4">
+            <details className="rounded-xl bg-accent-soft p-3 mb-4">
               <summary className="cursor-pointer font-semibold">🏠 רקע ודוגמאות מחיי היום-יום לשיעור הזה</summary>
               {examples.status === "ready" && examples.script ? <Chapter md={examples.script} slideUrls={{}} />
                 : examples.status === "error" ? <p className="text-sm text-bad mt-2">⚠️ {examples.error}</p>
@@ -116,34 +135,19 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
               {(examples.status === "queued" || examples.status === "processing") && <AutoRefresh seconds={20} />}
             </details>
           )}
-          <Chapter md={lesson.chapter_md} slideUrls={slideUrls} />
-        </section>
+          <Chapter md={full} slideUrls={slideUrls} />
+        </Fold>
       )}
 
-      {/* Exercises after the lesson's text, not before it (04/11/2026). */}
-      {(exercises ?? []).length > 0 && (
-        <section className="card">
-          <h2 className="font-semibold mb-1">✍️ תרגילים מהשיעור ({exercises!.length})</h2>
-          <p className="text-xs text-muted mb-3">לפתור על דף, ורק אחר כך לפתוח את הפתרון.</p>
-          <Exercises items={(exercises ?? []) as Exercise[]} slideUrls={slideUrls} />
-        </section>
+      {!full && summaryText && lesson.status === "ready" && (
+        <form action={requestFullChapter.bind(null, id)}>
+          <button className="btn-ghost w-full">📖 לכתוב גם פרק מלא לשיעור הזה (נכנס לתור)</button>
+        </form>
       )}
 
-      {lesson.status === "ready" && (
-        <section className="card" id="quiz">
-          <form action={markRead.bind(null, id, !lesson.read_at)} className="mb-4">
-            {lesson.read_at ? (
-              <button className="w-full text-sm text-muted py-2">✓ סומן כנקרא · לחץ לביטול הסימון</button>
-            ) : (
-              <button className="btn-ghost w-full">✓ סיימתי עם השיעור הזה</button>
-            )}
-          </form>
-          {questions.length > 0 && <Quiz questions={questions} title="שאלון סיכום" />}
-          {lesson.kind === "lab" && lesson.number && (
-            <Link href={`/courses/${lesson.course_id}/entry?n=${lesson.number}`} className="btn-ghost w-full mt-3">🎯 תרגול לבוחן הכניסה של ניסוי {lesson.number}</Link>
-          )}
-        </section>
-      )}
+      {!self && exerciseFold}
+      {quizFold}
+      {self && exerciseFold}
 
       {Object.keys(slideUrls).length > 0 && (
         <details className="card">
