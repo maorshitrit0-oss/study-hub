@@ -534,13 +534,14 @@ def cmd_inspect(match, kind, number):
     """Diagnostics for a lesson's text (no content printed beyond a short sample): line breaks, odd separators."""
     sb = db()
     course = find_course(sb, match)
-    for l in (sb.table("lessons").select("id, title, status, author, chapter_md, summary_md, transcript").eq("course_id", course["id"])
+    for l in (sb.table("lessons").select("id, title, status, author, chapter_md, summary_md, transcript, error, progress, updated_at").eq("course_id", course["id"])
               .eq("kind", kind).eq("number", int(number)).execute().data):
         for f in ("chapter_md", "summary_md"):
             t = l.get(f) or ""
             print(f"::notice title=Inspect {l['id']} {f}::len={len(t)} lf={t.count(chr(10))} cr={t.count(chr(13))} "
                   f"u2028={t.count(chr(0x2028))} u2029={t.count(chr(0x2029))} lit_bs_n={t.count(chr(92) + 'n')} "
-                  f"author={l.get('author')} status={l['status']} transcript={(l.get('transcript') or '')[:60]!r} "
+                  f"author={l.get('author')} status={l['status']} updated={l.get('updated_at')} error={(l.get('error') or '')[:200]!r} "
+                  f"progress={(l.get('progress') or '')[:80]!r} transcript={(l.get('transcript') or '')[:60]!r} "
                   f"sample={t[:160]!r}", flush=True)
 
 

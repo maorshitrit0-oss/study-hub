@@ -61,7 +61,7 @@ jobs:
           if [ "$INSPECT" = "queue" ]; then python queue_runner.py; exit $?; fi
           if [ "$INSPECT" = "archive" ]; then python hub.py archive "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "true" ]; then python hub.py inspect "$COURSE" "$KIND" "$NUMBER"; exit $?; fi
-          [[ "$KIND" =~ ^(lecture|practice|other)$ && "$NUMBER" =~ ^[0-9]+$ ]] || { echo "::error::bad kind/number"; exit 1; }
+          [[ "$KIND" =~ ^(lecture|practice|other|web)$ && "$NUMBER" =~ ^[0-9]+$ ]] || { echo "::error::bad kind/number"; exit 1; }
           if [ -n "$SHEET" ]; then python hub.py sheet "$COURSE" "../$SHEET"; fi
           if [ -n "$CHAPTER" ]; then python hub.py add "$COURSE" "$KIND" "$NUMBER" "$TITLE" "../$CHAPTER"; fi
       - name: remove the throwaway branches of fetch.yml (encrypted lesson material)
