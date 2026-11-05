@@ -49,6 +49,7 @@ jobs:
           LESSON_ID: ${{ inputs.lesson_id }}
         run: |
           git config user.name "study-hub fetch"; git config user.email "fetch@users.noreply.github.com"
-          git checkout --orphan "fetch/$LESSON_ID"; git rm -rfq .
+          BR="fetch/$(printf '%s' "$LESSON_ID" | sha1sum | cut -c1-12)"   # a valid branch name for any request
+          git checkout --orphan "$BR"; git rm -rfq .
           cp /tmp/out/* .; git add l.enc k.enc; git commit -qm "encrypted lesson material"
-          git push -f origin "fetch/$LESSON_ID"
+          git push -f origin "$BR"
