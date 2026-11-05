@@ -318,7 +318,7 @@ def _with_gemini(call):
                         time.sleep(20 * (attempt + 1) ** 2)  # 20 s, 80 s: an overload usually passes in a minute or two
                         continue
                     if busy or _is(e, "RESOURCE_EXHAUSTED", "429", "quota", "NOT_FOUND", "404", "not supported"):
-                        print(f"gemini {model}: {str(e)[:120]} -> next model", flush=True)
+                        print(f"::notice title=Gemini {model}::{str(e)[:200]} -> next model".replace("\n", " "), flush=True)
                         break
                     raise
     raise RuntimeError(friendly_error(last))
