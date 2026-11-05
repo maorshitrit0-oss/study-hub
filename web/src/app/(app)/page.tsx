@@ -22,11 +22,9 @@ export default async function Home() {
   await Promise.all([syncPrepTasks(sb).catch(() => {}), attachOrphanTasks(sb).catch(() => {}), syncWeekTasks(sb).catch(() => {}), syncExerciseTasks(sb).catch(() => {}), syncLabTasks(sb).catch(() => {})]);
   const in14 = isoFromNow(14);
   const now = israelNow();
-  const [{ data: courses }, { data: deadlines }, { data: lessons }, stats, { data: today }, missing] = await Promise.all([
+  const [{ data: courses }, { data: deadlines }, stats, { data: today }, missing] = await Promise.all([
     sb.from("courses").select("*").eq("archived", false).order("year").order("name"),
     sb.from("deadlines").select("*").eq("done", false).lte("due_at", in14).order("due_at").limit(40),
-    sb.from("lessons").select("id, course_id, kind, number, title, status, progress, read_at, created_at, source_url")
-      .order("created_at", { ascending: false }).limit(30),
     topicStats(sb),
     sb.from("schedule_slots").select("*").eq("weekday", now.weekday).order("start_time"),
     missingRecordings(sb).catch(() => []),
@@ -70,7 +68,15 @@ export default async function Home() {
   const now_ = line.filter((x) => x.where === "now");
   const waitingLine = line.filter((x) => x.where !== "now");
   // Last year's material from a lecturer's site is reference only, not "waiting to be read".
-  const unread = (lessons as Lesson[] | null)?.filter((l) => l.status === "ready" && !l.read_at && !isSiteLesson(l)).slice(0, 5) ?? [];
+  // "מחכה לקריאה" = this study week only (he is one week behind; 05/11/2026): the course's lecture / practice N of
+  // study week N, not read yet. Earlier weeks he left undone are counted apart - he settles them on Saturday night.
+  const sw = studyWeek();
+  const selfIds = new Set((courses as Course[] | null)?.filter((c) => c.kind === "self").map((c) => c.id));
+  const { data: weekRows } = await sb.from("lessons").select("id, course_id, kind, number, title, status, read_at, source_url")
+    .in("kind", ["lecture", "practice"]).eq("status", "ready").is("read_at", null).lte("number", sw);
+  const mine = ((weekRows ?? []) as Lesson[]).filter((l) => courseName.has(l.course_id) && !selfIds.has(l.course_id) && !isSiteLesson(l));
+  const unread = mine.filter((l) => l.number === sw);
+  const behind = mine.filter((l) => (l.number ?? 0) < sw);
   const weak = stats.filter(isWeak).sort((a, b) => (pct(a) ?? 0) - (pct(b) ?? 0)).slice(0, 5);
 
   return (
@@ -214,8 +220,14 @@ export default async function Home() {
         </Fold>
       )}
 
-      {unread.length > 0 && (
-        <Fold id="home-unread" title="מחכה לקריאה" hint={`${unread.length}`}>
+      {(unread.length > 0 || behind.length > 0) && (
+        <Fold id="home-unread" title={`מחכה לקריאה · שבוע לימוד ${sw}`} hint={`${unread.length}`}>
+          {unread.length === 0 && <p className="text-sm text-muted py-1">✅ קראת את כל מה ששייך לשבוע הזה.</p>}
+          {behind.length > 0 && (
+            <Link href="/week" className="block text-xs text-warn mb-2">
+              ⏪ {behind.length} משבועות קודמים לא נקראו - לסיכום של מוצ״ש ←
+            </Link>
+          )}
           <ul className="divide-y divide-line">
             {unread.map((l) => (
               <li key={l.id}>

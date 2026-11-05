@@ -530,6 +530,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Claude token: he created CLAUDE_CODE_OAUTH_TOKEN (verified set=true via publish.yml inspect=claude). claude-chapter.yml
   needed `id-token: write` + github_token; the first real run then ended "is_error" - diagnosing with the execution
   file printed as annotations.
+- Home "מחכה לקריאה · שבוע לימוד N" (05/11/2026): only this study week's lessons (lecture/practice number == studyWeek,
+  ready, unread, not self-study / site) - he settles the week on Saturday night; earlier unread weeks show as one line
+  "⏪ N משבועות קודמים" linking to /week.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items
