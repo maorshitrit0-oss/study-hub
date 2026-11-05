@@ -190,8 +190,16 @@ export default async function Home() {
       )}
 
       {/* Being written now, and the line - separate (05/11/2026); each opens by itself only with 5 or fewer. */}
-      {now_.length > 0 && (
+      {/* Always shown (05/11/2026): also when nothing is being written right now, with why. */}
+      {(now_.length > 0 || waitingLine.length > 0) && (
         <Fold id="home-now" defaultOpen={now_.length <= 5} title="⚙️ בעיבוד עכשיו" hint={`${now_.length}`}>
+          {now_.length === 0 && (
+            <p className="text-sm text-muted">
+              כרגע אף שיעור לא נכתב. {waitingLine.some((x) => x.where === "retry")
+                ? "השיעורים בתור מחכים ל-Gemini (עמוס או שנגמרה המכסה) - התור מנסה שוב לבד כל 10 דקות, ואחרי 10:30 כשהמכסה מתאפסת."
+                : "השיעור הבא בתור יתחיל תוך דקות."}
+            </p>
+          )}
           <ul className="space-y-2 text-sm">
             {now_.map((x) => (
               <li key={x.l.id}>
