@@ -462,6 +462,21 @@ def cmd_sheet(match, path):
     docs.save(sb, course, Path(path).read_text(encoding="utf-8"), "נכתב ע״י Claude")
 
 
+def cmd_ping():
+    """Is Gemini answering right now? One tiny call per model and key (no retries)."""
+    from google import genai
+    for k, key in enumerate(author._keys()):
+        client = genai.Client(api_key=key)
+        for model in author._models():
+            t = time.time()
+            try:
+                r = client.models.generate_content(model=model, contents="ענה במילה אחת: שלום")
+                res = f"OK {(r.text or '').strip()[:20]}"
+            except Exception as e:  # noqa: BLE001
+                res = f"FAIL {str(e)[:160]}"
+            print(f"::notice title=Ping key{k + 1} {model}::{res} ({time.time() - t:.1f}s)", flush=True)
+
+
 def cmd_stuck():
     """Every lesson that is not ready: course, kind/number/title, status, progress, error, last update."""
     sb = db()
@@ -538,6 +553,7 @@ if __name__ == "__main__":
     p = sub.add_parser("sheet"); p.add_argument("course"); p.add_argument("md")
     sub.add_parser("flat")
     sub.add_parser("stuck")
+    sub.add_parser("ping")
     p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
     p = sub.add_parser("inspect"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
@@ -550,6 +566,8 @@ if __name__ == "__main__":
         cmd_fetch(a.lesson_id, a.out_dir)
     elif a.cmd == "add":
         cmd_add(a.course, a.kind, a.number, a.title, a.chapter_json)
+    elif a.cmd == "ping":
+        cmd_ping()
     elif a.cmd == "stuck":
         cmd_stuck()
     elif a.cmd == "archive":
