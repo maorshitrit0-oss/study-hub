@@ -7,6 +7,7 @@ import { syncLabTasks } from "@/lib/labTasks";
 import { catchUps, ensureSelfSlots, mainTrack } from "@/lib/selfPlan";
 import { isSiteLesson, studyWeek, syncWeekTasks, todayWeek } from "@/lib/week";
 import DeadlineRow from "@/components/DeadlineRow";
+import Fold from "@/components/Fold";
 import { isWeak, pct, topicStats } from "@/lib/progress";
 import { isoFromNow, israelNow } from "@/lib/format";
 import SlotCard from "@/components/SlotCard";
@@ -55,7 +56,17 @@ export default async function Home() {
   const reminders = plan.flatMap((p) => p.reminders).slice(0, 6);
   const todaySlots = ((today ?? []) as Slot[]).filter((s) => s.end_time.slice(0, 5) > now.time);
   const courseName = new Map((courses as Course[] | null)?.map((c) => [c.id, c.name]));
-  const active = (lessons as Lesson[] | null)?.filter((l) => l.status !== "ready" && l.status !== "error") ?? [];
+  // The line: being written now, then waiting (oldest first), then failures that are retried by themselves.
+  const { data: pendingRows } = await sb.from("lessons").select("id, course_id, kind, number, title, status, progress, error, updated_at")
+    .in("status", ["processing", "queued", "error"]).order("updated_at").limit(80);
+  const pendingList = ((pendingRows ?? []) as (Lesson & { error: string | null; updated_at: string })[]);
+  const retried = (l: { error: string | null }) => /מכסה|עמוסים/.test(l.error ?? "");
+  const line = [
+    ...pendingList.filter((l) => l.status === "processing").map((l) => ({ l, where: "now", why: l.progress ?? "מעבד" })),
+    ...pendingList.filter((l) => l.status === "queued").map((l) => ({ l, where: "line", why: "ממתין בתור" })),
+    ...pendingList.filter((l) => l.status === "error" && retried(l))
+      .map((l) => ({ l, where: "retry", why: /מכסה/.test(l.error ?? "") ? "ינסה שוב אחרי 10:30 (מכסה)" : "ינסה שוב (Gemini עמוס)" })),
+  ];
   // Last year's material from a lecturer's site is reference only, not "waiting to be read".
   const unread = (lessons as Lesson[] | null)?.filter((l) => l.status === "ready" && !l.read_at && !isSiteLesson(l)).slice(0, 5) ?? [];
   const weak = stats.filter(isWeak).sort((a, b) => (pct(a) ?? 0) - (pct(b) ?? 0)).slice(0, 5);
@@ -79,10 +90,21 @@ export default async function Home() {
             <Link href="/schedule" className="text-sm text-accent">המערכת</Link>
           </div>
           <div className="space-y-2">
-            {todaySlots.map((s) => (
-              <SlotCard key={s.id} s={s} courseName={s.course_id ? courseName.get(s.course_id) : undefined}
-                now={s.start_time.slice(0, 5) <= now.time} />
-            ))}
+            {todaySlots.map((s) => {
+              // Reminders before each lecture (05/11/2026: "rather before each lecture than a shopping list").
+              const before = plan.find((p) => p.course.id === s.course_id)?.reminders ?? [];
+              return (
+                <div key={s.id}>
+                  <SlotCard s={s} courseName={s.course_id ? courseName.get(s.course_id) : undefined}
+                    now={s.start_time.slice(0, 5) <= now.time} />
+                  {before.length > 0 && (
+                    <ul className="text-xs space-y-1 mt-1 ps-2">
+                      {before.slice(0, 3).map((r) => <li key={r.text}><Link href={r.href}>📌 {r.text}</Link></li>)}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
@@ -132,8 +154,7 @@ export default async function Home() {
       )}
 
       {focus.length > 0 && (
-        <section className="card">
-          <h2 className="font-semibold mb-2">על מה להשקיע השבוע</h2>
+        <Fold id="home-focus" title="על מה להשקיע השבוע" hint={`${focus.length}`}>
           <ul className="space-y-3">
             {focus.map((p) => (
               <li key={p.course.id}>
@@ -147,39 +168,39 @@ export default async function Home() {
               </li>
             ))}
           </ul>
-        </section>
+        </Fold>
       )}
 
       {reminders.length > 0 && (
-        <section className="card">
-          <h2 className="font-semibold mb-2">תזכורות</h2>
+        <Fold id="home-reminders" title="📌 כל התזכורות" hint={`${reminders.length}`}>
           <ul className="space-y-2 text-sm">
             {reminders.map((r) => (
               <li key={r.text}><Link href={r.href} className="flex gap-2"><span>📌</span><span>{r.text}</span></Link></li>
             ))}
           </ul>
-        </section>
+        </Fold>
       )}
 
-      {active.length > 0 && (
-        <section className="card">
-          <h2 className="font-semibold mb-2">בעיבוד</h2>
-          <ul className="space-y-2">
-            {active.map((l) => (
-              <li key={l.id}>
-                <Link href={`/lessons/${l.id}`} className="flex justify-between gap-2">
-                  <span>{courseName.get(l.course_id)} · {lessonName(l)}</span>
-                  <span className="text-xs text-muted truncate">{l.progress ?? "בתור"}</span>
+      {line.length > 0 && (
+        // Being written + waiting in line (worker/queue_runner.py) - open by itself only when it is long.
+        <Fold id="home-line" defaultOpen={line.length > 5} title="⚙️ בעיבוד ובתור"
+          hint={`${line.filter((x) => x.where === "now").length} עכשיו · ${line.filter((x) => x.where !== "now").length} בתור`}>
+          <p className="text-xs text-muted mb-2">נכתבים עד 2 בבת אחת; השאר לפי הסדר, אחד-אחד, כל חצי שעה. כש-Gemini עמוס או שהמכסה נגמרה - ממתינים ומנסים שוב לבד.</p>
+          <ol className="space-y-2 text-sm">
+            {line.map((x, i) => (
+              <li key={x.l.id}>
+                <Link href={`/lessons/${x.l.id}`} className="flex justify-between gap-2">
+                  <span className="min-w-0">{x.where === "now" ? "▶️" : `${i + 1 - line.filter((y) => y.where === "now").length}.`} {courseName.get(x.l.course_id) ?? ""} · {lessonName(x.l)}{x.l.title && x.l.kind !== "web" ? ` · ${x.l.title}` : ""}</span>
+                  <span className="text-xs text-muted shrink-0">{x.why}</span>
                 </Link>
               </li>
             ))}
-          </ul>
-        </section>
+          </ol>
+        </Fold>
       )}
 
       {unread.length > 0 && (
-        <section className="card">
-          <h2 className="font-semibold mb-2">מחכה לקריאה</h2>
+        <Fold id="home-unread" title="מחכה לקריאה" hint={`${unread.length}`}>
           <ul className="divide-y divide-line">
             {unread.map((l) => (
               <li key={l.id}>
@@ -190,14 +211,11 @@ export default async function Home() {
               </li>
             ))}
           </ul>
-        </section>
+        </Fold>
       )}
 
-      <section className="card">
-        <div className="flex justify-between items-center mb-1">
-          <h2 className="font-semibold">דדליינים קרובים</h2>
-          <Link href="/deadlines" className="text-sm text-accent">הכל</Link>
-        </div>
+      <Fold id="home-deadlines" title="דדליינים קרובים" hint={`${dueSoon.length}`}>
+        <div className="flex justify-end mb-1"><Link href="/deadlines" className="text-sm text-accent">הכל</Link></div>
         {dueSoon.length ? (
           <ul className="divide-y divide-line">
             {dueSoon.map((d) => (
@@ -207,11 +225,10 @@ export default async function Home() {
         ) : (
           <p className="text-muted text-sm py-2">אין משימות בשבועיים הקרובים.</p>
         )}
-      </section>
+      </Fold>
 
       {weak.length > 0 && (
-        <section className="card">
-          <h2 className="font-semibold mb-2">נושאים לחיזוק</h2>
+        <Fold id="home-weak" title="נושאים לחיזוק" hint={`${weak.length}`}>
           <ul className="space-y-2">
             {weak.map((s) => (
               <li key={`${s.course_id}${s.topic}`}>
@@ -222,12 +239,11 @@ export default async function Home() {
               </li>
             ))}
           </ul>
-        </section>
+        </Fold>
       )}
 
-      <section>
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="font-semibold">הקורסים שלי</h2>
+      <Fold id="home-courses" title="הקורסים שלי" hint={`${courses?.length ?? 0}`}>
+        <div className="flex justify-end mb-2">
           <Link href="/courses/new" className="btn-ghost text-sm">+ קורס</Link>
         </div>
         {courses?.length ? (
@@ -259,7 +275,7 @@ export default async function Home() {
             <Link href="/courses/new" className="btn">הוספת קורס</Link>
           </div>
         )}
-      </section>
+      </Fold>
     </div>
   );
 }

@@ -503,6 +503,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   chapter + summary_md + quiz + verification) and `hub.py publish`. queue_runner hands a lesson to Claude when Gemini
   is overloaded / out of quota (CLAUDE_PER_DAY = 4, counted in system/queue_state.json; site.yml passes HAS_CLAUDE),
   and stops the run on an overload instead of grinding through every lesson. Fill-ins stay on Gemini only.
+- Home page (05/11/2026): folded by default - "על מה להשקיע", all reminders, "מחכה לקריאה", deadlines, weak topics,
+  my courses. Open: today at university (each lecture now shows its course's reminders under it), self-study, daily
+  review, week, recordings. New "⚙️ בעיבוד ובתור": processing -> waiting -> failures retried by themselves (quota after
+  10:30 / overload), numbered; open by itself only when more than 5. Course list labels last year's comparison
+  transcript "📼 להשוואה - מוכן". `hub.py stuck` (publish.yml inspect=stuck) lists every lesson not ready.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items
