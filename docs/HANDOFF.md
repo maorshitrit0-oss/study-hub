@@ -506,8 +506,14 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Home page (05/11/2026): folded by default - "על מה להשקיע", all reminders, "מחכה לקריאה", deadlines, weak topics,
   my courses. Open: today at university (each lecture now shows its course's reminders under it), self-study, daily
   review, week, recordings. New "⚙️ בעיבוד ובתור": processing -> waiting -> failures retried by themselves (quota after
-  10:30 / overload), numbered; open by itself only when more than 5. Course list labels last year's comparison
+  10:30 / overload), numbered (now split - see below). Course list labels last year's comparison
   transcript "📼 להשוואה - מוכן". `hub.py stuck` (publish.yml inspect=stuck) lists every lesson not ready.
+- Why nothing was "processing" (05/11/2026): GitHub's "*/30" schedule of site.yml actually fired every 3-4 hours, so
+  the queue barely ran. Now `.github/workflows/queue.yml` runs `queue_runner.py --loop` for up to ~5.5 h in one job:
+  Gemini busy -> wait 10 min and retry; quota -> sleep until 10:30 if inside the job; nothing he waits for -> stop;
+  out of time with work left -> dispatches the next queue.yml. Started by the app whenever a lesson is put in line
+  (lib/queue.ts dispatchQueue) + backup schedule every 2 h. Home: "⚙️ בעיבוד עכשיו" and "⏳ בתור" are separate folds,
+  each open by itself only when it has 5 items or fewer (6+ stays closed).
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
 
 ## Open items

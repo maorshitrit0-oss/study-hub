@@ -67,6 +67,8 @@ export default async function Home() {
     ...pendingList.filter((l) => l.status === "error" && retried(l))
       .map((l) => ({ l, where: "retry", why: /מכסה/.test(l.error ?? "") ? "ינסה שוב אחרי 10:30 (מכסה)" : "ינסה שוב (Gemini עמוס)" })),
   ];
+  const now_ = line.filter((x) => x.where === "now");
+  const waitingLine = line.filter((x) => x.where !== "now");
   // Last year's material from a lecturer's site is reference only, not "waiting to be read".
   const unread = (lessons as Lesson[] | null)?.filter((l) => l.status === "ready" && !l.read_at && !isSiteLesson(l)).slice(0, 5) ?? [];
   const weak = stats.filter(isWeak).sort((a, b) => (pct(a) ?? 0) - (pct(b) ?? 0)).slice(0, 5);
@@ -181,16 +183,29 @@ export default async function Home() {
         </Fold>
       )}
 
-      {line.length > 0 && (
-        // Being written + waiting in line (worker/queue_runner.py) - open by itself only when it is long.
-        <Fold id="home-line" defaultOpen={line.length > 5} title="⚙️ בעיבוד ובתור"
-          hint={`${line.filter((x) => x.where === "now").length} עכשיו · ${line.filter((x) => x.where !== "now").length} בתור`}>
-          <p className="text-xs text-muted mb-2">נכתבים עד 2 בבת אחת; השאר לפי הסדר, אחד-אחד, כל חצי שעה. כש-Gemini עמוס או שהמכסה נגמרה - ממתינים ומנסים שוב לבד.</p>
-          <ol className="space-y-2 text-sm">
-            {line.map((x, i) => (
+      {/* Being written now, and the line - separate (05/11/2026); each opens by itself only with 5 or fewer. */}
+      {now_.length > 0 && (
+        <Fold id="home-now" defaultOpen={now_.length <= 5} title="⚙️ בעיבוד עכשיו" hint={`${now_.length}`}>
+          <ul className="space-y-2 text-sm">
+            {now_.map((x) => (
               <li key={x.l.id}>
                 <Link href={`/lessons/${x.l.id}`} className="flex justify-between gap-2">
-                  <span className="min-w-0">{x.where === "now" ? "▶️" : `${i + 1 - line.filter((y) => y.where === "now").length}.`} {courseName.get(x.l.course_id) ?? ""} · {lessonName(x.l)}{x.l.title && x.l.kind !== "web" ? ` · ${x.l.title}` : ""}</span>
+                  <span className="min-w-0">▶️ {courseName.get(x.l.course_id) ?? ""} · {lessonName(x.l)}{x.l.title && x.l.kind !== "web" ? ` · ${x.l.title}` : ""}</span>
+                  <span className="text-xs text-muted shrink-0">{x.why}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Fold>
+      )}
+      {waitingLine.length > 0 && (
+        <Fold id="home-line" defaultOpen={waitingLine.length <= 5} title="⏳ בתור" hint={`${waitingLine.length}`}>
+          <p className="text-xs text-muted mb-2">נכתבים לפי הסדר, אחד-אחד. כש-Gemini עמוס - מחכים 10 דקות ומנסים שוב; כשהמכסה נגמרה - ממשיכים אחרי 10:30.</p>
+          <ol className="space-y-2 text-sm">
+            {waitingLine.map((x, i) => (
+              <li key={x.l.id}>
+                <Link href={`/lessons/${x.l.id}`} className="flex justify-between gap-2">
+                  <span className="min-w-0">{i + 1}. {courseName.get(x.l.course_id) ?? ""} · {lessonName(x.l)}{x.l.title && x.l.kind !== "web" ? ` · ${x.l.title}` : ""}</span>
                   <span className="text-xs text-muted shrink-0">{x.why}</span>
                 </Link>
               </li>

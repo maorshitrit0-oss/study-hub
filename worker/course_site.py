@@ -537,7 +537,8 @@ def dispatch(lesson_id, author="gemini", workflow="process.yml"):
     repo, token = os.environ.get("GITHUB_REPOSITORY"), os.environ.get("GITHUB_TOKEN")
     if not repo or not token:
         return "no GITHUB_TOKEN - not started"
-    inputs = {"lesson_id": lesson_id} if workflow != "process.yml" else {"lesson_id": lesson_id, "author": author}
+    inputs = ({"lesson_id": lesson_id, "author": author} if workflow == "process.yml"
+              else {} if workflow == "queue.yml" else {"lesson_id": lesson_id})
     r = requests.post(f"https://api.github.com/repos/{repo}/actions/workflows/{workflow}/dispatches",
                       headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
                       json={"ref": "main", "inputs": inputs}, timeout=30)

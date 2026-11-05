@@ -31,3 +31,6 @@ export const dispatchSite = (courseId: string, url: string) => dispatch("site.ym
 
 /** Exercises from a course's homework / past-exam files (worker/exercises.py). */
 export const dispatchExercises = (courseId: string) => dispatch("exercises.yml", { course_id: courseId });
+
+/** The line of lessons (worker/queue_runner.py loop) - started whenever a lesson is put in line. */
+export const dispatchQueue = () => dispatch("queue.yml", {});

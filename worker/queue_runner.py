@@ -101,7 +101,7 @@ def candidates(sb):
                if r["status"] == "queued" and r["updated_at"] < old]
     quota = [(r, "auto") for r in rows if r["status"] == "error" and "מכסה" in (r.get("error") or "")]
     busy = [(r, "auto") for r in rows if r["status"] == "error" and "עמוסים" in (r.get("error") or "")
-            and r["updated_at"] < (now - timedelta(minutes=25)).isoformat()
+            and r["updated_at"] < (now - timedelta(minutes=10)).isoformat()
             and r["created_at"] > (now - timedelta(days=2)).isoformat()]
     fill = []
     for r in rows:
@@ -143,10 +143,11 @@ def run():
                 if not to_claude(sb, r):
                     break
         print("::notice title=Queue::Gemini quota used up earlier today - fill-ins wait for the reset", flush=True)
-        return
-    start, done = time.time(), []
+        return "quota"
+    start, done, why = time.time(), [], "empty"
     for r, mode in candidates(sb):
         if time.time() - start > BUDGET_SEC:
+            why = "budget"
             break
         filling = r["status"] == "ready"
         try:
@@ -169,11 +170,44 @@ def run():
                 to_claude(sb, r)
             if is_quota(e):
                 block_quota(sb)
+                why = "quota"
                 break
-            if gemini_down:  # overloaded now: don't spend the run retrying the next lessons - again in half an hour
+            if gemini_down:  # overloaded now: don't spend the run retrying the next lessons - wait and try again
+                why = "busy"
                 break
     print(f"::notice title=Queue::{len(done)} done: {'; '.join(done)[:3000] or '-'}", flush=True)
+    return why
+
+
+def waiting_work(sb):
+    """Lessons he is waiting for (not the background fill-ins)."""
+    return [r for r, _ in candidates(sb) if r["status"] != "ready"]
+
+
+def loop(hours=5.5):
+    """queue.yml: keep working the line inside one job - GitHub's half-hourly schedule fires only every few hours.
+    Gemini busy -> wait 10 minutes and try again; quota gone -> sleep until the reset if it is inside this job;
+    nothing he waits for left -> stop (fill-ins are done by the half-hourly runs). Out of time with work left ->
+    start the next queue.yml."""
+    sb = hub.db()
+    end = time.time() + hours * 3600
+    while time.time() < end:
+        why = run()
+        if why == "empty" and not waiting_work(sb):
+            print("::notice title=Queue::nothing left that he is waiting for", flush=True)
+            return
+        if why == "quota":
+            wait = (next_reset() - datetime.now(timezone.utc)).total_seconds()
+            if time.time() + wait > end:
+                return  # the next schedule / app dispatch continues after the reset
+            time.sleep(max(60, wait))
+        elif why in ("busy", "empty"):
+            time.sleep(10 * 60)
+    if waiting_work(sb):
+        import course_site
+        print(f"::notice title=Queue::time is up, work left -> next run: {course_site.dispatch('', workflow='queue.yml')}", flush=True)
 
 
 if __name__ == "__main__":
-    run()
+    import sys
+    loop() if "--loop" in sys.argv else run()

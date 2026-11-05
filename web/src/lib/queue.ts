@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { dispatchLesson } from "./github";
+import { dispatchLesson, dispatchQueue } from "./github";
 
 /** At most this many lessons are written at the same time; the rest wait in line (worker/queue.py). */
 export const PARALLEL = 2;
@@ -21,6 +21,7 @@ export async function startLesson(sb: SupabaseClient, id: string, author: "gemin
         status: "queued", error: null,
         progress: `${WAITING}${mode === "full" ? " (פרק מלא)" : ""} - יתחיל לבד, אחד-אחד, כדי לא לגמור את המכסה של Gemini`,
       }).eq("id", id);
+      await dispatchQueue(); // works the line now (one job at a time), not on GitHub's slow schedule
       return null;
     }
   }
