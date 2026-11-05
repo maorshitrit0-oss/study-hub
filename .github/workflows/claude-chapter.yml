@@ -5,6 +5,7 @@ name: claude-chapter
 
 permissions:
   contents: read
+  id-token: write   # claude-code-action asks for an OIDC token
 
 on:
   workflow_dispatch:
@@ -42,6 +43,7 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}   # no Claude GitHub App needed - it only writes the database
           claude_args: '--allowedTools "Bash(python:*),Bash(cd:*),Read,Write,Edit,Glob,Grep" --max-turns 80'
           prompt: |
             Write the chapter of lesson ${{ inputs.lesson_id }} for the student, exactly as CLAUDE.md
