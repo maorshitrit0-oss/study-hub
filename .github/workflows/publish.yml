@@ -49,6 +49,7 @@ jobs:
           TITLE: ${{ inputs.title }}
           SHEET: ${{ inputs.sheet }}
           INSPECT: ${{ inputs.inspect }}
+          HAS_CLAUDE: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
         run: |
           ok() { [[ -z "$1" || "$1" =~ ^chapters/[A-Za-z0-9_.-]+\.$2$ ]] || { echo "::error::bad path $1"; exit 1; }; }
           ok "$CHAPTER" json; ok "$SHEET" md
@@ -56,6 +57,7 @@ jobs:
           if [ "$INSPECT" = "facts" ]; then python facts.py; exit $?; fi
           if [ "$INSPECT" = "facts-force" ]; then python facts.py --force; exit $?; fi
           if [ "$INSPECT" = "topics" ]; then python topics.py; exit $?; fi
+          if [ "$INSPECT" = "claude" ]; then echo "::notice title=Claude token::set=$HAS_CLAUDE"; exit 0; fi
           if [ "$INSPECT" = "ping" ]; then python hub.py ping; exit $?; fi
           if [ "$INSPECT" = "stuck" ]; then python hub.py stuck; exit $?; fi
           if [ "$INSPECT" = "queue" ]; then python queue_runner.py; exit $?; fi
