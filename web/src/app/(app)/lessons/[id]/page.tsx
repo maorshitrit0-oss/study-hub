@@ -10,6 +10,7 @@ import { deleteLesson, markRead, requestFullChapter, retryLesson, updateLesson }
 import Exercises, { type Exercise } from "@/components/Exercises";
 import Fold from "@/components/Fold";
 import { LESSON_LABEL, lessonName, type Lesson } from "@/lib/types";
+import { VLSI_PROGRAM } from "@/lib/vlsiProgram";
 
 export default async function LessonPage({ params }: PageProps<"/lessons/[id]">) {
   const { id } = await params;
@@ -39,6 +40,8 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
   const self = (lesson.transcript ?? "").startsWith("<!-- vlsi-session -->");
   const summaryText = self ? null : summary;
   const full = self ? lesson.chapter_md : lesson.chapter_md && lesson.chapter_md !== summary ? lesson.chapter_md : null;
+  // Self-study: the session's job-interview questions also close the quiz (his request, 06/11/2026), each with its source.
+  const interview = self && lesson.number ? VLSI_PROGRAM[lesson.number - 1]?.interview ?? [] : [];
   const project = (exercises ?? []).filter((x) => (x.title ?? "").startsWith("🔧"));
   const exerciseFold = (exercises ?? []).length > 0 && (
     <Fold id={`exercises-${id}`} title={self && project.length ? "🔧 משימת הפרויקט ותרגילים" : "✍️ תרגילים מהשיעור"} hint={`${exercises!.length}`}>
@@ -51,6 +54,20 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
       {questions.length > 0 && (
         <Fold id={`quiz-${id}`} title="✅ שאלון אמריקאי" hint={`${questions.length}`}>
           <Quiz questions={questions} title="שאלון סיכום" />
+          {interview.length > 0 && (
+            <div className="mt-5 border-t border-line pt-3 text-sm">
+              <p className="font-semibold">🎤 לסיום: שאלות מראיונות עבודה</p>
+              <p className="text-xs text-muted mb-2">שאלות פתוחות. לענות בקול או על דף כאילו אתה בראיון, ורק אחר כך לפתוח את המקור ולבדוק.</p>
+              <ol className="list-decimal ps-5 space-y-1">
+                {interview.map((x) => (
+                  <li key={x.q}>
+                    {x.q}{" "}
+                    <a href={x.url} target="_blank" rel="noopener noreferrer" className="text-xs text-accent underline">🔗 {x.src}</a>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
         </Fold>
       )}
       <form action={markRead.bind(null, id, !lesson.read_at)}>

@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/supabase/server";
 import { FREEZES, weekDates } from "@/lib/skills";
 import { ensureCadenceTracks } from "@/lib/cadenceTracks";
 import { catchUps, ensureSelfSlots, ensureSessionLesson, mainTrack, syncVlsiTasks } from "@/lib/selfPlan";
-import { PROJECT, PROJECT_SPEC, VLSI_PROGRAM, sessionDates, sessionKey, type Session } from "@/lib/vlsiProgram";
+import { BOARD_TOUR, PROJECT, PROJECT_SPEC, VLSI_PROGRAM, sessionDates, sessionKey, type Session } from "@/lib/vlsiProgram";
 import Chapter from "@/components/Chapter";
 import { openSessionLesson, setSessionDone, startSession } from "../actions";
 import Fold from "@/components/Fold";
@@ -108,6 +108,9 @@ export default async function SelfStudy() {
         השבועות יש פרויקט שלם עם GitHub, דוחות וסרטון. <a href="https://github.com/maorshitrit0-oss/study-hub/blob/main/fpga/pa35t_edu.xdc" className="text-accent" target="_blank" rel="noopener noreferrer">קובץ הפינים של הלוח</a></p>
       <Fold id="vlsi-spec" title="📋 אפיון הפרויקט: Mini-TPU לזיהוי רחפנים">
         <Chapter md={PROJECT_SPEC} slideUrls={{}} />
+      </Fold>
+      <Fold id="vlsi-board" title="🗺️ הכרת הלוח: מה יש עליו ומה זה כל רגל">
+        <Chapter md={BOARD_TOUR} slideUrls={{}} />
       </Fold>
       <p className="text-sm text-muted">
         תוכנית מודרכת של 12 שבועות: בשישי בבוקר ובמוצאי שבת. בכל מפגש כתוב מה לפתוח, מה ללמוד עם המורה, מה לבנות ומה אמור

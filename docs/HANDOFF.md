@@ -541,6 +541,12 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   djb2 over the block without trailing whitespace) and written ahead of time every morning by `codelines.py` in
   enrich.yml (newest lessons first, chapters + summaries + exercises). The API route reads storage first and saves what
   Gemini writes; when Gemini is out the fold stays closed with a gray note + "לנסות שוב", never a red error.
+- Quiz (06/11/2026, he noticed the right answer was almost always first and the longest): Quiz.tsx shows the options
+  in a fixed per-question shuffle (seeded by question id; attempts still store the original index). author.SYSTEM /
+  VLSI_TASK / VERIFY: options of similar length and style, explanations refer to options by content, not number.
+  (Claude's own vlsi-session-1.json had all 10 correct = index 0 and mostly the longest - follow the rule when writing.)
+- Self-study lesson page: the session's job-interview questions (vlsiProgram interview, with source links) close the
+  quiz fold. /self has a "🗺️ הכרת הלוח" fold (BOARD_TOUR): what each board part is for, what a pin is, when it's used.
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
