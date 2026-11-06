@@ -9,7 +9,7 @@ import { isSiteLesson, studyWeek, syncWeekTasks, todayWeek } from "@/lib/week";
 import DeadlineRow from "@/components/DeadlineRow";
 import Fold from "@/components/Fold";
 import { isWeak, pct, topicStats } from "@/lib/progress";
-import { isoFromNow, israelNow } from "@/lib/format";
+import { isoFromNow, isoToIsraelLocal, israelNow } from "@/lib/format";
 import SlotCard from "@/components/SlotCard";
 import MissingRecordings from "@/components/MissingRecordings";
 import { missingRecordings } from "@/lib/recordings";
@@ -47,7 +47,11 @@ export default async function Home() {
     ? await Promise.all([
       sb.from("deadlines").select("title, due_at").like("external_uid", "vlsi:%").eq("done", false).order("due_at").limit(1),
       catchUps(sb),
-    ]).then(([{ data }, c]) => ({ session: data?.[0] ? { title: (data[0].title as string).replace(/^🎓 VLSI /, "") } : null, pending: c }))
+    ]).then(([{ data }, c]) => ({
+      session: data?.[0] ? { title: (data[0].title as string).replace(/^🎓 VLSI /, "") } : null, pending: c,
+      // Today's session already done (he marked it): the next open one is due another day.
+      doneToday: !data?.[0] || isoToIsraelLocal(data[0].due_at as string).slice(0, 10) !== isoToIsraelLocal(new Date().toISOString()).slice(0, 10),
+    }))
     : null;
   const usageAlerts = (usage?.data as Snapshot | undefined)?.alerts ?? [];
   const focus = plan.filter((p) => p.score > 0).slice(0, 3);
@@ -104,6 +108,7 @@ export default async function Home() {
               return (
                 <div key={s.id}>
                   <SlotCard s={s} courseName={s.course_id ? courseName.get(s.course_id) : undefined}
+                    done={!!selfToday?.doneToday && s.course_id === track?.id}
                     now={s.start_time.slice(0, 5) <= now.time} />
                   {before.length > 0 && (
                     <ul className="text-xs space-y-1 mt-1 ps-2">

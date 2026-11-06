@@ -182,6 +182,14 @@ export async function markRead(id: string, read = true) {
   const { sb } = await requireUser();
   await sb.from("lessons").update({ read_at: read ? new Date().toISOString() : null }).eq("id", id);
   await closePrepTask(sb, id, read);
+  // A VLSI session lesson: "סיימתי" also marks the session done (his request, 06/11/2026 - by what he did, not the clock).
+  const { data: l } = await sb.from("lessons").select("number, transcript").eq("id", id).maybeSingle();
+  if (l?.number && (l.transcript ?? "").startsWith("<!-- vlsi-session -->")) {
+    const { VLSI_PROGRAM, sessionKey } = await import("@/lib/vlsiProgram");
+    const s = VLSI_PROGRAM[l.number - 1];
+    if (s) await sb.from("deadlines").update({ done: read }).eq("external_uid", `vlsi:${sessionKey(s)}`);
+    revalidatePath("/self");
+  }
   revalidatePath(`/lessons/${id}`);
   revalidatePath("/deadlines");
   revalidatePath("/");
@@ -356,6 +364,7 @@ export async function setSessionDone(key: string, done: boolean) {
   const { sb } = await requireUser();
   await sb.from("deadlines").update({ done }).eq("external_uid", `vlsi:${key}`);
   revalidatePath("/self");
+  revalidatePath("/");
 }
 
 export async function createThread(courseId: string, base: string) {

@@ -80,9 +80,18 @@ export async function weeklyPlan(sb: SupabaseClient): Promise<CoursePlan[]> {
       const days = (new Date(d.due_at).getTime() - now.getTime()) / DAY;
       if (days > 7) continue;
       score += days < 3 ? 10 : 5;
-      reasons.push(`${d.title} להגשה בעוד ${Math.max(0, Math.floor(days))} ימים`);
+      reasons.push((d as Deadline & { external_uid?: string | null }).external_uid?.startsWith("vlsi:")
+        ? `המפגש הבא: ${d.title.replace(/^🎓 /, "")}` : `${d.title} להגשה בעוד ${Math.max(0, Math.floor(days))} ימים`);
       // Reminders are about submissions and exams, not about reading (he sees that in "על מה להשקיע").
-      reminders.push({ text: `${d.kind === "exam" ? "להתכונן ל" : "להגיש את "}"${d.title}" ב${course.name} - בעוד ${Math.max(0, Math.floor(days))} ימים`, href: `/deadlines/${d.id}` });
+      // A self-study session is learning, not handing in (his remark, 06/11/2026).
+      const study = (d as Deadline & { external_uid?: string | null }).external_uid?.startsWith("vlsi:");
+      const n = Math.max(0, Math.floor(days));
+      const when = n === 0 ? "היום" : n === 1 ? "מחר" : `בעוד ${n} ימים`;
+      reminders.push({
+        text: study ? `ללמוד: ${d.title.replace(/^🎓 /, "")} - ${when}`
+          : `${d.kind === "exam" ? "להתכונן ל" : "להגיש את "}"${d.title}" ב${course.name} - ${when}`,
+        href: study ? "/self" : `/deadlines/${d.id}`,
+      });
     }
 
     const weak = cs.filter(isWeak).length;

@@ -551,6 +551,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   he read the yellow mark "3" (the 3rd rising edge) and was told he was wrong. Now every moment is labelled under the
   graph (↑1 ↓1 ↑2 ↓2 ...), yellow marks are letters A, B..., and the chat / author prompts forbid "tick" towards him -
   only ↑n / ↓n / letters. VLSI session 1 (blink) done on the board 06/11: LED blinks; next: reset (Saturday night).
+- Self-study by what he did, not the clock (06/11/2026): "✓ סיימתי" on a session lesson marks its vlsi:<key> task done;
+  the home slot shows "✓ סיימת את המפגש של היום" instead of "עכשיו" when no open session is due today; reminders for
+  sessions say "ללמוד: ..." (היום / מחר / בעוד N ימים) and link to /self - never "להגיש".
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
