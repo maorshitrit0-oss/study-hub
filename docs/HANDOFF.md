@@ -536,6 +536,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - His PC already has Vivado (checked 05/11/2026 via reg query / dir): Vivado ML Standard 2024.2 in C:\Xilinx (with the
   Xilinx cable drivers) and 2025.2 in C:\AMDDesignTools\2025.2; both have Artix-7 parts. Use 2025.2; no install needed.
 - Courses list: in the order he meets them in the week (first timetable slot), courses without classes last.
+- "📖 מה כל שורה עושה" (06/11/2026, his screenshot: red Gemini-quota error under the VLSI code): explanations are now
+  kept in storage `<user>/codelines/<hash>.json` (hash = web/src/lib/codeHash.ts = worker/codelines.py code_hash,
+  djb2 over the block without trailing whitespace) and written ahead of time every morning by `codelines.py` in
+  enrich.yml (newest lessons first, chapters + summaries + exercises). The API route reads storage first and saves what
+  Gemini writes; when Gemini is out the fold stays closed with a gray note + "לנסות שוב", never a red error.
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.

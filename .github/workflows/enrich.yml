@@ -42,6 +42,17 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python topics.py
+      - name: every code block explained line by line ahead of time (codelines.py)
+        working-directory: worker
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LESSON_ID: ${{ inputs.lesson_id }}
+        run: |
+          [[ -z "$LESSON_ID" || "$LESSON_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad lesson id"; exit 1; }
+          python codelines.py $LESSON_ID
       - name: board snapshots written out in words (Java first)
         working-directory: worker
         continue-on-error: true
