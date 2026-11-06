@@ -547,6 +547,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   (Claude's own vlsi-session-1.json had all 10 correct = index 0 and mostly the longest - follow the rule when writing.)
 - Self-study lesson page: the session's job-interview questions (vlsiProgram interview, with source links) close the
   quiz fold. /self has a "🗺️ הכרת הלוח" fold (BOARD_TOUR): what each board part is for, what a pin is, when it's used.
+- Wave diagrams (06/11/2026, his 10th complaint about graphs): the tutor asked about "tick 3", which was not drawn;
+  he read the yellow mark "3" (the 3rd rising edge) and was told he was wrong. Now every moment is labelled under the
+  graph (↑1 ↓1 ↑2 ↓2 ...), yellow marks are letters A, B..., and the chat / author prompts forbid "tick" towards him -
+  only ↑n / ↓n / letters. VLSI session 1 (blink) done on the board 06/11: LED blinks; next: reset (Saturday night).
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.

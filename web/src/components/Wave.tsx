@@ -4,6 +4,8 @@ const TICK = 26, ROW = 34, LEAD = 13, HIGH = 6, LOW = 24;
 const SKEW = 5; // an input that changes on a rising edge is drawn just after it - the flip-flop saw the old value
 // Signals start a little before the first edge, so the first rising clock edge is visible too.
 const LABEL = 46 + LEAD;
+// Yellow marks get letters, never numbers - numbers are the edges' names (↑1, ↓1...).
+const MARK = (i: number) => "ABCDEFGHIJ"[i] ?? String(i + 1);
 const y = (l: Level) => (l === "1" ? HIGH : LOW);
 
 /** SVG timing diagram from a ```wave block (Q is simulated in lib/wave.ts, never drawn by hand). */
@@ -20,17 +22,23 @@ export default function Wave({ src }: { src: string }) {
   return (
     <div dir="ltr" className="overflow-x-auto my-3 rounded-xl bg-[#030a16] border border-line p-2">
       <svg width={width} height={height} role="img" aria-label="timing diagram" style={{ fontFamily: "ui-monospace, monospace" }}>
-        {/* rising edges: dashed guides and cycle numbers */}
-        {Array.from({ length: ticks / 2 }, (_, k) => (
-          <g key={k}>
-            <line x1={LABEL + 2 * k * TICK} x2={LABEL + 2 * k * TICK} y1={0} y2={rows.length * ROW} stroke="#2b4466" strokeDasharray="3 3" />
-            <text x={LABEL + 2 * k * TICK + 2} y={rows.length * ROW + 14} fill="#7f93b3" fontSize="11">↑{k + 1}</text>
-          </g>
-        ))}
+        {/* Every moment has a visible name under the graph (06/11/2026: he was asked about "tick 3", which was not drawn
+            anywhere, and read the yellow "3" as it): rising edges ↑1 ↑2 ..., falling edges ↓1 ↓2 ... between them. */}
+        {Array.from({ length: ticks }, (_, t) => {
+          const rise = t % 2 === 0, k = Math.floor(t / 2) + 1, x = LABEL + t * TICK;
+          return (
+            <g key={t}>
+              {rise && <line x1={x} x2={x} y1={0} y2={rows.length * ROW} stroke="#2b4466" strokeDasharray="3 3" />}
+              <text x={x} y={rows.length * ROW + 14} textAnchor="middle" fill={rise ? "#9fc3ff" : "#5d6f8c"} fontSize={rise ? 11 : 9}>
+                {rise ? "↑" : "↓"}{k}
+              </text>
+            </g>
+          );
+        })}
         {marks.map((m, i) => (
           <g key={i}>
             <line x1={LABEL + m.tick * TICK} x2={LABEL + m.tick * TICK} y1={0} y2={rows.length * ROW} stroke="#f5b84b" strokeWidth="1.5" />
-            <text x={LABEL + m.tick * TICK + 2} y={9} fill="#f5b84b" fontSize="9">{i + 1}</text>
+            <text x={LABEL + m.tick * TICK + 2} y={9} fill="#f5b84b" fontSize="9">{MARK(i)}</text>
           </g>
         ))}
         {rows.map((r, i) => {
@@ -71,7 +79,7 @@ export default function Wave({ src }: { src: string }) {
           </pattern>
         </defs>
       </svg>
-      {marks.length > 0 && <p className="text-xs text-warn mt-1" dir="rtl">{marks.map((m, i) => `${i + 1}: ${m.label}`).join(" · ")}</p>}
+      {marks.length > 0 && <p className="text-xs text-warn mt-1" dir="rtl">{marks.map((m, i) => `${MARK(i)}: ${m.label}`).join(" · ")}</p>}
       {edges.length > 0 && (
         <details className="mt-1" dir="rtl">
           <summary className="cursor-pointer text-xs text-accent">מה הדלגלג ראה בכל עליית שעון (מחושב)</summary>
