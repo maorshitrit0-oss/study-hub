@@ -556,6 +556,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   sessions say "ללמוד: ..." (היום / מחר / בעוד N ימים) and link to /self - never "להגיש".
 - Board checked 07/11/2026 (session 2): reset key = NRST (leftmost of the 4 red keys, R14), low when pressed; LED1..LED6
   in a column at the right edge (LED6 red). Session 2 sync reset works on the board.
+- Weekly backup (07/11/2026, he asked for it fully automatic): `.github/workflows/backup.yml` (Sunday ~04:00 Israel +
+  dispatch) runs `worker/backup.py dump` (all tables found via the REST root + every storage file), encrypts (AES key
+  wrapped with `backup/backup_pub.pem`) and keeps a pre-release `backup-<date>` (last 8). The private key is ONLY in his
+  Google Drive: "study-hub - מפתח גיבוי (backup_priv.pem)" (file id 1olpLTc84PShiepcPZy98VQWkNLtGJeXy). Restore: docs/BACKUP.md.
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.

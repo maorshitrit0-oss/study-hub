@@ -1,0 +1,59 @@
+# Weekly backup of all his study data (worker/backup.py): every table and every storage file, encrypted with
+# backup/backup_pub.pem and kept as a release "backup-<date>" (last 8 kept). The private key is in his Google Drive
+# ("study-hub - מפתח גיבוי"), never in the repository. Restoring: docs/BACKUP.md.
+name: backup
+
+on:
+  schedule:
+    - cron: "41 1 * * 0"   # Sunday ~03:41-04:41 Israel time
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: backup
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q supabase
+      - name: download everything
+        working-directory: worker
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python backup.py dump "$RUNNER_TEMP/data"
+      - name: pack and encrypt
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          tar -czf data.tgz data
+          openssl rand -out key.bin 32
+          # The file is encrypted with a random key; that key is encrypted with the public key (only his private key opens it).
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in data.tgz -out backup.tgz.enc -pass file:key.bin
+          openssl pkeyutl -encrypt -pubin -inkey "$GITHUB_WORKSPACE/backup/backup_pub.pem" \
+            -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 -in key.bin -out key.bin.enc
+          rm -rf data data.tgz key.bin
+          split -b 1900m -d backup.tgz.enc backup.tgz.enc.part
+          rm backup.tgz.enc
+          ls -la
+      - name: keep as a release (last 8)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          tag="backup-$(date -u +%Y-%m-%d-%H%M)"
+          gh release create "$tag" key.bin.enc backup.tgz.enc.part* --repo "$GITHUB_REPOSITORY" \
+            --title "$tag" --notes "Encrypted weekly backup (worker/backup.py). Restore: docs/BACKUP.md" \
+            --prerelease --latest=false
+          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[] | select(.tag_name | startswith("backup-")) | .tag_name' \
+            | sort -r | tail -n +9 | while read -r old; do gh release delete "$old" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes; done
+          echo "::notice title=Backup::$tag saved"
