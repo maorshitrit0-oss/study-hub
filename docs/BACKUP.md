@@ -11,7 +11,9 @@ storage. The result is encrypted and kept as a GitHub release `backup-<date>` (p
 ## Restore (a Claude session can do it; needs the private key and SUPABASE_URL / SUPABASE_SERVICE_KEY)
 
 ```bash
-gh release download backup-<date> --repo maorshitrit0-oss/study-hub --dir b && cd b
+mkdir b && cd b   # (in a Claude session gh's GraphQL is blocked - download the assets over REST:)
+for a in $(gh api repos/maorshitrit0-oss/study-hub/releases/tags/backup-<date> --jq '.assets[] | "\(.id):\(.name)"'); do
+  gh api -H "Accept: application/octet-stream" repos/maorshitrit0-oss/study-hub/releases/assets/${a%%:*} > ${a#*:}; done
 openssl pkeyutl -decrypt -inkey backup_priv.pem -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
   -in key.bin.enc -out key.bin
 cat backup.tgz.enc.part* | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass file:key.bin | tar -xz
@@ -20,3 +22,6 @@ python ../worker/backup.py restore data      # upserts rows, uploads missing fil
 
 Into a new Supabase project: run the `supabase/*.sql` files first, and create his user (same e-mail) so `user_id`
 matches - rows reference `auth.users`.
+
+First backup 07/11/2026 (backup-2026-11-07-2100): 3,393 rows in 21 tables + 2,136 files (340 MB, 320 MB encrypted);
+downloaded and decrypted with the Drive key in a session - complete.
