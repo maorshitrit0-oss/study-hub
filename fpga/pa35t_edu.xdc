@@ -8,7 +8,7 @@ set_property -dict {PACKAGE_PIN R4 IOSTANDARD DIFF_SSTL15} [get_ports sys_clk_p]
 set_property -dict {PACKAGE_PIN T4 IOSTANDARD DIFF_SSTL15} [get_ports sys_clk_n]
 create_clock -period 5.000 -name sys_clk [get_ports sys_clk_p]
 
-## Reset key (bank 14)
+## Reset key NRST (bank 14) - low when pressed (checked on his board 07/11/2026)
 set_property -dict {PACKAGE_PIN R14 IOSTANDARD LVCMOS33} [get_ports rst_n]
 
 ## LEDs - lit when high (bank 15)

@@ -554,6 +554,8 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Self-study by what he did, not the clock (06/11/2026): "✓ סיימתי" on a session lesson marks its vlsi:<key> task done;
   the home slot shows "✓ סיימת את המפגש של היום" instead of "עכשיו" when no open session is due today; reminders for
   sessions say "ללמוד: ..." (היום / מחר / בעוד N ימים) and link to /self - never "להגיש".
+- Board checked 07/11/2026 (session 2): reset key = NRST (leftmost of the 4 red keys, R14), low when pressed; LED1..LED6
+  in a column at the right edge (LED6 red). Session 2 sync reset works on the board.
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.

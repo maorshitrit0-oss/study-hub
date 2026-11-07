@@ -90,7 +90,7 @@ testbenches; measured latency, resources and accuracy vs. CPU.
 
 /** His board (PuZhi PA35T-EDU manual V1.0); the full pin file is fpga/pa35t_edu.xdc in the repository. */
 export const BOARD_PINS = [
-  "שבב: xc7a35tfgg484-2. שעון: 200MHz דיפרנציאלי R4/T4 (צריך IBUFDS). כפתור reset: R14.",
+  "שבב: xc7a35tfgg484-2. שעון: 200MHz דיפרנציאלי R4/T4 (צריך IBUFDS). כפתור reset (NRST, השמאלי מבין 4 הכפתורים האדומים): R14, 0 כשלוחצים (נבדק על הלוח).",
   "6 לדים (דולקים ב-1): J21 J19 H19 K18 K19 L19. 3 כפתורים (0 כשלוחצים): W21 Y21 U21. 16 מתגים: H13 G13 G15 G16 J14 H14 G17 G18 J15 H15 H17 H18 J22 H22 H20 G20.",
   "UART (CH340, Type-C): FPGA_TX=P15, FPGA_RX=P14. שתי תצוגות של 4 ספרות (7-segment): מקטעים a-g,dp ובחירת ספרה - בקובץ הפינים.",
 ];
