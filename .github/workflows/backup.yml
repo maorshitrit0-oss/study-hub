@@ -35,7 +35,7 @@ jobs:
           set -euo pipefail
           cd "$RUNNER_TEMP"
           tar -czf data.tgz data
-          openssl rand -out key.bin 32
+          openssl rand -hex 32 > key.bin   # text (a binary key can hold a newline, which -pass file: cuts at)
           # The file is encrypted with a random key; that key is encrypted with the public key (only his private key opens it).
           openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in data.tgz -out backup.tgz.enc -pass file:key.bin
           openssl pkeyutl -encrypt -pubin -inkey "$GITHUB_WORKSPACE/backup/backup_pub.pem" \
