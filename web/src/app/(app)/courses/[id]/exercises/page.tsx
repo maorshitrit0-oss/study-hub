@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BackLink from "@/components/BackLink";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import Exercises from "@/components/Exercises";
@@ -24,7 +25,7 @@ export default async function CourseExercises({ params, searchParams }: PageProp
 
   return (
     <div className="space-y-4">
-      <Link href={`/courses/${id}`} className="text-sm text-accent">→ {course.name}</Link>
+      <BackLink href={`/courses/${id}`}>→ {course.name}</BackLink>
       <h1 className="text-2xl font-bold">✍️ תרגילים</h1>
       <div className="flex gap-2 flex-wrap">
         {weeks.map((x) => (

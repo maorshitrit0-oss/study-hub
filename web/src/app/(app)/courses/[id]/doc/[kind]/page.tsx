@@ -1,4 +1,4 @@
-import Link from "next/link";
+import BackLink from "@/components/BackLink";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import Chapter from "@/components/Chapter";
@@ -22,8 +22,8 @@ export default async function CourseDoc({ params }: PageProps<"/courses/[id]/doc
 
   return (
     <div className="space-y-4">
+      <BackLink href={`/courses/${id}`}>→ {course.name}</BackLink>
       <div className="print:hidden space-y-2">
-        <Link href={`/courses/${id}`} className="text-sm text-accent">→ {course.name}</Link>
         <h1 className="text-2xl font-bold">{DOCS[kind as DocKind].title}</h1>
         {pdf?.signedUrl && (
           <a href={pdf.signedUrl} className="btn w-full text-center block">⬇️ PDF להדפסה (שני עמודים, מתעדכן לבד)</a>

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import BackLink from "@/components/BackLink";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import Chat from "@/components/Chat";
@@ -17,7 +17,7 @@ export default async function ChatPage({ params, searchParams }: PageProps<"/cou
   if (course?.kind === "self") redirect(`/self/${id}/chat${threadId ? `?t=${threadId}` : ""}`);
   return (
     <div className="space-y-3">
-      <Link href={`/courses/${id}`} className="text-sm text-accent">→ {course?.name}</Link>
+      <BackLink href={`/courses/${id}`}>→ {course?.name}</BackLink>
       <h1 className="text-xl font-bold">צ&apos;אט · {course?.name}</h1>
       <ChatThreads courseId={id} base={`/courses/${id}/chat`} threads={threads} current={threadId} />
       <Chat key={threadId ?? "main"} courseId={id} userId={userId} threadId={threadId} initial={(history ?? []).reverse()} isLab={course?.kind === "lab"} />

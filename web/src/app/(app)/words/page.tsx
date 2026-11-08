@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BackLink from "@/components/BackLink";
 import { requireUser } from "@/lib/supabase/server";
 import Words from "@/components/Words";
 import BuildGlossary from "@/components/BuildGlossary";
@@ -24,7 +25,7 @@ export default async function WordsPage({ searchParams }: PageProps<"/words">) {
 
   return (
     <div className="space-y-4">
-      {course && <Link href={`/courses/${course.id}`} className="text-sm text-accent">→ {course.name}</Link>}
+      {course && <BackLink href={`/courses/${course.id}`}>→ {course.name}</BackLink>}
       <h1 className="text-2xl font-bold">מילים באנגלית{course ? ` · ${course.name}` : ""}</h1>
       <p className="text-sm text-muted">המונחים באנגלית מהחומר של הקורסים, עם התרגום וההסבר בעברית. כל פרק חדש מוסיף את המילים שלו.</p>
 

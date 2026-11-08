@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BackLink from "@/components/BackLink";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import Chapter from "@/components/Chapter";
@@ -104,7 +105,7 @@ export default async function Practical({ params, searchParams }: PageProps<"/co
 
   return (
     <div className="space-y-4">
-      <Link href={`/courses/${id}`} className="text-sm text-accent">→ {course.name}</Link>
+      <BackLink href={`/courses/${id}`}>→ {course.name}</BackLink>
       <h1 className="text-2xl font-bold">🧪 מבחן מעשי</h1>
       <div className="flex gap-2 flex-wrap">{tab("practice", "תרגול")}{tab("midterm", "מבחן אמצע (1-5)")}{tab("final", "מבחן סוף")}</div>
       {!!bank?.hints.length && (

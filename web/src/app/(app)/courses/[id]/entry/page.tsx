@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BackLink from "@/components/BackLink";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import Quiz from "@/components/Quiz";
@@ -46,7 +47,7 @@ export default async function EntryQuiz({ params, searchParams }: PageProps<"/co
 
   return (
     <div className="space-y-4">
-      <Link href={`/courses/${id}`} className="text-sm text-accent">→ {course.name}</Link>
+      <BackLink href={`/courses/${id}`}>→ {course.name}</BackLink>
       <div className="flex justify-between items-center gap-2">
         <h1 className="text-2xl font-bold">🎯 בוחן כניסה</h1>
         <Link href={`/courses/${id}/entry/print`} className="btn-ghost text-sm">📄 קובץ כל השאלות</Link>

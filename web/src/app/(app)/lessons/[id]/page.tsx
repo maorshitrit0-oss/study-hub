@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BackLink from "@/components/BackLink";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import AutoRefresh from "@/components/AutoRefresh";
@@ -85,8 +86,8 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
 
   return (
     <article className="space-y-5">
+      <BackLink href={`/courses/${lesson.course_id}`}>→ {lesson.courses.name}</BackLink>
       <header>
-        <Link href={`/courses/${lesson.course_id}`} className="text-sm text-accent">→ {lesson.courses.name}</Link>
         <h1 className="text-2xl font-bold mt-1">{lessonName(lesson)}{lesson.title && lesson.kind !== "web" ? ` · ${lesson.title}` : ""}</h1>
         {lesson.topics?.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">{lesson.topics.map((t) => <span key={t} className="chip">{t}</span>)}</div>
