@@ -577,6 +577,17 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   DONE: waves practice sheets 1 and 2 (14 exercises; official-answer slips flagged ⚠️ in the solutions).
   TODO waves: sheet 3 (5), lecture PDFs 1-3 sheet exercises (12), lesson exercises (15). Then linear circuits, others.
   Pending his approval: a weekly "core" set of 3-5 exercises, the rest folded as an optional bank.
+- His weekly routine (08/11/2026): Sun waves (podcast + video first, then the summary, then practice), Mon micro,
+  Tue lab 2 + digital circuits, Wed Java, Thu linear circuits. He reads summaries/chapters and learns by reading full
+  solutions; practises 3-5 core exercises a week (not 20). ESP32 for micro arrived.
+- Auto studio: hub.auto_studio - every new LECTURE of a course matching AUTO_STUDIO (waves) gets a podcast + video
+  (lesson_media rows + media.yml via course_site.dispatch_inputs; only where GITHUB_TOKEN exists: process/queue runs).
+- Lab 2 report task: created on the lab day for that experiment, due the Monday after at 20:00 ("write right after
+  the lab -> partner -> hand in by Monday evening"); old open tasks are moved to that rule (labTasks.ts).
+- MCQ: conceptual only; a question that needs a number carries its formula (author.SYSTEM / VLSI_TASK).
+- Past exams: waves 20.03.24 + solution, 25.07.24, solution of 05.09.24 uploaded. Pattern: oblique TE plane wave at
+  an interface (both exams, 40-50 pts) + transmission lines (stub/Smith/VSWR or bounce diagram) + line parameters.
+  University Drive with all exams: https://drive.google.com/drive/folders/1kIkcJQOKA0k1xCQpC0EcN6qmwJZGWHj6
 - fetch/* branches carry web/vercel.json (ignoreCommand exit 0) - Vercel had mailed him "Preview deployment failed" for them.
 
 ## Open items

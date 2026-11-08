@@ -545,6 +545,17 @@ def dispatch(lesson_id, author="gemini", workflow="process.yml"):
     return "started" if r.ok else f"GitHub {r.status_code}: {r.text[:200]}"
 
 
+def dispatch_inputs(workflow, inputs):
+    """Starts any workflow with the given inputs (needs GITHUB_TOKEN with actions: write)."""
+    repo, token = os.environ.get("GITHUB_REPOSITORY"), os.environ.get("GITHUB_TOKEN")
+    if not repo or not token:
+        return "no GITHUB_TOKEN - not started"
+    r = requests.post(f"https://api.github.com/repos/{repo}/actions/workflows/{workflow}/dispatches",
+                      headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+                      json={"ref": "main", "inputs": inputs}, timeout=30)
+    return "started" if r.ok else f"GitHub {r.status_code}: {r.text[:200]}"
+
+
 def previous_lecture(sb, lesson):
     """Last year's lecture with the same number (transcribed for comparison; started here if it is not yet)."""
     if lesson["kind"] != "lecture" or not lesson.get("number"):

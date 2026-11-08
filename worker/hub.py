@@ -307,6 +307,29 @@ def answered(job):
     return bool(job.sb.table("attempts").select("id").in_("question_id", ids[:500]).limit(1).execute().data)
 
 
+# Courses where every new lecture gets a podcast and a video by itself (his request 08/11/2026: he listens to the
+# podcast and watches the video first, then reads). Gemini TTS - the free quota is shared with the chapters.
+AUTO_STUDIO = re.compile(r"גלים ומערכות")
+
+
+def auto_studio(job):
+    """Once per lecture: a podcast and a video (lesson_media rows + media.yml), never twice for the same lesson."""
+    les, course = job.lesson, job.course
+    if les.get("kind") != "lecture" or not AUTO_STUDIO.search(course.get("name") or "") \
+            or (les.get("transcript") or "").startswith(course_site.SITE_NOTE) or os.environ.get("QUIET"):
+        return
+    try:
+        have = job.sb.table("lesson_media").select("kind").contains("lesson_ids", [les["id"]]).execute().data
+        for kind in ("podcast", "video"):
+            if any(m["kind"] == kind for m in have):
+                continue
+            row = job.sb.table("lesson_media").insert({"user_id": les["user_id"], "course_id": course["id"], "kind": kind,
+                                                       "lesson_ids": [les["id"]]}).execute().data[0]
+            print(f"studio {kind}: {course_site.dispatch_inputs('media.yml', {'media_id': row['id']})}", flush=True)
+    except Exception as e:  # noqa: BLE001 - the chapter is saved; the studio is an extra
+        print(f"::warning title=Auto studio::{str(e)[:200]}", flush=True)
+
+
 def save_chapter(job, ch, by):
     ch = author.validate(ch)
     short = bool(ch.get("exercises")) or (by != "claude" and author.summary_mode(job.lesson, job.mode, job.course))
@@ -355,6 +378,7 @@ def save_chapter(job, ch, by):
     except Exception as e:  # noqa: BLE001
         print(f"structure mark not saved: {e}")
     print(f"published: {count}", flush=True)
+    auto_studio(job)
     if (job.lesson.get("transcript") or "").startswith(course_site.SITE_NOTE) or os.environ.get("QUIET"):
         return  # last year's material from the course site / a background fill: no push for each
     notify.send(job.sb, job.lesson["user_id"], f"✅ {job.label()} מוכן" + ("" if short else " לקריאה"),
