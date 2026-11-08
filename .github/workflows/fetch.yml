@@ -39,7 +39,7 @@ jobs:
           fi
           tar czf /tmp/l.tgz -C /tmp lesson
           echo "$PUBKEY" | base64 -d > /tmp/pub.pem
-          openssl rand -out /tmp/k.bin 32
+          openssl rand -hex 32 > /tmp/k.bin   # text: -pass file: reads one line
           mkdir -p /tmp/out
           openssl enc -aes-256-cbc -pbkdf2 -salt -in /tmp/l.tgz -out /tmp/out/l.enc -pass file:/tmp/k.bin
           openssl pkeyutl -encrypt -pubin -inkey /tmp/pub.pem -in /tmp/k.bin -out /tmp/out/k.enc

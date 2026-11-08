@@ -481,7 +481,23 @@ def cmd_materials(match, title_rx, out_dir):
                 (out / Path(m["storage_path"]).name).write_bytes(sb.storage.from_(BUCKET).download(m["storage_path"]))
             except Exception as e:  # noqa: BLE001
                 listing.append(f"   download failed: {e}")
-    lessons = sb.table("lessons").select("id, kind, number, title, status").eq("course_id", course["id"]).order("created_at").execute().data
+    lessons = sb.table("lessons").select("id, kind, number, title, status, chapter_md, summary_md").eq("course_id", course["id"]).order("created_at").execute().data
+    # Every ready lesson's text and exercises, and the course sheets - for a sheet Claude writes from the whole course.
+    (out / "lessons").mkdir(exist_ok=True)
+    for l in lessons:
+        if l["status"] != "ready":
+            continue
+        ex = sb.table("exercises").select("title, question_md, solution_md").eq("lesson_id", l["id"]).order("ord").execute().data
+        body = (l.get("chapter_md") or "") + ("\n\n# תקציר\n" + l["summary_md"] if l.get("summary_md") and l["summary_md"] != l.get("chapter_md") else "")
+        body += "".join(f"\n\n# תרגיל: {x['title']}\n{x['question_md']}\n## פתרון\n{x.get('solution_md') or ''}" for x in ex)
+        (out / "lessons" / f"{l['kind']}_{l.get('number') or 0}_{l['id'][:8]}.md").write_text(body, encoding="utf-8")
+    for name in ("formula_sheet.md", "formula_notes.json"):
+        try:
+            (out / name).write_bytes(sb.storage.from_(BUCKET).download(f"{course['user_id']}/materials/{course['id']}/{name}"))
+        except Exception:  # noqa: BLE001
+            pass
+    for l in lessons:
+        l.pop("chapter_md", None), l.pop("summary_md", None)
     (out / "course.json").write_text(json.dumps({"course": course, "files": listing, "lessons": lessons}, ensure_ascii=False,
                                                 indent=1, default=str), encoding="utf-8")
 
