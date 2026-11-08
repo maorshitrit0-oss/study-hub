@@ -131,13 +131,25 @@ def tts(lines, work, n):
         "responseModalities": ["AUDIO"],
         "speechConfig": {"multiSpeakerVoiceConfig": {"speakerVoiceConfigs": [
             {"speaker": name, "voiceConfig": {"prebuiltVoiceConfig": {"voiceName": v}}} for name, v in VOICES.items()]}}}}
+    def body_for(model):
+        """2.5 models take the whole dialogue as one text; 3.x models want one part per line, each marked with its
+        speaker (speechMetadata.speaker) and the style as a system instruction (API error text, 08/11/2026)."""
+        if not model.startswith("gemini-3"):
+            return body
+        parts = []
+        for ln in lines:
+            who, _, said = ln.partition(":")
+            parts.append({"text": said.strip(), "speechMetadata": {"speaker": who.strip() if who.strip() in VOICES else "Noa"}})
+        return {"systemInstruction": {"parts": [{"text": "קראו את השיחה בעברית, בטון חם, טבעי ולימודי."}]},
+                "contents": [{"role": "user", "parts": parts}], "generationConfig": body["generationConfig"]}
+
     last = None
     for key in author._keys():
         for model in TTS_MODELS:
             for attempt in range(3):
                 try:
                     r = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-                                      params={"key": key}, json=body, timeout=600)
+                                      params={"key": key}, json=body_for(model), timeout=600)
                     if not r.ok:
                         raise RuntimeError(f"{r.status_code} {r.text[:300]}")
                     part = r.json()["candidates"][0]["content"]["parts"][0]
