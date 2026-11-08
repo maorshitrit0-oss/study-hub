@@ -571,6 +571,12 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Exercise fixes (08/11/2026): `hub.py exercises <course> chapters/<fixes>.json` (publish.yml inspect=exercises,
   chapter=<fixes json>) replaces one exercise's text, keeping done_at. Waves lecture 1: Gemini had invented the class
   exercise's field (x̂E0cos(ωt-kz)); the slide's is E0(yx̂-xŷ)cos ωt -> H=(2E0/ωμ)sin ωt ẑ, J=ωεE0(yx̂-xŷ)sin ωt.
+- Exercise audit (his request 08/11/2026: "check every exercise in every course", order waves -> linear circuits -> rest;
+  solutions written out in full - he learns by reading solutions). `hub.py materials` now also writes exercises.json
+  (all exercises of the course with ids); `hub.py exercises` fixes by id / adds. Source scripts: chapters/fixes/*.py.
+  DONE: waves practice sheets 1 and 2 (14 exercises; official-answer slips flagged ⚠️ in the solutions).
+  TODO waves: sheet 3 (5), lecture PDFs 1-3 sheet exercises (12), lesson exercises (15). Then linear circuits, others.
+  Pending his approval: a weekly "core" set of 3-5 exercises, the rest folded as an optional bank.
 - fetch/* branches carry web/vercel.json (ignoreCommand exit 0) - Vercel had mailed him "Preview deployment failed" for them.
 
 ## Open items
