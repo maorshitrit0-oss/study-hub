@@ -376,8 +376,11 @@ def render_slides(slides, pages, work, katex="https://cdn.jsdelivr.net/npm/katex
 <style>{SLIDE_CSS}</style></head><body><h1>{h.escape(sl.get('title') or '')}</h1>
 <div class="row"><div class="txt"><ul>{bullets}</ul>{fdiv}</div>{img}</div><div class="n">{i + 1}/{len(slides)}</div>
 <script>const f=document.getElementById('f'); if(f) {{ try {{ katex.render(f.textContent, f, {{displayMode:true, throwOnError:false}}); }} catch(e) {{}} }}
-document.fonts.ready.then(()=>document.body.dataset.ready='1');</script></body></html>""", wait_until="networkidle")
-            page.wait_for_selector("body[data-ready='1']", timeout=60000)
+document.fonts.ready.then(()=>document.body.dataset.ready='1');</script></body></html>""", wait_until="load")
+            try:  # KaTeX and the font from the CDN; a slow CDN must not stop the video
+                page.wait_for_function("document.body.dataset.ready === '1'", timeout=20000)
+            except Exception as e:  # noqa: BLE001
+                print(f"slide {i + 1}: not fully ready ({str(e)[:80]}) - shot anyway", flush=True)
             png = work / f"xs_{i:03d}.png"
             page.screenshot(path=str(png))
             out.append(png)
