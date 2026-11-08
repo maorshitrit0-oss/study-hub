@@ -125,16 +125,24 @@ def candidates(sb):
     return sorted(waiting + quota + busy, key=later) + fill
 
 
+ENGINE_SINCE = "2026-11-08T17:20"
+
+
 def retry_studio(sb):
     """Podcasts / videos that stopped on the daily quota go again once Gemini is back (a few per run)."""
     import course_site
     try:
-        rows = (sb.table("lesson_media").select("id, kind, error, course_id").eq("status", "error").order("created_at").execute().data)
+        rows = (sb.table("lesson_media").select("id, kind, error, course_id, lesson_ids, created_at").eq("status", "error").order("created_at").execute().data)
+        ready = sb.table("lesson_media").select("kind, lesson_ids, created_at").eq("status", "ready").execute().data
         names = {c["id"]: c["name"] or "" for c in sb.table("courses").select("id, name").execute().data}
     except Exception:  # noqa: BLE001
         return
     # Only items that stopped on the quota (requested by him or for him); a video waits for the natural Gemini voice.
     rows = [r for r in rows if names.get(r["course_id"])]
+    # not when the same lessons already have a ready one of that kind from the current engine (made after it failed, or
+    # after ENGINE_SINCE: the subtitled, synced video he approved 08/11/2026) - a duplicate would waste the voice quota
+    rows = [r for r in rows if not any(x["kind"] == r["kind"] and sorted(x.get("lesson_ids") or []) == sorted(r.get("lesson_ids") or [])
+                                       and (x["created_at"] > r["created_at"] or x["created_at"] >= ENGINE_SINCE) for x in ready)]
     for m in [r for r in rows if any(w in (r.get("error") or "") for w in ("מכסה", "עמוסים"))][:2]:
         sb.table("lesson_media").update({"status": "queued", "error": None}).eq("id", m["id"]).execute()
         print(f"::notice title=Studio again::{m['kind']} {m['id'][:8]}: {course_site.dispatch_inputs('media.yml', {'media_id': m['id']})}", flush=True)
