@@ -582,7 +582,8 @@ def cmd_studio_list(drop=""):
     """Every podcast / video with its course, status and length; ids in `drop` (comma list) are removed (row + file)."""
     sb = db()
     names = {c["id"]: c["name"] for c in sb.table("courses").select("id, name").execute().data}
-    for m in sb.table("lesson_media").select("id, course_id, kind, status, duration_sec, storage_path, error, created_at").order("created_at").execute().data:
+    nums = {l["id"]: f"{l['kind'][:3]}{l.get('number')}" for l in sb.table("lessons").select("id, kind, number").execute().data}
+    for m in sb.table("lesson_media").select("id, course_id, kind, status, duration_sec, storage_path, error, created_at, lesson_ids").order("created_at").execute().data:
         if drop and m["id"][:8] in drop.split(","):
             if m.get("storage_path"):
                 sb.storage.from_(BUCKET).remove([m["storage_path"]])
@@ -598,7 +599,8 @@ def cmd_studio_list(drop=""):
                 real = f" file={_m.duration(str(p)):.0f}s size={p.stat().st_size // 1024}KB"
             except Exception as e:  # noqa: BLE001
                 real = f" file? {str(e)[:80]}"
-        print(f"::notice title=Studio {m['id'][:8]}::{names.get(m['course_id'])} | {m['kind']} | {m['status']} | "
+        print(f"::notice title=Studio {m['id'][:8]}::{m['id'][:8]} {','.join(nums.get(x, '?') for x in m.get('lesson_ids') or [])} | "
+              f"{names.get(m['course_id'])} | {m['kind']} | {m['status']} | "
               f"db={m.get('duration_sec')}s{real} | {m['created_at'][:16]} | {(m.get('error') or '')[:80]}", flush=True)
 
 
