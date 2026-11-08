@@ -595,6 +595,14 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   "פתרונות שאלות מבחן מפולגות" (hub.py drive, publish inspect=drive).
 - Every page (except home) starts with components/BackLink: sticky "→ ..." at the top while scrolling (his request
   08/11/2026). Course page -> all courses; top-level pages -> home. He doesn't use the chats (too slow).
+- Core exercises (08/11/2026): storage <user>/materials/<course>/exercise_core.json {weeks:{n:[{id,why}]}, exam_note}
+  (chapters/<course>_core.json, publish inspect=core). The exercises page shows "⭐ הליבה של שבוע N" + folded bank.
+  Waves core weeks 1-3 set (11 exercises) and all 11 re-solved in full. NEXT: core for the other courses (micro, digital,
+  Java, linear), checking each against its sources; then exam characterisation per course; then the bank.
+- Studio: edge-tts (Microsoft Hila/Avri Hebrew voices) when Gemini TTS quota is gone; video from the lecture's PDF
+  ("הרצאה N" in course files, PyMuPDF) when no board snapshots. Linear-circuits media deleted at his request.
+- Reminder task: create GitHub repo "projects" by Fri 13/11 (session cannot create repos; files ready in scratchpad -
+  regenerate from fpga/ + PROJECT_SPEC if lost). Then add_repo(push) and move fpga/ there.
 - fetch/* branches carry web/vercel.json (ignoreCommand exit 0) - Vercel had mailed him "Preview deployment failed" for them.
 
 ## Open items
