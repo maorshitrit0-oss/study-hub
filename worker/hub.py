@@ -519,6 +519,39 @@ def cmd_exercises(match, path):
         print(f"::notice title=Exercise fixed::{fx['kind']} {fx['number']}: {fx.get('title') or hit[0]['title']}", flush=True)
 
 
+def cmd_drive(match, path):
+    """Course files that live in a public Drive folder (e.g. the students' past-exam folder): a materials row per file
+    (storage_path "drive:<id>", as the app's "add from Drive" does), once each. JSON list of {id, title, kind}."""
+    sb = db()
+    course = find_course(sb, match)
+    have = {m["storage_path"] for m in sb.table("materials").select("storage_path").eq("course_id", course["id"]).execute().data}
+    for f in json.loads(Path(path).read_text(encoding="utf-8")):
+        sp = f"drive:{f['id']}"
+        if sp in have:
+            print(f"already there: {f['title']}", flush=True)
+            continue
+        sb.table("materials").insert({"user_id": course["user_id"], "course_id": course["id"], "title": f["title"],
+                                      "kind": f.get("kind", "other"), "storage_path": sp, "mime": "application/pdf"}).execute()
+        print(f"::notice title=Drive file added::{f['title']}", flush=True)
+
+
+def cmd_tts():
+    """Which Gemini speech (TTS) models exist for our keys now, and does a two-voice Hebrew line work on each."""
+    from google import genai
+    import studio
+    client = genai.Client(api_key=author._keys()[0])
+    names = [m.name.split("/")[-1] for m in client.models.list() if "tts" in m.name.lower() or "audio" in m.name.lower()]
+    print(f"::notice title=TTS models::{', '.join(names) or 'none'}", flush=True)
+    work = Path(tempfile.mkdtemp())
+    for name in names[:8]:
+        studio.TTS_MODELS[:] = [name]
+        try:
+            studio.tts(["נועה: שלום, זו בדיקה.", "דן: מעולה, שומעים אותך."], work, 0)
+            print(f"::notice title=TTS ok::{name}", flush=True)
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=TTS fail {name}::{str(e)[:250]}", flush=True)
+
+
 def cmd_sheet(match, path):
     """His course help sheet ("📄 דף נוסחאות" / Java syntax sheet) written by Claude; docs.py later only adds to it."""
     import docs
@@ -664,9 +697,11 @@ if __name__ == "__main__":
     p.add_argument("title"); p.add_argument("chapter_json")
     p = sub.add_parser("sheet"); p.add_argument("course"); p.add_argument("md")
     p = sub.add_parser("exercises"); p.add_argument("course"); p.add_argument("fixes_json")
+    p = sub.add_parser("drive"); p.add_argument("course"); p.add_argument("files_json")
     sub.add_parser("flat")
     sub.add_parser("stuck")
     sub.add_parser("ping")
+    sub.add_parser("tts")
     p = sub.add_parser("materials"); p.add_argument("course"); p.add_argument("title"); p.add_argument("out_dir")
     p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
@@ -680,10 +715,14 @@ if __name__ == "__main__":
         cmd_fetch(a.lesson_id, a.out_dir)
     elif a.cmd == "add":
         cmd_add(a.course, a.kind, a.number, a.title, a.chapter_json)
+    elif a.cmd == "drive":
+        cmd_drive(a.course, a.files_json)
     elif a.cmd == "exercises":
         cmd_exercises(a.course, a.fixes_json)
     elif a.cmd == "materials":
         cmd_materials(a.course, a.title, a.out_dir)
+    elif a.cmd == "tts":
+        cmd_tts()
     elif a.cmd == "ping":
         cmd_ping()
     elif a.cmd == "stuck":
