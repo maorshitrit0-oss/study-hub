@@ -125,6 +125,18 @@ def candidates(sb):
     return sorted(waiting + quota + busy, key=later) + fill
 
 
+def retry_studio(sb):
+    """Podcasts / videos that stopped on the daily quota go again once Gemini is back (a few per run)."""
+    import course_site
+    try:
+        rows = (sb.table("lesson_media").select("id, kind, error").eq("status", "error").order("created_at").execute().data)
+    except Exception:  # noqa: BLE001
+        return
+    for m in [r for r in rows if "מכסה" in (r.get("error") or "") or "עמוסים" in (r.get("error") or "")][:3]:
+        sb.table("lesson_media").update({"status": "queued", "error": None}).eq("id", m["id"]).execute()
+        print(f"::notice title=Studio again::{m['kind']} {m['id'][:8]}: {course_site.dispatch_inputs('media.yml', {'media_id': m['id']})}", flush=True)
+
+
 def write_summary(sb, r):
     md = author.summary_from_chapter(r["chapter_md"])
     if len(md) > 200:
@@ -151,6 +163,7 @@ def run():
                     break
         print("::notice title=Queue::Gemini quota used up earlier today - fill-ins wait for the reset", flush=True)
         return "quota"
+    retry_studio(sb)
     start, done, why = time.time(), [], "empty"
     for r, mode in candidates(sb):
         if time.time() - start > BUDGET_SEC:
