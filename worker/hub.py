@@ -309,7 +309,7 @@ def answered(job):
 
 # Courses where every new lecture gets a podcast and a video by itself (his request 08/11/2026: he listens to the
 # podcast and watches the video first, then reads). Gemini TTS - the free quota is shared with the chapters.
-AUTO_STUDIO = re.compile(r"גלים ומערכות")
+AUTO_STUDIO = re.compile(r"(?!x)x")  # off (08/11/2026): he found our videos/podcasts poor - NotebookLM instead; was r"גלים ומערכות"
 
 
 def auto_studio(job):
