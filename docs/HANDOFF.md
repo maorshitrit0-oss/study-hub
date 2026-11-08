@@ -597,8 +597,15 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   08/11/2026). Course page -> all courses; top-level pages -> home. He doesn't use the chats (too slow).
 - Core exercises (08/11/2026): storage <user>/materials/<course>/exercise_core.json {weeks:{n:[{id,why}]}, exam_note}
   (chapters/<course>_core.json, publish inspect=core). The exercises page shows "⭐ הליבה של שבוע N" + folded bank.
-  Waves core weeks 1-3 set (11 exercises) and all 11 re-solved in full. NEXT: core for the other courses (micro, digital,
-  Java, linear), checking each against its sources; then exam characterisation per course; then the bank.
+  Waves core weeks 1-3 set (11 exercises) and all 11 re-solved in full. Micro core weeks 1-3 set (10) from the two
+  exam papers (תשפ"ו מועד א/ב: 90 min, no formula sheet, 6 MCQ x10 + 2 code questions x20); 7 of them re-solved.
+  NEXT: core for digital circuits, Java, linear circuits (same recipe: fetch `files:<course>:<regex>` -> exercises.json,
+  pick 3-5/week by the exams, chapters/fixes/<course>_core.py -> publish inspect=exercises + inspect=core);
+  then exam characterisation per course; then the bank.
+- Explainer video (studio.make_explainer): 12-18 slides, KaTeX formulas (local KaTeX in media.yml), matplotlib diagram
+  per slide (model-written code run with no env), worked-example steps revealed one by one, ONE natural Gemini voice
+  (narrate(): a few slides per TTS request; no edge fallback - fails on quota and queue retry_studio redoes it).
+  Free Gemini image models are limit 0. Waves lectures 1-3 videos made 08/11 with this engine.
 - Studio: edge-tts (Microsoft Hila/Avri Hebrew voices) when Gemini TTS quota is gone; video from the lecture's PDF
   ("הרצאה N" in course files, PyMuPDF) when no board snapshots. Linear-circuits media deleted at his request.
 - Reminder task: create GitHub repo "projects" by Fri 13/11 (session cannot create repos; files ready in scratchpad -
