@@ -544,6 +544,29 @@ def cmd_tts():
     print(f"::notice title=All models ({len(allm)})::{', '.join(allm)[:3500]}", flush=True)
     names = [n for n in allm if "tts" in n.lower() or "audio" in n.lower() or "speech" in n.lower()]
     names = names or list(studio.TTS_MODELS)
+    import requests
+    import google.genai as gg
+    print(f"::notice title=SDK::google-genai {getattr(gg, '__version__', '?')}; client has interactions: {hasattr(client, 'interactions')}", flush=True)
+    key = author._keys()[0]
+    single = {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": "Kore"}}}
+    probes = [
+        ("v1beta", "gemini-3.8-flash-tts", {"responseModalities": ["AUDIO"], "speechConfig": single}),
+        ("v1alpha", "gemini-3.8-flash-tts", {"responseModalities": ["AUDIO"], "speechConfig": single}),
+        ("v1beta", "gemini-3.8-flash-tts", {"responseModalities": ["AUDIO"]}),
+        ("v1beta", "gemini-omni-flash-preview", {"responseModalities": ["AUDIO"]}),
+        ("v1beta", "gemini-omni-flash-preview", {"responseModalities": ["AUDIO"], "speechConfig": single}),
+    ]
+    for ver, model, gc in probes:
+        r = requests.post(f"https://generativelanguage.googleapis.com/{ver}/models/{model}:generateContent?key={key}",
+                          json={"contents": [{"parts": [{"text": "אמור בעברית: שלום, זו בדיקה."}]}], "generationConfig": gc}, timeout=120)
+        body = r.text
+        ok = '"inlineData"' in body
+        print(f"::notice title=probe {ver} {model} {list(gc)}::{r.status_code} audio={ok} {body[:300] if not ok else ''}", flush=True)
+    for ep in ("v1beta/interactions", "v1alpha/interactions"):
+        r = requests.post(f"https://generativelanguage.googleapis.com/{ep}?key={key}",
+                          json={"model": "gemini-3.8-flash-tts", "input": "שלום, זו בדיקה.", "response_modalities": ["AUDIO"],
+                                "generation_config": {"speech_config": [{"voice": "Kore", "language": "he"}]}}, timeout=120)
+        print(f"::notice title=probe {ep}::{r.status_code} {r.text[:400]}", flush=True)
     work = Path(tempfile.mkdtemp())
     for name in names[:8]:
         studio.TTS_MODELS[:] = [name]
