@@ -121,24 +121,27 @@ def gen_text(system, prompt):
 
 
 def tts(lines, work, n):
-    """Records one chunk of 'Noa: ...' lines with two voices; returns a WAV path."""
-    from google import genai
-    from google.genai import types
+    """Records one chunk of 'Noa: ...' lines with two voices; returns a WAV path.
+    Plain REST, not the SDK: google-genai 3.0 sends speech_config in a shape the API rejects
+    ("Unknown name speechConfig at generation_config", his screenshot 08/11/2026); the REST body below works."""
+    import base64
+    import requests
     text = "קראו את השיחה הבאה בעברית, בטון חם, טבעי ולימודי:\n" + "\n".join(lines)
-    cfg = types.GenerateContentConfig(
-        response_modalities=["AUDIO"],
-        speech_config=types.SpeechConfig(multi_speaker_voice_config=types.MultiSpeakerVoiceConfig(
-            speaker_voice_configs=[types.SpeakerVoiceConfig(
-                speaker=name, voice_config=types.VoiceConfig(prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=v)))
-                for name, v in VOICES.items()])))
+    body = {"contents": [{"parts": [{"text": text}]}], "generationConfig": {
+        "responseModalities": ["AUDIO"],
+        "speechConfig": {"multiSpeakerVoiceConfig": {"speakerVoiceConfigs": [
+            {"speaker": name, "voiceConfig": {"prebuiltVoiceConfig": {"voiceName": v}}} for name, v in VOICES.items()]}}}}
     last = None
     for key in author._keys():
-        client = genai.Client(api_key=key)
         for model in TTS_MODELS:
             for attempt in range(3):
                 try:
-                    resp = client.models.generate_content(model=model, contents=text, config=cfg)
-                    pcm = resp.candidates[0].content.parts[0].inline_data.data
+                    r = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+                                      params={"key": key}, json=body, timeout=600)
+                    if not r.ok:
+                        raise RuntimeError(f"{r.status_code} {r.text[:300]}")
+                    part = r.json()["candidates"][0]["content"]["parts"][0]
+                    pcm = base64.b64decode(part["inlineData"]["data"])
                     raw = work / f"chunk_{n:03d}.pcm"
                     raw.write_bytes(pcm)
                     wav = work / f"chunk_{n:03d}.wav"
@@ -146,10 +149,10 @@ def tts(lines, work, n):
                     return wav
                 except Exception as e:  # noqa: BLE001
                     last = e
-                    if author._is(e, "UNAVAILABLE", "503", "overloaded", "disconnected", "timed out", "Connection reset") and attempt < 2:
+                    if author._is(e, "UNAVAILABLE", "503", "500", "overloaded", "disconnected", "timed out", "Connection reset") and attempt < 2:
                         time.sleep(5 * (attempt + 1) ** 2)
                         continue
-                    if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota", "NOT_FOUND", "404", "not supported", "INVALID_ARGUMENT"):
+                    if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota", "NOT_FOUND", "404", "not supported", "INVALID_ARGUMENT", "400"):
                         print(f"tts {model}: {str(e)[:150]} -> next", flush=True)
                         break
                     raise
