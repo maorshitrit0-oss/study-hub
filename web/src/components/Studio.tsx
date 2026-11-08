@@ -75,8 +75,8 @@ export default function Studio({ courseId, lessons, items, canVideo = false }: {
               </div>
               {(m.status === "queued" || m.status === "processing") && <p className="text-sm text-warn animate-pulse">{m.progress ?? "בתור..."}</p>}
               {m.status === "error" && <p className="text-sm text-bad">⚠️ {m.error}</p>}
-              {m.status === "ready" && m.kind === "podcast" && m.url && <audio controls preload="none" src={m.url} className="w-full" />}
-              {m.status === "ready" && m.kind === "video" && m.url && <video controls playsInline preload="metadata" src={m.url} className="w-full rounded-lg" />}
+              {m.status === "ready" && m.kind === "podcast" && m.url && <Player kind="audio" url={m.url} />}
+              {m.status === "ready" && m.kind === "video" && m.url && <Player kind="video" url={m.url} />}
               {m.status === "ready" && m.kind === "examples" && m.script && (
                 <details className="text-sm"><summary className="cursor-pointer text-muted">לפתוח</summary><Chapter md={m.script} slideUrls={{}} /></details>
               )}
@@ -90,4 +90,15 @@ export default function Studio({ courseId, lessons, items, canVideo = false }: {
      </div>
     </Fold>
   );
+}
+
+/**
+ * The player keeps the link it started with (08/11/2026: playback stopped after ~30 s - the page refreshes itself every
+ * 20 s while another item is being made, each refresh signs a new URL, and a new src restarts / stops the player).
+ */
+function Player({ kind, url }: { kind: "audio" | "video"; url: string }) {
+  const [src] = useState(url);
+  return kind === "audio"
+    ? <audio controls preload="none" src={src} className="w-full" />
+    : <video controls playsInline preload="metadata" src={src} className="w-full rounded-lg" />;
 }

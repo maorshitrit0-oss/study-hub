@@ -319,9 +319,14 @@ def auto_studio(job):
             or (les.get("transcript") or "").startswith(course_site.SITE_NOTE) or os.environ.get("QUIET"):
         return
     try:
-        have = job.sb.table("lesson_media").select("kind").contains("lesson_ids", [les["id"]]).execute().data
+        have = job.sb.table("lesson_media").select("id, kind, status").contains("lesson_ids", [les["id"]]).execute().data
         for kind in ("podcast", "video"):
-            if any(m["kind"] == kind for m in have):
+            old = [m for m in have if m["kind"] == kind]
+            if any(m["status"] != "error" for m in old):
+                continue
+            if old:  # it failed before (e.g. the TTS bug of 08/11/2026): the same item goes again
+                job.sb.table("lesson_media").update({"status": "queued", "error": None}).eq("id", old[0]["id"]).execute()
+                print(f"studio {kind} again: {course_site.dispatch_inputs('media.yml', {'media_id': old[0]['id']})}", flush=True)
                 continue
             row = job.sb.table("lesson_media").insert({"user_id": les["user_id"], "course_id": course["id"], "kind": kind,
                                                        "lesson_ids": [les["id"]]}).execute().data[0]
@@ -567,6 +572,19 @@ def cmd_studio_list(drop=""):
               f"db={m.get('duration_sec')}s{real} | {m['created_at'][:16]} | {(m.get('error') or '')[:80]}", flush=True)
 
 
+def cmd_studio_backfill(match):
+    """A podcast and a video for every ready lecture of the course that has none yet (auto_studio for old lectures)."""
+    sb = db()
+    course = find_course(sb, match)
+    for les in sb.table("lessons").select("*").eq("course_id", course["id"]).eq("kind", "lecture").eq("status", "ready").execute().data:
+        class J:  # the bits of a process job auto_studio reads
+            pass
+        j = J()
+        j.sb, j.lesson, j.course = sb, les, course
+        print(f"lecture {les.get('number')}:", flush=True)
+        auto_studio(j)
+
+
 def cmd_tts():
     """Which Gemini speech (TTS) models exist for our keys now, and does a two-voice Hebrew line work on each."""
     from google import genai
@@ -760,6 +778,7 @@ if __name__ == "__main__":
     sub.add_parser("ping")
     sub.add_parser("tts")
     sub.add_parser("studio-retry")
+    p = sub.add_parser("studio-backfill"); p.add_argument("course")
     p = sub.add_parser("studio-list"); p.add_argument("drop", nargs="?", default="")
     p = sub.add_parser("materials"); p.add_argument("course"); p.add_argument("title"); p.add_argument("out_dir")
     p = sub.add_parser("archive"); p.add_argument("match")
@@ -782,6 +801,8 @@ if __name__ == "__main__":
         cmd_materials(a.course, a.title, a.out_dir)
     elif a.cmd == "studio-list":
         cmd_studio_list(a.drop)
+    elif a.cmd == "studio-backfill":
+        cmd_studio_backfill(a.course)
     elif a.cmd == "studio-retry":
         cmd_studio_retry()
     elif a.cmd == "tts":
