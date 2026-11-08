@@ -335,6 +335,11 @@ EXPLAINER = """אתה מורה מצוין שבונה סרטון הסבר (כמו
 - visual: תיאור **באנגלית** של איור המחשה לשקף (כמו ב-NotebookLM): סצנה או תרשים ברור שממחיש את הרעיון - למשל
   "a clean infographic: a plane wave traveling along z, red E-field arrows along x, blue H-field arrows along y, wavefronts",
   או דימוי מהחיים ("a microwave oven heating food, waves penetrating a few centimeters"). בלי טקסט ובלי אותיות באיור. ריק = בלי איור.
+- diagram: קוד Python קצר (matplotlib) שמצייר שרטוט הנדסי מדויק שממחיש את השקף - גל מישורי עם חיצי E ו-H, דעיכה
+  e^{-alpha z} עם עומק החדירה מסומן, אליפסת קיטוב, גל פוגע/מוחזר/עובר בממשק, וקטורים ומכפלה וקטורית, גרף של פונקציה וכו'.
+  כבר מוגדרים: np, plt, fig, ax (רקע כהה כבר מוגדר). מציירים רק על ax (או ax3d = fig.add_subplot(projection='3d') אם צריך תלת-ממד).
+  תוויות באנגלית/LaTeX בלבד (בלי עברית), צבעים בהירים, קווים עבים. בלי import, בלי קבצים, בלי show/savefig. ריק = בלי שרטוט.
+  בשקף שיש בו diagram לא צריך visual.
 - steps: בשקף של דוגמה פתורה - 3-6 שלבים קצרים שמופיעים אחד אחרי השני על המסך (כל שלב: משוואת LaTeX עם הצבה ותוצאה,
   בלי $). בשקף רגיל - ריק. הדיבור בשקף כזה עובר על השלבים לפי הסדר.
 - narration: מה שהמורה אומר בזמן השקף, 4-7 משפטים טבעיים, כמו מורה טוב שמסביר לחבר - מסביר למה, לא רק מה. זה **נשמע** ולא נקרא:
@@ -347,7 +352,8 @@ EXPLAINER = """אתה מורה מצוין שבונה סרטון הסבר (כמו
 EXPLAINER_SCHEMA = {"type": "object", "properties": {"title": {"type": "string"}, "slides": {"type": "array", "minItems": 12, "items": {
     "type": "object", "properties": {"title": {"type": "string"}, "bullets": {"type": "array", "items": {"type": "string"}},
                                      "formula": {"type": "string"}, "page": {"type": "integer"}, "narration": {"type": "string"},
-                                     "visual": {"type": "string"}, "steps": {"type": "array", "items": {"type": "string"}}},
+                                     "visual": {"type": "string"}, "diagram": {"type": "string"},
+                                     "steps": {"type": "array", "items": {"type": "string"}}},
     "required": ["title", "bullets", "narration"]}}}, "required": ["title", "slides"]}
 
 SLIDE_CSS = """*{box-sizing:border-box}body{margin:0;width:1280px;height:720px;background:linear-gradient(135deg,#0b1d3a,#06142a);
@@ -428,9 +434,16 @@ def make_explainer(job, pages, work, out):
         raise RuntimeError("התסריט יצא ריק - לנסות שוב")
     job.log("מקליט את הקריינות...")
     wavs = narrate(slides, work)  # natural Gemini voice only; raises on quota (the video waits for the reset)
-    job.log("מצייר איורים...")
+    job.log("מצייר שרטוטים...")
+    for i, sl in enumerate(slides):
+        if (sl.get("diagram") or "").strip() and not sl.get("steps"):
+            img = draw_diagram(sl["diagram"], work / f"dia_{i:03d}.png")
+            if img:
+                sl["_img"] = img
     made = 0
     for i, sl in enumerate(slides):
+        if sl.get("_img"):
+            continue
         if (sl.get("visual") or "").strip() and made < 10 and not sl.get("steps"):
             img = illustrate(sl["visual"], work / f"ill_{i:03d}.png")
             if img:
@@ -461,6 +474,38 @@ def make_explainer(job, pages, work, out):
 def _mk(d):
     d.mkdir(parents=True, exist_ok=True)
     return d
+
+
+DIAGRAM_RUNNER = """
+import numpy as np, matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+plt.rcParams.update({"figure.facecolor": "#0b1d3a", "axes.facecolor": "#0b1d3a", "savefig.facecolor": "#0b1d3a",
+    "text.color": "#eef2fb", "axes.labelcolor": "#eef2fb", "xtick.color": "#9fb3d6", "ytick.color": "#9fb3d6",
+    "axes.edgecolor": "#3a5682", "font.size": 15, "lines.linewidth": 3})
+fig = plt.figure(figsize=(7.5, 6), dpi=110)
+ax = fig.add_subplot(111)
+exec(open(__import__("sys").argv[1], encoding="utf-8").read())
+fig.tight_layout()
+fig.savefig(__import__("sys").argv[2])
+"""
+
+
+def draw_diagram(code, out):
+    """Runs the slide's matplotlib code in a separate process with NO environment (no keys) and a time limit."""
+    src = out.with_suffix(".py")
+    src.write_text(code, encoding="utf-8")
+    runner = out.parent / "diagram_runner.py"
+    runner.write_text(DIAGRAM_RUNNER, encoding="utf-8")
+    try:
+        p = subprocess.run([sys.executable, str(runner), str(src), str(out)], env={"PATH": "/usr/bin:/bin", "MPLBACKEND": "Agg",
+                           "HOME": str(out.parent)}, capture_output=True, text=True, timeout=60)
+        if p.returncode == 0 and out.exists() and out.stat().st_size > 2000:
+            return out
+        print(f"diagram failed: {p.stderr[-300:]}", flush=True)
+    except Exception as e:  # noqa: BLE001
+        print(f"diagram failed: {str(e)[:200]}", flush=True)
+    return None
 
 
 def illustrate(prompt, out):
