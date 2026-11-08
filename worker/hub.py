@@ -535,6 +535,14 @@ def cmd_drive(match, path):
         print(f"::notice title=Drive file added::{f['title']}", flush=True)
 
 
+def cmd_studio_retry():
+    """Every podcast / video that ended in an error goes again (after a TTS fix)."""
+    sb = db()
+    for m in sb.table("lesson_media").select("id, kind").eq("status", "error").execute().data:
+        sb.table("lesson_media").update({"status": "queued", "error": None}).eq("id", m["id"]).execute()
+        print(f"::notice title=Studio retry::{m['kind']} {m['id'][:8]}: {course_site.dispatch_inputs('media.yml', {'media_id': m['id']})}", flush=True)
+
+
 def cmd_tts():
     """Which Gemini speech (TTS) models exist for our keys now, and does a two-voice Hebrew line work on each."""
     from google import genai
@@ -727,6 +735,7 @@ if __name__ == "__main__":
     sub.add_parser("stuck")
     sub.add_parser("ping")
     sub.add_parser("tts")
+    sub.add_parser("studio-retry")
     p = sub.add_parser("materials"); p.add_argument("course"); p.add_argument("title"); p.add_argument("out_dir")
     p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
@@ -746,6 +755,8 @@ if __name__ == "__main__":
         cmd_exercises(a.course, a.fixes_json)
     elif a.cmd == "materials":
         cmd_materials(a.course, a.title, a.out_dir)
+    elif a.cmd == "studio-retry":
+        cmd_studio_retry()
     elif a.cmd == "tts":
         cmd_tts()
     elif a.cmd == "ping":
