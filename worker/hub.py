@@ -625,6 +625,20 @@ def cmd_studio_new(match, number, kind):
     print(f"::notice title=Studio new::{kind} lecture {number}: {course_site.dispatch_inputs('media.yml', {'media_id': row['id']})}", flush=True)
 
 
+def cmd_media_get(out_dir):
+    """The newest ready video and podcast (to check them in a session) -> out_dir."""
+    sb = db()
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    for kind in ("video", "podcast"):
+        rows = (sb.table("lesson_media").select("id, storage_path, script, duration_sec").eq("kind", kind).eq("status", "ready")
+                .order("created_at", desc=True).limit(1).execute().data)
+        if rows and rows[0].get("storage_path"):
+            r = rows[0]
+            (out / Path(r["storage_path"]).name).write_bytes(sb.storage.from_(BUCKET).download(r["storage_path"]))
+            (out / f"{kind}_script.md").write_text(r.get("script") or "", encoding="utf-8")
+
+
 def cmd_tts():
     """Which Gemini speech (TTS) models exist for our keys now, and does a two-voice Hebrew line work on each."""
     import asyncio
@@ -835,6 +849,7 @@ if __name__ == "__main__":
     sub.add_parser("ping")
     sub.add_parser("tts")
     sub.add_parser("studio-retry")
+    p = sub.add_parser("media-get"); p.add_argument("out_dir")
     p = sub.add_parser("studio-new"); p.add_argument("course"); p.add_argument("number"); p.add_argument("kind")
     p = sub.add_parser("studio-backfill"); p.add_argument("course")
     p = sub.add_parser("studio-list"); p.add_argument("drop", nargs="?", default="")
@@ -867,6 +882,8 @@ if __name__ == "__main__":
         cmd_studio_backfill(a.course)
     elif a.cmd == "studio-new":
         cmd_studio_new(a.course, a.number, a.kind)
+    elif a.cmd == "media-get":
+        cmd_media_get(a.out_dir)
     elif a.cmd == "studio-retry":
         cmd_studio_retry()
     elif a.cmd == "tts":
