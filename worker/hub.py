@@ -612,6 +612,19 @@ def cmd_studio_backfill(match):
         auto_studio(j)
 
 
+def cmd_studio_new(match, number, kind):
+    """One podcast / video for lecture N of the course, now (a test or his request)."""
+    sb = db()
+    course = find_course(sb, match)
+    les = (sb.table("lessons").select("id, user_id").eq("course_id", course["id"]).eq("kind", "lecture")
+           .eq("number", int(number)).eq("status", "ready").execute().data)
+    if not les:
+        raise SystemExit(f"no ready lecture {number}")
+    row = sb.table("lesson_media").insert({"user_id": les[0]["user_id"], "course_id": course["id"], "kind": kind,
+                                           "lesson_ids": [les[0]["id"]]}).execute().data[0]
+    print(f"::notice title=Studio new::{kind} lecture {number}: {course_site.dispatch_inputs('media.yml', {'media_id': row['id']})}", flush=True)
+
+
 def cmd_tts():
     """Which Gemini speech (TTS) models exist for our keys now, and does a two-voice Hebrew line work on each."""
     import asyncio
@@ -822,6 +835,7 @@ if __name__ == "__main__":
     sub.add_parser("ping")
     sub.add_parser("tts")
     sub.add_parser("studio-retry")
+    p = sub.add_parser("studio-new"); p.add_argument("course"); p.add_argument("number"); p.add_argument("kind")
     p = sub.add_parser("studio-backfill"); p.add_argument("course")
     p = sub.add_parser("studio-list"); p.add_argument("drop", nargs="?", default="")
     p = sub.add_parser("materials"); p.add_argument("course"); p.add_argument("title"); p.add_argument("out_dir")
@@ -851,6 +865,8 @@ if __name__ == "__main__":
         cmd_studio_list(a.drop)
     elif a.cmd == "studio-backfill":
         cmd_studio_backfill(a.course)
+    elif a.cmd == "studio-new":
+        cmd_studio_new(a.course, a.number, a.kind)
     elif a.cmd == "studio-retry":
         cmd_studio_retry()
     elif a.cmd == "tts":

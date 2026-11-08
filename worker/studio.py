@@ -121,6 +121,9 @@ def gen_text(system, prompt):
     return (author._with_gemini(call).text or "").strip()
 
 
+VOICE_ENGINE = {"name": None}  # set by the first chunk; the rest of the file uses the same voices
+
+
 def tts(lines, work, n):
     """Records one chunk of 'Noa: ...' lines with two voices; returns a WAV path.
     Plain REST, not the SDK: google-genai 3.0 sends speech_config in a shape the API rejects
@@ -144,6 +147,8 @@ def tts(lines, work, n):
         return {"contents": [{"role": "user", "parts": parts}], "generationConfig": body["generationConfig"]}
 
     last = None
+    if VOICE_ENGINE["name"] == "edge":
+        return edge_tts(lines, work, n)
     for key in author._keys():
         for model in TTS_MODELS:
             for attempt in range(3):
@@ -158,6 +163,7 @@ def tts(lines, work, n):
                     raw.write_bytes(pcm)
                     wav = work / f"chunk_{n:03d}.wav"
                     media.run_ffmpeg(["-f", "s16le", "-ar", "24000", "-ac", "1", "-i", str(raw), str(wav)])
+                    VOICE_ENGINE["name"] = "gemini"
                     return wav
                 except Exception as e:  # noqa: BLE001
                     last = e
@@ -170,8 +176,12 @@ def tts(lines, work, n):
                     raise
     # Gemini's free speech quota is gone (08/11/2026: every podcast/video failed on it): Microsoft's free neural
     # Hebrew voices (edge-tts, no key, no daily quota) - Hila for Noa, Avri for Dan.
+    if VOICE_ENGINE["name"] == "gemini":  # Gemini ran out half way: never mix voices - the file waits for the reset
+        raise RuntimeError(author.friendly_error(last))
     try:
-        return edge_tts(lines, work, n)
+        wav = edge_tts(lines, work, n)
+        VOICE_ENGINE["name"] = "edge"
+        return wav
     except Exception as e:  # noqa: BLE001
         print(f"edge-tts: {str(e)[:200]}", flush=True)
     raise RuntimeError(author.friendly_error(last))
@@ -314,6 +324,128 @@ def concat_audio(wavs, out):
     media.run_ffmpeg(["-f", "concat", "-safe", "0", "-i", str(lst), "-c:a", "libmp3lame", "-b:a", "64k", "-ac", "1", str(out)])
 
 
+EXPLAINER = """אתה מורה מצוין שבונה סרטון הסבר (כמו Video Overview של NotebookLM) בעברית, לסטודנט להנדסת חשמל שלא ראה את ההרצאה,
+על בסיס הפרקים המצורפים (נבדקו). הסרטון הוא רצף שקפים; לכל שקף כותרת, עד 4 נקודות קצרות, נוסחה אחת לכל היותר, ודיבור.
+- 10-16 שקפים: פתיחה (מה נלמד ולמה זה חשוב) ← כל נושא לפי הסדר: אינטואיציה, הגדרה, נוסחה, דוגמה מספרית קצרה ← סיכום "מה חשוב למבחן".
+- bullets: משפטים קצרים מאוד (עד 8 מילים), בעברית; מונח באנגלית בסוגריים.
+- formula: נוסחת LaTeX אחת (בלי $), או ריק.
+- page: מספר מרשימת העמודים/צילומים המצורפת אם יש עמוד שמראה בדיוק את הנושא (שרטוט, גרף, טבלה), אחרת 0.
+- narration: מה שהמורה אומר בזמן השקף, 3-6 משפטים טבעיים, כמו מורה שמסביר לחבר. זה **נשמע** ולא נקרא:
+  * בלי סימנים, בלי LaTeX, בלי קיצורים. נוסחה במילים ("השדה המגנטי שווה לשדה החשמלי חלקי אטא").
+  * כל מילה באותיות עבריות כמו שהיא נשמעת: "פאזור", "וקטור פוינטינג", "מקסוול", "אטא", "בטא", "אלפא", "סיגמא", "אפסילון", "מיו", "גאמא".
+    בלי מילים באותיות לטיניות בכלל - גם לא שמות משתנים (במקום E כתוב "אי" או "השדה החשמלי").
+  * מספרים במילים כשהם קצרים ("שלוש מאות שבעים ושבעה אוהם").
+- רק מה שבחומר ונכון; אם המרצה טעה והפרק מציין - אומרים את הנכון."""
+
+EXPLAINER_SCHEMA = {"type": "object", "properties": {"title": {"type": "string"}, "slides": {"type": "array", "items": {
+    "type": "object", "properties": {"title": {"type": "string"}, "bullets": {"type": "array", "items": {"type": "string"}},
+                                     "formula": {"type": "string"}, "page": {"type": "integer"}, "narration": {"type": "string"}},
+    "required": ["title", "bullets", "narration"]}}}, "required": ["title", "slides"]}
+
+SLIDE_CSS = """*{box-sizing:border-box}body{margin:0;width:1280px;height:720px;background:linear-gradient(135deg,#0b1d3a,#06142a);
+color:#eef2fb;font-family:Heebo,'DejaVu Sans',Arial,sans-serif;direction:rtl;display:flex;flex-direction:column;padding:48px 64px}
+h1{font-size:46px;margin:0 0 26px;color:#9fc3ff;border-bottom:3px solid #2b4466;padding-bottom:14px}
+.row{display:flex;gap:40px;flex:1;min-height:0}.txt{flex:1;display:flex;flex-direction:column;justify-content:center}
+ul{margin:0;padding-right:30px}li{font-size:33px;line-height:1.45;margin:8px 0}
+.f{direction:ltr;text-align:center;font-size:40px;margin-top:26px;background:#0e2547;border-radius:16px;padding:18px}
+.img{flex:0 0 46%;display:flex;align-items:center;justify-content:center}.img img{max-width:100%;max-height:540px;border-radius:12px;background:#fff}
+.n{position:absolute;bottom:22px;left:40px;font-size:18px;color:#6f86ad}"""
+
+
+def render_slides(slides, pages, work, katex="https://cdn.jsdelivr.net/npm/katex@0.16.47/dist"):
+    """Each slide as a 1280x720 PNG (title, points, one formula in KaTeX, and the lecture page/board picture if given)."""
+    import base64
+    import html as h
+    from playwright.sync_api import sync_playwright
+    out = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page(viewport={"width": 1280, "height": 720})
+        for i, sl in enumerate(slides):
+            pic = pages.get(sl.get("page") or 0)
+            img = ""
+            if pic:
+                mime = "image/webp" if str(pic[0]).endswith(".webp") else "image/png"
+                img = f'<div class="img"><img src="data:{mime};base64,{base64.b64encode(Path(pic[0]).read_bytes()).decode()}"></div>'
+            bullets = "".join(f"<li>{h.escape(b)}</li>" for b in (sl.get("bullets") or [])[:4])
+            formula = (sl.get("formula") or "").strip()
+            fdiv = f'<div class="f" id="f">{h.escape(formula)}</div>' if formula else ""
+            page.set_content(f"""<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap">
+<link rel="stylesheet" href="{katex}/katex.min.css"><script src="{katex}/katex.min.js"></script>
+<style>{SLIDE_CSS}</style></head><body><h1>{h.escape(sl.get('title') or '')}</h1>
+<div class="row"><div class="txt"><ul>{bullets}</ul>{fdiv}</div>{img}</div><div class="n">{i + 1}/{len(slides)}</div>
+<script>const f=document.getElementById('f'); if(f) {{ try {{ katex.render(f.textContent, f, {{displayMode:true, throwOnError:false}}); }} catch(e) {{}} }}
+document.fonts.ready.then(()=>document.body.dataset.ready='1');</script></body></html>""", wait_until="networkidle")
+            page.wait_for_selector("body[data-ready='1']", timeout=60000)
+            png = work / f"xs_{i:03d}.png"
+            page.screenshot(path=str(png))
+            out.append(png)
+        browser.close()
+    return out
+
+
+def make_explainer(job, pages, work, out):
+    """The video: an explainer slide deck (made here, not from raw board photos) with one narrator, slide by slide."""
+    src = source_text(job)
+    listing = "\n".join(f"{n}: {d}" for n, (_, d) in sorted(pages.items()))
+    job.log("כותב את סרטון ההסבר...")
+    script = gen_json(EXPLAINER, f"{src}\n\nעמודים/צילומים שאפשר להציג (מספר: תיאור):\n{listing or 'אין'}", EXPLAINER_SCHEMA)
+    job.log("בודק את התסריט מול הפרקים...")
+    try:
+        checked = gen_json(CHECK, f"=== המקור ===\n{src}\n\n=== התוצר (JSON) ===\n{json.dumps(script, ensure_ascii=False)}", EXPLAINER_SCHEMA)
+        if len(checked.get("slides") or []) >= len(script.get("slides") or []) * 0.8:
+            script = checked
+    except Exception as e:  # noqa: BLE001
+        print(f"explainer check failed: {e}", flush=True)
+    slides = [s for s in script.get("slides") or [] if (s.get("narration") or "").strip()]
+    if not slides:
+        raise RuntimeError("התסריט יצא ריק - לנסות שוב")
+    job.log("מעצב שקפים...")
+    pngs = render_slides(slides, pages, work)
+    clips = []
+    for i, (sl, png) in enumerate(zip(slides, pngs)):
+        job.log(f"מקליט ({i + 1}/{len(slides)})...")
+        wav = tts_one(sl["narration"], work, i)
+        clip = work / f"xclip_{i:03d}.mp4"
+        media.run_ffmpeg(["-loop", "1", "-i", str(png), "-i", str(wav), "-af", "apad=pad_dur=0.6", "-c:v", "libx264",
+                          "-tune", "stillimage", "-r", "5", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "96k", "-shortest", str(clip)])
+        clips.append(clip)
+    lst = work / "xclips.txt"
+    lst.write_text("".join(f"file '{c}'\n" for c in clips))
+    media.run_ffmpeg(["-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", "-movflags", "+faststart", str(out)])
+    md = "\n\n".join(f"**{i + 1}. {s['title']}**\n\n{s['narration']}" for i, s in enumerate(slides))
+    return script.get("title") or "", md
+
+
+def tts_one(text, work, n):
+    """One narrator for the whole video: Gemini 'Kore' (single voice), or Microsoft's Hila for all of it."""
+    import base64
+    import requests
+    if VOICE_ENGINE["name"] != "edge":
+        body = {"contents": [{"parts": [{"text": text}]}], "generationConfig": {"responseModalities": ["AUDIO"],
+                "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": "Kore"}}}}}
+        for key in author._keys():
+            for model in TTS_MODELS:
+                try:
+                    r = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+                                      params={"key": key}, json=body, timeout=600)
+                    if not r.ok:
+                        raise RuntimeError(f"{r.status_code} {r.text[:200]}")
+                    pcm = base64.b64decode(r.json()["candidates"][0]["content"]["parts"][0]["inlineData"]["data"])
+                    raw, wav = work / f"n_{n:03d}.pcm", work / f"n_{n:03d}.wav"
+                    raw.write_bytes(pcm)
+                    media.run_ffmpeg(["-f", "s16le", "-ar", "24000", "-ac", "1", "-i", str(raw), str(wav)])
+                    VOICE_ENGINE["name"] = "gemini"
+                    return wav
+                except Exception as e:  # noqa: BLE001
+                    print(f"tts {model}: {str(e)[:120]}", flush=True)
+        if VOICE_ENGINE["name"] == "gemini":
+            raise RuntimeError("המכסה של Gemini נגמרה באמצע הסרטון - הוא ייווצר מחדש אחרי האיפוס (כדי לא לערבב קולות)")
+    VOICE_ENGINE["name"] = "edge"
+    return edge_tts([f"Noa: {text}"], work, n)
+
+
 def make_video(groups, wavs, slides, out):
     """One clip per group: its slide (or the previous one) for as long as its audio, then concatenated."""
     clips, last = [], None
@@ -353,11 +485,17 @@ def run(media_id):
             notify.send(job.sb, uid, "🏠 דוגמאות מהחיים מוכנות", label(job.lessons[0]), f"/lessons/{job.lessons[0]['id']}")
             return
 
-        slides = slide_list(job, work) if kind == "video" else {}
-        if kind == "video" and not slides:  # no board snapshots: the lecture's own slides file (his remark 08/11/2026)
-            slides = pdf_slides(job, work)
-        if kind == "video" and not slides:
-            raise RuntimeError("לשיעור הזה אין צילומי לוח וגם לא נמצא קובץ מצגת בשם 'הרצאה N' בקבצי הקורס - אפשר ליצור פודקאסט")
+        if kind == "video":  # an explainer deck with one narrator (08/11/2026: the board-photo videos were poor)
+            pages = slide_list(job, work) or pdf_slides(job, work)
+            out = work / "out.mp4"
+            title, script_md = make_explainer(job, pages, work, out)
+            path = f"{uid}/media/{media_id}.mp4"
+            job.sb.storage.from_(BUCKET).upload(path, out.read_bytes(), {"content-type": "video/mp4", "upsert": "true"})
+            job.update(status="ready", storage_path=path, title=job.row.get("title") or title, script=script_md,
+                       duration_sec=media.duration(out), progress="מוכן")
+            notify.send(job.sb, uid, "🎬 הסרטון מוכן", title or job.course["name"], f"/lessons/{job.lessons[0]['id']}")
+            return
+        slides = {}
         title, segs = make_script(job, kind, slides)
         if not segs:
             raise RuntimeError("התסריט יצא ריק - לנסות שוב")
