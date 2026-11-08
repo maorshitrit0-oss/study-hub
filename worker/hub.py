@@ -659,6 +659,9 @@ def cmd_tts():
     from google import genai
     import studio
     client = genai.Client(api_key=author._keys()[0])
+    img = studio.illustrate("a plane electromagnetic wave traveling along z, E-field arrows along x, H-field arrows along y",
+                            Path(tempfile.mkdtemp()) / "probe.png")
+    print(f"::notice title=Image probe::{'ok ' + str(img.stat().st_size) + 'B' if img else 'no image'}", flush=True)
     allm = [m.name.split("/")[-1] for m in client.models.list(config={"page_size": 200})]
     print(f"::notice title=All models ({len(allm)})::{', '.join(allm)[:3500]}", flush=True)
     names = [n for n in allm if "tts" in n.lower() or "audio" in n.lower() or "speech" in n.lower()]
