@@ -543,6 +543,30 @@ def cmd_studio_retry():
         print(f"::notice title=Studio retry::{m['kind']} {m['id'][:8]}: {course_site.dispatch_inputs('media.yml', {'media_id': m['id']})}", flush=True)
 
 
+def cmd_studio_list(drop=""):
+    """Every podcast / video with its course, status and length; ids in `drop` (comma list) are removed (row + file)."""
+    sb = db()
+    names = {c["id"]: c["name"] for c in sb.table("courses").select("id, name").execute().data}
+    for m in sb.table("lesson_media").select("id, course_id, kind, status, duration_sec, storage_path, error, created_at").order("created_at").execute().data:
+        if drop and m["id"][:8] in drop.split(","):
+            if m.get("storage_path"):
+                sb.storage.from_(BUCKET).remove([m["storage_path"]])
+            sb.table("lesson_media").delete().eq("id", m["id"]).execute()
+            print(f"::notice title=Studio removed::{m['kind']} {m['id'][:8]} {names.get(m['course_id'])}", flush=True)
+            continue
+        real = ""
+        if m.get("storage_path") and m["status"] == "ready":
+            try:
+                p = Path(tempfile.mkdtemp()) / Path(m["storage_path"]).name
+                p.write_bytes(sb.storage.from_(BUCKET).download(m["storage_path"]))
+                import media as _m
+                real = f" file={_m.duration(str(p)):.0f}s size={p.stat().st_size // 1024}KB"
+            except Exception as e:  # noqa: BLE001
+                real = f" file? {str(e)[:80]}"
+        print(f"::notice title=Studio {m['id'][:8]}::{names.get(m['course_id'])} | {m['kind']} | {m['status']} | "
+              f"db={m.get('duration_sec')}s{real} | {m['created_at'][:16]} | {(m.get('error') or '')[:80]}", flush=True)
+
+
 def cmd_tts():
     """Which Gemini speech (TTS) models exist for our keys now, and does a two-voice Hebrew line work on each."""
     from google import genai
@@ -736,6 +760,7 @@ if __name__ == "__main__":
     sub.add_parser("ping")
     sub.add_parser("tts")
     sub.add_parser("studio-retry")
+    p = sub.add_parser("studio-list"); p.add_argument("drop", nargs="?", default="")
     p = sub.add_parser("materials"); p.add_argument("course"); p.add_argument("title"); p.add_argument("out_dir")
     p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
@@ -755,6 +780,8 @@ if __name__ == "__main__":
         cmd_exercises(a.course, a.fixes_json)
     elif a.cmd == "materials":
         cmd_materials(a.course, a.title, a.out_dir)
+    elif a.cmd == "studio-list":
+        cmd_studio_list(a.drop)
     elif a.cmd == "studio-retry":
         cmd_studio_retry()
     elif a.cmd == "tts":

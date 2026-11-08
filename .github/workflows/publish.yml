@@ -58,6 +58,7 @@ jobs:
         run: |
           ok() { [[ -z "$1" || "$1" =~ ^chapters/[A-Za-z0-9_.-]+\.$2$ ]] || { echo "::error::bad path $1"; exit 1; }; }
           ok "$CHAPTER" json; ok "$SHEET" md
+          if [ "$INSPECT" = "studio-list" ]; then python hub.py studio-list "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "studio-retry" ]; then python hub.py studio-retry; exit $?; fi
           if [ "$INSPECT" = "tts" ]; then python hub.py tts; exit $?; fi
           if [ "$INSPECT" = "drive" ]; then python hub.py drive "$COURSE" "../$CHAPTER"; exit $?; fi

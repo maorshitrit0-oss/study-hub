@@ -77,7 +77,9 @@ export default function Studio({ courseId, lessons, items, canVideo = false }: {
               {m.status === "error" && <p className="text-sm text-bad">⚠️ {m.error}</p>}
               {m.status === "ready" && m.kind === "podcast" && m.url && <audio controls preload="none" src={m.url} className="w-full" />}
               {m.status === "ready" && m.kind === "video" && m.url && <video controls playsInline preload="metadata" src={m.url} className="w-full rounded-lg" />}
-              {m.status === "ready" && m.kind === "examples" && m.script && <Chapter md={m.script} slideUrls={{}} />}
+              {m.status === "ready" && m.kind === "examples" && m.script && (
+                <details className="text-sm"><summary className="cursor-pointer text-muted">לפתוח</summary><Chapter md={m.script} slideUrls={{}} /></details>
+              )}
               {m.status === "ready" && m.kind !== "examples" && m.script && (
                 <details className="text-sm"><summary className="cursor-pointer text-muted">התסריט</summary><Chapter md={m.script} slideUrls={{}} /></details>
               )}

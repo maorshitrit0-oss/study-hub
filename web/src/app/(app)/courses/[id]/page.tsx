@@ -295,7 +295,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
       )}
 
       {readyCount > 0 && (
-        <Studio courseId={id} items={await loadMedia(sb, { courseId: id })}
+        <Studio courseId={id} items={(await loadMedia(sb, { courseId: id }))?.filter((m) => m.kind !== "examples") ?? null}
           lessons={ls.filter((l) => l.status === "ready").map((l) => ({ id: l.id, label: `${lessonName(l)}${l.title && l.kind !== "web" ? ` · ${l.title}` : ""}` }))} />
       )}
 
