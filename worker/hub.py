@@ -457,6 +457,26 @@ def cmd_add(match, kind, number, title, path):
     print(f"::notice title=Added::{course['name']} {kind} {number}: {lesson_id}", flush=True)
 
 
+def cmd_exercises(match, path):
+    """Corrects exercises Claude checked against the lecture's own slides (his screenshot 08/11/2026: an exercise said
+    "from lecture 1" but its data was not the lecture's). JSON list of {kind, number, find, title, question_md,
+    solution_md}: the exercise of that lesson whose title contains `find` gets the new text; whether he marked it
+    solved is kept. Nothing else is touched."""
+    sb = db()
+    course = find_course(sb, match)
+    for fx in json.loads(Path(path).read_text(encoding="utf-8")):
+        lessons = (sb.table("lessons").select("id").eq("course_id", course["id"]).eq("kind", fx["kind"])
+                   .eq("number", int(fx["number"])).execute().data)
+        hit = [x for l in lessons for x in sb.table("exercises").select("id, title").eq("lesson_id", l["id"]).execute().data
+               if fx["find"] in (x.get("title") or "")]
+        if len(hit) != 1:
+            print(f"::warning title=Exercise fix::{fx['kind']} {fx['number']} '{fx['find']}': {len(hit)} matches", flush=True)
+            continue
+        sb.table("exercises").update({k: fx[k] for k in ("title", "question_md", "solution_md") if fx.get(k)}) \
+            .eq("id", hit[0]["id"]).execute()
+        print(f"::notice title=Exercise fixed::{fx['kind']} {fx['number']}: {fx.get('title') or hit[0]['title']}", flush=True)
+
+
 def cmd_sheet(match, path):
     """His course help sheet ("📄 דף נוסחאות" / Java syntax sheet) written by Claude; docs.py later only adds to it."""
     import docs
@@ -592,6 +612,7 @@ if __name__ == "__main__":
     p = sub.add_parser("add"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
     p.add_argument("title"); p.add_argument("chapter_json")
     p = sub.add_parser("sheet"); p.add_argument("course"); p.add_argument("md")
+    p = sub.add_parser("exercises"); p.add_argument("course"); p.add_argument("fixes_json")
     sub.add_parser("flat")
     sub.add_parser("stuck")
     sub.add_parser("ping")
@@ -608,6 +629,8 @@ if __name__ == "__main__":
         cmd_fetch(a.lesson_id, a.out_dir)
     elif a.cmd == "add":
         cmd_add(a.course, a.kind, a.number, a.title, a.chapter_json)
+    elif a.cmd == "exercises":
+        cmd_exercises(a.course, a.fixes_json)
     elif a.cmd == "materials":
         cmd_materials(a.course, a.title, a.out_dir)
     elif a.cmd == "ping":

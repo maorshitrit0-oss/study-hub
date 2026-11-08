@@ -568,6 +568,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   formula sheet now dispatches exercises.yml (no direct Gemini rewrite); the doc page has "⬇️ PDF להדפסה"; the .md
   in the course files opens the rendered page. Waves sheet: chapters/waves-formula-sheet.md (lectures 1-3, practices
   1-3; flags: tilt-angle quadrant in practice 3's answer, TA's skin-depth remark, H=B/μ).
+- Exercise fixes (08/11/2026): `hub.py exercises <course> chapters/<fixes>.json` (publish.yml inspect=exercises,
+  chapter=<fixes json>) replaces one exercise's text, keeping done_at. Waves lecture 1: Gemini had invented the class
+  exercise's field (x̂E0cos(ωt-kz)); the slide's is E0(yx̂-xŷ)cos ωt -> H=(2E0/ωμ)sin ωt ẑ, J=ωεE0(yx̂-xŷ)sin ωt.
 - fetch/* branches carry web/vercel.json (ignoreCommand exit 0) - Vercel had mailed him "Preview deployment failed" for them.
 
 ## Open items
