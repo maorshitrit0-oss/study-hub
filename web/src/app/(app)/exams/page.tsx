@@ -1,3 +1,4 @@
+import BackLink from "@/components/BackLink";
 import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
 import DeadlineForm from "@/components/DeadlineForm";
@@ -30,6 +31,7 @@ export default async function Exams() {
 
   return (
     <div className="space-y-5">
+      <BackLink href={"/"}>→ דף הבית</BackLink>
       <h1 className="text-2xl font-bold">לוח מבחנים</h1>
 
       {next && (

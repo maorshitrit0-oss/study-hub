@@ -1,3 +1,4 @@
+import BackLink from "@/components/BackLink";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
@@ -140,6 +141,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
     const recordings = ls.filter((l) => (l.title ?? "").startsWith("🎙️"));
     return (
       <div className="space-y-5">
+        <BackLink href={"/courses"}>→ כל הקורסים</BackLink>
         {header}
         <div className="grid grid-cols-2 gap-3">
           <Link href={`/courses/${id}/practical`} className="card text-center font-medium">🧪 מבחן מעשי</Link>
@@ -176,6 +178,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
 
   return (
     <div className="space-y-5">
+      <BackLink href={"/courses"}>→ כל הקורסים</BackLink>
       {header}
 
       <div className="grid grid-cols-2 gap-3">

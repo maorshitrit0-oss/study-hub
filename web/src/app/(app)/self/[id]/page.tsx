@@ -1,3 +1,4 @@
+import BackLink from "@/components/BackLink";
 import Link from "next/link";
 import TrackTabs from "@/components/TrackTabs";
 import { notFound } from "next/navigation";
@@ -50,7 +51,7 @@ export default async function Track({ params }: PageProps<"/self/[id]">) {
 
   return (
     <div className="space-y-5">
-      <Link href="/self" className="text-sm text-accent">→ לימוד עצמי</Link>
+      <BackLink href="/self">→ לימוד עצמי</BackLink>
       <TrackTabs tracks={tracks ?? []} current={id} />
       <h1 className="text-2xl font-bold">{course.name}</h1>
       {freeze && <p className="card text-sm text-warn">⏸️ {freeze.text}</p>}

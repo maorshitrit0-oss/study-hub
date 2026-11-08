@@ -1,3 +1,4 @@
+import BackLink from "@/components/BackLink";
 import { requireUser } from "@/lib/supabase/server";
 import SyncMoodle from "@/components/SyncMoodle";
 import PushToggle from "@/components/PushToggle";
@@ -15,6 +16,7 @@ export default async function Settings() {
   ]);
   return (
     <div className="space-y-5">
+      <BackLink href={"/"}>→ דף הבית</BackLink>
       <h1 className="text-2xl font-bold">הגדרות</h1>
 
       <section className="card space-y-3">

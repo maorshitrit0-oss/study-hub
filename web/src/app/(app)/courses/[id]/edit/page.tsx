@@ -1,3 +1,4 @@
+import BackLink from "@/components/BackLink";
 import { notFound } from "next/navigation";
 import CourseForm from "@/components/CourseForm";
 import { requireUser } from "@/lib/supabase/server";
@@ -12,6 +13,7 @@ export default async function EditCourse({ params }: PageProps<"/courses/[id]/ed
   const course = data as Course;
   return (
     <div className="space-y-4">
+      <BackLink href={`/courses/${id}`}>→ לקורס</BackLink>
       <h1 className="text-2xl font-bold">עריכת {course.name}</h1>
       <div className="card"><CourseForm action={updateCourse.bind(null, id)} course={course} submit="שמירה" /></div>
       <div className="card space-y-3">

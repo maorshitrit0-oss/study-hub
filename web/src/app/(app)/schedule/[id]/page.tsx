@@ -1,4 +1,4 @@
-import Link from "next/link";
+import BackLink from "@/components/BackLink";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import SlotForm from "@/components/SlotForm";
@@ -15,7 +15,7 @@ export default async function EditSlot({ params }: PageProps<"/schedule/[id]">) 
   if (!data) notFound();
   return (
     <div className="space-y-4">
-      <Link href="/schedule" className="text-sm text-accent">→ מערכת שעות</Link>
+      <BackLink href="/schedule">→ מערכת שעות</BackLink>
       <h1 className="text-2xl font-bold">עריכת שיעור</h1>
       <div className="card"><SlotForm action={updateSlot.bind(null, id)} courses={courses ?? []} slot={data as Slot} submit="שמירה" /></div>
       <form action={deleteSlot.bind(null, id)}><button className="w-full text-bad text-sm py-2">מחיקה מהמערכת</button></form>

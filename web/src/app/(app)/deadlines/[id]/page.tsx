@@ -1,4 +1,4 @@
-import Link from "next/link";
+import BackLink from "@/components/BackLink";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import DeadlineForm from "@/components/DeadlineForm";
@@ -16,8 +16,8 @@ export default async function EditDeadline({ params }: PageProps<"/deadlines/[id
   return (
     <div className="space-y-4">
       {data.kind === "exam"
-        ? <Link href="/exams" className="text-sm text-accent">→ לוח מבחנים</Link>
-        : <Link href="/deadlines" className="text-sm text-accent">→ משימות</Link>}
+        ? <BackLink href="/exams">→ לוח מבחנים</BackLink>
+        : <BackLink href="/deadlines">→ משימות</BackLink>}
       <h1 className="text-2xl font-bold">{data.kind === "exam" ? "עריכת מבחן" : "עריכת משימה"}</h1>
       <div className="card">
         <DeadlineForm action={updateDeadline.bind(null, id)} courses={courses ?? []} deadline={data as Deadline} submit="שמירה" />

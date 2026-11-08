@@ -1,4 +1,4 @@
-import Link from "next/link";
+import BackLink from "@/components/BackLink";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireUser } from "@/lib/supabase/server";
 import GradeGoal from "@/components/GradeGoal";
@@ -83,7 +83,7 @@ export default async function GradesPage() {
 
   return (
     <div className="space-y-5">
-      <Link href="/courses" className="text-sm text-accent">→ קורסים</Link>
+      <BackLink href="/courses">→ קורסים</BackLink>
       <h1 className="text-2xl font-bold">גיליון ציונים</h1>
       {error && <p className="card text-sm text-warn">צריך להריץ את קוד ה-SQL של הציונים ב-Supabase.</p>}
 

@@ -1,3 +1,4 @@
+import BackLink from "@/components/BackLink";
 import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
 import { attachOrphanTasks, syncPrepTasks } from "@/lib/prep";
@@ -24,6 +25,7 @@ export default async function Deadlines({ searchParams }: PageProps<"/deadlines"
 
   return (
     <div className="space-y-5">
+      <BackLink href={"/"}>→ דף הבית</BackLink>
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">משימות</h1>
         <Link href="/exams" className="btn-ghost text-sm">לוח מבחנים</Link>

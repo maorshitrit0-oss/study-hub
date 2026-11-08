@@ -1,3 +1,4 @@
+import BackLink from "@/components/BackLink";
 import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
 import { KIND_LABEL, type Course } from "@/lib/types";
@@ -27,6 +28,7 @@ export default async function Courses() {
 
   return (
     <div className="space-y-5">
+      <BackLink href={"/"}>→ דף הבית</BackLink>
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">קורסים</h1>
         <div className="flex gap-2">

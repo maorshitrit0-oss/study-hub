@@ -1,3 +1,4 @@
+import BackLink from "@/components/BackLink";
 import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
 import { FREEZES, weekDates } from "@/lib/skills";
@@ -18,6 +19,7 @@ function SessionCard({ s, date, done, courseId, current, lesson }: {
   const key = sessionKey(s);
   return (
     <article className={`rounded-xl border p-3 space-y-2 ${current ? "border-accent bg-accent-soft" : "border-line"} ${done ? "opacity-60" : ""}`}>
+      <BackLink href={"/"}>→ דף הבית</BackLink>
       <div className="flex justify-between items-start gap-2">
         <h3 className="font-semibold">{done ? "✅ " : current ? "▶️ " : ""}מפגש {s.n}: {s.title}</h3>
         <span className="text-xs text-muted shrink-0">{s.n === 1 ? "שישי" : "מוצ״ש"} {ddmm(date)}</span>

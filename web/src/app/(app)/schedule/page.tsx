@@ -1,3 +1,4 @@
+import BackLink from "@/components/BackLink";
 import { requireUser } from "@/lib/supabase/server";
 import SlotCard from "@/components/SlotCard";
 import WeekGrid from "@/components/WeekGrid";
@@ -23,6 +24,7 @@ export default async function Schedule() {
 
   return (
     <div className="space-y-5">
+      <BackLink href={"/"}>→ דף הבית</BackLink>
       <h1 className="text-2xl font-bold">מערכת שעות</h1>
       {all.length > 0 && <WeekGrid slots={all} names={names} today={now.weekday} nowTime={now.time} />}
       <Fold id="schedule-list" title="רשימה מלאה ועריכה" hint={`${all.length} שיעורים`}>

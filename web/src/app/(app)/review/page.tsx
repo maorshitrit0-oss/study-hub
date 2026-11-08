@@ -1,3 +1,4 @@
+import BackLink from "@/components/BackLink";
 import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
 import Quiz from "@/components/Quiz";
@@ -20,6 +21,7 @@ export default async function Review({ searchParams }: PageProps<"/review">) {
 
   return (
     <div className="space-y-4">
+      <BackLink href={"/"}>→ דף הבית</BackLink>
       <h1 className="text-2xl font-bold">🔁 חזרה יומית</h1>
       <p className="text-sm text-muted">
         שאלות שכבר ענית עליהן חוזרות במרווחים שגדלים: אחרי יום, 3 ימים, שבוע, שבועיים, חודש וחודשיים. טעות מחזירה את השאלה למחרת.

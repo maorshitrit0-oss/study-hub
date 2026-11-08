@@ -593,6 +593,8 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   instruction; 2.5-preview-tts takes the whole dialogue. Checks: publish inspect=tts; failed media again: inspect=studio-retry.
 - Waves exams from the students' Drive added as course files (drive:<id>, kind past_exam): solutions 19.08.24, 2023,
   "פתרונות שאלות מבחן מפולגות" (hub.py drive, publish inspect=drive).
+- Every page (except home) starts with components/BackLink: sticky "→ ..." at the top while scrolling (his request
+  08/11/2026). Course page -> all courses; top-level pages -> home. He doesn't use the chats (too slow).
 - fetch/* branches carry web/vercel.json (ignoreCommand exit 0) - Vercel had mailed him "Preview deployment failed" for them.
 
 ## Open items
