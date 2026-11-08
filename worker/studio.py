@@ -133,15 +133,14 @@ def tts(lines, work, n):
             {"speaker": name, "voiceConfig": {"prebuiltVoiceConfig": {"voiceName": v}}} for name, v in VOICES.items()]}}}}
     def body_for(model):
         """2.5 models take the whole dialogue as one text; 3.x models want one part per line, each marked with its
-        speaker (speechMetadata.speaker) and the style as a system instruction (API error text, 08/11/2026)."""
+        speaker (speechMetadata.speaker); no system instruction allowed (API error texts, 08/11/2026)."""
         if not model.startswith("gemini-3"):
             return body
         parts = []
         for ln in lines:
             who, _, said = ln.partition(":")
             parts.append({"text": said.strip(), "speechMetadata": {"speaker": who.strip() if who.strip() in VOICES else "Noa"}})
-        return {"systemInstruction": {"parts": [{"text": "קראו את השיחה בעברית, בטון חם, טבעי ולימודי."}]},
-                "contents": [{"role": "user", "parts": parts}], "generationConfig": body["generationConfig"]}
+        return {"contents": [{"role": "user", "parts": parts}], "generationConfig": body["generationConfig"]}
 
     last = None
     for key in author._keys():
