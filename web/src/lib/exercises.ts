@@ -15,8 +15,8 @@ const israelDate = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "As
  * Exercises by semester week, per course: a lesson's exercises belong to the week it was taught (by the timetable); a
  * file exercise belongs to the week of the one lesson it was placed in (worker/exercises.py assign).
  */
-export async function exercisesByWeek(sb: SupabaseClient, courseId?: string) {
-  const [{ held }, rows, { data: lessons }, { data: materials }] = await Promise.all([
+export async function exercisesByWeek(sb: SupabaseClient, courseId?: string, userId?: string) {
+  const [{ held }, rows, { data: lessons }, { data: materials }, where] = await Promise.all([
     classMeetings(sb),
     fetchAll<ExerciseRow>(() => {
       const q = sb.from("exercises").select("*").order("created_at").order("ord");
@@ -25,6 +25,10 @@ export async function exercisesByWeek(sb: SupabaseClient, courseId?: string) {
     (courseId ? sb.from("lessons").select("id, course_id, kind, number, topics, created_at").eq("course_id", courseId)
       : sb.from("lessons").select("id, course_id, kind, number, topics, created_at")),
     (courseId ? sb.from("materials").select("id, title").eq("course_id", courseId) : sb.from("materials").select("id, title")),
+    // the exact page / slide of each exercise (worker/locate.py), his request 08/11/2026
+    (courseId && userId ? sb.storage.from("study").download(`${userId}/materials/${courseId}/exercise_where.json`)
+      .then(async ({ data }) => (data ? JSON.parse(await data.text()) as Record<string, string> : {})).catch(() => ({}))
+      : Promise.resolve({} as Record<string, string>)),
   ]);
   // The week a lesson was TAUGHT, by the university timetable: lecture N is the course's Nth lecture meeting, practice N
   // its Nth practice (he uploads a week late, so the upload date or upload order would put it a week off).
@@ -36,17 +40,21 @@ export async function exercisesByWeek(sb: SupabaseClient, courseId?: string) {
     meetingDates.set(k, list);
   }
   const lessonWeek = new Map<string, number>();
+  const lessonDate = new Map<string, string>();
   for (const l of lessons ?? []) {
     const date = l.number ? meetingDates.get(`${l.course_id}|${l.kind}`)?.[l.number - 1] : undefined;
+    if (date) lessonDate.set(l.id, `${date.slice(8, 10)}/${date.slice(5, 7)}`);
     lessonWeek.set(l.id, date ? semesterWeek(date) : semesterWeek(israelDate(new Date(l.created_at))));
   }
   const fileName = new Map((materials ?? []).map((m) => [m.id, m.title as string]));
   const KIND: Record<string, string> = { lecture: "הרצאה", practice: "תרגול" };
-  const lessonName = new Map((lessons ?? []).map((l) => [l.id, `${KIND[l.kind] ?? "שיעור"}${l.number ? ` ${l.number}` : ""}`]));
+  const lessonName = new Map((lessons ?? []).map((l) => [l.id,
+    `${KIND[l.kind] ?? "שיעור"}${l.number ? ` ${l.number}` : ""}${lessonDate.has(l.id) ? ` (${lessonDate.get(l.id)})` : ""}`]));
   // Where each exercise comes from, shown on it: the lesson, or the file (homework / past exam / exercise booklet).
   const labeled = rows.map((x) => ({
     ...x,
     label: x.material_id ? `📄 ${fileName.get(x.material_id) ?? "קובץ"}` : x.lesson_id ? `🎓 ${lessonName.get(x.lesson_id) ?? "שיעור"}` : undefined,
+    where: (where as Record<string, string>)[x.id] || undefined,
   }));
 
   /**
@@ -67,7 +75,7 @@ export async function exercisesByWeek(sb: SupabaseClient, courseId?: string) {
     if (!mine.length || mine.some((x) => !x.fits_lesson_id)) return null; // part of it not taught yet
     return Math.max(...mine.map((x) => lessonWeek.get(x.fits_lesson_id!) ?? 0)) || null;
   }
-  return { forWeek, fileExercises, fileReadyWeek, all: labeled };
+  return { forWeek, fileExercises, fileReadyWeek, all: labeled, byId: new Map(labeled.map((x) => [x.id, x])) };
 }
 
 /**

@@ -846,6 +846,7 @@ if __name__ == "__main__":
     p = sub.add_parser("exercises"); p.add_argument("course"); p.add_argument("fixes_json")
     p = sub.add_parser("drive"); p.add_argument("course"); p.add_argument("files_json")
     p = sub.add_parser("core"); p.add_argument("course"); p.add_argument("core_json")
+    p = sub.add_parser("where"); p.add_argument("course"); p.add_argument("--again", action="store_true")
     p = sub.add_parser("task"); p.add_argument("course"); p.add_argument("title"); p.add_argument("due")
     sub.add_parser("flat")
     sub.add_parser("stuck")
@@ -873,6 +874,13 @@ if __name__ == "__main__":
         cmd_task(a.course, a.title, a.due)
     elif a.cmd == "core":
         cmd_core(a.course, a.core_json)
+    elif a.cmd == "where":  # the exact page of each exercise (locate.py); --again looks up all of them again
+        import locate
+        sb = db()
+        course = find_course(sb, a.course)
+        if a.again:
+            locate.save(sb, course, {})
+        locate.run(sb, course)
     elif a.cmd == "drive":
         cmd_drive(a.course, a.files_json)
     elif a.cmd == "exercises":

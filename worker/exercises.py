@@ -380,6 +380,11 @@ def run(only=None):
         skipped = [m["title"] for m in materials if m["id"] not in done and not wanted(m)]
         print(f"::notice title=Exercises {course['name']}::{len(todo)} files to read; not exercise files: "
               f"{', '.join(skipped)[:600] or '-'}", flush=True)
+        try:  # the exact page of every exercise found so far (locate.py; no AI, just the PDF text)
+            import locate
+            locate.run(sb, course)
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Exercise sources::{str(e)[:300]}", flush=True)
         try:
             if not from_lessons(sb, course, start + BUDGET_SEC):
                 print("::notice title=Exercises::time budget used - the rest continue tomorrow", flush=True)

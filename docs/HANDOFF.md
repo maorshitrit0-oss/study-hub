@@ -607,6 +607,15 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   per slide (model-written code run with no env), worked-example steps revealed one by one, ONE natural Gemini voice
   (narrate(): a few slides per TTS request; no edge fallback - fails on quota and queue retry_studio redoes it).
   Free Gemini image models are limit 0. Waves lectures 1-3 videos made 08/11 with this engine.
+  His feedback 08/11 ("narrator great, text not in sync, slides cropped, wants subtitles, watches at 1.5x"): fixed -
+  group audio is cut at real pauses (split_points, ffmpeg silencedetect) not by text share; one frame per narration
+  sentence with a burned subtitle bar, cut at the pauses too; fixed 500px image column (no overflow); ONE image track
+  (concat list with exact durations) + ONE continuous audio track muxed once (gluing ~100 AAC clips drifted seconds);
+  keyframe every 2s. App Player: speed buttons 0.75-2x (remembered, localStorage "study-speed"). Diagram labels: math in $..$.
+- Exercise sources (his request 08/11): every exercise shows "מקור: <file | lesson (date)> · 📍 עמ' N" - worker/locate.py
+  matches the exercise text to the PDF pages (file, or the lecture's "הרצאה N" slides) + board snapshot numbers;
+  storage <user>/materials/<course>/exercise_where.json; runs in exercises.py for new ones, or publish inspect=where
+  (title=anything = redo all). A core pick may carry its own "where" (wins). Scanned PDFs have no text -> no page.
 - Studio: edge-tts (Microsoft Hila/Avri Hebrew voices) when Gemini TTS quota is gone; video from the lecture's PDF
   ("הרצאה N" in course files, PyMuPDF) when no board snapshots. Linear-circuits media deleted at his request.
 - Reminder task: create GitHub repo "projects" by Fri 13/11 (session cannot create repos; files ready in scratchpad -

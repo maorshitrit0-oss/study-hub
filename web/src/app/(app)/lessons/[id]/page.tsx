@@ -35,7 +35,10 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
   const { data: all } = await sb.from("questions").select("*").eq("lesson_id", id).order("created_at");
   const questions = (all ?? []).filter((q) => !q.source);
   // Lectures and practices: a short summary + the exercises (supabase/exercises.sql); the full chapter on request.
-  const { data: exercises } = await sb.from("exercises").select("*").eq("lesson_id", id).order("ord");
+  const { data: exRows } = await sb.from("exercises").select("*").eq("lesson_id", id).order("ord");
+  const where: Record<string, string> = await sb.storage.from("study").download(`${userId}/materials/${lesson.course_id}/exercise_where.json`)
+    .then(async ({ data }) => (data ? JSON.parse(await data.text()) : {})).catch(() => ({}));
+  const exercises = (exRows ?? []).map((x) => ({ ...x, where: where[x.id] || undefined }));
   const summary = (lesson as Lesson & { summary_md?: string | null }).summary_md ?? null;
   // A self-study session is written as one full chapter (with the project task among its exercises).
   const self = (lesson.transcript ?? "").startsWith("<!-- vlsi-session -->");

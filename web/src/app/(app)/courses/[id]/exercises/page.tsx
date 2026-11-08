@@ -16,7 +16,7 @@ export default async function CourseExercises({ params, searchParams }: PageProp
   const { sb, userId } = await requireUser();
   const { data: course } = await sb.from("courses").select("id, name").eq("id", id).maybeSingle();
   if (!course) notFound();
-  const { forWeek, fileExercises, fileReadyWeek } = await exercisesByWeek(sb, id);
+  const { forWeek, fileExercises, fileReadyWeek, byId } = await exercisesByWeek(sb, id, userId);
   const files = sp.files === "1";
   const w = Math.max(1, Number(sp.w) || studyWeek());
   const { fromLessons, fromFiles } = forWeek(id, w);
@@ -24,16 +24,14 @@ export default async function CourseExercises({ params, searchParams }: PageProp
   const { start, end } = weekDays(w);
   const weeks = Array.from({ length: todayWeek() }, (_, k) => k + 1);
   // The week's core: 3-5 exercises picked by what the exams ask (his request, 08/11/2026); the rest is an optional bank.
-  type Core = { weeks: Record<string, { id: string; why: string }[]>; exam_note?: string };
+  type Core = { weeks: Record<string, { id: string; why: string; where?: string }[]>; exam_note?: string };
   const core: Core | null = await sb.storage.from("study").download(`${userId}/materials/${id}/exercise_core.json`)
     .then(async ({ data }) => (data ? JSON.parse(await data.text()) as Core : null)).catch(() => null);
   const picks = core?.weeks[String(w)] ?? [];
-  const { data: coreRows } = picks.length
-    ? await sb.from("exercises").select("*").in("id", picks.map((p) => p.id))
-    : { data: [] as Exercise[] };
+  // with the file / lesson it came from and the exact page (a hand-set "where" in the core file wins)
   const coreItems = picks.map((p) => {
-    const x = (coreRows ?? []).find((r) => r.id === p.id);
-    return x ? { ...x, why: p.why } as Exercise : null;
+    const x = byId.get(p.id);
+    return x ? { ...x, why: p.why, where: p.where || x.where } as Exercise : null;
   }).filter((x): x is Exercise => !!x);
   const coreIds = new Set(coreItems.map((x) => x.id));
   const bankLessons = fromLessons.filter((x) => !coreIds.has(x.id));

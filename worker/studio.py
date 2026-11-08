@@ -338,7 +338,8 @@ EXPLAINER = """אתה מורה מצוין שבונה סרטון הסבר (כמו
 - diagram: קוד Python קצר (matplotlib) שמצייר שרטוט הנדסי מדויק שממחיש את השקף - גל מישורי עם חיצי E ו-H, דעיכה
   e^{-alpha z} עם עומק החדירה מסומן, אליפסת קיטוב, גל פוגע/מוחזר/עובר בממשק, וקטורים ומכפלה וקטורית, גרף של פונקציה וכו'.
   כבר מוגדרים: np, plt, fig, ax (רקע כהה כבר מוגדר). מציירים רק על ax (או ax3d = fig.add_subplot(projection='3d') אם צריך תלת-ממד).
-  תוויות באנגלית/LaTeX בלבד (בלי עברית), צבעים בהירים, קווים עבים. בלי import, בלי קבצים, בלי show/savefig. ריק = בלי שרטוט.
+  תוויות באנגלית בלבד (בלי עברית); כל סימון מתמטי בתווית חייב להיות בתוך $...$ (למשל r'$\\vec{E}$', r'$e^{-\\alpha z}$'),
+  בלי \\text ובלי \\boldsymbol (matplotlib לא מכיר - השתמש ב-\\mathrm). צבעים בהירים, קווים עבים. בלי import, בלי קבצים, בלי show/savefig. ריק = בלי שרטוט.
   בשקף שיש בו diagram לא צריך visual.
 - steps: בשקף של דוגמה פתורה - 3-6 שלבים קצרים שמופיעים אחד אחרי השני על המסך (כל שלב: משוואת LaTeX עם הצבה ותוצאה,
   בלי $). בשקף רגיל - ריק. הדיבור בשקף כזה עובר על השלבים לפי הסדר.
@@ -356,14 +357,16 @@ EXPLAINER_SCHEMA = {"type": "object", "properties": {"title": {"type": "string"}
                                      "steps": {"type": "array", "items": {"type": "string"}}},
     "required": ["title", "bullets", "narration"]}}}, "required": ["title", "slides"]}
 
-SLIDE_CSS = """*{box-sizing:border-box}body{margin:0;width:1280px;height:720px;background:linear-gradient(135deg,#0b1d3a,#06142a);
+SLIDE_CSS = """*{box-sizing:border-box}html,body{overflow:hidden}body{margin:0;width:1280px;height:720px;position:relative;background:linear-gradient(135deg,#0b1d3a,#06142a);
 color:#eef2fb;font-family:Heebo,'DejaVu Sans',Arial,sans-serif;direction:rtl;display:flex;flex-direction:column;padding:48px 64px}
 h1{font-size:46px;margin:0 0 26px;color:#9fc3ff;border-bottom:3px solid #2b4466;padding-bottom:14px}
-.row{display:flex;gap:40px;flex:1;min-height:0}.txt{flex:1;display:flex;flex-direction:column;justify-content:center}
+.row{display:flex;gap:36px;flex:1;min-height:0;padding-bottom:96px}.txt{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
 ul{margin:0;padding-right:30px}li{font-size:33px;line-height:1.45;margin:8px 0}
 .f{direction:ltr;text-align:center;font-size:40px;margin-top:26px;background:#0e2547;border-radius:16px;padding:18px}
 .s{font-size:30px;margin-top:12px;padding:10px}.s:last-child{border:2px solid #f5b84b}
-.img{flex:0 0 46%;display:flex;align-items:center;justify-content:center}.img img{max-width:100%;max-height:540px;border-radius:12px;background:#fff}
+.img{flex:0 0 500px;width:500px;display:flex;align-items:center;justify-content:center;overflow:hidden}.img img{max-width:500px;max-height:440px;object-fit:contain;border-radius:12px}
+.sub{position:absolute;left:0;right:0;bottom:0;min-height:92px;padding:14px 60px;background:rgba(0,0,0,.72);color:#fff;font-size:28px;
+line-height:1.35;text-align:center;display:flex;align-items:center;justify-content:center}
 .n{position:absolute;bottom:22px;left:40px;font-size:18px;color:#6f86ad}"""
 
 
@@ -376,7 +379,7 @@ def render_slides(slides, pages, work, katex=None):
     katex = katex or ("file://" + os.environ["KATEX_DIR"] if os.environ.get("KATEX_DIR") else "https://cdn.jsdelivr.net/npm/katex@0.16.47/dist")
     out = []
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = p.chromium.launch(executable_path=os.environ.get("PW_CHROMIUM") or None)
         page = browser.new_page(viewport={"width": 1280, "height": 720})
         for i, sl in enumerate(slides):
             pic = sl.get("_img") and (sl["_img"], "") or pages.get(sl.get("page") or 0)
@@ -395,7 +398,8 @@ def render_slides(slides, pages, work, katex=None):
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap">
 <link rel="stylesheet" href="{katex}/katex.min.css"><script src="{katex}/katex.min.js"></script>
 <style>{SLIDE_CSS}</style></head><body><h1>{h.escape(sl.get('title') or '')}</h1>
-<div class="row"><div class="txt"><ul>{bullets}</ul>{fdiv}</div>{img}</div><div class="n">{i + 1}/{len(slides)}</div>
+<div class="row"><div class="txt"><ul>{bullets}</ul>{fdiv}</div>{img}</div>
+{f'<div class="sub">{h.escape(sl["_sub"])}</div>' if sl.get("_sub") else ""}
 <script>for (const f of document.querySelectorAll('.f')) {{ try {{ katex.render(f.textContent, f, {{displayMode:true, throwOnError:false}}); }} catch(e) {{}} }}
 document.fonts.ready.then(()=>document.body.dataset.ready='1');</script></body></html>""", encoding="utf-8")
             page.goto(f"file://{html_file}", wait_until="load")
@@ -449,24 +453,36 @@ def make_explainer(job, pages, work, out):
             if img:
                 sl["_img"], made = img, made + 1
     job.log("מעצב שקפים...")
-    clips = []
+    shots, audio, PAD = [], [], 0.5
     for i, (sl, wav) in enumerate(zip(slides, wavs)):
         steps = [x for x in (sl.get("steps") or []) if x.strip()][:6]
-        frames = [dict(sl, _steps=steps[:k]) for k in range(1, len(steps) + 1)] if steps else [sl]
+        sents = [x.strip() for x in re.split(r"(?<=[.!?…])\s+", sl["narration"].strip()) if x.strip()] or [sl["narration"]]
+        frames = []
+        for j, sent in enumerate(sents):  # subtitles: one sentence at a time; example steps appear over the sentences
+            f = dict(sl, _sub=sent)
+            if steps:
+                f["_steps"] = steps[:min(len(steps), 1 + j * len(steps) // len(sents))]
+            frames.append(f)
         pngs = render_slides(frames, pages, _mk(work / f"r{i:03d}"))
         dur = media.duration(wav) or 1
-        each = max(1.5, dur / len(pngs))
+        weights = [max(len(x), 8) for x in sents]
+        bounds = [0.0] + split_points(wav, dur, weights, window=2.5, min_gap=0.6) + [dur]  # subtitle changes at real pauses
+        bounds[-1] = dur + PAD
+        padded = work / f"pad_{i:03d}.wav"  # the slide's voice + a short breath, same format for every piece
+        media.run_ffmpeg(["-i", str(wav), "-af", f"apad=pad_dur={PAD}", "-ar", "24000", "-ac", "1", "-c:a", "pcm_s16le", str(padded)])
+        audio.append(padded)
         for j, png in enumerate(pngs):
-            clip = work / f"xclip_{i:03d}_{j:02d}.mp4"
-            start = j * each
-            last = j == len(pngs) - 1
-            media.run_ffmpeg(["-loop", "1", "-i", str(png), "-ss", f"{start:.2f}"] + ([] if last else ["-t", f"{each:.2f}"]) +
-                             ["-i", str(wav), "-af", "apad=pad_dur=0.5" if last else "anull", "-c:v", "libx264", "-tune", "stillimage",
-                              "-r", "5", "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "24000", "-ac", "1", "-b:a", "96k", "-shortest", str(clip)])
-            clips.append(clip)
-    lst = work / "xclips.txt"
-    lst.write_text("".join(f"file '{c}'\n" for c in clips))
-    media.run_ffmpeg(["-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", "-movflags", "+faststart", str(out)])
+            shots.append((png, bounds[j + 1] - bounds[j]))
+    # ONE image track with exact cumulative times and ONE continuous audio track, muxed once: gluing ~100 short AAC clips
+    # drifted by tens of ms per clip (seconds by the end) - his remark 08/11/2026 "המלל לא בקצב של המצגות".
+    vl = work / "ximgs.txt"
+    vl.write_text("".join(f"file '{p}'\nduration {d:.3f}\n" for p, d in shots) + f"file '{shots[-1][0]}'\n")
+    al = work / "xaudio.txt"
+    al.write_text("".join(f"file '{a}'\n" for a in audio))
+    media.run_ffmpeg(["-f", "concat", "-safe", "0", "-i", str(vl), "-f", "concat", "-safe", "0", "-i", str(al),
+                      "-map", "0:v", "-map", "1:a", "-vf", "fps=10,scale=1280:720,setsar=1,format=yuv420p",
+                      "-c:v", "libx264", "-tune", "stillimage", "-g", "20", "-c:a", "aac", "-b:a", "96k", "-ar", "24000",
+                      "-ac", "1", "-shortest", "-movflags", "+faststart", str(out)])
     md = "\n\n".join(f"**{i + 1}. {s['title']}**\n\n{s['narration']}" for i, s in enumerate(slides))
     return script.get("title") or "", md
 
@@ -532,6 +548,30 @@ def illustrate(prompt, out):
     return None
 
 
+def split_points(wav, total, lens, window=None, min_gap=1.0):
+    """Where one recording of several slides should be cut: at the real pauses (ffmpeg silencedetect) closest to where
+    each slide 'should' end by its share of the text (08/11/2026: proportional cuts drifted off the slides)."""
+    guesses, acc = [], 0
+    for ln in lens[:-1]:
+        acc += ln
+        guesses.append(total * acc / sum(lens))
+    if not guesses:
+        return []
+    p = subprocess.run([media.FFMPEG, "-hide_banner", "-i", str(wav), "-af", "silencedetect=noise=-38dB:d=0.25", "-f", "null", "-"],
+                       capture_output=True, text=True, errors="ignore")
+    starts = [float(x) for x in re.findall(r"silence_start: ([\d.]+)", p.stderr)]
+    ends = [float(x) for x in re.findall(r"silence_end: ([\d.]+)", p.stderr)]
+    gaps = [((a + b) / 2, b - a) for a, b in zip(starts, ends)]
+    win = window or max(6.0, 0.25 * total / len(lens))
+    cuts, last = [], 0.0
+    for g in guesses:  # the paragraph break between slides is the longest pause: prefer long pauses near the guess
+        near = [(m, d) for m, d in gaps if m > last + min_gap and abs(m - g) < win]
+        c = min(near, key=lambda x: abs(x[0] - g) - 3 * x[1])[0] if near else g
+        cuts.append(c)
+        last = c
+    return cuts
+
+
 def narrate(slides, work):
     """One natural Gemini voice for the whole video, a few slides per request (the free quota counts requests); each slide's
     share of a request is cut out by its length. No robotic fallback (his remark 08/11/2026): on quota the video fails and
@@ -552,13 +592,12 @@ def narrate(slides, work):
         wav = tts_one(text, work, 100 + g, allow_edge=False)
         total = media.duration(wav) or 1
         lens = [len(slides[i]["narration"]) for i in idx]
-        t0 = 0.0
-        for i, ln in zip(idx, lens):
-            part = total * ln / sum(lens)
+        cuts = split_points(wav, total, lens)
+        bounds = [0.0] + cuts + [total]
+        for k, i in enumerate(idx):
             piece = work / f"nar_{i:03d}.wav"
-            media.run_ffmpeg(["-ss", f"{t0:.2f}", "-t", f"{part:.2f}", "-i", str(wav), str(piece)])
+            media.run_ffmpeg(["-ss", f"{bounds[k]:.3f}", "-t", f"{bounds[k + 1] - bounds[k]:.3f}", "-i", str(wav), str(piece)])
             out[i] = piece
-            t0 += part
     return out
 
 

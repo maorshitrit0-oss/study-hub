@@ -1,7 +1,7 @@
 "use client";
 
 import Fold from "./Fold";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { createMedia, deleteMedia } from "@/app/(app)/actions";
 import type { Media } from "@/lib/studio";
 import AutoRefresh from "./AutoRefresh";
@@ -96,9 +96,42 @@ export default function Studio({ courseId, lessons, items, canVideo = false }: {
  * The player keeps the link it started with (08/11/2026: playback stopped after ~30 s - the page refreshes itself every
  * 20 s while another item is being made, each refresh signs a new URL, and a new src restarts / stops the player).
  */
+const SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2];
+const onSpeed = (cb: () => void) => { window.addEventListener("study-speed", cb); return () => window.removeEventListener("study-speed", cb); };
+const readSpeed = () => { try { return Number(window.localStorage.getItem("study-speed")) || 1; } catch { return 1; } };
+
+/** Keeps its first src (a re-signed URL would restart playback) and offers any speed; the chosen speed is remembered. */
 function Player({ kind, url }: { kind: "audio" | "video"; url: string }) {
   const [src] = useState(url);
-  return kind === "audio"
-    ? <audio controls preload="none" src={src} className="w-full" />
-    : <video controls playsInline preload="metadata" src={src} className="w-full rounded-lg" />;
+  const ref = useRef<HTMLMediaElement | null>(null);
+  const rate = useSyncExternalStore(onSpeed, readSpeed, () => 1); // the saved speed, without a hydration mismatch
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.playbackRate = rate;
+    el.defaultPlaybackRate = rate;
+    (el as HTMLMediaElement & { preservesPitch?: boolean }).preservesPitch = true;
+  }, [rate]);
+  const pick = (r: number) => {
+    try { window.localStorage.setItem("study-speed", String(r)); } catch {}
+    window.dispatchEvent(new Event("study-speed"));
+  };
+  // a new segment resets the rate on some browsers (iOS): put it back
+  const keep = () => { if (ref.current && ref.current.playbackRate !== rate) ref.current.playbackRate = rate; };
+  return (
+    <div className="space-y-1.5">
+      {kind === "audio"
+        ? <audio ref={(e) => { ref.current = e; }} controls preload="none" src={src} className="w-full" onPlay={keep} onLoadedMetadata={keep} onSeeked={keep} />
+        : <video ref={(e) => { ref.current = e; }} controls playsInline preload="metadata" src={src} className="w-full rounded-lg" onPlay={keep} onLoadedMetadata={keep} onSeeked={keep} />}
+      <div className="flex flex-wrap items-center gap-1 text-xs" dir="ltr">
+        <span className="text-slate-400 mr-1">מהירות</span>
+        {SPEEDS.map((r) => (
+          <button key={r} type="button" onClick={() => pick(r)}
+            className={`rounded-full px-2 py-0.5 border ${r === rate ? "bg-blue-600 border-blue-600 text-white" : "border-slate-300 dark:border-slate-600"}`}>
+            {r}×
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
