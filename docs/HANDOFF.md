@@ -599,7 +599,8 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   (chapters/<course>_core.json, publish inspect=core). The exercises page shows "⭐ הליבה של שבוע N" + folded bank.
   Waves core weeks 1-3 set (11 exercises) and all 11 re-solved in full. Micro core weeks 1-3 set (10) from the two
   exam papers (תשפ"ו מועד א/ב: 90 min, no formula sheet, 6 MCQ x10 + 2 code questions x20); 7 of them re-solved.
-  NEXT: core for digital circuits, Java, linear circuits (same recipe: fetch `files:<course>:<regex>` -> exercises.json,
+  Digital circuits core weeks 1-3 set (10; no past exams yet; practices 1-3 were written by Claude, MOSFET/energy/diode
+  core solutions checked OK; eca95ac1 NMOS VTC not re-checked). NEXT: core for Java, linear circuits (same recipe: fetch `files:<course>:<regex>` -> exercises.json,
   pick 3-5/week by the exams, chapters/fixes/<course>_core.py -> publish inspect=exercises + inspect=core);
   then exam characterisation per course; then the bank.
 - Explainer video (studio.make_explainer): 12-18 slides, KaTeX formulas (local KaTeX in media.yml), matplotlib diagram
