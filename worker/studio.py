@@ -7,6 +7,7 @@ Gemini writes a script from the (already fact-checked) chapters, a second pass c
 records it in Hebrew with two voices. Video = the lesson's board snapshots, each shown while it is discussed.
 """
 import json
+import re
 import os
 import subprocess
 import sys
@@ -189,9 +190,21 @@ def edge_tts(lines, work, n):
         said = said.strip()
         if not said:
             continue
-        mp3 = work / f"edge_{n:03d}_{i:03d}.mp3"
-        asyncio.run(et.Communicate(said, EDGE_VOICES.get(who.strip(), EDGE_VOICES["Noa"]), rate="+5%").save(str(mp3)))
-        parts.append(mp3)
+        voice = EDGE_VOICES.get(who.strip(), EDGE_VOICES["Noa"])
+        # Formulas / markdown give the service nothing to say ("No audio was received"): clean, split into sentences,
+        # and a piece that still fails is skipped instead of failing the whole podcast.
+        clean = re.sub(r"[$\\{}_^*#`|<>\[\]]", " ", said)
+        clean = re.sub(r"\s+", " ", clean).strip()
+        for j, piece in enumerate(re.split(r"(?<=[.!?…])\s+", clean)):
+            if not re.search(r"[\w\u0590-\u05FF]", piece):
+                continue
+            mp3 = work / f"edge_{n:03d}_{i:03d}_{j:02d}.mp3"
+            try:
+                asyncio.run(et.Communicate(piece, voice, rate="+5%").save(str(mp3)))
+                if mp3.exists() and mp3.stat().st_size > 0:
+                    parts.append(mp3)
+            except Exception as e:  # noqa: BLE001
+                print(f"edge-tts skipped a piece ({str(e)[:60]}): {piece[:60]}", flush=True)
     if not parts:
         raise RuntimeError("no text")
     lst = work / f"edge_{n:03d}.txt"
