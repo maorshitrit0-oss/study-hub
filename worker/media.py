@@ -26,8 +26,8 @@ def duration(path):
     """Length of a media file in seconds (0 if unknown)."""
     p = subprocess.run([FFMPEG, "-hide_banner", "-i", str(path)],
                        capture_output=True, text=True, errors="ignore", creationflags=NO_WINDOW)
-    m = re.search(r"Duration: (\d+):(\d+):(\d+)", p.stderr)
-    return int(m[1]) * 3600 + int(m[2]) * 60 + int(m[3]) if m else 0
+    m = re.search(r"Duration: (\d+):(\d+):(\d+(?:\.\d+)?)", p.stderr)
+    return int(m[1]) * 3600 + int(m[2]) * 60 + float(m[3]) if m else 0
 
 
 def has_video(path):

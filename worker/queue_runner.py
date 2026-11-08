@@ -133,8 +133,9 @@ def retry_studio(sb):
         names = {c["id"]: c["name"] or "" for c in sb.table("courses").select("id, name").execute().data}
     except Exception:  # noqa: BLE001
         return
-    rows = [r for r in rows if hub.AUTO_STUDIO.search(names.get(r["course_id"], ""))]  # only where he asked for them
-    for m in [r for r in rows if "מכסה" in (r.get("error") or "") or "עמוסים" in (r.get("error") or "")][:3]:
+    # Only items that stopped on the quota (requested by him or for him); a video waits for the natural Gemini voice.
+    rows = [r for r in rows if names.get(r["course_id"])]
+    for m in [r for r in rows if any(w in (r.get("error") or "") for w in ("מכסה", "עמוסים"))][:2]:
         sb.table("lesson_media").update({"status": "queued", "error": None}).eq("id", m["id"]).execute()
         print(f"::notice title=Studio again::{m['kind']} {m['id'][:8]}: {course_site.dispatch_inputs('media.yml', {'media_id': m['id']})}", flush=True)
 
