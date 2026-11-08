@@ -601,7 +601,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   exam papers (תשפ"ו מועד א/ב: 90 min, no formula sheet, 6 MCQ x10 + 2 code questions x20); 7 of them re-solved.
   Digital circuits core weeks 1-3 set (10; no past exams yet; practices 1-3 were written by Claude, MOSFET/energy/diode
   core solutions checked OK; eca95ac1 NMOS VTC not re-checked). Java core weeks 1-3 set (11; exam is MCQ: output /
-  error / fill-in / concepts; every output verified by running javac+java in the session). NEXT: core for linear circuits (same recipe: fetch `files:<course>:<regex>` -> exercises.json,
+  error / fill-in / concepts; every output verified by running javac+java in the session). Linear circuits core weeks 1-3 set (10; exam מועד א' תשפ"ו = 6 MCQ
+  solved in the notebook: BJT bias, feedback, Schmitt oscillator, op-amp gain expression, CE Q-point+Amid, CC; cascade
+  example restored from the lecture transcript). Homework-1 "שאלת מבחן" items have no circuit (figures) - not used. NEXT: core for linear circuits (later weeks) (same recipe: fetch `files:<course>:<regex>` -> exercises.json,
   pick 3-5/week by the exams, chapters/fixes/<course>_core.py -> publish inspect=exercises + inspect=core);
   then exam characterisation per course; then the bank.
 - Explainer video (studio.make_explainer): 12-18 slides, KaTeX formulas (local KaTeX in media.yml), matplotlib diagram
