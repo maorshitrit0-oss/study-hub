@@ -611,7 +611,7 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   group audio is cut at real pauses (split_points, ffmpeg silencedetect) not by text share; one frame per narration
   sentence with a burned subtitle bar, cut at the pauses too; fixed 500px image column (no overflow); ONE image track
   (concat list with exact durations) + ONE continuous audio track muxed once (gluing ~100 AAC clips drifted seconds);
-  keyframe every 2s. App Player: speed buttons 0.75-2x (remembered, localStorage "study-speed"). Diagram labels: math in $..$.
+  keyframe every 2s; long formulas shrink to fit; pauses = silencedetect -32dB/0.12s (measured). App Player: speed buttons 0.75-2x (remembered, localStorage "study-speed"). Diagram labels: math in $..$.
 - Exercise sources (his request 08/11): every exercise shows "מקור: <file | lesson (date)> · 📍 עמ' N" - worker/locate.py
   matches the exercise text to the PDF pages (file, or the lecture's "הרצאה N" slides) + board snapshot numbers;
   storage <user>/materials/<course>/exercise_where.json; runs in exercises.py for new ones, or publish inspect=where

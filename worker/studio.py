@@ -362,7 +362,7 @@ color:#eef2fb;font-family:Heebo,'DejaVu Sans',Arial,sans-serif;direction:rtl;dis
 h1{font-size:46px;margin:0 0 26px;color:#9fc3ff;border-bottom:3px solid #2b4466;padding-bottom:14px}
 .row{display:flex;gap:36px;flex:1;min-height:0;padding-bottom:96px}.txt{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
 ul{margin:0;padding-right:30px}li{font-size:33px;line-height:1.45;margin:8px 0}
-.f{direction:ltr;text-align:center;font-size:40px;margin-top:26px;background:#0e2547;border-radius:16px;padding:18px}
+.f{direction:ltr;text-align:center;font-size:40px;overflow:hidden;margin-top:26px;background:#0e2547;border-radius:16px;padding:18px}
 .s{font-size:30px;margin-top:12px;padding:10px}.s:last-child{border:2px solid #f5b84b}
 .img{flex:0 0 500px;width:500px;display:flex;align-items:center;justify-content:center;overflow:hidden}.img img{max-width:500px;max-height:440px;object-fit:contain;border-radius:12px}
 .sub{position:absolute;left:0;right:0;bottom:0;min-height:92px;padding:14px 60px;background:rgba(0,0,0,.72);color:#fff;font-size:28px;
@@ -401,7 +401,13 @@ def render_slides(slides, pages, work, katex=None):
 <div class="row"><div class="txt"><ul>{bullets}</ul>{fdiv}</div>{img}</div>
 {f'<div class="sub">{h.escape(sl["_sub"])}</div>' if sl.get("_sub") else ""}
 <script>for (const f of document.querySelectorAll('.f')) {{ try {{ katex.render(f.textContent, f, {{displayMode:true, throwOnError:false}}); }} catch(e) {{}} }}
-document.fonts.ready.then(()=>document.body.dataset.ready='1');</script></body></html>""", encoding="utf-8")
+document.fonts.ready.then(() => {{
+  for (const f of document.querySelectorAll('.f')) {{  // a long formula: shrink it until it fits its box
+    const r = document.createRange(); r.selectNodeContents(f.querySelector('.katex-html') || f); let z = 1;
+    while (r.getBoundingClientRect().width > f.clientWidth - 40 && z > 0.4) {{ z -= 0.05; f.style.fontSize = (z * 40) + 'px'; }}
+  }}
+  document.body.dataset.ready = '1';
+}});</script></body></html>""", encoding="utf-8")
             page.goto(f"file://{html_file}", wait_until="load")
             try:  # KaTeX and the font from the CDN; a slow CDN must not stop the video
                 page.wait_for_function("document.body.dataset.ready === '1'", timeout=20000)
@@ -412,6 +418,9 @@ document.fonts.ready.then(()=>document.body.dataset.ready='1');</script></body><
             out.append(png)
         browser.close()
     return out
+
+
+ILLUSTRATE = 0  # free Gemini image models are limit 0 (08/11/2026): matplotlib diagrams instead; raise when one works
 
 
 def make_explainer(job, pages, work, out):
@@ -448,7 +457,7 @@ def make_explainer(job, pages, work, out):
     for i, sl in enumerate(slides):
         if sl.get("_img"):
             continue
-        if (sl.get("visual") or "").strip() and made < 10 and not sl.get("steps"):
+        if (sl.get("visual") or "").strip() and made < ILLUSTRATE and not sl.get("steps"):
             img = illustrate(sl["visual"], work / f"ill_{i:03d}.png")
             if img:
                 sl["_img"], made = img, made + 1
@@ -557,7 +566,7 @@ def split_points(wav, total, lens, window=None, min_gap=1.0):
         guesses.append(total * acc / sum(lens))
     if not guesses:
         return []
-    p = subprocess.run([media.FFMPEG, "-hide_banner", "-i", str(wav), "-af", "silencedetect=noise=-38dB:d=0.25", "-f", "null", "-"],
+    p = subprocess.run([media.FFMPEG, "-hide_banner", "-i", str(wav), "-af", "silencedetect=noise=-32dB:d=0.12", "-f", "null", "-"],
                        capture_output=True, text=True, errors="ignore")
     starts = [float(x) for x in re.findall(r"silence_start: ([\d.]+)", p.stderr)]
     ends = [float(x) for x in re.findall(r"silence_end: ([\d.]+)", p.stderr)]
