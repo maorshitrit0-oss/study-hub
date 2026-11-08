@@ -6,6 +6,8 @@ export type Media = {
   lesson_ids: string[]; created_at: string; url?: string;
 };
 
+const ENGINE_SINCE = "2026-11-08T17:20"; // the subtitled, synced explainer video he approved
+
 /** Studio items of a lesson (or of a whole course), newest first, with playable links. */
 export async function loadMedia(sb: SupabaseClient, filter: { lessonId?: string; courseId?: string }) {
   let q = sb.from("lesson_media").select("*").order("created_at", { ascending: false }).limit(30);
@@ -20,5 +22,10 @@ export async function loadMedia(sb: SupabaseClient, filter: { lessonId?: string;
     const byPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
     for (const r of rows) if (r.storage_path) r.url = byPath.get(r.storage_path) ?? undefined;
   }
-  return rows.map(({ storage_path: _, ...r }) => (void _, r)) as Media[];
+  // A failed item is hidden when the same lessons already have a ready one of that kind from the current video engine
+  // (or made after it failed): the worker will not redo it either (queue_runner.retry_studio, ENGINE_SINCE).
+  const same = (a: string[], b: string[]) => [...a].sort().join() === [...b].sort().join();
+  const shown = rows.filter((r) => r.status !== "error" || !rows.some((x) => x.status === "ready" && x.kind === r.kind
+    && same(x.lesson_ids ?? [], r.lesson_ids ?? []) && (x.created_at > r.created_at || x.created_at >= ENGINE_SINCE)));
+  return shown.map(({ storage_path: _, ...r }) => (void _, r)) as Media[];
 }

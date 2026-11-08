@@ -26,6 +26,8 @@ export default function Studio({ courseId, lessons, items, canVideo = false }: {
   const [pending, start] = useTransition();
 
   if (items === null) return <p className="card text-sm text-warn">כדי להפעיל את הסטודיו צריך להריץ את קוד ה-SQL שלו ב-Supabase (studio.sql).</p>;
+  // which lesson an item is for, before it has a title (a waiting / failed item)
+  const named = (m: Media) => m.lesson_ids?.map((id) => lessons.find((l) => l.id === id)?.label).filter(Boolean).join(", ");
   const busy = items.some((m) => m.status === "queued" || m.status === "processing");
 
   const make = (kind: keyof typeof KIND) => start(async () => {
@@ -70,11 +72,13 @@ export default function Studio({ courseId, lessons, items, canVideo = false }: {
           {items.map((m) => (
             <li key={m.id} className="rounded-xl bg-bg/60 p-3 space-y-2">
               <div className="flex justify-between gap-2 text-sm">
-                <span className="font-medium">{KIND[m.kind]}{m.title ? ` · ${m.title}` : ""} <span className="text-muted">{mmss(m.duration_sec)}</span></span>
+                <span className="font-medium">{KIND[m.kind]}{m.title ? ` · ${m.title}` : named(m) ? ` · ${named(m)}` : ""} <span className="text-muted">{mmss(m.duration_sec)}</span></span>
                 <button className="text-muted" aria-label="מחיקה" onClick={() => confirm("למחוק?") && deleteMedia(m.id)}>×</button>
               </div>
               {(m.status === "queued" || m.status === "processing") && <p className="text-sm text-warn animate-pulse">{m.progress ?? "בתור..."}</p>}
-              {m.status === "error" && <p className="text-sm text-bad">⚠️ {m.error}</p>}
+              {m.status === "error" && (/מכסה|עמוסים/.test(m.error ?? "")
+                ? <p className="text-sm text-warn">⏳ ממתין למכסת הקול של Gemini - ייווצר לבד אחרי האיפוס (בסביבות 10:00)</p>
+                : <p className="text-sm text-bad">⚠️ {m.error}</p>)}
               {m.status === "ready" && m.kind === "podcast" && m.url && <Player kind="audio" url={m.url} />}
               {m.status === "ready" && m.kind === "video" && m.url && <Player kind="video" url={m.url} />}
               {m.status === "ready" && m.kind === "examples" && m.script && (
