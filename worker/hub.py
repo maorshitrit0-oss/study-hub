@@ -574,7 +574,7 @@ def cmd_tts():
             studio.tts(["נועה: שלום, זו בדיקה.", "דן: מעולה, שומעים אותך."], work, 0)
             print(f"::notice title=TTS ok::{name}", flush=True)
         except Exception as e:  # noqa: BLE001
-            print(f"::warning title=TTS fail {name}::{str(e)[:250]}", flush=True)
+            print(f"::warning title=TTS fail {name}::{' '.join(str(e).split())[:600]}", flush=True)
 
 
 def cmd_sheet(match, path):
