@@ -588,6 +588,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Past exams: waves 20.03.24 + solution, 25.07.24, solution of 05.09.24 uploaded. Pattern: oblique TE plane wave at
   an interface (both exams, 40-50 pts) + transmission lines (stub/Smith/VSWR or bounce diagram) + line parameters.
   University Drive with all exams: https://drive.google.com/drive/folders/1kIkcJQOKA0k1xCQpC0EcN6qmwJZGWHj6
+- Studio TTS fixed (08/11/2026): google-genai 3.0 sent speech_config wrongly ("Unknown name speechConfig") -> studio.tts
+  calls REST v1beta directly; 3.x TTS models need one content part per line with speechMetadata.speaker and NO system
+  instruction; 2.5-preview-tts takes the whole dialogue. Checks: publish inspect=tts; failed media again: inspect=studio-retry.
+- Waves exams from the students' Drive added as course files (drive:<id>, kind past_exam): solutions 19.08.24, 2023,
+  "פתרונות שאלות מבחן מפולגות" (hub.py drive, publish inspect=drive).
 - fetch/* branches carry web/vercel.json (ignoreCommand exit 0) - Vercel had mailed him "Preview deployment failed" for them.
 
 ## Open items
