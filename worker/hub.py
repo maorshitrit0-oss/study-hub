@@ -464,7 +464,25 @@ def cmd_exercises(match, path):
     solved is kept. Nothing else is touched."""
     sb = db()
     course = find_course(sb, match)
+    fields = ("title", "question_md", "solution_md", "topic", "exam_style", "uncertain")
     for fx in json.loads(Path(path).read_text(encoding="utf-8")):
+        if fx.get("id"):  # by id (from exercises.json of `hub.py materials`)
+            got = sb.table("exercises").update({k: fx[k] for k in fields if k in fx}).eq("id", fx["id"]) \
+                .eq("course_id", course["id"]).execute().data
+            print(f"::notice title=Exercise {'fixed' if got else 'NOT FOUND'}::{fx.get('title') or fx['id']}", flush=True)
+            continue
+        if fx.get("add"):  # an exercise the lesson had and the app was missing
+            les = (sb.table("lessons").select("id").eq("course_id", course["id"]).eq("kind", fx["kind"])
+                   .eq("number", int(fx["number"])).execute().data)
+            if len(les) != 1:
+                print(f"::warning title=Exercise add::{fx['kind']} {fx['number']}: {len(les)} lessons", flush=True)
+                continue
+            last = sb.table("exercises").select("ord").eq("lesson_id", les[0]["id"]).order("ord", desc=True).limit(1).execute().data
+            sb.table("exercises").insert({"user_id": course["user_id"], "course_id": course["id"], "lesson_id": les[0]["id"],
+                                          "source": "lesson", "ord": (last[0]["ord"] + 1) if last else 0,
+                                          **{k: fx[k] for k in fields if k in fx}}).execute()
+            print(f"::notice title=Exercise added::{fx['kind']} {fx['number']}: {fx.get('title')}", flush=True)
+            continue
         lessons = (sb.table("lessons").select("id").eq("course_id", course["id"]).eq("kind", fx["kind"])
                    .eq("number", int(fx["number"])).execute().data)
         hit = [x for l in lessons for x in sb.table("exercises").select("id, title").eq("lesson_id", l["id"]).execute().data
@@ -516,6 +534,15 @@ def cmd_materials(match, title_rx, out_dir):
             (out / name).write_bytes(sb.storage.from_(BUCKET).download(f"{course['user_id']}/materials/{course['id']}/{name}"))
         except Exception:  # noqa: BLE001
             pass
+    # Every exercise of the course (from lessons and from files), to check and rewrite (hub.py exercises).
+    mats = {m["id"]: m["title"] for m in sb.table("materials").select("id, title").eq("course_id", course["id"]).execute().data}
+    by_lesson = {l["id"]: f"{l['kind']} {l.get('number') or 0}" for l in lessons}
+    ex_all = (sb.table("exercises").select("id, lesson_id, material_id, source, ord, title, question_md, solution_md, topic, "
+                                           "exam_style, uncertain, done_at").eq("course_id", course["id"]).order("ord").execute().data)
+    for x in ex_all:
+        x["lesson"] = by_lesson.get(x.pop("lesson_id") or "", "")
+        x["material"] = mats.get(x.pop("material_id") or "", "")
+    (out / "exercises.json").write_text(json.dumps(ex_all, ensure_ascii=False, indent=1), encoding="utf-8")
     for l in lessons:
         l.pop("chapter_md", None), l.pop("summary_md", None)
     (out / "course.json").write_text(json.dumps({"course": course, "files": listing, "lessons": lessons}, ensure_ascii=False,
