@@ -23,13 +23,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install supabase pywebpush google-genai imageio-ffmpeg numpy edge-tts requests pymupdf playwright && python -m playwright install --with-deps chromium
+      - run: pip install supabase pywebpush google-genai imageio-ffmpeg numpy edge-tts requests pymupdf playwright && python -m playwright install --with-deps chromium && mkdir -p /tmp/katex && curl -sL https://registry.npmjs.org/katex/-/katex-0.16.47.tgz | tar xz -C /tmp/katex
       - working-directory: worker
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           MEDIA_ID: ${{ inputs.media_id }}
+          KATEX_DIR: /tmp/katex/package/dist
         run: |
           [[ "$MEDIA_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad media id"; exit 1; }
           python studio.py "$MEDIA_ID"

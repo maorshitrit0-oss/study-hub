@@ -326,18 +326,20 @@ def concat_audio(wavs, out):
 
 EXPLAINER = """אתה מורה מצוין שבונה סרטון הסבר (כמו Video Overview של NotebookLM) בעברית, לסטודנט להנדסת חשמל שלא ראה את ההרצאה,
 על בסיס הפרקים המצורפים (נבדקו). הסרטון הוא רצף שקפים; לכל שקף כותרת, עד 4 נקודות קצרות, נוסחה אחת לכל היותר, ודיבור.
-- 10-16 שקפים: פתיחה (מה נלמד ולמה זה חשוב) ← כל נושא לפי הסדר: אינטואיציה, הגדרה, נוסחה, דוגמה מספרית קצרה ← סיכום "מה חשוב למבחן".
+- לפחות 12 שקפים (עד 18), כ-6-8 דקות דיבור: פתיחה (מה נלמד ולמה זה חשוב) ← לכל נושא 2-3 שקפים: אינטואיציה עם דימוי
+  מהחיים, הגדרה + נוסחה (ומה כל אות בה), ודוגמה מספרית שפותרים צעד אחר צעד (מהתרגילים המצורפים כשיש) ← שקף "טעויות
+  נפוצות" ← סיכום "מה חשוב למבחן". אסור שקף של "שאלות ראיון" או מידע מנהלי - רק החומר עצמו.
 - bullets: משפטים קצרים מאוד (עד 8 מילים), בעברית; מונח באנגלית בסוגריים.
 - formula: נוסחת LaTeX אחת (בלי $), או ריק.
 - page: מספר מרשימת העמודים/צילומים המצורפת אם יש עמוד שמראה בדיוק את הנושא (שרטוט, גרף, טבלה), אחרת 0.
-- narration: מה שהמורה אומר בזמן השקף, 3-6 משפטים טבעיים, כמו מורה שמסביר לחבר. זה **נשמע** ולא נקרא:
+- narration: מה שהמורה אומר בזמן השקף, 4-7 משפטים טבעיים, כמו מורה טוב שמסביר לחבר - מסביר למה, לא רק מה. זה **נשמע** ולא נקרא:
   * בלי סימנים, בלי LaTeX, בלי קיצורים. נוסחה במילים ("השדה המגנטי שווה לשדה החשמלי חלקי אטא").
   * כל מילה באותיות עבריות כמו שהיא נשמעת: "פאזור", "וקטור פוינטינג", "מקסוול", "אטא", "בטא", "אלפא", "סיגמא", "אפסילון", "מיו", "גאמא".
     בלי מילים באותיות לטיניות בכלל - גם לא שמות משתנים (במקום E כתוב "אי" או "השדה החשמלי").
   * מספרים במילים כשהם קצרים ("שלוש מאות שבעים ושבעה אוהם").
 - רק מה שבחומר ונכון; אם המרצה טעה והפרק מציין - אומרים את הנכון."""
 
-EXPLAINER_SCHEMA = {"type": "object", "properties": {"title": {"type": "string"}, "slides": {"type": "array", "items": {
+EXPLAINER_SCHEMA = {"type": "object", "properties": {"title": {"type": "string"}, "slides": {"type": "array", "minItems": 12, "items": {
     "type": "object", "properties": {"title": {"type": "string"}, "bullets": {"type": "array", "items": {"type": "string"}},
                                      "formula": {"type": "string"}, "page": {"type": "integer"}, "narration": {"type": "string"}},
     "required": ["title", "bullets", "narration"]}}}, "required": ["title", "slides"]}
@@ -352,11 +354,13 @@ ul{margin:0;padding-right:30px}li{font-size:33px;line-height:1.45;margin:8px 0}
 .n{position:absolute;bottom:22px;left:40px;font-size:18px;color:#6f86ad}"""
 
 
-def render_slides(slides, pages, work, katex="https://cdn.jsdelivr.net/npm/katex@0.16.47/dist"):
+def render_slides(slides, pages, work, katex=None):
     """Each slide as a 1280x720 PNG (title, points, one formula in KaTeX, and the lecture page/board picture if given)."""
     import base64
     import html as h
     from playwright.sync_api import sync_playwright
+    # KaTeX from a local copy (media.yml unpacks it; 08/11/2026 the CDN did not load in time and formulas showed as code)
+    katex = katex or ("file://" + os.environ["KATEX_DIR"] if os.environ.get("KATEX_DIR") else "https://cdn.jsdelivr.net/npm/katex@0.16.47/dist")
     out = []
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -370,13 +374,15 @@ def render_slides(slides, pages, work, katex="https://cdn.jsdelivr.net/npm/katex
             bullets = "".join(f"<li>{h.escape(b)}</li>" for b in (sl.get("bullets") or [])[:4])
             formula = (sl.get("formula") or "").strip()
             fdiv = f'<div class="f" id="f">{h.escape(formula)}</div>' if formula else ""
-            page.set_content(f"""<!doctype html><html><head><meta charset="utf-8">
+            html_file = work / f"xs_{i:03d}.html"
+            html_file.write_text(f"""<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap">
 <link rel="stylesheet" href="{katex}/katex.min.css"><script src="{katex}/katex.min.js"></script>
 <style>{SLIDE_CSS}</style></head><body><h1>{h.escape(sl.get('title') or '')}</h1>
 <div class="row"><div class="txt"><ul>{bullets}</ul>{fdiv}</div>{img}</div><div class="n">{i + 1}/{len(slides)}</div>
 <script>const f=document.getElementById('f'); if(f) {{ try {{ katex.render(f.textContent, f, {{displayMode:true, throwOnError:false}}); }} catch(e) {{}} }}
-document.fonts.ready.then(()=>document.body.dataset.ready='1');</script></body></html>""", wait_until="load")
+document.fonts.ready.then(()=>document.body.dataset.ready='1');</script></body></html>""", encoding="utf-8")
+            page.goto(f"file://{html_file}", wait_until="load")
             try:  # KaTeX and the font from the CDN; a slow CDN must not stop the video
                 page.wait_for_function("document.body.dataset.ready === '1'", timeout=20000)
             except Exception as e:  # noqa: BLE001
@@ -391,6 +397,12 @@ document.fonts.ready.then(()=>document.body.dataset.ready='1');</script></body><
 def make_explainer(job, pages, work, out):
     """The video: an explainer slide deck (made here, not from raw board photos) with one narrator, slide by slide."""
     src = source_text(job)
+    try:  # the lesson's exercises with their (checked) solutions: worked examples for the video
+        ex = job.sb.table("exercises").select("title, question_md, solution_md").in_("lesson_id", [l["id"] for l in job.lessons]).execute().data
+        if ex:
+            src += "\n\n######## תרגילים פתורים\n" + "\n\n".join(f"### {x['title']}\n{x['question_md']}\n{(x.get('solution_md') or '')[:3000]}" for x in ex[:6])
+    except Exception:  # noqa: BLE001
+        pass
     listing = "\n".join(f"{n}: {d}" for n, (_, d) in sorted(pages.items()))
     job.log("כותב את סרטון ההסבר...")
     script = gen_json(EXPLAINER, f"{src}\n\nעמודים/צילומים שאפשר להציג (מספר: תיאור):\n{listing or 'אין'}", EXPLAINER_SCHEMA)
