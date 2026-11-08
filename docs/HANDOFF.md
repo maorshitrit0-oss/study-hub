@@ -613,6 +613,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   sentence with a burned subtitle bar, cut at the pauses too; fixed 500px image column (no overflow); ONE image track
   (concat list with exact durations) + ONE continuous audio track muxed once (gluing ~100 AAC clips drifted seconds);
   keyframe every 2s; long formulas shrink to fit; pauses = silencedetect -32dB/0.12s (measured). App Player: speed buttons 0.75-2x (remembered, localStorage "study-speed"). Diagram labels: math in $..$.
+- AUTO STUDIO ON again (08/11 evening, he loved the new lecture-1 video: "פגז, ככה לכל הרצאה"): hub.AUTO_STUDIO = waves,
+  AUTO_KINDS = ("video",) - every new waves lecture gets the explainer video; podcasts manual. He deletes the old
+  lecture 2-3 videos himself; new ones were dispatched 08/11 but hit the Gemini TTS daily quota -> queue retry_studio after reset.
 - Exercise sources (his request 08/11): every exercise shows "מקור: <file | lesson (date)> · 📍 עמ' N" - worker/locate.py
   matches the exercise text to the PDF pages (file, or the lecture's "הרצאה N" slides) + board snapshot numbers;
   storage <user>/materials/<course>/exercise_where.json; runs in exercises.py for new ones, or publish inspect=where

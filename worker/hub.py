@@ -309,7 +309,10 @@ def answered(job):
 
 # Courses where every new lecture gets a podcast and a video by itself (his request 08/11/2026: he listens to the
 # podcast and watches the video first, then reads). Gemini TTS - the free quota is shared with the chapters.
-AUTO_STUDIO = re.compile(r"(?!x)x")  # off (08/11/2026): he found our videos/podcasts poor - NotebookLM instead; was r"גלים ומערכות"
+AUTO_STUDIO = re.compile(r"גלים ומערכות")
+# 08/11/2026 evening: "הסרטון האחרון שיצרת יצא פגז, ככה אני רוצה מהיום והלאה לכל הרצאה" - the explainer video (subtitles,
+# synced narration) for every new lecture. Podcasts stay manual (he did not ask for them again).
+AUTO_KINDS = ("video",)
 
 
 def auto_studio(job):
@@ -320,7 +323,7 @@ def auto_studio(job):
         return
     try:
         have = job.sb.table("lesson_media").select("id, kind, status").contains("lesson_ids", [les["id"]]).execute().data
-        for kind in ("podcast", "video"):
+        for kind in AUTO_KINDS:
             old = [m for m in have if m["kind"] == kind]
             if any(m["status"] != "error" for m in old):
                 continue
@@ -569,7 +572,7 @@ def cmd_studio_retry():
     sb = db()
     names = {c["id"]: c["name"] or "" for c in sb.table("courses").select("id, name").execute().data}
     for m in sb.table("lesson_media").select("id, kind, course_id").eq("status", "error").execute().data:
-        if not AUTO_STUDIO.search(names.get(m["course_id"], "")):
+        if not AUTO_STUDIO.search(names.get(m["course_id"], "")) or m["kind"] not in AUTO_KINDS:
             continue  # only the course he asked for (waves)
         sb.table("lesson_media").update({"status": "queued", "error": None}).eq("id", m["id"]).execute()
         print(f"::notice title=Studio retry::{m['kind']} {m['id'][:8]}: {course_site.dispatch_inputs('media.yml', {'media_id': m['id']})}", flush=True)
