@@ -536,6 +536,18 @@ def cmd_core(match, path):
     print(f"::notice title=Core exercises::{course['name']}: " + ", ".join(f"week {w}: {len(v)}" for w, v in data["weeks"].items()), flush=True)
 
 
+def cmd_task(match, title, due_local):
+    """A task (deadline) in the course, e.g. a reminder he asked for; due_local 'YYYY-MM-DDTHH:MM' Israel time."""
+    from zoneinfo import ZoneInfo
+    from datetime import datetime as dt
+    sb = db()
+    course = find_course(sb, match)
+    due = dt.fromisoformat(due_local).replace(tzinfo=ZoneInfo("Asia/Jerusalem")).isoformat()
+    sb.table("deadlines").insert({"user_id": course["user_id"], "course_id": course["id"], "kind": "other", "title": title,
+                                  "due_at": due, "done": False, "notes": "תזכורת שביקשת מ-Claude"}).execute()
+    print(f"::notice title=Task added::{title} ({due_local})", flush=True)
+
+
 def cmd_drive(match, path):
     """Course files that live in a public Drive folder (e.g. the students' past-exam folder): a materials row per file
     (storage_path "drive:<id>", as the app's "add from Drive" does), once each. JSON list of {id, title, kind}."""
@@ -804,6 +816,7 @@ if __name__ == "__main__":
     p = sub.add_parser("exercises"); p.add_argument("course"); p.add_argument("fixes_json")
     p = sub.add_parser("drive"); p.add_argument("course"); p.add_argument("files_json")
     p = sub.add_parser("core"); p.add_argument("course"); p.add_argument("core_json")
+    p = sub.add_parser("task"); p.add_argument("course"); p.add_argument("title"); p.add_argument("due")
     sub.add_parser("flat")
     sub.add_parser("stuck")
     sub.add_parser("ping")
@@ -824,6 +837,8 @@ if __name__ == "__main__":
         cmd_fetch(a.lesson_id, a.out_dir)
     elif a.cmd == "add":
         cmd_add(a.course, a.kind, a.number, a.title, a.chapter_json)
+    elif a.cmd == "task":
+        cmd_task(a.course, a.title, a.due)
     elif a.cmd == "core":
         cmd_core(a.course, a.core_json)
     elif a.cmd == "drive":
