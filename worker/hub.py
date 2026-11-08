@@ -540,8 +540,10 @@ def cmd_tts():
     from google import genai
     import studio
     client = genai.Client(api_key=author._keys()[0])
-    names = [m.name.split("/")[-1] for m in client.models.list() if "tts" in m.name.lower() or "audio" in m.name.lower()]
-    print(f"::notice title=TTS models::{', '.join(names) or 'none'}", flush=True)
+    allm = [m.name.split("/")[-1] for m in client.models.list(config={"page_size": 200})]
+    print(f"::notice title=All models ({len(allm)})::{', '.join(allm)[:3500]}", flush=True)
+    names = [n for n in allm if "tts" in n.lower() or "audio" in n.lower() or "speech" in n.lower()]
+    names = names or list(studio.TTS_MODELS)
     work = Path(tempfile.mkdtemp())
     for name in names[:8]:
         studio.TTS_MODELS[:] = [name]
