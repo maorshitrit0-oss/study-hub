@@ -543,7 +543,10 @@ def cmd_drive(match, path):
 def cmd_studio_retry():
     """Every podcast / video that ended in an error goes again (after a TTS fix)."""
     sb = db()
-    for m in sb.table("lesson_media").select("id, kind").eq("status", "error").execute().data:
+    names = {c["id"]: c["name"] or "" for c in sb.table("courses").select("id, name").execute().data}
+    for m in sb.table("lesson_media").select("id, kind, course_id").eq("status", "error").execute().data:
+        if not AUTO_STUDIO.search(names.get(m["course_id"], "")):
+            continue  # only the course he asked for (waves)
         sb.table("lesson_media").update({"status": "queued", "error": None}).eq("id", m["id"]).execute()
         print(f"::notice title=Studio retry::{m['kind']} {m['id'][:8]}: {course_site.dispatch_inputs('media.yml', {'media_id': m['id']})}", flush=True)
 

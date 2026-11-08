@@ -167,7 +167,39 @@ def tts(lines, work, n):
                         print(f"tts {model}: {str(e)[:150]} -> next", flush=True)
                         break
                     raise
+    # Gemini's free speech quota is gone (08/11/2026: every podcast/video failed on it): Microsoft's free neural
+    # Hebrew voices (edge-tts, no key, no daily quota) - Hila for Noa, Avri for Dan.
+    try:
+        return edge_tts(lines, work, n)
+    except Exception as e:  # noqa: BLE001
+        print(f"edge-tts: {str(e)[:200]}", flush=True)
     raise RuntimeError(author.friendly_error(last))
+
+
+EDGE_VOICES = {"Noa": "he-IL-HilaNeural", "Dan": "he-IL-AvriNeural"}
+
+
+def edge_tts(lines, work, n):
+    """The same chunk with Microsoft's Hebrew voices, line by line, joined into one WAV (24 kHz mono, like Gemini's)."""
+    import asyncio
+    import edge_tts as et
+    parts = []
+    for i, ln in enumerate(lines):
+        who, _, said = ln.partition(":")
+        said = said.strip()
+        if not said:
+            continue
+        mp3 = work / f"edge_{n:03d}_{i:03d}.mp3"
+        asyncio.run(et.Communicate(said, EDGE_VOICES.get(who.strip(), EDGE_VOICES["Noa"]), rate="+5%").save(str(mp3)))
+        parts.append(mp3)
+    if not parts:
+        raise RuntimeError("no text")
+    lst = work / f"edge_{n:03d}.txt"
+    lst.write_text("".join(f"file '{p.as_posix()}'\n" for p in parts), encoding="utf-8")
+    wav = work / f"chunk_{n:03d}.wav"
+    media.run_ffmpeg(["-f", "concat", "-safe", "0", "-i", str(lst), "-ar", "24000", "-ac", "1", str(wav)])
+    print(f"tts chunk {n}: edge-tts ({len(parts)} lines)", flush=True)
+    return wav
 
 
 def chunks(segments, by_slide):
