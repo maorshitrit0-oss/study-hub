@@ -118,6 +118,12 @@ export async function requestFullChapter(id: string) {
 /** Builds (or rebuilds) a course document: formula sheet / practical-exam preparation. */
 export async function rebuildDoc(courseId: string, kind: DocKind): Promise<string> {
   const { sb } = await requireUser();
+  // The formula sheet is updated by worker/docs.py (exercises.yml): only additions to a sheet Claude wrote, and the PDF
+  // to print made again every time (08/11/2026) - the app itself cannot make the PDF.
+  if (kind === "formulas") {
+    const err = await dispatchExercises(courseId);
+    return err ?? "✓ מתעדכן ברקע (הדף וה-PDF) - בעוד כמה דקות לרענן";
+  }
   try {
     await buildDoc(sb, courseId, kind);
     revalidatePath(`/courses/${courseId}/doc/${kind}`);

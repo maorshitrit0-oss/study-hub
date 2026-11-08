@@ -1,7 +1,11 @@
 """Formula sheets built by themselves (no button): every course whose exam allows a formula sheet gets one, rebuilt
 when new lessons are ready. Same document as the app's "📄 דף נוסחאות" (web/src/lib/courseDocs.ts, keep the prompt in step).
 
-  python docs.py     (run by the daily site run, after the chapters and exercises)
+  python docs.py              (run by the daily site run, after the chapters and exercises)
+  python docs.py <course_id>   that course only; when its sheet is up to date, only its PDF is made again
+
+Every save also renders the sheet as a PDF to print (sheet_pdf.py, his request 08/11/2026). A sheet Claude wrote
+(stamp "נכתב ע״י Claude") is never rewritten by Gemini: new lessons only ADD to it (FORMULAS_UPDATE), like Java's.
 """
 import json
 import os
@@ -36,6 +40,16 @@ CODE_UPDATE = """לפניך דף עזר תחביר למבחן בקורס תכנ�
 החזר רק את הדף המלא (Markdown), בלי הקדמה."""
 
 
+FORMULAS_UPDATE = """לפניך דף נוסחאות למבחן פתוח בקורס, שנכתב ונבדק בקפידה, ולפניו כל השיעורים עד עכשיו.
+עדכן אותו רק בתוספות: כל נוסחה, הגדרה, תנאי שימוש או טריק משיעור שעוד לא נמצאים בדף - בסעיף המתאים לפי הנושא,
+עם תג המקור בסוגריים כמו בדף (ה4 = הרצאה 4, ת4 = תרגול 4). לכל סוג תרגיל חדש שנפתר בשיעורים - שורה בטבלה
+"מה שואלים ← מה עושים" (נותנים/שואלים | הדרך | מקור). טעות של המרצה או המתרגל - שורה עם ⚠️ ומה נכון.
+אל תמחק, אל תקצר ואל תנסח מחדש שום דבר שכבר בדף. בלי כפילויות: מה שכבר כתוב (גם בסימון אחר) לא נוסף שוב.
+כל משוואה ב-$$...$$ בשורה נפרדת וקצרה (משוואה ארוכה - לפצל לשתי שורות). בדוק כל נוסחה (ממדים, סימנים, מקדמים).
+החזר רק את הדף המלא (Markdown), בלי הקדמה."""
+CLAUDE_MARK = "נכתב ע״י Claude"
+
+
 def db():
     from supabase import create_client
     return create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
@@ -63,8 +77,10 @@ def build(sb, course, lessons):
         text += "\n\n######## נוסחאות מקבצי הקורס (מצגות, חוברות, מבחנים)\n" + "\n".join(
             f"[{name}] {f}" for name, fs in notes.items() for f in fs)
 
-    base = current(sb, course) if CODE.search(course["name"] or "") else ""
-    prompt = f"{CODE_UPDATE}\n\n=== הדף הנוכחי ===\n{base}" if base else FORMULAS
+    claude = CLAUDE_MARK in stamp(sb, course)
+    base = current(sb, course) if CODE.search(course["name"] or "") or claude else ""
+    update = CODE_UPDATE if CODE.search(course["name"] or "") else FORMULAS_UPDATE
+    prompt = f"{update}\n\n=== הדף הנוכחי ===\n{base}" if base else FORMULAS
 
     def call(client, model):
         return client.models.generate_content(model=model, contents=[types.Content(role="user", parts=[
@@ -76,7 +92,15 @@ def build(sb, course, lessons):
     if base and len(md) < 0.9 * len(base):  # the update lost content: keep the sheet as it is
         print(f"::warning title=Formula sheet {course['name']}::update rejected (shorter than the sheet)", flush=True)
         return
-    save(sb, course, md, f"מ-{len(lessons)} שיעורים")
+    save(sb, course, md, f"{CLAUDE_MARK} + תוספות מ-{len(lessons)} שיעורים" if claude else f"מ-{len(lessons)} שיעורים")
+
+
+def stamp(sb, course):
+    """The sheet's first line ("> נבנה <date> <how>"), or ''."""
+    try:
+        return sb.storage.from_(BUCKET).download(f"{course['user_id']}/materials/{course['id']}/{FILE}").decode().split("\n", 1)[0]
+    except Exception:  # noqa: BLE001
+        return ""
 
 
 def current(sb, course):
@@ -97,11 +121,22 @@ def save(sb, course, md, how):
         sb.table("materials").insert({"user_id": course["user_id"], "course_id": course["id"], "title": TITLE,
                                       "kind": "other", "storage_path": path, "mime": "text/plain"}).execute()
     print(f"::notice title=Formula sheet::{course['name']}: {how}", flush=True)
+    pdf(sb, course, md)
 
 
-def run():
+def pdf(sb, course, md):
+    """The printable PDF next to it; a failure here never loses the sheet."""
+    try:
+        import sheet_pdf
+        sheet_pdf.publish(sb, course, md)
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning title=Formula sheet PDF {course['name']}::{str(e)[:300]}", flush=True)
+
+
+def run(only=None):
     sb = db()
-    for course in sb.table("courses").select("id, name, user_id, notes, kind").eq("archived", False).neq("kind", "self").execute().data:
+    q = sb.table("courses").select("id, name, user_id, notes, kind").eq("archived", False).neq("kind", "self")
+    for course in (q.eq("id", only) if only else q).execute().data:
         if course["kind"] == "lab" or not allows_sheet(sb, course):
             continue
         lessons = (sb.table("lessons").select("id, kind, number, title, chapter_md, updated_at").eq("course_id", course["id"])
@@ -115,6 +150,9 @@ def run():
         # Rebuilt when a lesson or a file with formulas came after the last build.
         newest = max([l["updated_at"] for l in lessons] + ([notes.get("updated_at") or ""] if notes else []))
         if built and (built.get("updated_at") or "") >= newest:
+            have_pdf = any(f.get("name") == "formula_sheet.pdf" for f in listing)
+            if only or not have_pdf:  # asked for this course, or the PDF is missing: make the PDF again
+                pdf(sb, course, current(sb, course))
             continue  # up to date
         try:
             build(sb, course, lessons)
@@ -125,4 +163,5 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    import sys
+    run(sys.argv[1] if len(sys.argv) > 1 else None)

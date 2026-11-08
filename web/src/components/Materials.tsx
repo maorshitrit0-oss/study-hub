@@ -80,6 +80,9 @@ export default function Materials({ courseId, userId, items, isLab = false }: {
   }
 
   async function open(path: string) {
+    // The course sheets are markdown with formulas: open them rendered (and with their PDF), not as raw text.
+    if (/\/formula_sheet\.md$/.test(path)) return router.push(`/courses/${courseId}/doc/formulas`);
+    if (/\/practical_exam\.md$/.test(path)) return router.push(`/courses/${courseId}/doc/practical`);
     if (path.startsWith("drive:")) return window.open(`https://drive.google.com/file/d/${path.slice(6)}/view`, "_blank");
     const { data } = await supabaseBrowser().storage.from("study").createSignedUrl(path, 3600);
     if (data) window.open(data.signedUrl, "_blank");

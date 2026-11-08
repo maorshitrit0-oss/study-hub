@@ -27,6 +27,8 @@ jobs:
           cache: pip
           cache-dependency-path: worker/requirements.txt
       - run: pip install -r worker/requirements.txt
+      - name: browser for the formula-sheet PDF
+        run: python -m playwright install --with-deps chromium
       - name: Read exercises
         working-directory: worker
         env:
@@ -38,7 +40,7 @@ jobs:
         run: |
           [[ -z "$COURSE_ID" || "$COURSE_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad course id"; exit 1; }
           python exercises.py $COURSE_ID
-          python docs.py
+          python docs.py $COURSE_ID
       # Its own step: its report lines are not crowded out (GitHub keeps 10 notices per step).
       - name: Practical exam bank (lab)
         working-directory: worker

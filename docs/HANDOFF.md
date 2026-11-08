@@ -560,6 +560,14 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   dispatch) runs `worker/backup.py dump` (all tables found via the REST root + every storage file), encrypts (AES key
   wrapped with `backup/backup_pub.pem`) and keeps a pre-release `backup-<date>` (last 8). The private key is ONLY in his
   Google Drive: "study-hub - מפתח גיבוי (backup_priv.pem)" (file id 1olpLTc84PShiepcPZy98VQWkNLtGJeXy). Restore: docs/BACKUP.md.
+- Formula sheet as PDF (08/11/2026, waves course first): `worker/sheet_pdf.py` renders the sheet (markdown + KaTeX, RTL,
+  two columns, math forced LTR and shrunk to fit its column) with Playwright/Chromium -> `formula_sheet.pdf` + a
+  materials row "📄 דף נוסחאות (PDF להדפסה)"; `docs.save` calls it on every save, `docs.py <course>` re-makes the PDF
+  when the sheet is current. A sheet with the stamp "נכתב ע״י Claude" is only ADDED to by Gemini (FORMULAS_UPDATE: new
+  formulas + a row per new exercise type in "🧭 מה שואלים ← מה עושים", source tags ה#/ת#). The app's "לעדכן" for the
+  formula sheet now dispatches exercises.yml (no direct Gemini rewrite); the doc page has "⬇️ PDF להדפסה"; the .md
+  in the course files opens the rendered page. Waves sheet: chapters/waves-formula-sheet.md (lectures 1-3, practices
+  1-3; flags: tilt-angle quadrant in practice 3's answer, TA's skin-depth remark, H=B/μ).
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.

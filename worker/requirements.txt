@@ -10,3 +10,5 @@ pywebpush
 gdown
 requests
 python-docx
+markdown
+playwright
