@@ -476,7 +476,7 @@ def illustrate(prompt, out):
                                   params={"key": key}, timeout=240, json={"contents": [{"parts": [{"text": full}]}],
                                                                           "generationConfig": {"responseModalities": ["IMAGE"]}})
                 if not r.ok:
-                    print(f"image {model}: {r.status_code} {r.text[:100]}", flush=True)
+                    print(f"image {model}: {r.status_code} {' '.join(r.text.split())[:400]}", flush=True)
                     continue
                 for part in r.json()["candidates"][0]["content"]["parts"]:
                     if "inlineData" in part:
