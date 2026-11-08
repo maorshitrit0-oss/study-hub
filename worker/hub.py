@@ -590,6 +590,21 @@ def cmd_studio_backfill(match):
 
 def cmd_tts():
     """Which Gemini speech (TTS) models exist for our keys now, and does a two-voice Hebrew line work on each."""
+    import asyncio
+    try:
+        import edge_tts as et
+        for v, t in [("he-IL-HilaNeural", "שלום, זו בדיקה."), ("he-IL-AvriNeural", "שלום, זו בדיקה."), ("en-US-AriaNeural", "Hello test.")]:
+            for rate in (None, "+5%"):
+                out = Path(tempfile.mkdtemp()) / "e.mp3"
+                try:
+                    c = et.Communicate(t, v, rate=rate) if rate else et.Communicate(t, v)
+                    asyncio.run(c.save(str(out)))
+                    print(f"::notice title=edge {v} {rate}::ok {out.stat().st_size}B", flush=True)
+                except Exception as e:  # noqa: BLE001
+                    print(f"::warning title=edge {v} {rate}::{str(e)[:200]}", flush=True)
+        print(f"::notice title=edge voices::{[x['ShortName'] for x in asyncio.run(et.list_voices()) if x['Locale'].startswith('he')]}", flush=True)
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning title=edge import::{e}", flush=True)
     from google import genai
     import studio
     client = genai.Client(api_key=author._keys()[0])
