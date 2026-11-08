@@ -524,6 +524,18 @@ def cmd_exercises(match, path):
         print(f"::notice title=Exercise fixed::{fx['kind']} {fx['number']}: {fx.get('title') or hit[0]['title']}", flush=True)
 
 
+def cmd_core(match, path):
+    """The weekly core exercises (3-5 a week, his request 08/11/2026) of a course: chapters/<course>_core.json ->
+    <user>/materials/<course>/exercise_core.json, read by the course's exercises page (the rest is an optional bank)."""
+    sb = db()
+    course = find_course(sb, match)
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/exercise_core.json",
+                                    json.dumps(data, ensure_ascii=False).encode("utf-8"),
+                                    {"content-type": "application/json", "upsert": "true"})
+    print(f"::notice title=Core exercises::{course['name']}: " + ", ".join(f"week {w}: {len(v)}" for w, v in data["weeks"].items()), flush=True)
+
+
 def cmd_drive(match, path):
     """Course files that live in a public Drive folder (e.g. the students' past-exam folder): a materials row per file
     (storage_path "drive:<id>", as the app's "add from Drive" does), once each. JSON list of {id, title, kind}."""
@@ -791,6 +803,7 @@ if __name__ == "__main__":
     p = sub.add_parser("sheet"); p.add_argument("course"); p.add_argument("md")
     p = sub.add_parser("exercises"); p.add_argument("course"); p.add_argument("fixes_json")
     p = sub.add_parser("drive"); p.add_argument("course"); p.add_argument("files_json")
+    p = sub.add_parser("core"); p.add_argument("course"); p.add_argument("core_json")
     sub.add_parser("flat")
     sub.add_parser("stuck")
     sub.add_parser("ping")
@@ -811,6 +824,8 @@ if __name__ == "__main__":
         cmd_fetch(a.lesson_id, a.out_dir)
     elif a.cmd == "add":
         cmd_add(a.course, a.kind, a.number, a.title, a.chapter_json)
+    elif a.cmd == "core":
+        cmd_core(a.course, a.core_json)
     elif a.cmd == "drive":
         cmd_drive(a.course, a.files_json)
     elif a.cmd == "exercises":

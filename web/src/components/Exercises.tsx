@@ -7,6 +7,7 @@ import Chapter from "./Chapter";
 export type Exercise = {
   id: string; title: string | null; question_md: string; solution_md: string | null; topic: string | null;
   source: string; exam_style: boolean; uncertain: boolean; done_at: string | null; label?: string;
+  why?: string; // a core exercise: why it was picked (exercise_core.json)
 };
 
 const SOURCE: Record<string, string> = { lesson: "מהשיעור", homework: "שיעורי בית", exam: "מבחן קודם", sheet: "דף תרגילים" };
@@ -25,6 +26,7 @@ export default function Exercises({ items, slideUrls = {} }: { items: Exercise[]
             <p className="text-xs text-muted">
               מקור: {x.label ?? SOURCE[x.source] ?? "-"} · {SOURCE[x.source] ?? ""}{x.exam_style ? " · ⭐ סגנון מבחן" : ""}
             </p>
+            {x.why && <p className="text-xs text-accent mt-1">🎯 למה הוא בליבה: {x.why}</p>}
             <div className="mt-2"><Chapter md={x.question_md} slideUrls={slideUrls} /></div>
             {x.solution_md && (
               <details className="mt-2">

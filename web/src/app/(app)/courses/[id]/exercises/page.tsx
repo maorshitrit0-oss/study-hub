@@ -2,7 +2,8 @@ import Link from "next/link";
 import BackLink from "@/components/BackLink";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
-import Exercises from "@/components/Exercises";
+import Exercises, { type Exercise } from "@/components/Exercises";
+import Fold from "@/components/Fold";
 import { exercisesByWeek } from "@/lib/exercises";
 import { studyWeek, todayWeek, weekDays } from "@/lib/week";
 
@@ -12,7 +13,7 @@ const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 export default async function CourseExercises({ params, searchParams }: PageProps<"/courses/[id]/exercises">) {
   const { id } = await params;
   const sp = await searchParams;
-  const { sb } = await requireUser();
+  const { sb, userId } = await requireUser();
   const { data: course } = await sb.from("courses").select("id, name").eq("id", id).maybeSingle();
   if (!course) notFound();
   const { forWeek, fileExercises, fileReadyWeek } = await exercisesByWeek(sb, id);
@@ -22,6 +23,21 @@ export default async function CourseExercises({ params, searchParams }: PageProp
   const allFiles = fileExercises(id);
   const { start, end } = weekDays(w);
   const weeks = Array.from({ length: todayWeek() }, (_, k) => k + 1);
+  // The week's core: 3-5 exercises picked by what the exams ask (his request, 08/11/2026); the rest is an optional bank.
+  type Core = { weeks: Record<string, { id: string; why: string }[]>; exam_note?: string };
+  const core: Core | null = await sb.storage.from("study").download(`${userId}/materials/${id}/exercise_core.json`)
+    .then(async ({ data }) => (data ? JSON.parse(await data.text()) as Core : null)).catch(() => null);
+  const picks = core?.weeks[String(w)] ?? [];
+  const { data: coreRows } = picks.length
+    ? await sb.from("exercises").select("*").in("id", picks.map((p) => p.id))
+    : { data: [] as Exercise[] };
+  const coreItems = picks.map((p) => {
+    const x = (coreRows ?? []).find((r) => r.id === p.id);
+    return x ? { ...x, why: p.why } as Exercise : null;
+  }).filter((x): x is Exercise => !!x);
+  const coreIds = new Set(coreItems.map((x) => x.id));
+  const bankLessons = fromLessons.filter((x) => !coreIds.has(x.id));
+  const bankFiles = fromFiles.filter((x) => !coreIds.has(x.id));
 
   return (
     <div className="space-y-4">
@@ -60,7 +76,23 @@ export default async function CourseExercises({ params, searchParams }: PageProp
           })}
         </section>
       ) : (
-        <>
+        coreItems.length > 0 ? (
+          <>
+            <section className="card">
+              <h2 className="font-semibold mb-1">⭐ הליבה של שבוע {w} ({coreItems.length} תרגילים)</h2>
+              <p className="text-xs text-muted mb-3">
+                מה שכדאי לתרגל השבוע, לפי מה ששואלים במבחנים. לקרוא את הפתרון המלא, ואחר כך לנסות לבד.
+                {core?.exam_note ? ` ${core.exam_note}` : ""}
+              </p>
+              <Exercises items={coreItems} />
+            </section>
+            {bankLessons.length + bankFiles.length > 0 && (
+              <Fold id={`bank-${id}-${w}`} title="📚 בנק תרגילים נוסף (רשות)" hint={`${bankLessons.length + bankFiles.length}`}>
+                <Exercises items={[...bankLessons, ...bankFiles]} />
+              </Fold>
+            )}
+          </>
+        ) : <>
           <section className="card">
             <h2 className="font-semibold mb-1">מהשיעורים של שבוע {w} ({ddmm(start)}-{ddmm(end)})</h2>
             <p className="text-xs text-muted mb-3">לפתור על דף, ורק אחר כך לפתוח את הפתרון.</p>
