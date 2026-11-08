@@ -238,6 +238,39 @@ def slide_list(job, work):
     return found
 
 
+def pdf_slides(job, work):
+    """The pages of the lecture's slides file in the course files ("הרצאה 2.pdf" for lecture 2): number -> (image,
+    the page's first words). Used for the video when the recording has no board snapshots."""
+    import re
+    import fitz  # PyMuPDF
+    import requests
+    lesson = job.lessons[0]
+    if not lesson.get("number"):
+        return {}
+    rx = re.compile(rf"הרצאה\s*{lesson['number']}(?!\d)")
+    mats = [m for m in job.sb.table("materials").select("title, storage_path").eq("course_id", lesson["course_id"]).execute().data
+            if rx.search(m["title"] or "") and (m["title"] or "").lower().endswith(".pdf")]
+    if not mats:
+        return {}
+    path = mats[0]["storage_path"]
+    if path.startswith("drive:"):
+        data = requests.get("https://drive.google.com/uc", params={"export": "download", "id": path[6:]}, timeout=300).content
+    else:
+        data = job.sb.storage.from_(BUCKET).download(path)
+    doc = fitz.open(stream=data, filetype="pdf")
+    found = {}
+    for i, page in enumerate(doc, start=1):
+        if i > 80:
+            break
+        img = work / f"page_{i:03d}.png"
+        zoom = 1280 / max(page.rect.width, 1)
+        page.get_pixmap(matrix=fitz.Matrix(zoom, zoom)).save(str(img))
+        words = " ".join(page.get_text().split())[:140] or f"שקף {i}"
+        found[i] = (img, words)
+    print(f"video from the slides file '{mats[0]['title']}': {len(found)} pages", flush=True)
+    return found
+
+
 def make_script(job, kind, slides):
     src = source_text(job)
     system = PODCAST + (VIDEO_EXTRA if kind == "video" else "")
@@ -308,8 +341,10 @@ def run(media_id):
             return
 
         slides = slide_list(job, work) if kind == "video" else {}
+        if kind == "video" and not slides:  # no board snapshots: the lecture's own slides file (his remark 08/11/2026)
+            slides = pdf_slides(job, work)
         if kind == "video" and not slides:
-            raise RuntimeError("לשיעור הזה אין צילומי לוח בפרק, אז אין ממה לבנות סרטון - אפשר ליצור פודקאסט")
+            raise RuntimeError("לשיעור הזה אין צילומי לוח וגם לא נמצא קובץ מצגת בשם 'הרצאה N' בקבצי הקורס - אפשר ליצור פודקאסט")
         title, segs = make_script(job, kind, slides)
         if not segs:
             raise RuntimeError("התסריט יצא ריק - לנסות שוב")
