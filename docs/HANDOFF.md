@@ -568,6 +568,7 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   formula sheet now dispatches exercises.yml (no direct Gemini rewrite); the doc page has "⬇️ PDF להדפסה"; the .md
   in the course files opens the rendered page. Waves sheet: chapters/waves-formula-sheet.md (lectures 1-3, practices
   1-3; flags: tilt-angle quadrant in practice 3's answer, TA's skin-depth remark, H=B/μ).
+- fetch/* branches carry web/vercel.json (ignoreCommand exit 0) - Vercel had mailed him "Preview deployment failed" for them.
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
