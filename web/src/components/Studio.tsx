@@ -28,6 +28,10 @@ export default function Studio({ courseId, lessons, items, canVideo = false }: {
   if (items === null) return <p className="card text-sm text-warn">כדי להפעיל את הסטודיו צריך להריץ את קוד ה-SQL שלו ב-Supabase (studio.sql).</p>;
   // which lesson an item is for, before it has a title (a waiting / failed item)
   const named = (m: Media) => m.lesson_ids?.map((id) => lessons.find((l) => l.id === id)?.label).filter(Boolean).join(", ");
+  // Items waiting for the voice quota: one folded line instead of a card each (09/11/2026 - the page got very long).
+  const isWaiting = (m: Media) => m.status === "error" && /מכסה|עמוסים/.test(m.error ?? "");
+  const waiting = items.filter(isWaiting);
+  const shown = items.filter((m) => !isWaiting(m));
   const busy = items.some((m) => m.status === "queued" || m.status === "processing");
 
   const make = (kind: keyof typeof KIND) => start(async () => {
@@ -67,9 +71,17 @@ export default function Studio({ courseId, lessons, items, canVideo = false }: {
       {single && !canVideo && <p className="text-xs text-muted">סרטון נבנה מצילומי הלוח של ההרצאה; בשיעור הזה אין כאלה.</p>}
       {msg && <p className="text-sm">{msg}</p>}
 
-      {items.length > 0 && (
+      {waiting.length > 0 && (
+        <details className="rounded-xl bg-bg/60 p-3 text-sm">
+          <summary className="cursor-pointer text-warn">⏳ {waiting.length} ממתינים למכסת הקול של Gemini – ייווצרו לבד, כמה בכל יום</summary>
+          <ul className="mt-2 space-y-1 text-muted">
+            {waiting.map((m) => <li key={m.id}>{KIND[m.kind]}{m.title ? ` · ${m.title}` : named(m) ? ` · ${named(m)}` : ""}</li>)}
+          </ul>
+        </details>
+      )}
+      {shown.length > 0 && (
         <ul className="space-y-3">
-          {items.map((m) => (
+          {shown.map((m) => (
             <li key={m.id} className="rounded-xl bg-bg/60 p-3 space-y-2">
               <div className="flex justify-between gap-2 text-sm">
                 <span className="font-medium">{KIND[m.kind]}{m.title ? ` · ${m.title}` : named(m) ? ` · ${named(m)}` : ""} <span className="text-muted">{mmss(m.duration_sec)}</span></span>
