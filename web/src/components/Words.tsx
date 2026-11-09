@@ -34,7 +34,10 @@ function makeRound(terms: Term[]): Card[] {
 }
 
 export default function Words({ terms, courseNames, showCourse }: { terms: Term[]; courseNames: Record<string, string>; showCourse: boolean }) {
-  const [mode, setMode] = useState<"list" | "quiz">("list");
+  // 09/11/2026: the full list (1000 words) put him off - by default only the 10 newest words, from the material he is
+  // studying now, with a quiz on them; the full list stays one tap away.
+  const [mode, setMode] = useState<"week" | "list" | "quiz">("week");
+  const week = useMemo(() => terms.slice(-10).reverse(), [terms]);
   const [filter, setFilter] = useState("");
   const shown = useMemo(() => {
     const f = filter.trim().toLowerCase();
@@ -46,10 +49,27 @@ export default function Words({ terms, courseNames, showCourse }: { terms: Term[
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2">
-        <button className={mode === "list" ? "btn" : "btn-ghost"} onClick={() => setMode("list")}>📖 רשימת המילים ({terms.length})</button>
-        <button className={mode === "quiz" ? "btn" : "btn-ghost"} onClick={() => setMode("quiz")} disabled={terms.length < 4}>✍️ חידון</button>
+        <button className={mode === "week" ? "btn" : "btn-ghost"} onClick={() => setMode("week")}>⭐ 10 המילים של עכשיו</button>
+        <button className={mode === "quiz" ? "btn" : "btn-ghost"} onClick={() => setMode("quiz")} disabled={week.length < 4}>✍️ חידון על ה-10</button>
       </div>
-      {mode === "quiz" ? <WordQuiz terms={terms} /> : (
+      {mode === "week" && (
+        <div className="card space-y-2">
+          <p className="text-sm text-muted">רק 10 מילים – מהשיעורים האחרונים. מספיק לעבור עליהן פעם ביום, 2 דקות.</p>
+          <ul className="divide-y divide-line">
+            {week.map((t) => (
+              <li key={t.id} className="py-2.5">
+                <div className="flex flex-wrap gap-x-3 items-baseline">
+                  <span className="font-semibold text-lg" dir="ltr">{t.en}</span>
+                  <span>{t.he}</span>
+                </div>
+                {t.explanation && <p className="text-sm text-muted">{t.explanation}</p>}
+              </li>
+            ))}
+          </ul>
+          <button className="text-sm text-muted w-full pt-1" onClick={() => setMode("list")}>📖 כל המילים ({terms.length}) – רק אם מחפשים מילה</button>
+        </div>
+      )}
+      {mode === "quiz" ? <WordQuiz terms={week} /> : mode === "week" ? null : (
         <div className="card space-y-2">
           <input className="input" placeholder="חיפוש באנגלית או בעברית" value={filter} onChange={(e) => setFilter(e.target.value)} />
           <ul className="divide-y divide-line">

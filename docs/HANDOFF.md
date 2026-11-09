@@ -680,7 +680,8 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   week open, later weeks folded with counts. (d) communication: 90% exam + 10% assignments (מגן), not uploaded yet
   (hub course-set, chapters/comm_course.json). (e) AUTO_STUDIO = all his courses, AUTO_KINDS = video + podcast, for
   every lecture and every "מפגש" session; studio-backfill queues ALL as waiting (retry_studio 2 per queue run).
-  Random signals backfill waits for lectures 1-6 to be re-authored (10/11 check-in).
+  Random signals backfill waits for lectures 1-6 to be re-authored (10/11 check-in). (f) English words: the 1000-word list
+  put him off - default view = the 10 newest words + a quiz on them; the full list one tap away (components/Words.tsx).
 - Exercise sources (his request 08/11): every exercise shows "מקור: <file | lesson (date)> · 📍 עמ' N" - worker/locate.py
   matches the exercise text to the PDF pages (file, or the lecture's "הרצאה N" slides) + board snapshot numbers;
   storage <user>/materials/<course>/exercise_where.json; runs in exercises.py for new ones, or publish inspect=where
