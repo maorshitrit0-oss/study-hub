@@ -583,6 +583,22 @@ def cmd_core(match, path):
     print(f"::notice title=Core exercises::{course['name']}: " + ", ".join(f"week {w}: {len(v)}" for w, v in data["weeks"].items()), flush=True)
 
 
+def cmd_course_set(match, path):
+    """Course facts he told Claude (e.g. 09/11/2026: communication assignments = 10% מגן, not uploaded yet). JSON
+    {grade_weights: [{name, weight}], facts: [{category, text}]} - weights replace the old ones, facts are added once."""
+    sb = db()
+    course = find_course(sb, match)
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if data.get("grade_weights"):
+        sb.table("courses").update({"grade_weights": data["grade_weights"]}).eq("id", course["id"]).execute()
+    have = {f["text"] for f in sb.table("course_facts").select("text").eq("course_id", course["id"]).execute().data}
+    for f in data.get("facts") or []:
+        if f["text"] not in have:
+            sb.table("course_facts").insert({"user_id": course["user_id"], "course_id": course["id"],
+                                             "category": f.get("category", "other"), "text": f["text"]}).execute()
+    print(f"::notice title=Course updated::{course['name']}: {data}", flush=True)
+
+
 def cmd_task(match, title, due_local):
     """A task (deadline) in the course, e.g. a reminder he asked for; due_local 'YYYY-MM-DDTHH:MM' Israel time."""
     from zoneinfo import ZoneInfo
@@ -910,6 +926,7 @@ if __name__ == "__main__":
     p = sub.add_parser("drive"); p.add_argument("course"); p.add_argument("files_json")
     p = sub.add_parser("core"); p.add_argument("course"); p.add_argument("core_json")
     p = sub.add_parser("drivefiles"); p.add_argument("ids"); p.add_argument("out_dir")
+    p = sub.add_parser("course-set"); p.add_argument("course"); p.add_argument("json_path")
     p = sub.add_parser("where"); p.add_argument("course"); p.add_argument("--again", action="store_true")
     p = sub.add_parser("task"); p.add_argument("course"); p.add_argument("title"); p.add_argument("due")
     sub.add_parser("flat")
@@ -938,6 +955,8 @@ if __name__ == "__main__":
         cmd_task(a.course, a.title, a.due)
     elif a.cmd == "core":
         cmd_core(a.course, a.core_json)
+    elif a.cmd == "course-set":
+        cmd_course_set(a.course, a.json_path)
     elif a.cmd == "drivefiles":
         cmd_drivefiles(a.ids, a.out_dir)
     elif a.cmd == "where":  # the exact page of each exercise (locate.py); --again looks up all of them again

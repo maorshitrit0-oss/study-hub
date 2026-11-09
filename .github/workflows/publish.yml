@@ -64,6 +64,7 @@ jobs:
           if [ "$INSPECT" = "studio-retry" ]; then python hub.py studio-retry; exit $?; fi
           if [ "$INSPECT" = "tts" ]; then python hub.py tts; exit $?; fi
           if [ "$INSPECT" = "task" ]; then python hub.py task "$COURSE" "$TITLE" "$NUMBER"; exit $?; fi
+          if [ "$INSPECT" = "course-set" ]; then python hub.py course-set "$COURSE" "../$CHAPTER"; exit $?; fi
           if [ "$INSPECT" = "where" ]; then python hub.py where "$COURSE" ${TITLE:+--again}; exit $?; fi
           if [ "$INSPECT" = "core" ]; then python hub.py core "$COURSE" "../$CHAPTER"; exit $?; fi
           if [ "$INSPECT" = "drive" ]; then python hub.py drive "$COURSE" "../$CHAPTER"; exit $?; fi
