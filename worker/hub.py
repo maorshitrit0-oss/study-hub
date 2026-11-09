@@ -721,6 +721,19 @@ def cmd_sheet(match, path):
     docs.save(sb, course, Path(path).read_text(encoding="utf-8"), "נכתב ע״י Claude")
 
 
+def cmd_drivefiles(ids, out_dir):
+    """Shared Drive files by id -> out_dir (for a session to read past exams; the session's proxy blocks Google downloads)."""
+    import gdown
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    for fid in ids.split(","):
+        try:
+            got = gdown.download(id=fid, output=str(out / fid) + "_", quiet=True)
+            print(f"{fid}: {Path(got).name if got else 'failed'}", flush=True)
+        except Exception as e:  # noqa: BLE001
+            print(f"{fid}: failed {str(e)[:120]}", flush=True)
+
+
 def cmd_materials(match, title_rx, out_dir):
     """Downloads a course's files whose title matches (e.g. a practice booklet) into out_dir, with a list."""
     sb = db()
@@ -860,6 +873,7 @@ if __name__ == "__main__":
     p = sub.add_parser("exercises"); p.add_argument("course"); p.add_argument("fixes_json")
     p = sub.add_parser("drive"); p.add_argument("course"); p.add_argument("files_json")
     p = sub.add_parser("core"); p.add_argument("course"); p.add_argument("core_json")
+    p = sub.add_parser("drivefiles"); p.add_argument("ids"); p.add_argument("out_dir")
     p = sub.add_parser("where"); p.add_argument("course"); p.add_argument("--again", action="store_true")
     p = sub.add_parser("task"); p.add_argument("course"); p.add_argument("title"); p.add_argument("due")
     sub.add_parser("flat")
@@ -888,6 +902,8 @@ if __name__ == "__main__":
         cmd_task(a.course, a.title, a.due)
     elif a.cmd == "core":
         cmd_core(a.course, a.core_json)
+    elif a.cmd == "drivefiles":
+        cmd_drivefiles(a.ids, a.out_dir)
     elif a.cmd == "where":  # the exact page of each exercise (locate.py); --again looks up all of them again
         import locate
         sb = db()
