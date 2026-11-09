@@ -175,6 +175,13 @@ def unstick(sb):
     for r in rows:
         sb.table("lessons").update({"status": "queued", "error": None, "progress": "חזר לתור (העיבוד הקודם נתקע)"}).eq("id", r["id"]).execute()
         print(f"::notice title=Queue::unstuck {r['id'][:8]} {(r.get('title') or '')[:50]}", flush=True)
+    # Failures that are not about the lesson itself: the dead Claude fallback, a Gemini timeout on a long YouTube
+    # recording. The queue retried only quota / overload errors, so these waited forever too. Again at most twice a day.
+    day_ago = (datetime.now(timezone.utc) - timedelta(hours=12)).isoformat()
+    for r in sb.table("lessons").select("id, title, error").eq("status", "error").lt("updated_at", day_ago).execute().data:
+        if any(w in (r.get("error") or "") for w in ("Claude לא סיים", "DEADLINE_EXCEEDED", "504")):
+            sb.table("lessons").update({"status": "queued", "error": None, "progress": "חזר לתור (נכשל קודם)"}).eq("id", r["id"]).execute()
+            print(f"::notice title=Queue::retry {r['id'][:8]} {(r.get('title') or '')[:50]}", flush=True)
 
 
 def run():
