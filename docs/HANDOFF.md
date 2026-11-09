@@ -5,6 +5,8 @@ add it here in the same commit. The conversation that built the app will not be 
 
 ## The user
 - Maor Shitrit, 3rd-year electrical engineering student, Ariel University. Writes Hebrew; always answer in Hebrew.
+  09/11/2026, until he says otherwise: replies ONLY in Hebrew - no English words or terms in the text either (say
+  "מאגר" not repo, "מפתח גישה" not token, "סודות" not Secrets); a command he must type goes in a code block, explained in Hebrew.
 - Learns by **reading**, not watching recordings. Wants accuracy above all: he is examined on what the app teaches.
 - Not a programmer. Explain setup steps one at a time, exactly what to click; prefer one step per message
   when he says he didn't understand. He uses an iPhone 15 Pro and a Windows laptop (Dell 14 Plus).
