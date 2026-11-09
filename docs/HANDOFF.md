@@ -66,6 +66,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   Bar-Ilan and the Technion; he suspects she adapts Bar-Ilan questions - consistent with what we saw (same 4 question
   types, simpler numbers). Study method agreed: per Thursday learn the topic from solved questions -> solve alone with
   ONLY the sheet -> check; from 10/12 timed mock exams (1.5h) with the sheet.
+  He starts from ZERO (09/11). Core reordered: one exam question type per Thursday, simplest first: week 3 estimation
+  (Q4), 4 WSS (Q1), 5 PSD+filters (Q2), 6 Poisson (Q3), 7-8 timed mocks (8 = his own exam again). Scheduled task every
+  Tuesday 19:37 writes a from-zero reading chapter (+ video) for that Thursday as a lesson of the course.
 - אותות אקראיים ורעש exam also on 26/10/2026 (time unknown); course registration 25/10/2026.
 - Exams: waves 12/1 & 10/2/2027, Java 17/1 & 25/2, linear 19/1 & 14/2, digital 25/1 & 18/2 (times unknown, 09:00 placeholders).
 - Added 25/10/2026 (`supabase/add_micro_comm.sql`, moved from year 4 semester A so year 4 is lighter - 21.5 credits
