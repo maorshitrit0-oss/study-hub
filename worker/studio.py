@@ -343,6 +343,8 @@ EXPLAINER = """אתה מורה מצוין שבונה סרטון הסבר (כמו
   בשקף שיש בו diagram לא צריך visual.
 - steps: בשקף של דוגמה פתורה - 3-6 שלבים קצרים שמופיעים אחד אחרי השני על המסך (כל שלב: משוואת LaTeX עם הצבה ותוצאה,
   בלי $). בשקף רגיל - ריק. הדיבור בשקף כזה עובר על השלבים לפי הסדר.
+- code: בקורס תכנות / חומרה (SystemVerilog, C, Java) - קטע קוד קצר (עד 14 שורות, עד 60 תווים בשורה) שהשקף מסביר,
+  בדיוק כמו בחומר; אחרת ריק. בשקף עם code לא צריך formula ולא diagram. הדיבור עובר על הקוד שורה אחרי שורה, במילים.
 - narration: מה שהמורה אומר בזמן השקף, 4-7 משפטים טבעיים, כמו מורה טוב שמסביר לחבר - מסביר למה, לא רק מה. זה **נשמע** ולא נקרא:
   * בלי סימנים, בלי LaTeX, בלי קיצורים. נוסחה במילים ("השדה המגנטי שווה לשדה החשמלי חלקי אטא").
   * כל מילה באותיות עבריות כמו שהיא נשמעת: "פאזור", "וקטור פוינטינג", "מקסוול", "אטא", "בטא", "אלפא", "סיגמא", "אפסילון", "מיו", "גאמא".
@@ -354,7 +356,8 @@ EXPLAINER_SCHEMA = {"type": "object", "properties": {"title": {"type": "string"}
     "type": "object", "properties": {"title": {"type": "string"}, "bullets": {"type": "array", "items": {"type": "string"}},
                                      "formula": {"type": "string"}, "page": {"type": "integer"}, "narration": {"type": "string"},
                                      "visual": {"type": "string"}, "diagram": {"type": "string"},
-                                     "steps": {"type": "array", "items": {"type": "string"}}},
+                                     "steps": {"type": "array", "items": {"type": "string"}},
+                                     "code": {"type": "string"}},
     "required": ["title", "bullets", "narration"]}}}, "required": ["title", "slides"]}
 
 SLIDE_CSS = """*{box-sizing:border-box}html,body{overflow:hidden}body{margin:0;width:1280px;height:720px;position:relative;background:linear-gradient(135deg,#0b1d3a,#06142a);
@@ -365,6 +368,8 @@ ul{margin:0;padding-right:30px}li{font-size:33px;line-height:1.45;margin:8px 0}
 .f{direction:ltr;text-align:center;font-size:40px;overflow:hidden;margin-top:26px;background:#0e2547;border-radius:16px;padding:18px}
 .s{font-size:30px;margin-top:12px;padding:10px}.s:last-child{border:2px solid #f5b84b}
 .img{flex:0 0 500px;width:500px;display:flex;align-items:center;justify-content:center;overflow:hidden}.img img{max-width:500px;max-height:440px;object-fit:contain;border-radius:12px}
+.code{direction:ltr;text-align:left;background:#0a1830;border:1px solid #2a4a78;border-radius:14px;padding:16px 20px;margin:18px 0 0;
+font:22px/1.35 'DejaVu Sans Mono',Consolas,monospace;color:#d6e4ff;white-space:pre;overflow:hidden}
 .sub{position:absolute;left:0;right:0;bottom:0;min-height:92px;padding:14px 60px;background:rgba(0,0,0,.72);color:#fff;font-size:28px;
 line-height:1.35;text-align:center;display:flex;align-items:center;justify-content:center}
 .n{position:absolute;bottom:22px;left:40px;font-size:18px;color:#6f86ad}"""
@@ -390,6 +395,10 @@ def render_slides(slides, pages, work, katex=None):
             bullets = "".join(f"<li>{h.escape(b)}</li>" for b in (sl.get("bullets") or [])[:4])
             formula = (sl.get("formula") or "").strip()
             fdiv = f'<div class="f" id="f">{h.escape(formula)}</div>' if formula else ""
+            code = (sl.get("code") or "").rstrip()
+            if code:  # a code slide: the code instead of a formula
+                fdiv = '<pre class="code">' + h.escape("\n".join(l[:70] for l in code.splitlines()[:16])) + "</pre>"
+                bullets = "".join(f"<li>{h.escape(b)}</li>" for b in (sl.get("bullets") or [])[:2])
             if sl.get("_steps") is not None:  # a worked example: the first k steps, each rendered by KaTeX
                 bullets = ""
                 fdiv = "".join(f'<div class="f s">{h.escape(x)}</div>' for x in sl["_steps"])

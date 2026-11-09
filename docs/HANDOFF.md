@@ -618,6 +618,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - AUTO STUDIO ON again (08/11 evening, he loved the new lecture-1 video: "פגז, ככה לכל הרצאה"): hub.AUTO_STUDIO = waves,
   AUTO_KINDS = ("video",) - every new waves lecture gets the explainer video; podcasts manual. He deletes the old
   lecture 2-3 videos himself; new ones were dispatched 08/11 but hit the Gemini TTS daily quota -> queue retry_studio after reset.
+- 09/11: "everything in processing never ends, 2 days" - lessons whose claude-chapter run failed (token 401) stayed
+  "processing" and the queue only picks queued/error/ready. queue_runner.unstick() puts processing > 3h back to queued;
+  CLAUDE_ON = False (no Claude fallback until he renews CLAUDE_CODE_OAUTH_TOKEN). Self-study (VLSI) sessions get the
+  explainer video too (AUTO_STUDIO += VLSI; `code` field on slides = monospace code block); studio-backfill dispatches 2,
+  the rest wait as error "ממתין למכסה..." for retry_studio (2 per queue run).
 - Exercise sources (his request 08/11): every exercise shows "מקור: <file | lesson (date)> · 📍 עמ' N" - worker/locate.py
   matches the exercise text to the PDF pages (file, or the lecture's "הרצאה N" slides) + board snapshot numbers;
   storage <user>/materials/<course>/exercise_where.json; runs in exercises.py for new ones, or publish inspect=where

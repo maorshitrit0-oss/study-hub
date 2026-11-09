@@ -309,13 +309,16 @@ def answered(job):
 
 # Courses where every new lecture gets a podcast and a video by itself (his request 08/11/2026: he listens to the
 # podcast and watches the video first, then reads). Gemini TTS - the free quota is shared with the chapters.
-AUTO_STUDIO = re.compile(r"גלים ומערכות")
+AUTO_STUDIO = re.compile(r"גלים ומערכות|VLSI")  # + every self-study session (his request 09/11/2026)
 # 08/11/2026 evening: "הסרטון האחרון שיצרת יצא פגז, ככה אני רוצה מהיום והלאה לכל הרצאה" - the explainer video (subtitles,
 # synced narration) for every new lecture. Podcasts stay manual (he did not ask for them again).
 AUTO_KINDS = ("video",)
 
 
-def auto_studio(job):
+WAIT_MSG = "ממתין למכסה של קול Gemini - ייווצר לבד כשתתפנה"
+
+
+def auto_studio(job, wait=False):
     """Once per lecture: a podcast and a video (lesson_media rows + media.yml), never twice for the same lesson."""
     les, course = job.lesson, job.course
     if les.get("kind") != "lecture" or not AUTO_STUDIO.search(course.get("name") or "") \
@@ -330,6 +333,11 @@ def auto_studio(job):
             if old:  # it failed before (e.g. the TTS bug of 08/11/2026): the same item goes again
                 job.sb.table("lesson_media").update({"status": "queued", "error": None}).eq("id", old[0]["id"]).execute()
                 print(f"studio {kind} again: {course_site.dispatch_inputs('media.yml', {'media_id': old[0]['id']})}", flush=True)
+                continue
+            if wait:  # a backfill of many: queued for retry_studio (2 per queue run) instead of all at once on one quota
+                job.sb.table("lesson_media").insert({"user_id": les["user_id"], "course_id": course["id"], "kind": kind,
+                                                     "lesson_ids": [les["id"]], "status": "error", "error": WAIT_MSG}).execute()
+                print(f"studio {kind}: waiting for the quota", flush=True)
                 continue
             row = job.sb.table("lesson_media").insert({"user_id": les["user_id"], "course_id": course["id"], "kind": kind,
                                                        "lesson_ids": [les["id"]]}).execute().data[0]
@@ -608,13 +616,14 @@ def cmd_studio_backfill(match):
     """A podcast and a video for every ready lecture of the course that has none yet (auto_studio for old lectures)."""
     sb = db()
     course = find_course(sb, match)
-    for les in sb.table("lessons").select("*").eq("course_id", course["id"]).eq("kind", "lecture").eq("status", "ready").execute().data:
+    rows = sb.table("lessons").select("*").eq("course_id", course["id"]).eq("kind", "lecture").eq("status", "ready").execute().data
+    for n, les in enumerate(sorted(rows, key=lambda l: l.get("number") or 0)):
         class J:  # the bits of a process job auto_studio reads
             pass
         j = J()
         j.sb, j.lesson, j.course = sb, les, course
         print(f"lecture {les.get('number')}:", flush=True)
-        auto_studio(j)
+        auto_studio(j, wait=n >= 2)
 
 
 def cmd_studio_new(match, number, kind):

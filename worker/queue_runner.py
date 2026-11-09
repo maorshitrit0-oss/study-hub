@@ -49,6 +49,9 @@ def block_quota(sb):
     print(f"::notice title=Queue::daily Gemini quota used up - waiting until {next_reset().isoformat()}", flush=True)
 
 
+# The Claude fallback is OFF while his CLAUDE_CODE_OAUTH_TOKEN fails (401 since 06/11/2026: every claude-chapter run
+# failed and left its lesson "processing" for days). Turn back on after he renews the token (claude setup-token).
+CLAUDE_ON = False
 CLAUDE_PER_DAY = 4   # chapters a day Claude may write instead of Gemini (his Pro usage is shared with his chats)
 
 
@@ -66,7 +69,7 @@ def save_state(sb, st):
 def to_claude(sb, r):
     """When Gemini can't (overloaded / quota): his Claude Pro writes the chapter (claude-chapter.yml), a few a day.
     The recording is transcribed first if needed (no Gemini in that). Returns True if handed over."""
-    if os.environ.get("HAS_CLAUDE") != "true":
+    if not CLAUDE_ON or os.environ.get("HAS_CLAUDE") != "true":
         return False
     st = state(sb)
     today = datetime.now(ZoneInfo("Asia/Jerusalem")).date().isoformat()
@@ -164,8 +167,19 @@ def write_full(r):
         os.environ.pop("QUIET", None)
 
 
+def unstick(sb):
+    """A lesson left "processing" for hours (its run died: a cancelled / failed Claude run, a killed job) goes back to the
+    queue - the queue picks only queued / error / ready, so such a lesson waited forever (his report 09/11/2026)."""
+    old = (datetime.now(timezone.utc) - timedelta(hours=3)).isoformat()
+    rows = sb.table("lessons").select("id, title").eq("status", "processing").lt("updated_at", old).execute().data
+    for r in rows:
+        sb.table("lessons").update({"status": "queued", "error": None, "progress": "חזר לתור (העיבוד הקודם נתקע)"}).eq("id", r["id"]).execute()
+        print(f"::notice title=Queue::unstuck {r['id'][:8]} {(r.get('title') or '')[:50]}", flush=True)
+
+
 def run():
     sb = hub.db()
+    unstick(sb)
     if quota_blocked(sb):
         # Gemini is out for today: lessons he is waiting for go to Claude (a few a day); fill-ins wait for the reset.
         for r, mode in candidates(sb):
