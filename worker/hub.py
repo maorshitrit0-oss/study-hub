@@ -309,7 +309,7 @@ def answered(job):
 
 # Courses where every new lecture gets a podcast and a video by itself (his request 08/11/2026: he listens to the
 # podcast and watches the video first, then reads). Gemini TTS - the free quota is shared with the chapters.
-AUTO_STUDIO = re.compile(r"גלים ומערכות|VLSI")  # + every self-study session (his request 09/11/2026)
+AUTO_STUDIO = re.compile(r"גלים ומערכות|VLSI|אקראיים")  # + every self-study session (his request 09/11/2026)
 # 08/11/2026 evening: "הסרטון האחרון שיצרת יצא פגז, ככה אני רוצה מהיום והלאה לכל הרצאה" - the explainer video (subtitles,
 # synced narration) for every new lecture. Podcasts stay manual (he did not ask for them again).
 AUTO_KINDS = ("video",)
@@ -506,6 +506,13 @@ def cmd_exercises(match, path):
     course = find_course(sb, match)
     fields = ("title", "question_md", "solution_md", "topic", "exam_style", "uncertain")
     for fx in json.loads(Path(path).read_text(encoding="utf-8")):
+        if fx.get("id") and fx.get("to_lesson"):  # move an exercise into a lesson ("kind number"), e.g. a study session
+            kind, number = fx["to_lesson"].split()
+            les = sb.table("lessons").select("id").eq("course_id", course["id"]).eq("kind", kind).eq("number", int(number)).execute().data
+            if les:
+                sb.table("exercises").update({"lesson_id": les[0]["id"], "ord": int(fx.get("ord", 0))}).eq("id", fx["id"]).execute()
+            print(f"::notice title=Exercise moved::{fx['id'][:8]} -> {fx['to_lesson']} {'ok' if les else 'NO LESSON'}", flush=True)
+            continue
         if fx.get("id"):  # by id (from exercises.json of `hub.py materials`)
             got = sb.table("exercises").update({k: fx[k] for k in fields if k in fx}).eq("id", fx["id"]) \
                 .eq("course_id", course["id"]).execute().data
