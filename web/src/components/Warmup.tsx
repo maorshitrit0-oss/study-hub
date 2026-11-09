@@ -4,7 +4,7 @@ import Link from "next/link";
 import Quiz from "./Quiz";
 import type { Question } from "@/lib/types";
 
-export type WarmLesson = { id: string; label: string; hasSummary: boolean };
+import type { WarmLesson } from "@/lib/warmup";
 
 /**
  * The warm-up before a class (his request 09/11/2026): a few short questions on the last lessons, then what to do by

@@ -11,6 +11,8 @@ import { deleteLesson, markRead, requestFullChapter, retryLesson, updateLesson }
 import Exercises, { type Exercise } from "@/components/Exercises";
 import Fold from "@/components/Fold";
 import { LESSON_LABEL, lessonName, isSession, type Lesson } from "@/lib/types";
+import { warmupFor } from "@/lib/warmup";
+import Warmup from "@/components/Warmup";
 import { VLSI_PROGRAM } from "@/lib/vlsiProgram";
 
 export default async function LessonPage({ params }: PageProps<"/lessons/[id]">) {
@@ -33,6 +35,7 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
   const examples = lesson.chapter_md?.includes("🏠") ? undefined : media?.find((m) => m.kind === "examples");
   // "*" also brings `source` where it exists: lab entry-quiz questions live on their own page, not in the chapter quiz.
   const { data: all } = await sb.from("questions").select("*").eq("lesson_id", id).order("created_at");
+  const warm = lesson.status === "ready" ? await warmupFor(sb, lesson.course_id, id) : { questions: [], lessons: [] };
   const questions = (all ?? []).filter((q) => !q.source);
   // Lectures and practices: a short summary + the exercises (supabase/exercises.sql); the full chapter on request.
   const { data: exRows } = await sb.from("exercises").select("*").eq("lesson_id", id).order("ord");
@@ -139,6 +142,15 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
 
       {/* Everything folded by default (05/11/2026) - he opens what he wants: the condensed summary, the full chapter,
           the exercises, the quiz. Self-study sessions: full chapter -> quiz -> the project task (his order). */}
+      {/* 🔥 First thing in the lesson (09/11/2026): a warm-up on every lesson before this one, then what to re-read. */}
+      {lesson.status === "ready" && warm.questions.length > 0 && (
+        <Fold id={`warmup-${id}`} title="🔥 חימום לפני השיעור" defaultOpen={!lesson.read_at}
+          hint={`${warm.questions.length} שאלות · ${warm.lessons.length} שיעורים קודמים`}>
+          <p className="text-sm text-muted mb-3">על כל מה שלפני השיעור הזה: {warm.lessons.map((l) => l.label).join(" · ")}</p>
+          <Warmup key={warm.questions.map((q) => q.id).join()} questions={warm.questions} lessons={warm.lessons} courseId={lesson.course_id} />
+        </Fold>
+      )}
+
       {lesson.status === "ready" && !self && summaryText && (
         <Fold id={`summary-${id}`} title="📝 סיכום מתומצת - מסקנות השיעור">
           <Chapter md={summaryText} slideUrls={slideUrls} />
