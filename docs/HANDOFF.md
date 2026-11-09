@@ -69,6 +69,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   He starts from ZERO (09/11). Core reordered: one exam question type per Thursday, simplest first: week 3 estimation
   (Q4), 4 WSS (Q1), 5 PSD+filters (Q2), 6 Poisson (Q3), 7-8 timed mocks (8 = his own exam again). Scheduled task every
   Tuesday 19:37 writes a from-zero reading chapter (+ video) for that Thursday as a lesson of the course.
+  09/11 he asked for 6 SESSIONS (one page per Thursday with everything inside): lessons lecture 1-6 of the course
+  (chapters/fixes/rnd_sessions.py -> chapters/rnd_s{n}.json, hub add): steps + from-zero summary + quiz; the core
+  exercises were moved into them (chapters/rnd_moves.json, hub exercises "to_lesson"); AUTO_STUDIO += אקראיים so each
+  session gets the explainer video. The Tuesday task now only checks that week's session/video and reminds him.
 - אותות אקראיים ורעש exam also on 26/10/2026 (time unknown); course registration 25/10/2026.
 - Exams: waves 12/1 & 10/2/2027, Java 17/1 & 25/2, linear 19/1 & 14/2, digital 25/1 & 18/2 (times unknown, 09:00 placeholders).
 - Added 25/10/2026 (`supabase/add_micro_comm.sql`, moved from year 4 semester A so year 4 is lighter - 21.5 credits
