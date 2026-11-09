@@ -511,6 +511,22 @@ def cmd_exercises(match, path):
                 .eq("course_id", course["id"]).execute().data
             print(f"::notice title=Exercise {'fixed' if got else 'NOT FOUND'}::{fx.get('title') or fx['id']}", flush=True)
             continue
+        if fx.get("add") and fx.get("material"):  # an exercise from a course file (e.g. a past exam in a course with no lessons)
+            mats = [m for m in sb.table("materials").select("id, title, kind").eq("course_id", course["id"]).execute().data
+                    if m["title"] == fx["material"]]
+            if not mats:
+                print(f"::warning title=Exercise add::no file '{fx['material']}'", flush=True)
+                continue
+            have = sb.table("exercises").select("id").eq("material_id", mats[0]["id"]).eq("title", fx.get("title") or "").execute().data
+            row = {k: fx[k] for k in fields if k in fx}
+            if have:  # once: running the same file again updates it
+                sb.table("exercises").update(row).eq("id", have[0]["id"]).execute()
+                print(f"::notice title=Exercise updated::{fx.get('title')} = {have[0]['id']}", flush=True)
+                continue
+            got = sb.table("exercises").insert({"user_id": course["user_id"], "course_id": course["id"], "material_id": mats[0]["id"],
+                                                "source": fx.get("source", "exam"), "ord": int(fx.get("ord", 0)), **row}).execute().data
+            print(f"::notice title=Exercise added::{fx.get('title')} = {got[0]['id']}", flush=True)
+            continue
         if fx.get("add"):  # an exercise the lesson had and the app was missing
             les = (sb.table("lessons").select("id").eq("course_id", course["id"]).eq("kind", fx["kind"])
                    .eq("number", int(fx["number"])).execute().data)
