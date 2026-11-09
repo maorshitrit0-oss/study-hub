@@ -48,6 +48,21 @@ code { font-size: 8.6pt; }
 """
 
 
+# A sheet he takes INTO the exam (random signals: 3 sheets = 6 pages allowed, 09/11/2026): large, readable print.
+# The markdown asks for it with the line <!-- print: large -->.
+LARGE = """
+body { font-size: 13.5pt; line-height: 1.35; }
+main { columns: 1; }
+main > table:first-of-type th:nth-child(n) { width: auto; }
+table { table-layout: auto; }
+ul, ol { padding-right: 9mm; }
+h2 { font-size: 15pt; margin: 3mm 0 1.4mm; }
+h3 { font-size: 14pt; }
+table { font-size: 13pt; }
+.katex { font-size: 1.05em; }
+"""
+
+
 def to_html(md, course=""):
     """Math is kept out of the markdown converter (it would eat backslashes and underscores) and rendered by KaTeX."""
     md = re.sub(r"^> נבנה .*\n\n", "", md)
@@ -63,7 +78,7 @@ def to_html(md, course=""):
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap">
 <link rel="stylesheet" href="{KATEX}/katex.min.css">
 <script src="{KATEX}/katex.min.js"></script><script src="{KATEX}/contrib/auto-render.min.js"></script>
-<style>{CSS}</style></head><body>
+<style>{CSS}{LARGE if "<!-- print: large -->" in md else ""}</style></head><body>
 <header><span><b>📄 דף נוסחאות · {html.escape(course)}</b></span><span>בשם ה' נעשה ונצליח · עודכן {today}</span></header>
 <main>{body}</main>
 <script>
@@ -86,7 +101,7 @@ def render(md, course=""):
     """PDF bytes (Chromium through Playwright)."""
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = p.chromium.launch(executable_path=os.environ.get("PW_CHROMIUM") or None)
         # Laid out at the printed width (A4 minus the margins), so the fit-to-column step measures the real columns.
         page = browser.new_page(viewport={"width": 740, "height": 1050})
         page.emulate_media(media="print")
