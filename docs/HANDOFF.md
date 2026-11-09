@@ -603,7 +603,8 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   core solutions checked OK; eca95ac1 NMOS VTC not re-checked). Java core weeks 1-3 set (11; exam is MCQ: output /
   error / fill-in / concepts; every output verified by running javac+java in the session). Linear circuits core weeks 1-3 set (10; exam מועד א' תשפ"ו = 6 MCQ
   solved in the notebook: BJT bias, feedback, Schmitt oscillator, op-amp gain expression, CE Q-point+Amid, CC; cascade
-  example restored from the lecture transcript). Homework-1 "שאלת מבחן" items have no circuit (figures) - not used. NEXT: core for linear circuits (later weeks) (same recipe: fetch `files:<course>:<regex>` -> exercises.json,
+  example restored from the lecture transcript). Homework-1 "שאלת מבחן" items have no circuit (figures) - not used. Communication systems core weeks 1-3 set (11; 09/11; fixed: LNA self-noise 3.22e-12 W not 8.8e-14, Q 200 not 80).
+  NEXT: every week, a core for the new week in each course (he asked for it in ALL courses); later weeks of linear (same recipe: fetch `files:<course>:<regex>` -> exercises.json,
   pick 3-5/week by the exams, chapters/fixes/<course>_core.py -> publish inspect=exercises + inspect=core);
   then exam characterisation per course; then the bank.
 - Explainer video (studio.make_explainer): 12-18 slides, KaTeX formulas (local KaTeX in media.yml), matplotlib diagram
