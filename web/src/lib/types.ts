@@ -67,7 +67,11 @@ export const DEADLINE_LABEL: Record<Deadline["kind"], string> = {
   assignment: "מטלה", exam: "מבחן", quiz: "בוחן", lab_report: "דוח מעבדה", other: "אחר",
 };
 
+/** A study session written by Claude (random signals retake, 09/11/2026): its title "מפגש N · date · topic" is its name. */
+export const isSession = (l: Pick<Lesson, "title">) => (l.title ?? "").startsWith("מפגש ");
+
 export function lessonName(l: Pick<Lesson, "kind" | "number" | "title">) {
+  if (isSession(l)) return l.title!;
   const base = `${LESSON_LABEL[l.kind]}${l.number ? ` ${l.number}` : ""}`;
   return l.title && l.kind === "web" ? l.title : base;
 }

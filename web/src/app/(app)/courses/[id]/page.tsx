@@ -17,7 +17,7 @@ import { isPast } from "@/lib/format";
 import { forProjection, needed, pending, sameCode, totals, type GradeRow } from "@/lib/gradeGoal";
 import { LEVEL_LABEL, LEVEL_TONE, weeklyPlan } from "@/lib/plan";
 import { mergedFacts } from "@/lib/facts";
-import { DAYS, EXAM_LABEL, KIND_LABEL, SLOT_LABEL, hhmm, type Slot, lessonName, type Course, type Deadline, type Lesson } from "@/lib/types";
+import { DAYS, EXAM_LABEL, KIND_LABEL, SLOT_LABEL, hhmm, type Slot, lessonName, isSession, type Course, type Deadline, type Lesson } from "@/lib/types";
 
 const STATUS: Record<Lesson["status"], [string, string]> = {
   queued: ["בתור", "text-muted"],
@@ -56,7 +56,8 @@ function statusOf(l: Lesson): [string, string] {
 function groupLessons(ls: Lesson[], isLab: boolean): [string, Lesson[]][] {
   if (isLab) return [["", ls]];
   const groups: [string, Lesson[]][] = [
-    ["הרצאות ותרגולים", ls.filter((l) => (l.kind === "lecture" || l.kind === "practice") && !isSiteLesson(l)).sort(byMeeting)],
+    ["📅 מפגשים", ls.filter(isSession).sort((a, b) => (a.number ?? 99) - (b.number ?? 99))],
+    ["הרצאות ותרגולים", ls.filter((l) => (l.kind === "lecture" || l.kind === "practice") && !isSiteLesson(l) && !isSession(l)).sort(byMeeting)],
     ["חומר נוסף", ls.filter((l) => l.kind !== "lecture" && l.kind !== "practice" && !isSiteLesson(l))],
     // Last year's material from the lecturer's site: reference and backup, after this year's own lessons.
     ["📼 חומר משנה שעברה (מאתר המרצה)", ls.filter(isSiteLesson).sort((a, b) => (a.number ?? 99) - (b.number ?? 99))],
@@ -255,7 +256,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
                     <Link href={`/lessons/${l.id}`} className="flex items-center justify-between gap-3 py-3">
                       <span className="min-w-0">
                         <span className={`font-medium ${l.read_at ? "text-muted" : ""}`}>{lessonName(l)}</span>
-                        {l.title && l.kind !== "web" && <span className="text-sm text-muted"> · {l.title}</span>}
+                        {l.title && l.kind !== "web" && !isSession(l) && <span className="text-sm text-muted"> · {l.title}</span>}
                         {l.read_at && <span className="text-xs text-good"> ✓ נקרא</span>}
                       </span>
                       <span className={`text-xs shrink-0 ${statusOf(l)[1]}`}>{statusOf(l)[0]}</span>
@@ -299,7 +300,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
 
       {readyCount > 0 && (
         <Studio courseId={id} items={(await loadMedia(sb, { courseId: id }))?.filter((m) => m.kind !== "examples") ?? null}
-          lessons={ls.filter((l) => l.status === "ready").map((l) => ({ id: l.id, label: `${lessonName(l)}${l.title && l.kind !== "web" ? ` · ${l.title}` : ""}` }))} />
+          lessons={ls.filter((l) => l.status === "ready").map((l) => ({ id: l.id, label: `${lessonName(l)}${l.title && l.kind !== "web" && !isSession(l) ? ` · ${l.title}` : ""}` }))} />
       )}
 
       <Fold id="files" title="קבצים (מצגות, מבחני עבר, סילבוס)" hint={`${(materials ?? []).length}`}>

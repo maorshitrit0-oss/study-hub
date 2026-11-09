@@ -10,7 +10,7 @@ import { loadMedia } from "@/lib/studio";
 import { deleteLesson, markRead, requestFullChapter, retryLesson, updateLesson } from "../../actions";
 import Exercises, { type Exercise } from "@/components/Exercises";
 import Fold from "@/components/Fold";
-import { LESSON_LABEL, lessonName, type Lesson } from "@/lib/types";
+import { LESSON_LABEL, lessonName, isSession, type Lesson } from "@/lib/types";
 import { VLSI_PROGRAM } from "@/lib/vlsiProgram";
 
 export default async function LessonPage({ params }: PageProps<"/lessons/[id]">) {
@@ -91,7 +91,7 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
     <article className="space-y-5">
       <BackLink href={`/courses/${lesson.course_id}`}>→ {lesson.courses.name}</BackLink>
       <header>
-        <h1 className="text-2xl font-bold mt-1">{lessonName(lesson)}{lesson.title && lesson.kind !== "web" ? ` · ${lesson.title}` : ""}</h1>
+        <h1 className="text-2xl font-bold mt-1">{lessonName(lesson)}{lesson.title && lesson.kind !== "web" && !isSession(lesson) ? ` · ${lesson.title}` : ""}</h1>
         {lesson.topics?.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">{lesson.topics.map((t) => <span key={t} className="chip">{t}</span>)}</div>
         )}

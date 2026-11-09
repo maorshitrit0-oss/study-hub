@@ -22,8 +22,8 @@ export async function exercisesByWeek(sb: SupabaseClient, courseId?: string, use
       const q = sb.from("exercises").select("*").order("created_at").order("ord");
       return courseId ? q.eq("course_id", courseId) : q;
     }).catch(() => [] as ExerciseRow[]),
-    (courseId ? sb.from("lessons").select("id, course_id, kind, number, topics, created_at").eq("course_id", courseId)
-      : sb.from("lessons").select("id, course_id, kind, number, topics, created_at")),
+    (courseId ? sb.from("lessons").select("id, course_id, kind, number, title, topics, created_at").eq("course_id", courseId)
+      : sb.from("lessons").select("id, course_id, kind, number, title, topics, created_at")),
     (courseId ? sb.from("materials").select("id, title").eq("course_id", courseId) : sb.from("materials").select("id, title")),
     // the exact page / slide of each exercise (worker/locate.py), his request 08/11/2026
     (courseId && userId ? sb.storage.from("study").download(`${userId}/materials/${courseId}/exercise_where.json`)
@@ -48,7 +48,7 @@ export async function exercisesByWeek(sb: SupabaseClient, courseId?: string, use
   }
   const fileName = new Map((materials ?? []).map((m) => [m.id, m.title as string]));
   const KIND: Record<string, string> = { lecture: "הרצאה", practice: "תרגול" };
-  const lessonName = new Map((lessons ?? []).map((l) => [l.id,
+  const lessonName = new Map((lessons ?? []).map((l) => [l.id, (l.title ?? "").startsWith("מפגש ") ? (l.title as string).split(" · ").slice(0, 2).join(" · ") :
     `${KIND[l.kind] ?? "שיעור"}${l.number ? ` ${l.number}` : ""}${lessonDate.has(l.id) ? ` (${lessonDate.get(l.id)})` : ""}`]));
   // Where each exercise comes from, shown on it: the lesson, or the file (homework / past exam / exercise booklet).
   const labeled = rows.map((x) => ({
