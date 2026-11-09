@@ -643,6 +643,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   09/11: his Drive links -> recent exams registered as course files: chapters/{comm,linear,digital}_drive2.json
   (34/34/28 files, 2018+; exercises.py extracts them by Gemini over time). NEXT: read the newest exam of each
   (linear 03.04.24 & 07.05.24, digital 17.07.24 & 10.12.23, comm tashpag reconstruction + 2022) and align weeks 1-3 cores.
+  DONE 09/11: read linear 7.5.24, digital 28.9.23 + 17.7.24, comm 2020 B + 2022 A: weeks 1-3 cores already match the
+  exam topics; exam_note of each core updated with the real format. Comm 2022 A Q1 (LNA gain) computed 11.6 dB vs
+  marked 12.8 dB - not used without the official solution.
   NEXT: every week, a core for the new week in each course (he asked for it in ALL courses); later weeks of linear (same recipe: fetch `files:<course>:<regex>` -> exercises.json,
   pick 3-5/week by the exams, chapters/fixes/<course>_core.py -> publish inspect=exercises + inspect=core);
   then exam characterisation per course; then the bank.
