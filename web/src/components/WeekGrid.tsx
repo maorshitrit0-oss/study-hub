@@ -8,7 +8,8 @@ const TONE: Record<string, string> = { lecture: "bg-accent/25 border-accent", pr
 /** A short name that fits a narrow column on the phone. */
 function short(name: string) {
   // Order matters and Hebrew has no \b: "מעגלים" contains "גלים" (digital and linear circuits showed as "גלים").
-  const rules: [RegExp, string][] = [[/ספרתי|digital/i, "ספרתיים"], [/לינאר|ליניאר/, "לינאריים"], [/(^|\s)גלים/, "גלים"],
+  // The self-study track "תכנון ספרתי, VLSI ו-SystemVerilog" first - it showed as "ספרתיים" (his remark 09/11/2026).
+  const rules: [RegExp, string][] = [[/VLSI/i, "לימוד עצמי VLSI"], [/ספרתי|digital/i, "ספרתיים"], [/לינאר|ליניאר/, "לינאריים"], [/(^|\s)גלים/, "גלים"],
     [/תקשורת/, "תקשורת"], [/java/i, "Java"], [/מיקרו/, "מיקרו"], [/מעבדה\s*(\d+)/, "מעבדה $1"]];
   for (const [re, label] of rules) {
     const m = name.match(re);

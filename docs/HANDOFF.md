@@ -674,6 +674,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   lessons), extras from the newest, wrong-last-time first. End screen per earlier lesson: >=75% ok, >=50% -> its
   condensed summary (#summary-<id>), else its full chapter (#chapter-<id>). /courses/[id]/warmup (course page button,
   home links) redirects to the warm-up of the next lesson he has not marked read.
+- 09/11 batch: (a) lib/rollTasks.ts - an open study task (kind other, not labrep:/labq:) whose date passed moves by whole
+  weeks to the future (home + tasks page, after the syncs). (b) timetable: WeekGrid short() and SlotCard show the VLSI
+  track as "לימוד עצמי VLSI" (it matched /ספרתי/ and showed as digital circuits). (c) tasks page grouped by week: this
+  week open, later weeks folded with counts.
 - Exercise sources (his request 08/11): every exercise shows "מקור: <file | lesson (date)> · 📍 עמ' N" - worker/locate.py
   matches the exercise text to the PDF pages (file, or the lecture's "הרצאה N" slides) + board snapshot numbers;
   storage <user>/materials/<course>/exercise_where.json; runs in exercises.py for new ones, or publish inspect=where

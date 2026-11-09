@@ -4,6 +4,7 @@ import { dueReviews } from "@/lib/review";
 import { attachOrphanTasks, syncPrepTasks } from "@/lib/prep";
 import { syncExerciseTasks } from "@/lib/exercises";
 import { syncLabTasks } from "@/lib/labTasks";
+import { rollOverdueTasks } from "@/lib/rollTasks";
 import { catchUps, ensureSelfSlots, mainTrack } from "@/lib/selfPlan";
 import { isSiteLesson, studyWeek, syncWeekTasks, todayWeek } from "@/lib/week";
 import DeadlineRow from "@/components/DeadlineRow";
@@ -20,6 +21,7 @@ import { DAYS, lessonName, type Course, type Deadline, type Lesson, type Slot } 
 export default async function Home() {
   const { sb } = await requireUser();
   await Promise.all([syncPrepTasks(sb).catch(() => {}), attachOrphanTasks(sb).catch(() => {}), syncWeekTasks(sb).catch(() => {}), syncExerciseTasks(sb).catch(() => {}), syncLabTasks(sb).catch(() => {})]);
+  await rollOverdueTasks(sb).catch(() => {}); // after the syncs: a study task whose date passed moves to next week
   const in14 = isoFromNow(14);
   const now = israelNow();
   const [{ data: courses }, { data: deadlines }, stats, { data: today }, missing] = await Promise.all([

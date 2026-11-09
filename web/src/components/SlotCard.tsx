@@ -11,7 +11,7 @@ export default function SlotCard({ s, courseName, now: live, done }: { s: Slot; 
         {hhmm(s.start_time)}<br />{hhmm(s.end_time)}
       </div>
       <div className="min-w-0">
-        <div className="font-medium">{courseName ?? s.title}{now && <span className="text-xs text-accent"> · עכשיו</span>}{done && <span className="text-xs text-good"> · ✓ סיימת את המפגש של היום</span>}</div>
+        <div className="font-medium">{/VLSI/i.test(courseName ?? "") ? "לימוד עצמי VLSI" : courseName ?? s.title}{now && <span className="text-xs text-accent"> · עכשיו</span>}{done && <span className="text-xs text-good"> · ✓ סיימת את המפגש של היום</span>}</div>
         <div className="text-xs text-muted">
           {SLOT_LABEL[s.kind]}
           {s.room ? ` · חדר ${s.room}` : ""}
