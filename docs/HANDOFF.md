@@ -623,7 +623,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   "processing" and the queue only picks queued/error/ready. queue_runner.unstick() puts processing > 3h back to queued;
   CLAUDE_ON = False (no Claude fallback until he renews CLAUDE_CODE_OAUTH_TOKEN). Self-study (VLSI) sessions get the
   explainer video too (AUTO_STUDIO += VLSI; `code` field on slides = monospace code block); studio-backfill dispatches 2,
-  the rest wait as error "ממתין למכסה..." for retry_studio (2 per queue run).
+  the rest wait as error "ממתין למכסה..." for retry_studio (2 per queue run). unstick() also re-queues errors
+  "Claude לא סיים" / DEADLINE_EXCEEDED / 504 older than 12h; 09/11 run wrote all 11 (VLSI 7,14,16,17,18,20,22, micro
+  web weeks 3/4/8, micro lecture 3). Weekly scheduled task (Sat 20:47 Israel) builds the next week's core in all courses.
 - Exercise sources (his request 08/11): every exercise shows "מקור: <file | lesson (date)> · 📍 עמ' N" - worker/locate.py
   matches the exercise text to the PDF pages (file, or the lecture's "הרצאה N" slides) + board snapshot numbers;
   storage <user>/materials/<course>/exercise_where.json; runs in exercises.py for new ones, or publish inspect=where
