@@ -309,10 +309,11 @@ def answered(job):
 
 # Courses where every new lecture gets a podcast and a video by itself (his request 08/11/2026: he listens to the
 # podcast and watches the video first, then reads). Gemini TTS - the free quota is shared with the chapters.
-AUTO_STUDIO = re.compile(r"גלים ומערכות|VLSI|אקראיים")  # + every self-study session (his request 09/11/2026)
+AUTO_STUDIO = re.compile(r"גלים ומערכות|VLSI|אקראיים|תקשורת|לינאר|ליניאר|מיקרו|מעגלים ספרתיים|java", re.I)
+# 09/11/2026: every lecture of all his courses (and every self-study / random-signals session) gets a podcast AND a video.
 # 08/11/2026 evening: "הסרטון האחרון שיצרת יצא פגז, ככה אני רוצה מהיום והלאה לכל הרצאה" - the explainer video (subtitles,
 # synced narration) for every new lecture. Podcasts stay manual (he did not ask for them again).
-AUTO_KINDS = ("video",)
+AUTO_KINDS = ("video", "podcast")
 
 
 WAIT_MSG = "ממתין למכסה של קול Gemini - ייווצר לבד כשתתפנה"
@@ -668,14 +669,15 @@ def cmd_studio_backfill(match):
     """A podcast and a video for every ready lecture of the course that has none yet (auto_studio for old lectures)."""
     sb = db()
     course = find_course(sb, match)
-    rows = sb.table("lessons").select("*").eq("course_id", course["id"]).eq("kind", "lecture").eq("status", "ready").execute().data
+    rows = [l for l in sb.table("lessons").select("*").eq("course_id", course["id"]).in_("kind", ["lecture", "other"]).eq("status", "ready").execute().data
+            if l["kind"] == "lecture" or (l.get("title") or "").startswith("מפגש ")]
     for n, les in enumerate(sorted(rows, key=lambda l: l.get("number") or 0)):
         class J:  # the bits of a process job auto_studio reads
             pass
         j = J()
         j.sb, j.lesson, j.course = sb, les, course
         print(f"lecture {les.get('number')}:", flush=True)
-        auto_studio(j, wait=n >= 2)
+        auto_studio(j, wait=True)  # all wait in the queue: retry_studio makes 2 per run, as the voice quota allows
 
 
 def cmd_studio_new(match, number, kind):
