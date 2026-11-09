@@ -1,0 +1,75 @@
+{
+ "format": "14-17 שאלות רב-ברירה, שעתיים עד שעתיים וחצי, חומר פתוח, פתרון במחברת חובה. מטלות 10% מגן.",
+ "basis": "מבחני תש״ף ותשפ״ב (אריאל)",
+ "sections": [
+  {
+   "title": "שרשרת כבלים ומגברים – פריס, ספרת רעש, LNA",
+   "chance": 95,
+   "why": "שאלה 1 כמעט בכל מבחן.",
+   "taught": true,
+   "points": null,
+   "tip": "הכל לליניארי; מנחת: F = L; כל דרגה מתחלקת בהגבר של כל מה שלפניה.",
+   "exercise_ids": [
+    "9333a666-0879-4ce0-a9e4-48691936f69e",
+    "71f4c8e8-8eb1-4151-b3ca-4b7b6bc650b6",
+    "73099eff-b388-4df1-ae21-48219b5ab50c",
+    "78e7b850-5b88-4b00-9f21-b8e777fc1475"
+   ]
+  },
+  {
+   "title": "הספק כניסה נדרש ל-SNR / סף רגישות",
+   "chance": 90,
+   "why": "שאלה 2 כמעט בכל מבחן.",
+   "taught": true,
+   "points": null,
+   "tip": null,
+   "exercise_ids": [
+    "3e538d23-4faa-4d2f-877b-cd38e2428829",
+    "7056519a-93c0-4ec0-bf71-32f46026e369",
+    "9eece440-7e99-490f-a50b-7e4def42dedd"
+   ]
+  },
+  {
+   "title": "AM – נצילות הספק, גילוי סינכרוני",
+   "chance": 90,
+   "why": "שאלות 1 ו-3 במבחנים.",
+   "taught": false,
+   "points": null,
+   "tip": null,
+   "exercise_ids": []
+  },
+  {
+   "title": "FM / NBFM – רוחב סרט, בסל",
+   "chance": 80,
+   "why": "חוזר בכל מבחן.",
+   "taught": false,
+   "points": null,
+   "tip": null,
+   "exercise_ids": []
+  },
+  {
+   "title": "SSB וסופרהטרודין – תדר בבואה",
+   "chance": 80,
+   "why": "חוזר בכל מבחן.",
+   "taught": false,
+   "points": null,
+   "tip": null,
+   "exercise_ids": []
+  },
+  {
+   "title": "dB/dBm ומאזן קישור",
+   "chance": 70,
+   "why": "כלי בכל שאלה.",
+   "taught": true,
+   "points": null,
+   "tip": null,
+   "exercise_ids": [
+    "3eaf7c29-7d9d-4b1c-90d0-3c2ec40c0395",
+    "e3309cba-e706-4f6c-bcc6-d424ce72bb5a",
+    "f4693d86-3449-4dff-8963-51d7b4d6d89a",
+    "9991573f-c6f5-4ed8-a282-0aebd2d4a2df"
+   ]
+  }
+ ],
+ "updated": "09/11/2026"
+}

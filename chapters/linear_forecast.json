@@ -1,0 +1,72 @@
+{
+ "format": "שעתיים, בלי חומר עזר: 3 שאלות פתוחות (או 6 אמריקאיות שפותרים במחברת).",
+ "basis": "מועד ב׳ תשפ״ד (7.5.24) ומועד א׳ תשפ״ו",
+ "sections": [
+  {
+   "title": "ביטוי להגבר של מעגל מגברי שרת",
+   "chance": 95,
+   "why": "שאלה 1 בתשפ״ד (12 נק׳) ושאלה 4 בתשפ״ו.",
+   "taught": true,
+   "points": 12,
+   "tip": "אדמה וירטואלית ← KCL בכל הדק מינוס ← לבטא את Vo.",
+   "exercise_ids": [
+    "869840af-f436-474e-ad67-05e81015468c",
+    "0444281f-605b-424e-b82b-a7d21417c756",
+    "40f38d24-6dfa-4e67-ac39-962d596444fd",
+    "bbac9c6f-5048-48cc-85c3-62869e667018",
+    "012f6f63-759d-45f9-9fd5-aafeb3d837bb"
+   ]
+  },
+  {
+   "title": "נקודת עבודה של BJT ויציבותה (β משתנה, נגד אמיטר)",
+   "chance": 90,
+   "why": "48 נק׳ בתשפ״ד; שאלת VBB בתשפ״ו.",
+   "taught": false,
+   "points": 48,
+   "tip": null,
+   "exercise_ids": []
+  },
+  {
+   "title": "משוב בשלוש דרגות – סוג, β, הגבר בחוג סגור",
+   "chance": 85,
+   "why": "40 נק׳ בתשפ״ד; שאלה 2 בתשפ״ו – אותו מעגל.",
+   "taught": false,
+   "points": 40,
+   "tip": null,
+   "exercise_ids": []
+  },
+  {
+   "title": "אות קטן – CE / CC (הגבר, Rin, Rout)",
+   "chance": 70,
+   "why": "שאלות 5-6 בתשפ״ו.",
+   "taught": true,
+   "points": null,
+   "tip": null,
+   "exercise_ids": [
+    "610c8ed2-8b4a-4fb6-942e-6375b3e3aa03"
+   ]
+  },
+  {
+   "title": "מתנד עם שמיט-טריגר",
+   "chance": 50,
+   "why": "שאלה 3 בתשפ״ו.",
+   "taught": false,
+   "points": null,
+   "tip": null,
+   "exercise_ids": []
+  },
+  {
+   "title": "שרשור מגברים והספקים",
+   "chance": 30,
+   "why": "נלמד בהרצאה 2.",
+   "taught": true,
+   "points": null,
+   "tip": null,
+   "exercise_ids": [
+    "9f29e3c8-35ef-4f3a-a62a-264dfa2ec890",
+    "320d8cba-e427-4569-8e68-cf3384a68de5"
+   ]
+  }
+ ],
+ "updated": "09/11/2026"
+}

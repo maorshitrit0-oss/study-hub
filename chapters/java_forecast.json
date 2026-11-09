@@ -1,0 +1,85 @@
+{
+ "format": "אמריקאי: ״מה יודפס״, ״מה השגיאה בקוד״, השלמת קוד ושאלות מושגים. מותר דף נוסחאות אחד.",
+ "basis": "קובץ שאלות הדוגמה למבחן",
+ "sections": [
+  {
+   "title": "״מה יודפס״ – מעקב אחרי קוד",
+   "chance": 95,
+   "why": "רוב השאלות במבחן מהסוג הזה.",
+   "taught": true,
+   "points": null,
+   "tip": "טבלה: עמודה לכל משתנה, שורה לכל סיבוב.",
+   "exercise_ids": [
+    "67319c08-c809-4276-84f9-927815efb4db",
+    "1719a9c8-588a-4006-a9f5-c0c524b84fb7",
+    "56de9517-aaa8-4bbe-bd43-2606f09db3cc",
+    "22f606b0-50af-4599-b267-eb56b31701bf",
+    "cb65f6df-2cb1-428f-9736-d7d13c5866f2"
+   ]
+  },
+  {
+   "title": "ממשקים – הוספת מתודה לממשק קיים",
+   "chance": 85,
+   "why": "שאלה 1 בקובץ הדוגמה.",
+   "taught": false,
+   "points": null,
+   "tip": null,
+   "exercise_ids": []
+  },
+  {
+   "title": "מחלקות אבסטרקטיות וירושה – השלמת קוד",
+   "chance": 85,
+   "why": "שאלה 4 בקובץ הדוגמה.",
+   "taught": false,
+   "points": null,
+   "tip": null,
+   "exercise_ids": []
+  },
+  {
+   "title": "״מה השגיאה בקוד״",
+   "chance": 85,
+   "why": "שאלה 3 בקובץ הדוגמה.",
+   "taught": true,
+   "points": null,
+   "tip": null,
+   "exercise_ids": [
+    "f69303fa-faf3-4bd2-bcc8-b9a44c239717",
+    "f0440317-5fe2-48a3-9bb0-1b43bdab0d21"
+   ]
+  },
+  {
+   "title": "== מול equals במחרוזות",
+   "chance": 80,
+   "why": "שאלה 2 בקובץ הדוגמה.",
+   "taught": true,
+   "points": null,
+   "tip": null,
+   "exercise_ids": [
+    "308ebd98-f41c-46d1-88ea-ccbe4ecc7eb7"
+   ]
+  },
+  {
+   "title": "חריגות – סדר catch וקוד בלתי ישיג",
+   "chance": 80,
+   "why": "שאלה 3 בקובץ הדוגמה.",
+   "taught": false,
+   "points": null,
+   "tip": null,
+   "exercise_ids": [
+    "482b5658-f339-436f-928e-12dd955ca82b"
+   ]
+  },
+  {
+   "title": "הזזות ביטים",
+   "chance": 30,
+   "why": "נלמד בהרצאה 2.",
+   "taught": true,
+   "points": null,
+   "tip": null,
+   "exercise_ids": [
+    "3dc66bdf-3979-4a4b-9e03-b4b2b6755a8a"
+   ]
+  }
+ ],
+ "updated": "09/11/2026"
+}

@@ -1,0 +1,93 @@
+{
+ "format": "90 דקות, בלי דף נוסחאות: 6 שאלות אמריקאיות (10 נק׳) + 2 שאלות הבנת קוד (20 נק׳).",
+ "basis": "מועד א׳ ומועד ב׳ תשפ״ו",
+ "sections": [
+  {
+   "title": "פעולות ביטים ומסכות (XOR, ניקוי/הדלקה, שדות)",
+   "chance": 95,
+   "why": "בשני המבחנים – שאלות 1-2.",
+   "taught": true,
+   "points": 20,
+   "tip": "לכתוב כל ערך בבינארי (8 ביט) לפני שמחשבים.",
+   "exercise_ids": [
+    "e161f6d5-5cd1-4f71-ba7a-7f2b2ae14a45",
+    "1590cbbc-bc83-423d-af75-0f4e88feb3bd",
+    "57b69b82-02d2-4b92-af55-6d02cb24642a",
+    "c0f71e7d-c257-415c-8768-7374beb4a179"
+   ]
+  },
+  {
+   "title": "הבנת קוד: פסיקות ו-volatile",
+   "chance": 90,
+   "why": "שאלת קוד של 20 נקודות בשני המבחנים.",
+   "taught": true,
+   "points": 20,
+   "tip": null,
+   "exercise_ids": [
+    "cf42a626-1f56-4185-9799-eb4dc6520498",
+    "19ec7fa7-7a62-4c11-a460-fa719aa13331"
+   ]
+  },
+  {
+   "title": "GPIO ו-INPUT_PULLUP (לחוץ = LOW)",
+   "chance": 90,
+   "why": "שאלה 2 במועד ב׳.",
+   "taught": true,
+   "points": 10,
+   "tip": null,
+   "exercise_ids": [
+    "7e1126a3-dbe3-4a88-bb3f-1ebc50ad4e79",
+    "2d31f517-8377-465d-aa52-b41b0af0607f"
+   ]
+  },
+  {
+   "title": "ADC – רזולוציה והנחתה",
+   "chance": 85,
+   "why": "שאלה 4 במועד א׳ ושאלה 5 במועד ב׳.",
+   "taught": true,
+   "points": 10,
+   "tip": null,
+   "exercise_ids": [
+    "7a12cfef-ede4-45d4-9428-f73eaf480e84",
+    "70f90662-89d8-45b2-84c8-23a64766a5b8"
+   ]
+  },
+  {
+   "title": "PWM – תדר, רזולוציה, duty",
+   "chance": 80,
+   "why": "שאלה אמריקאית קבועה.",
+   "taught": false,
+   "points": 10,
+   "tip": null,
+   "exercise_ids": []
+  },
+  {
+   "title": "UART – באוד, מסגרת",
+   "chance": 70,
+   "why": "הופיע במבחנים.",
+   "taught": false,
+   "points": 10,
+   "tip": null,
+   "exercise_ids": []
+  },
+  {
+   "title": "הבנת קוד: I2C",
+   "chance": 70,
+   "why": "שאלת קוד של 20 נק׳ במבחן.",
+   "taught": false,
+   "points": 20,
+   "tip": null,
+   "exercise_ids": []
+  },
+  {
+   "title": "Watchdog (WDT)",
+   "chance": 60,
+   "why": "שאלה אמריקאית.",
+   "taught": false,
+   "points": 10,
+   "tip": null,
+   "exercise_ids": []
+  }
+ ],
+ "updated": "09/11/2026"
+}

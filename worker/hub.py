@@ -584,6 +584,18 @@ def cmd_core(match, path):
     print(f"::notice title=Core exercises::{course['name']}: " + ", ".join(f"week {w}: {len(v)}" for w, v in data["weeks"].items()), flush=True)
 
 
+def cmd_forecast(match, path):
+    """🎯 The expected exam of a course (his request 09/11/2026), updated weekly by Claude: chapters/<course>_forecast.json
+    -> <user>/materials/<course>/exam_forecast.json, shown on the course's "מבחן צפוי" page."""
+    sb = db()
+    course = find_course(sb, match)
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/exam_forecast.json",
+                                    json.dumps(data, ensure_ascii=False).encode("utf-8"),
+                                    {"content-type": "application/json", "upsert": "true"})
+    print(f"::notice title=Exam forecast::{course['name']}: {len(data.get('sections') or [])} sections", flush=True)
+
+
 def cmd_course_set(match, path):
     """Course facts he told Claude (e.g. 09/11/2026: communication assignments = 10% מגן, not uploaded yet). JSON
     {grade_weights: [{name, weight}], facts: [{category, text}]} - weights replace the old ones, facts are added once."""
@@ -928,6 +940,7 @@ if __name__ == "__main__":
     p = sub.add_parser("drive"); p.add_argument("course"); p.add_argument("files_json")
     p = sub.add_parser("core"); p.add_argument("course"); p.add_argument("core_json")
     p = sub.add_parser("drivefiles"); p.add_argument("ids"); p.add_argument("out_dir")
+    p = sub.add_parser("forecast"); p.add_argument("course"); p.add_argument("json_path")
     p = sub.add_parser("course-set"); p.add_argument("course"); p.add_argument("json_path")
     p = sub.add_parser("where"); p.add_argument("course"); p.add_argument("--again", action="store_true")
     p = sub.add_parser("task"); p.add_argument("course"); p.add_argument("title"); p.add_argument("due")
@@ -957,6 +970,8 @@ if __name__ == "__main__":
         cmd_task(a.course, a.title, a.due)
     elif a.cmd == "core":
         cmd_core(a.course, a.core_json)
+    elif a.cmd == "forecast":
+        cmd_forecast(a.course, a.json_path)
     elif a.cmd == "course-set":
         cmd_course_set(a.course, a.json_path)
     elif a.cmd == "drivefiles":

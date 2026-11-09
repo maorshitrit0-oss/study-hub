@@ -1,0 +1,103 @@
+{
+ "format": "שעתיים, רב-ברירה עם הנמקה במחברת, חומר פתוח מודפס.",
+ "basis": "מבחני קיץ תשפ״ג (28.9.23) ויולי 2024",
+ "sections": [
+  {
+   "title": "שולי רעש ומתחים של מהפך (VOH, VOL, VIH, VIL, VM)",
+   "chance": 95,
+   "why": "שאלה ראשונה בשני המבחנים.",
+   "taught": true,
+   "points": null,
+   "tip": "לזהות את סוג המהפך (נגד / NMOS / CMOS) ואז את התחום של כל טרנזיסטור בכל נקודה.",
+   "exercise_ids": [
+    "73492580-9746-4c82-8f0c-8780b05ea529",
+    "eca95ac1-3596-40c0-8f09-255ff87681f0"
+   ]
+  },
+  {
+   "title": "מאמץ לוגי – F, G, H, h אופטימלי",
+   "chance": 85,
+   "why": "שאלה בשני המבחנים.",
+   "taught": true,
+   "points": null,
+   "tip": null,
+   "exercise_ids": [
+    "3ae49d34-36c7-4bb7-97d6-a93c2843644f",
+    "7367dda3-9483-4c59-8100-149c7d82db7c",
+    "0f6df12f-1a9d-4b1a-9191-a8539b5eed04"
+   ]
+  },
+  {
+   "title": "NMOS כנגד (Ron) ותחומי עבודה",
+   "chance": 70,
+   "why": "שאלה 1 ביולי 2024.",
+   "taught": true,
+   "points": null,
+   "tip": null,
+   "exercise_ids": [
+    "aea4429f-73ff-43c6-a442-2d516ae8cfb3"
+   ]
+  },
+  {
+   "title": "הספק סטטי ודינמי",
+   "chance": 70,
+   "why": "שאלות 3-4 בתשפ״ג.",
+   "taught": true,
+   "points": null,
+   "tip": null,
+   "exercise_ids": [
+    "42ead578-9048-4052-8e6b-792208010dcf"
+   ]
+  },
+  {
+   "title": "השהיות (tPLH, tPHL)",
+   "chance": 60,
+   "why": "חוזר בשאלות המהפך.",
+   "taught": true,
+   "points": null,
+   "tip": null,
+   "exercise_ids": [
+    "e9a1f688-b58b-4164-97e6-7d416fad768d"
+   ]
+  },
+  {
+   "title": "לוגיקת מעבר (PTL) ואפקט המצע",
+   "chance": 60,
+   "why": "שאלה 2 בתשפ״ג.",
+   "taught": false,
+   "points": null,
+   "tip": null,
+   "exercise_ids": []
+  },
+  {
+   "title": "שער דינמי / NP-CMOS – איזו פונקציה",
+   "chance": 50,
+   "why": "שאלה 4 ביולי 2024.",
+   "taught": false,
+   "points": null,
+   "tip": null,
+   "exercise_ids": []
+  },
+  {
+   "title": "רשת Pull-Down לפונקציה",
+   "chance": 50,
+   "why": "נדרש לשאלת השער הדינמי.",
+   "taught": true,
+   "points": null,
+   "tip": null,
+   "exercise_ids": [
+    "ae63e497-9191-4f72-9401-9d686a2e456a"
+   ]
+  },
+  {
+   "title": "ממיר ספרתי-אנלוגי (DAC)",
+   "chance": 40,
+   "why": "שאלה 3 ביולי 2024.",
+   "taught": false,
+   "points": null,
+   "tip": null,
+   "exercise_ids": []
+  }
+ ],
+ "updated": "09/11/2026"
+}

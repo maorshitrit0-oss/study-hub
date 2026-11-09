@@ -682,6 +682,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   every lecture and every "מפגש" session; studio-backfill queues ALL as waiting (retry_studio 2 per queue run).
   Random signals backfill waits for lectures 1-6 to be re-authored (10/11 check-in). (f) English words: the 1000-word list
   put him off - default view = the 10 newest words + a quiz on them; the full list one tap away (components/Words.tsx).
+  (g) 🎯 "מבחן צפוי" per course (/courses/[id]/forecast; storage exam_forecast.json via hub forecast): sections with
+  chance %, points, why, taught or not, tip, linked solved exercises (his "פתרתי" status) and a readiness % (chance x
+  points over taught sections). Source chapters/fixes/forecasts.py -> chapters/<key>_forecast.json; the Saturday core
+  task updates it weekly.
 - Exercise sources (his request 08/11): every exercise shows "מקור: <file | lesson (date)> · 📍 עמ' N" - worker/locate.py
   matches the exercise text to the PDF pages (file, or the lecture's "הרצאה N" slides) + board snapshot numbers;
   storage <user>/materials/<course>/exercise_where.json; runs in exercises.py for new ones, or publish inspect=where
