@@ -44,7 +44,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - מעגלים ליניאריים (002-4331810-04) – Thu 09–13, practice 16–17. Prof. Gadi Golan / Hodaya Perlman. Attendance at lectures mandatory.
 - מעבדה 2 (digital lab) – usually Tue 09–13, Tomer Blisha & Talia Mandelbrot. Attendance mandatory, entry quiz
   every meeting, weekly prelab + summary report (Word). No Zoom recordings for the lab. Experiment 2 on Wed 28/10/2026.
-- אותות אקראיים ורעש – exam מועד ג 22/12/2026.
+- אותות אקראיים ורעש – exam מועד ג 22/12/2026 (retake: he failed - exam 39, final 48 with 100% on assignments).
+  09/11: he studies it Thursday evenings (half day linear, half random signals); tasks added for each Thursday
+  12/11-17/12. Course row exists (year 2 sem ב) but is EMPTY - waiting for him to upload past exams, his exam,
+  lectures/recordings, formula sheet, drive link. Then: topic-based core (not by weeks) aimed at 22/12.
 - אותות אקראיים ורעש exam also on 26/10/2026 (time unknown); course registration 25/10/2026.
 - Exams: waves 12/1 & 10/2/2027, Java 17/1 & 25/2, linear 19/1 & 14/2, digital 25/1 & 18/2 (times unknown, 09:00 placeholders).
 - Added 25/10/2026 (`supabase/add_micro_comm.sql`, moved from year 4 semester A so year 4 is lighter - 21.5 credits
@@ -579,7 +582,7 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   DONE: waves practice sheets 1 and 2 (14 exercises; official-answer slips flagged ⚠️ in the solutions).
   TODO waves: sheet 3 (5), lecture PDFs 1-3 sheet exercises (12), lesson exercises (15). Then linear circuits, others.
   Pending his approval: a weekly "core" set of 3-5 exercises, the rest folded as an optional bank.
-- His weekly routine (08/11/2026): Sun waves (podcast + video first, then the summary, then practice), Mon micro,
+- His weekly routine (08/11/2026; 09/11: Thursday = half linear + half random signals until 22/12): Sun waves (podcast + video first, then the summary, then practice), Mon micro,
   Tue lab 2 + digital circuits, Wed Java, Thu linear circuits. He reads summaries/chapters and learns by reading full
   solutions; practises 3-5 core exercises a week (not 20). ESP32 for micro arrived.
 - Auto studio: hub.auto_studio - every new LECTURE of a course matching AUTO_STUDIO (waves) gets a podcast + video
