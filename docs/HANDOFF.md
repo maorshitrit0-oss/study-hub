@@ -62,6 +62,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   מאצלנו" in the Ariel students' Drive) - Ariel old exams: Asher Yahalom / Itzhak Kalet folders in drive t_1qoRAKRMW.
   Formula sheet chapters/rnd-formula-sheet.md (large print: sheet_pdf LARGE when the md has <!-- print: large -->,
   one column 13.5pt, 5 pages).
+  09/11: exam is 1.5h (about 2h with his extra time), 4.5 credits, he wants 100. Lecturer Hodaya Tova Halevi taught at
+  Bar-Ilan and the Technion; he suspects she adapts Bar-Ilan questions - consistent with what we saw (same 4 question
+  types, simpler numbers). Study method agreed: per Thursday learn the topic from solved questions -> solve alone with
+  ONLY the sheet -> check; from 10/12 timed mock exams (1.5h) with the sheet.
 - אותות אקראיים ורעש exam also on 26/10/2026 (time unknown); course registration 25/10/2026.
 - Exams: waves 12/1 & 10/2/2027, Java 17/1 & 25/2, linear 19/1 & 14/2, digital 25/1 & 18/2 (times unknown, 09:00 placeholders).
 - Added 25/10/2026 (`supabase/add_micro_comm.sql`, moved from year 4 semester A so year 4 is lighter - 21.5 credits
