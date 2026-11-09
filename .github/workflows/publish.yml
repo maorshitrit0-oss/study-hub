@@ -38,8 +38,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -q -r worker/requirements.txt
-      - name: browser for the formula-sheet PDF (only when a sheet is published)
-        if: inputs.sheet != ''
+      - name: browser for the formula-sheet / expected-exam PDF (only when one is published)
+        if: inputs.sheet != '' || inputs.inspect == 'forecast'
         run: python -m playwright install --with-deps chromium
       - working-directory: worker
         env:
