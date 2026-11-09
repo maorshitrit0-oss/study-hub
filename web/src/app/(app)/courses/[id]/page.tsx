@@ -182,6 +182,8 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
       <BackLink href={"/courses"}>→ כל הקורסים</BackLink>
       {header}
 
+      <Link href={`/courses/${id}/warmup`} className="card block text-center font-semibold bg-accent-soft">🔥 חימום לפני השיעור הבא</Link>
+
       <div className="grid grid-cols-2 gap-3">
         <Link href={`/courses/${id}/chat`} className="card text-center font-medium">💬 צ&apos;אט על הקורס</Link>
         <Link href={`/courses/${id}/exercises`} className="card text-center font-medium">✍️ תרגילים</Link>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { answerQuestion } from "@/app/(app)/actions";
 import type { Question } from "@/lib/types";
 import { Rich } from "./Chapter";
@@ -25,7 +25,11 @@ function order(id: string, n: number) {
  * One question at a time; feedback is instant and the answer is recorded in the background. "לא יודע" shows the answer
  * with its explanation instead of a random guess; it counts as a miss (chosen -1), so the topic comes back in review.
  */
-export default function Quiz({ questions, title = "שאלון" }: { questions: Q[]; title?: string }) {
+export default function Quiz({ questions, title = "שאלון", end }: {
+  questions: Q[]; title?: string;
+  end?: (results: Record<string, boolean>, again: () => void) => ReactNode; // a custom end screen (the warm-up)
+}) {
+  const [results, setResults] = useState<Record<string, boolean>>({});
   const [i, setI] = useState(0);
   const [chosen, setChosen] = useState<number | null>(null);
   const [correct, setCorrect] = useState<number | null>(null);
@@ -34,6 +38,7 @@ export default function Quiz({ questions, title = "שאלון" }: { questions: Q
 
   if (!questions.length) return <p className="text-muted">אין שאלות.</p>;
 
+  if (done && end) return <>{end(results, () => { setI(0); setScore(0); setChosen(null); setCorrect(null); setResults({}); })}</>;
   if (done) {
     const p = Math.round((100 * score) / questions.length);
     return (
@@ -53,6 +58,7 @@ export default function Quiz({ questions, title = "שאלון" }: { questions: Q
     setChosen(k);
     setCorrect(right);
     if (right === k) setScore((s) => s + 1);
+    setResults((r) => ({ ...r, [q.id]: right === k }));
     answerQuestion(q.id, k < 0 ? -1 : shown[k]).catch(() => {});
   }
 

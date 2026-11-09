@@ -665,6 +665,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   the rest wait as error "ממתין למכסה..." for retry_studio (2 per queue run). unstick() also re-queues errors
   "Claude לא סיים" / DEADLINE_EXCEEDED / 504 older than 12h; 09/11 run wrote all 11 (VLSI 7,14,16,17,18,20,22, micro
   web weeks 3/4/8, micro lecture 3). Weekly scheduled task (Sat 20:47 Israel) builds the next week's core in all courses.
+- 🔥 Warm-up before every class (his request 09/11, ALL courses): /courses/[id]/warmup - up to 3 questions from each of
+  the last 3 lessons taught (lectures/practices; sessions only if no lectures), wrong-last-time first; end screen per
+  lesson: >=75% ok, >=50% -> condensed summary (#summary-<id>), else full chapter (#chapter-<id>). Entry points: a
+  button at the top of every course page, and under each lecture/practice in "היום באוניברסיטה" on home.
 - Exercise sources (his request 08/11): every exercise shows "מקור: <file | lesson (date)> · 📍 עמ' N" - worker/locate.py
   matches the exercise text to the PDF pages (file, or the lecture's "הרצאה N" slides) + board snapshot numbers;
   storage <user>/materials/<course>/exercise_where.json; runs in exercises.py for new ones, or publish inspect=where

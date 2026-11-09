@@ -110,6 +110,9 @@ export default async function Home() {
                   <SlotCard s={s} courseName={s.course_id ? courseName.get(s.course_id) : undefined}
                     done={!!selfToday?.doneToday && s.course_id === track?.id}
                     now={s.start_time.slice(0, 5) <= now.time} />
+                  {s.course_id && (s.kind === "lecture" || s.kind === "practice") && (
+                    <Link href={`/courses/${s.course_id}/warmup`} className="text-xs text-accent block mt-1 ps-2">🔥 חימום לפני השיעור – כמה שאלות על השיעורים האחרונים</Link>
+                  )}
                   {before.length > 0 && (
                     <ul className="text-xs space-y-1 mt-1 ps-2">
                       {before.slice(0, 3).map((r) => <li key={r.text}><Link href={r.href}>📌 {r.text}</Link></li>)}
