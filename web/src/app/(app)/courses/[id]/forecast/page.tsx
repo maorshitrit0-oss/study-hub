@@ -24,6 +24,7 @@ export default async function ForecastPage({ params }: PageProps<"/courses/[id]/
   const fc: Forecast | null = await sb.storage.from("study").download(`${userId}/materials/${id}/exam_forecast.json`)
     .then(async ({ data }) => (data ? JSON.parse(await data.text()) as Forecast : null)).catch(() => null);
   const { byId } = await exercisesByWeek(sb, id, userId);
+  const { data: pdf } = await sb.storage.from("study").createSignedUrl(`${userId}/materials/${id}/exam_forecast.pdf`, 3600);
   const sections = (fc?.sections ?? []).slice().sort((a, b) => b.chance - a.chance);
   // Readiness: of what is likely and already taught, how much he has solved (weighted by chance x points).
   let have = 0, all = 0;
@@ -41,6 +42,11 @@ export default async function ForecastPage({ params }: PageProps<"/courses/[id]/
       <h1 className="text-2xl font-bold">🎯 המבחן הצפוי</h1>
       {!fc ? <p className="card text-muted">עוד לא נבנה מבחן צפוי לקורס הזה.</p> : (
         <>
+          {pdf?.signedUrl && (
+            <a href={pdf.signedUrl} target="_blank" rel="noreferrer" className="card block text-center font-semibold bg-accent-soft">
+              📄 המבחן הצפוי כ-PDF להדפסה – שאלות, ואחריהן פתרונות מלאים
+            </a>
+          )}
           <section className="card space-y-2 text-sm">
             <p><b>המבנה:</b> {fc.format}</p>
             <p className="text-muted"><b>לפי:</b> {fc.basis} · עודכן {fc.updated}</p>

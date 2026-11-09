@@ -96,7 +96,7 @@ def source_of(m):
 
 
 SLIDES = re.compile(r"הרצאה|שיעור|lecture|\blec\b|slides|מצגת", re.I)
-NOT_EXERCISES = re.compile(r"syllabus|סילבוס|דוח|report|הנחיות|נוסחאות|formula|datasheet|manual|pinout|guide", re.I)
+NOT_EXERCISES = re.compile(r"מבחן צפוי|syllabus|סילבוס|דוח|report|הנחיות|נוסחאות|formula|datasheet|manual|pinout|guide", re.I)
 
 
 def wanted(m):

@@ -63,6 +63,12 @@ table { font-size: 13pt; }
 """
 
 
+def _title(md):
+    """The header: "📄 דף נוסחאות", or what the markdown asks for with <!-- title: ... --> (e.g. the expected exam)."""
+    m = re.search(r"<!-- title: (.+?) -->", md)
+    return m.group(1) if m else "📄 דף נוסחאות"
+
+
 def to_html(md, course=""):
     """Math is kept out of the markdown converter (it would eat backslashes and underscores) and rendered by KaTeX."""
     md = re.sub(r"^> נבנה .*\n\n", "", md)
@@ -79,7 +85,7 @@ def to_html(md, course=""):
 <link rel="stylesheet" href="{KATEX}/katex.min.css">
 <script src="{KATEX}/katex.min.js"></script><script src="{KATEX}/contrib/auto-render.min.js"></script>
 <style>{CSS}{LARGE if "<!-- print: large -->" in md else ""}</style></head><body>
-<header><span><b>📄 דף נוסחאות · {html.escape(course)}</b></span><span>בשם ה' נעשה ונצליח · עודכן {today}</span></header>
+<header><span><b>{html.escape(_title(md))} · {html.escape(course)}</b></span><span>בשם ה' נעשה ונצליח · עודכן {today}</span></header>
 <main>{body}</main>
 <script>
 renderMathInElement(document.body, {{delimiters: [{{left: "$$", right: "$$", display: true}},

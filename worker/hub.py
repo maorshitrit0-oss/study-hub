@@ -594,6 +594,38 @@ def cmd_forecast(match, path):
                                     json.dumps(data, ensure_ascii=False).encode("utf-8"),
                                     {"content-type": "application/json", "upsert": "true"})
     print(f"::notice title=Exam forecast::{course['name']}: {len(data.get('sections') or [])} sections", flush=True)
+    try:  # and the same as a printable mock exam (his request 09/11/2026): questions first, full solutions after
+        forecast_pdf(sb, course, data)
+    except Exception as e:  # noqa: BLE001 - the page has the forecast anyway
+        print(f"::warning title=Exam forecast PDF::{str(e)[:300]}", flush=True)
+
+
+def forecast_pdf(sb, course, data):
+    import sheet_pdf
+    ids = [x for s in data.get("sections") or [] for x in (s.get("exercise_ids") or [])[:2]]
+    ex = {r["id"]: r for r in sb.table("exercises").select("id, title, question_md, solution_md").in_("id", ids).execute().data} if ids else {}
+    secs = sorted(data.get("sections") or [], key=lambda s: -s["chance"])
+    q, sol, n = [], [], 0
+    for s in secs:
+        head = f"{s['chance']}% סיכוי" + (f" · {s['points']} נק׳" if s.get("points") else "")
+        picks = [ex[x] for x in (s.get("exercise_ids") or [])[:2] if x in ex]
+        if not picks:
+            q.append(f"### {s['title']}\n> {head} · ⏳ עוד לא נלמד – שאלה תיכנס כשיילמד.\n")
+            continue
+        for e in picks:
+            n += 1
+            q.append(f"### שאלה {n} – {s['title']}\n> {head} · {s['why']}\n\n{e['question_md']}\n")
+            sol.append(f"### פתרון שאלה {n} – {e.get('title') or s['title']}\n\n{e.get('solution_md') or '—'}\n")
+    md = (f"<!-- title: 🎯 מבחן צפוי -->\n# מבחן צפוי\n\n**המבנה:** {data.get('format', '')}\n\n"
+          f"**לפי:** {data.get('basis', '')} · עודכן {data.get('updated', '')}\n\n"
+          f"> פותרים קודם לבד, בזמן ובתנאי מבחן; הפתרונות המלאים בחלק ב׳.\n\n## חלק א׳ – השאלות\n\n" + "\n".join(q)
+          + "\n\n## חלק ב׳ – פתרונות מלאים\n\n" + "\n".join(sol))
+    path = f"{course['user_id']}/materials/{course['id']}/exam_forecast.pdf"
+    sb.storage.from_(BUCKET).upload(path, sheet_pdf.render(md, course.get("name") or ""), {"content-type": "application/pdf", "upsert": "true"})
+    if not sb.table("materials").select("id").eq("storage_path", path).execute().data:
+        sb.table("materials").insert({"user_id": course["user_id"], "course_id": course["id"], "title": "🎯 מבחן צפוי (PDF)",
+                                      "kind": "other", "storage_path": path, "mime": "application/pdf"}).execute()
+    print(f"::notice title=Exam forecast PDF::{course['name']}: {n} questions", flush=True)
 
 
 def cmd_course_set(match, path):

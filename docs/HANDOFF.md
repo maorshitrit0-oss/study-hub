@@ -685,7 +685,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   (g) 🎯 "מבחן צפוי" per course (/courses/[id]/forecast; storage exam_forecast.json via hub forecast): sections with
   chance %, points, why, taught or not, tip, linked solved exercises (his "פתרתי" status) and a readiness % (chance x
   points over taught sections). Source chapters/fixes/forecasts.py -> chapters/<key>_forecast.json; the Saturday core
-  task updates it weekly.
+  task updates it weekly. Also a PDF mock exam (hub forecast_pdf: one or two linked exercises per section by chance,
+  questions first then full solutions; storage exam_forecast.pdf + material "🎯 מבחן צפוי (PDF)", button on the page;
+  exercises.py ignores it). Rebuilt on every forecast publish.
   (h) 09/11: VLSI/SystemVerilog - "I understand nothing, I repeat like a parrot", and it is the field he wants to work
   in. Needs understanding-first teaching (circuit behind every line, predict-then-simulate, explain-back), proposed to
   him: live guided sessions with Claude on Fri/Sat + a "הבנה" layer per session. Waiting for his answer.
