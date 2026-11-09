@@ -48,6 +48,13 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   09/11: he studies it Thursday evenings (half day linear, half random signals); tasks added for each Thursday
   12/11-17/12. Course row exists (year 2 sem ב) but is EMPTY - waiting for him to upload past exams, his exam,
   lectures/recordings, formula sheet, drive link. Then: topic-based core (not by weeks) aimed at 22/12.
+  09/11: his Drive links (Bar-Ilan 83-302 materials: exams 1999-2026, solutions, formula sheets) - recent exams pulled with
+  the new fetch mode `drive:<id,id>` (hub.py drivefiles; the session proxy blocks Google downloads). chapters/rnd_drive.json
+  registered as materials; chapters/fixes/rnd_core.py = 19 exam exercises solved in full (added by material: hub.py
+  exercises "add"+"material"); chapters/rnd_core.json weeks 3-8 = Thursdays 12/11..17/12 (key = studyWeek that Thursday):
+  vectors+MMSE / WSS / LTI+PSD / Wiener+matched / Poisson / Gaussian+full questions. Official-solution errors flagged:
+  tashpad A Q3 final (a+y)/(a+b+N), tashpad B Q4 conditional density 1/(2sqrt(1-y^2)). Tashpav reconstructions are
+  ambiguous (R_Y=3R_Z vs 1/3; a sign in Q2) - marked uncertain. His own exam (39) not in the Drive - ask.
 - אותות אקראיים ורעש exam also on 26/10/2026 (time unknown); course registration 25/10/2026.
 - Exams: waves 12/1 & 10/2/2027, Java 17/1 & 25/2, linear 19/1 & 14/2, digital 25/1 & 18/2 (times unknown, 09:00 placeholders).
 - Added 25/10/2026 (`supabase/add_micro_comm.sql`, moved from year 4 semester A so year 4 is lighter - 21.5 credits
