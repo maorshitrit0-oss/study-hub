@@ -688,6 +688,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   task updates it weekly. Also a PDF mock exam (hub forecast_pdf: one or two linked exercises per section by chance,
   questions first then full solutions; storage exam_forecast.pdf + material "🎯 מבחן צפוי (PDF)", button on the page;
   exercises.py ignores it). Rebuilt on every forecast publish.
+  09/11: he wants the PDF in the REAL exam format and count (MCQ stays MCQ with worked solutions, open stays open; rnd 4,
+  linear 6 MCQ like moed A 5786, ...). chapters/fixes/mocks.py adds "mock" to <key>_forecast.json (run AFTER
+  forecasts.py); hub mock_md renders it (options א-ד, answer + full solution in part B). Done: rnd, linear. Next: comm
+  (~14 MCQ), micro (6 MCQ + 2 code), digital (MCQ), java (MCQ), waves (3 open). Recompute every number before publishing.
   (h) 09/11: VLSI/SystemVerilog - "I understand nothing, I repeat like a parrot", and it is the field he wants to work
   in. Needs understanding-first teaching (circuit behind every line, predict-then-simulate, explain-back), proposed to
   him: live guided sessions with Claude on Fri/Sat + a "הבנה" layer per session. Waiting for his answer.

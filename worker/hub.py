@@ -602,6 +602,40 @@ def cmd_forecast(match, path):
 
 def forecast_pdf(sb, course, data):
     import sheet_pdf
+    if data.get("mock"):  # a full mock exam in the real format (his request 09/11/2026: MCQ stays MCQ, the real count)
+        md = mock_md(data)
+        n = len(data["mock"])
+    else:
+        md, n = sections_md(sb, data)
+    path = f"{course['user_id']}/materials/{course['id']}/exam_forecast.pdf"
+    sb.storage.from_(BUCKET).upload(path, sheet_pdf.render(md, course.get("name") or ""), {"content-type": "application/pdf", "upsert": "true"})
+    if not sb.table("materials").select("id").eq("storage_path", path).execute().data:
+        sb.table("materials").insert({"user_id": course["user_id"], "course_id": course["id"], "title": "🎯 מבחן צפוי (PDF)",
+                                      "kind": "other", "storage_path": path, "mime": "application/pdf"}).execute()
+    print(f"::notice title=Exam forecast PDF::{course['name']}: {n} questions", flush=True)
+
+
+HEB = "אבגדהו"
+
+
+def mock_md(data):
+    q, sol = [], []
+    for i, m in enumerate(data["mock"], 1):
+        head = " · ".join(x for x in [f"{m['points']} נק׳" if m.get("points") else "", f"סיכוי {m['chance']}%" if m.get("chance") else "",
+                                       m.get("source", "")] if x)
+        body = f"### שאלה {i}" + (f" – {m['topic']}" if m.get("topic") else "") + f"\n> {head}\n\n{m['question_md']}\n"
+        if m.get("options"):
+            body += "\n" + "\n".join(f"{HEB[k]}. {o}  " for k, o in enumerate(m["options"])) + "\n"
+        q.append(body)
+        ans = f" – התשובה: **{HEB[m['answer']]}**" if m.get("options") and m.get("answer") is not None else ""
+        sol.append(f"### פתרון שאלה {i}{ans}\n\n{m['solution_md']}\n")
+    return (f"<!-- title: 🎯 מבחן צפוי -->\n# מבחן צפוי\n\n**המבנה:** {data.get('format', '')}\n\n"
+            f"**לפי:** {data.get('basis', '')} · עודכן {data.get('updated', '')}\n\n"
+            f"> מבחן מלא במבנה האמיתי. פותרים לבד, בזמן ובתנאי מבחן; הפתרונות המלאים בחלק ב׳.\n\n## חלק א׳ – המבחן\n\n"
+            + "\n".join(q) + "\n\n## חלק ב׳ – פתרונות מלאים\n\n" + "\n".join(sol))
+
+
+def sections_md(sb, data):
     ids = [x for s in data.get("sections") or [] for x in (s.get("exercise_ids") or [])[:2]]
     ex = {r["id"]: r for r in sb.table("exercises").select("id, title, question_md, solution_md").in_("id", ids).execute().data} if ids else {}
     secs = sorted(data.get("sections") or [], key=lambda s: -s["chance"])
@@ -620,12 +654,7 @@ def forecast_pdf(sb, course, data):
           f"**לפי:** {data.get('basis', '')} · עודכן {data.get('updated', '')}\n\n"
           f"> פותרים קודם לבד, בזמן ובתנאי מבחן; הפתרונות המלאים בחלק ב׳.\n\n## חלק א׳ – השאלות\n\n" + "\n".join(q)
           + "\n\n## חלק ב׳ – פתרונות מלאים\n\n" + "\n".join(sol))
-    path = f"{course['user_id']}/materials/{course['id']}/exam_forecast.pdf"
-    sb.storage.from_(BUCKET).upload(path, sheet_pdf.render(md, course.get("name") or ""), {"content-type": "application/pdf", "upsert": "true"})
-    if not sb.table("materials").select("id").eq("storage_path", path).execute().data:
-        sb.table("materials").insert({"user_id": course["user_id"], "course_id": course["id"], "title": "🎯 מבחן צפוי (PDF)",
-                                      "kind": "other", "storage_path": path, "mime": "application/pdf"}).execute()
-    print(f"::notice title=Exam forecast PDF::{course['name']}: {n} questions", flush=True)
+    return md, n
 
 
 def cmd_course_set(match, path):
