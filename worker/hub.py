@@ -321,7 +321,8 @@ WAIT_MSG = "ממתין למכסה של קול Gemini - ייווצר לבד כש�
 def auto_studio(job, wait=False):
     """Once per lecture: a podcast and a video (lesson_media rows + media.yml), never twice for the same lesson."""
     les, course = job.lesson, job.course
-    if les.get("kind") != "lecture" or not AUTO_STUDIO.search(course.get("name") or "") \
+    session = (les.get("title") or "").startswith("מפגש ")  # a study session (kind other) gets its video too
+    if (les.get("kind") != "lecture" and not session) or not AUTO_STUDIO.search(course.get("name") or "") \
             or (les.get("transcript") or "").startswith(course_site.SITE_NOTE) or os.environ.get("QUIET"):
         return
     try:

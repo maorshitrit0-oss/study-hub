@@ -69,7 +69,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   He starts from ZERO (09/11). Core reordered: one exam question type per Thursday, simplest first: week 3 estimation
   (Q4), 4 WSS (Q1), 5 PSD+filters (Q2), 6 Poisson (Q3), 7-8 timed mocks (8 = his own exam again). Scheduled task every
   Tuesday 19:37 writes a from-zero reading chapter (+ video) for that Thursday as a lesson of the course.
-  09/11 he asked for 6 SESSIONS (one page per Thursday with everything inside): lessons lecture 1-6 of the course
+  09/11 he asked for 6 SESSIONS (one page per Thursday with everything inside): lessons OTHER 1-6 of the course
+  (MISTAKE fixed: first published as lecture 1-6, which overwrote the chapters of his recorded lectures 1-6 uploaded
+  that morning - re-authored from their transcripts via process.yml; never reuse kind+number of real lessons)
   (chapters/fixes/rnd_sessions.py -> chapters/rnd_s{n}.json, hub add): steps + from-zero summary + quiz; the core
   exercises were moved into them (chapters/rnd_moves.json, hub exercises "to_lesson"); AUTO_STUDIO += אקראיים so each
   session gets the explainer video. The Tuesday task now only checks that week's session/video and reminds him.

@@ -1,82 +1,82 @@
 [
  {
   "id": "fb317617-a1b2-4d26-81b3-bc434efdf316",
-  "to_lesson": "lecture 1",
+  "to_lesson": "other 1",
   "ord": 0
  },
  {
   "id": "597ce441-fedb-42b0-94ef-ff7099efcb83",
-  "to_lesson": "lecture 1",
+  "to_lesson": "other 1",
   "ord": 1
  },
  {
   "id": "6ddd33ef-8a1f-4823-a8f7-97283dbd11f7",
-  "to_lesson": "lecture 1",
+  "to_lesson": "other 1",
   "ord": 2
  },
  {
   "id": "fe403441-d32d-4c84-be27-149578e2ea16",
-  "to_lesson": "lecture 2",
+  "to_lesson": "other 2",
   "ord": 0
  },
  {
   "id": "7888a5c6-2afc-4fa1-a65f-b4a129a23142",
-  "to_lesson": "lecture 2",
+  "to_lesson": "other 2",
   "ord": 1
  },
  {
   "id": "80bc90e2-9569-4a3c-8d45-e388bcccdda8",
-  "to_lesson": "lecture 2",
+  "to_lesson": "other 2",
   "ord": 2
  },
  {
   "id": "3e70590d-451e-4aa3-8d5d-c438abe9fb95",
-  "to_lesson": "lecture 3",
+  "to_lesson": "other 3",
   "ord": 0
  },
  {
   "id": "8ac02e43-434f-4dc8-9bbc-1d80d3ec22fa",
-  "to_lesson": "lecture 3",
+  "to_lesson": "other 3",
   "ord": 1
  },
  {
   "id": "890a8285-b9d3-4582-aa79-2fdab35c1335",
-  "to_lesson": "lecture 3",
+  "to_lesson": "other 3",
   "ord": 2
  },
  {
   "id": "5de8e4b9-6377-4da5-ab15-6ba5af2a0b74",
-  "to_lesson": "lecture 3",
+  "to_lesson": "other 3",
   "ord": 3
  },
  {
   "id": "8975b84c-8e65-4a8d-a3d7-412bd72a2f9b",
-  "to_lesson": "lecture 4",
+  "to_lesson": "other 4",
   "ord": 0
  },
  {
   "id": "e7f7e0ce-4259-4c45-b52d-d5ed83e2350b",
-  "to_lesson": "lecture 4",
+  "to_lesson": "other 4",
   "ord": 1
  },
  {
   "id": "990a0df6-44e8-4949-ae99-9fb43e9d77ac",
-  "to_lesson": "lecture 4",
+  "to_lesson": "other 4",
   "ord": 2
  },
  {
   "id": "f554d180-85b5-453e-a7f7-bdd9e8ec7a9d",
-  "to_lesson": "lecture 4",
+  "to_lesson": "other 4",
   "ord": 3
  },
  {
   "id": "4d00dd5f-2acd-439f-a315-941bc3c04025",
-  "to_lesson": "lecture 5",
+  "to_lesson": "other 5",
   "ord": 0
  },
  {
   "id": "e6e65af2-e9d2-4ccf-8a8d-d9ca51b58f40",
-  "to_lesson": "lecture 5",
+  "to_lesson": "other 5",
   "ord": 1
  }
 ]
