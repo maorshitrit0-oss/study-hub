@@ -686,6 +686,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   chance %, points, why, taught or not, tip, linked solved exercises (his "פתרתי" status) and a readiness % (chance x
   points over taught sections). Source chapters/fixes/forecasts.py -> chapters/<key>_forecast.json; the Saturday core
   task updates it weekly.
+  (h) 09/11: VLSI/SystemVerilog - "I understand nothing, I repeat like a parrot", and it is the field he wants to work
+  in. Needs understanding-first teaching (circuit behind every line, predict-then-simulate, explain-back), proposed to
+  him: live guided sessions with Claude on Fri/Sat + a "הבנה" layer per session. Waiting for his answer.
 - Exercise sources (his request 08/11): every exercise shows "מקור: <file | lesson (date)> · 📍 עמ' N" - worker/locate.py
   matches the exercise text to the PDF pages (file, or the lecture's "הרצאה N" slides) + board snapshot numbers;
   storage <user>/materials/<course>/exercise_where.json; runs in exercises.py for new ones, or publish inspect=where
