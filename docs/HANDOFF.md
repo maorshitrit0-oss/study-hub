@@ -55,9 +55,14 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   vectors+MMSE / WSS / LTI+PSD / Wiener+matched / Poisson / Gaussian+full questions. Official-solution errors flagged:
   tashpad A Q3 final (a+y)/(a+b+N), tashpad B Q4 conditional density 1/(2sqrt(1-y^2)). Tashpav reconstructions are
   ambiguous (R_Y=3R_Z vs 1/3; a sign in Q2) - marked uncertain.
-  09/11: HIS exam notebook (Ariel 4322110-4, lecturer Hodaya Tova Halevi, מועד ב' 26/10/2026, 39): Q1 X[n]=A cos+B sin
-  (R_X, WSS only if var A = var B, joint WSS with Y=A cos-B sin -> no), Q2 white noise S=2 through H=1-|f| (S_Y, sketch
-  with range, power 4/3), Q3 Poisson, Q4 LMMSE with CONTINUOUS variables (exp/uniform). Answers Q1, Q2 + Q3 or Q4;
+  HIS exam (OFFICIAL form + lecturer's solution uploaded 10/11; the 09/11 notebook reconstruction was WRONG - ignore
+  it): Ariel 04322110, Hodaya Halevi / Daniel Rozban, summer 5786 moed B 26/10/2026, grade 39. 90 min; answer ALL
+  questions; reservists may choose between Q3 and Q4, but answering both gives double credit on the two best sections
+  (so attempt both). 4 pages allowed, reservists 6; the form itself includes an official formula sheet (pp. 3-5).
+  Q1 (30) X[n]=A+nB, A,B indep zero-mean: R=sA^2+n1n2 sB^2 not WSS; Y[n]=X[n+1]-X[n]=B WSS. Q2 (30) S_X=2 on |f|<=1,
+  H=1-|f|: S_Y=2(1-|f|)^2 (range!), P=4/3, H2=0 on |f|<=1 and 1 outside gives zero output. Q3 (20) Poisson: 0 failures
+  in next 2h given 3 last hour = e^{-2 lambda}; one every 20 min -> lambda=3. Q4 (20) X~Exp(3), N~U[-1,1], Y=X+N:
+  E[Y]=1/3, Var=4/9, Xhat=1/4+Y/4. His 4 exercises updated BY ID (they live in the session lessons).
   may bring 3 sheets = 6 pages (reservist). The Bar-Ilan material is a higher level than Ariel ("רמה יותר גבוה
   מאצלנו" in the Ariel students' Drive) - Ariel old exams: Asher Yahalom / Itzhak Kalet folders in drive t_1qoRAKRMW.
   Formula sheet chapters/rnd-formula-sheet.md (large print: sheet_pdf LARGE when the md has <!-- print: large -->,
