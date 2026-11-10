@@ -733,7 +733,7 @@ def cmd_studio_list(drop=""):
                 real = f" file={_m.duration(str(p)):.0f}s size={p.stat().st_size // 1024}KB"
             except Exception as e:  # noqa: BLE001
                 real = f" file? {str(e)[:80]}"
-        print(f"::notice title=Studio {m['id'][:8]}::{m['id'][:8]} {','.join(nums.get(x, '?') for x in m.get('lesson_ids') or [])} | "
+        print(f"::notice title=Studio {m['id'][:8]}::{m['id']} {','.join(nums.get(x, '?') for x in m.get('lesson_ids') or [])} | "
               f"{names.get(m['course_id'])} | {m['kind']} | {m['status']} | "
               f"db={m.get('duration_sec')}s{real} | {m['created_at'][:16]} | {(m.get('error') or '')[:80]}", flush=True)
 
