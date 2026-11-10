@@ -250,6 +250,10 @@ def evening():
     for uid in users:
         courses = {c["id"]: c["name"] for c in sb.table("courses").select("id, name").eq("user_id", uid).execute().data}
         lines = []
+        try:  # class meetings he marked cancelled (web lib/cancelled.ts): no upload reminder, not in "tomorrow"
+            off = set(json.loads(sb.storage.from_("study").download(f"{uid}/cancelled_meetings.json").decode()))
+        except Exception:  # noqa: BLE001 - none cancelled
+            off = set()
         slots = (sb.table("schedule_slots").select("id, course_id, kind, title, end_time").eq("user_id", uid)
                  .eq("weekday", weekday).in_("kind", ["lecture", "practice"]).execute().data)
         if slots:
@@ -258,11 +262,11 @@ def evening():
             added = {(l["course_id"], l["kind"]) for l in sb.table("lessons").select("course_id, kind").eq("user_id", uid)
                      .gte("created_at", start_of_day).execute().data}
             lines += [f"📹 להעלות: {SLOT_KIND[s['kind']]} · {courses.get(s['course_id'], s['title'])}" for s in slots
-                      if s["id"] not in marked and (s["course_id"], s["kind"]) not in added
+                      if s["id"] not in marked and f"{s['id']}|{today}" not in off and (s["course_id"], s["kind"]) not in added
                       and s["end_time"][:5] <= now.strftime("%H:%M")]
         # Tomorrow: classes, then what is due (learning a lesson before class, assignments, exams).
-        tmr = (sb.table("schedule_slots").select("course_id, kind, title, start_time").eq("user_id", uid)
-               .eq("weekday", (weekday + 1) % 7).order("start_time").execute().data)
+        tmr = [s for s in sb.table("schedule_slots").select("id, course_id, kind, title, start_time").eq("user_id", uid)
+               .eq("weekday", (weekday + 1) % 7).order("start_time").execute().data if f"{s['id']}|{tomorrow.isoformat()}" not in off]
         lines += entry_quiz_lines(sb, uid, (weekday + 1) % 7, "מחר")
         if weekday == 6:  # Saturday night: the session starts right after
             lines = self_study_line(sb, uid, "הערב") + lines

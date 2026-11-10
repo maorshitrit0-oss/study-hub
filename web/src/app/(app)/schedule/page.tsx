@@ -8,9 +8,29 @@ import { addSlot } from "../actions";
 import { israelNow } from "@/lib/format";
 import { DAYS, EXAM_LABEL, type Course, type Slot } from "@/lib/types";
 import { courseSummaries } from "@/lib/facts";
+import MeetingsToggle, { type Meeting } from "@/components/MeetingsToggle";
+import { loadCancelled } from "@/lib/cancelled";
+
+const DAY_MS = 24 * 3600 * 1000;
+const isoDay = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem" }).format(d);
+
+/** Lecture / practice meetings from a week ago to a week ahead (outside render: it reads the clock). */
+function meetingsAround(all: Slot[], names: Map<string, string>, cancelled: Set<string>) {
+  const out: Meeting[] = [];
+  for (let k = -7; k <= 7; k++) {
+    const date = isoDay(new Date(Date.now() + k * DAY_MS));
+    const wd = new Date(`${date}T12:00:00Z`).getUTCDay();
+    for (const sl of all.filter((x) => x.weekday === wd && x.course_id && (x.kind === "lecture" || x.kind === "practice"))) {
+      out.push({ slotId: sl.id, date, label: `${DAYS[wd]} ${date.slice(8, 10)}/${date.slice(5, 7)}`,
+        course: names.get(sl.course_id!) ?? sl.title, kind: sl.kind === "lecture" ? "הרצאה" : "תרגול",
+        time: sl.start_time.slice(0, 5), cancelled: cancelled.has(`${sl.id}|${date}`) });
+    }
+  }
+  return out;
+}
 
 export default async function Schedule() {
-  const { sb } = await requireUser();
+  const { sb, userId } = await requireUser();
   const [{ data: slots }, { data: courses }] = await Promise.all([
     sb.from("schedule_slots").select("*").order("weekday").order("start_time"),
     sb.from("courses").select("id, name, user_id, kind, exam_type, grade_weights").eq("archived", false).order("name"),
@@ -19,6 +39,9 @@ export default async function Schedule() {
   const names = new Map((courses ?? []).map((c) => [c.id, c.name]));
   const now = israelNow();
   const all = (slots ?? []) as Slot[];
+  // Class meetings from a week ago to a week ahead, to mark one cancelled (10/11/2026).
+  const cancelled = await loadCancelled(sb, userId);
+  const meetings = meetingsAround(all, names, cancelled);
   // Start the week from today so the next classes are on top.
   const order = Array.from({ length: 7 }, (_, k) => (now.weekday + k) % 7).filter((d) => all.some((s) => s.weekday === d));
 
@@ -27,6 +50,12 @@ export default async function Schedule() {
       <BackLink href={"/"}>→ דף הבית</BackLink>
       <h1 className="text-2xl font-bold">מערכת שעות</h1>
       {all.length > 0 && <WeekGrid slots={all} names={names} today={now.weekday} nowTime={now.time} />}
+      {meetings.length > 0 && (
+        <Fold id="cancelled-meetings" title="🚫 שיעור שבוטל (השלמה בהמשך)" hint={cancelled.size ? `${cancelled.size} בוטלו` : undefined}>
+          <p className="text-xs text-muted mb-2">שיעור שמסומן &quot;בוטל&quot; לא נספר: ההרצאה הבאה נשארת עם אותו מספר ותילמד במפגש הבא, ולא תבקש ממך להעלות הקלטה ממנו.</p>
+          <MeetingsToggle items={meetings} />
+        </Fold>
+      )}
       <Fold id="schedule-list" title="רשימה מלאה ועריכה" hint={`${all.length} שיעורים`}>
       <div className="space-y-5">
       {order.length ? (

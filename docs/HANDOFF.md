@@ -706,6 +706,10 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - Lab 2 (10/11): "✍️ או לכתוב מה המרצה אמרה" in LabUploads -> addLecturerText: a 🎙️ lesson (kind other) whose
   transcript is the typed text, processed like a recording. Lab page button "✍️ להכניס את השאלות שהיו בבוחן הכניסה"
   -> /courses/[id]/entry#report (EntryReport, existing: text/photos -> entry_reported questions).
+- Cancelled class meetings (10/11, all courses): web/src/lib/cancelled.ts - storage <user>/cancelled_meetings.json =
+  ["<slot_id>|<date>"]; classMeetings skips them, so lecture N stays N and moves to the next meeting (study weeks,
+  upload reminders, exercise weeks all follow); notify.py evening push skips them too. UI: /schedule fold
+  "🚫 שיעור שבוטל" (a week back to a week ahead, MeetingsToggle). The make-up is just uploaded as usual.
 - Exercise sources (his request 08/11): every exercise shows "מקור: <file | lesson (date)> · 📍 עמ' N" - worker/locate.py
   matches the exercise text to the PDF pages (file, or the lecture's "הרצאה N" slides) + board snapshot numbers;
   storage <user>/materials/<course>/exercise_where.json; runs in exercises.py for new ones, or publish inspect=where

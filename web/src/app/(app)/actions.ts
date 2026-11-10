@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import { dispatchExercises, dispatchNotify, dispatchSite, dispatchStudio } from "@/lib/github";
+import { loadCancelled, saveCancelled } from "@/lib/cancelled";
 import { startLesson } from "@/lib/queue";
 import { parseIcs } from "@/lib/ics";
 import { isoFromNow, israelLocalToIso } from "@/lib/format";
@@ -637,6 +638,17 @@ export async function markRecording(slotId: string, classDate: string, status: "
   const { sb } = await requireUser();
   await sb.from("recording_marks").upsert({ slot_id: slotId, class_date: classDate, status }, { onConflict: "slot_id,class_date" });
   revalidatePath("/");
+}
+
+/** A class meeting cancelled (make-up later) - or not cancelled after all. */
+export async function setCancelled(slotId: string, date: string, cancelled: boolean) {
+  const { sb, userId } = await requireUser();
+  const keys = await loadCancelled(sb, userId);
+  const k = `${slotId}|${date}`;
+  if (cancelled) keys.add(k); else keys.delete(k);
+  await saveCancelled(sb, userId, keys);
+  revalidatePath("/");
+  revalidatePath("/schedule");
 }
 
 // ---------- course info (facts) ----------

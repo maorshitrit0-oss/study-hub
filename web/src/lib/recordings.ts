@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { israelNow } from "./format";
+import { loadCancelled } from "./cancelled";
 import type { Lesson, Slot } from "./types";
 
 export type MeetingLesson = { id: string; course_id: string; kind: Lesson["kind"]; number: number | null; title: string | null; status: string; read_at: string | null; created_at: string };
@@ -28,10 +29,11 @@ export async function missingRecordings(sb: SupabaseClient): Promise<Missing[]> 
 export async function classMeetings(sb: SupabaseClient): Promise<{ held: Missing[]; missing: Missing[] }> {
   const since = new Date(`${SEMESTER_START}T00:00:00+03:00`);
   const days = Math.ceil((Date.now() - since.getTime()) / DAY_MS);
-  const [{ data: slots }, { data: marks }, { data: lessons }] = await Promise.all([
+  const [{ data: slots }, { data: marks }, { data: lessons }, cancelled] = await Promise.all([
     sb.from("schedule_slots").select("*").in("kind", ["lecture", "practice"]).not("course_id", "is", null),
     sb.from("recording_marks").select("slot_id, class_date, status").gte("class_date", israelDate(since)),
     sb.from("lessons").select("id, course_id, kind, number, title, status, read_at, created_at").gte("created_at", since.toISOString()).order("created_at"),
+    loadCancelled(sb).catch(() => new Set<string>()),
   ]);
   const now = israelNow();
   const today = israelDate(new Date());
@@ -45,6 +47,7 @@ export async function classMeetings(sb: SupabaseClient): Promise<{ held: Missing
       const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
       if (weekday !== s.weekday || date < SEMESTER_START) continue;
       if (date === today && now.time < s.end_time.slice(0, 5)) continue; // class not over yet
+      if (cancelled.has(`${s.id}|${date}`)) continue; // cancelled: not a meeting (the lecture moves to the next one)
       meetings.push({ slot: s, date });
     }
   }
