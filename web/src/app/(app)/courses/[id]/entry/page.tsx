@@ -100,8 +100,9 @@ export default async function EntryQuiz({ params, searchParams }: PageProps<"/co
         </section>
       )}
 
-      <section className="card space-y-3">
-        <h2 className="font-semibold">➕ מה שאלו? (מהקבוצות של ראשון ושני)</h2>
+      <section id="report" className="card space-y-3 scroll-mt-4">
+        <h2 className="font-semibold">➕ מה שאלו בבוחן הכניסה? (אצלי, או בקבוצות של ראשון ושני)</h2>
+        <p className="text-xs text-muted">לכתוב את השאלות שהיו (במילים שלך, גם חלקי) או לצלם – הן הופכות לשאלות תרגול עם תשובה, ומופיעות ראשונות בבוחן של אותו ניסוי.</p>
         <EntryReport courseId={id} userId={userId} experiment={n} experiments={experiments} />
         <ReadEntryFiles courseId={id} />
       </section>

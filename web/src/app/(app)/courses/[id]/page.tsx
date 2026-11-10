@@ -148,6 +148,9 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
           <Link href={`/courses/${id}/practical`} className="card text-center font-medium">🧪 מבחן מעשי</Link>
           <Link href={`/courses/${id}/entry`} className="card text-center font-medium">🎯 בוחני כניסה</Link>
         </div>
+        <Link href={`/courses/${id}/entry#report`} className="card block text-center font-medium bg-accent-soft">
+          ✍️ להכניס את השאלות שהיו בבוחן הכניסה בניסוי
+        </Link>
         <LabUploads courseId={id} userId={userId} reports={reports.map((m) => m.title)} />
         {recordings.length > 0 && (
           <Fold id="lab-recordings" title="🎙️ מה המרצה אמרה על המבחן" hint={`${recordings.length}`}>

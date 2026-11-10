@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { addLesson, addMaterial } from "@/app/(app)/actions";
+import { addLecturerText, addLesson, addMaterial } from "@/app/(app)/actions";
 import { mimeOf } from "@/lib/zip";
 
 /**
@@ -16,6 +16,7 @@ export default function LabUploads({ courseId, userId, reports }: { courseId: st
   const [who, setWho] = useState("שלי");
   const [msg, setMsg] = useState<React.ReactNode>("");
   const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState("");
   const router = useRouter();
   const safe = (name: string) => name.replace(/[^\w.\-]+/g, "_");
 
@@ -84,6 +85,18 @@ export default function LabUploads({ courseId, userId, reports }: { courseId: st
           <input type="file" className="hidden" accept="audio/*,video/*,.opus,.ogg,.m4a,.mp3,.aac,.amr" disabled={busy}
             onChange={(e) => { recording(e.target.files?.[0]); e.target.value = ""; }} />
         </label>
+      </div>
+      <div className="border-t border-line pt-3">
+        <h3 className="font-semibold text-sm">✍️ או לכתוב מה המרצה אמרה</h3>
+        <p className="text-xs text-muted mb-2">בלי הקלטה – לכתוב (או להדביק) מה היא אמרה על המבחן; זה מעובד כמו הקלטה.</p>
+        <textarea className="input min-h-28" value={said} onChange={(e) => setSaid(e.target.value)} disabled={busy}
+          placeholder="למשל: במבחן המעשי יהיה ניסוי 3, צריך לדעת למדוד זמן עלייה בסקופ..." />
+        <button className="btn mt-2" disabled={busy || said.trim().length < 20} onClick={async () => {
+          setBusy(true); setMsg("שומר...");
+          const r = await addLecturerText(courseId, said);
+          setMsg(r); setBusy(false);
+          if (r.startsWith("✓")) { setSaid(""); router.refresh(); }
+        }}>💾 שמירה</button>
       </div>
       {msg && <p className="text-sm">{msg}</p>}
     </section>

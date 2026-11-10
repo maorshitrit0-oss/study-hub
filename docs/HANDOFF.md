@@ -698,6 +698,9 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 - 09/11 his screenshot: the bottom nav and the floating back button jumped to the middle of a long page on the iPhone
   (backdrop-filter on position:fixed, the same tiling bug as the cards). No backdrop-blur anywhere now; Nav, BackLink
   and the sticky top bar are opaque, fixed ones on their own layer (translateZ(0), will-change).
+- Lab 2 (10/11): "✍️ או לכתוב מה המרצה אמרה" in LabUploads -> addLecturerText: a 🎙️ lesson (kind other) whose
+  transcript is the typed text, processed like a recording. Lab page button "✍️ להכניס את השאלות שהיו בבוחן הכניסה"
+  -> /courses/[id]/entry#report (EntryReport, existing: text/photos -> entry_reported questions).
 - Exercise sources (his request 08/11): every exercise shows "מקור: <file | lesson (date)> · 📍 עמ' N" - worker/locate.py
   matches the exercise text to the PDF pages (file, or the lecture's "הרצאה N" slides) + board snapshot numbers;
   storage <user>/materials/<course>/exercise_where.json; runs in exercises.py for new ones, or publish inspect=where

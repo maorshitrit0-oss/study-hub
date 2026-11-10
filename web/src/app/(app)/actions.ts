@@ -107,6 +107,25 @@ export async function addLesson(courseId: string, _: AddLessonState, f: FormData
   return { ok: true };
 }
 
+/**
+ * Lab 2 (his request 10/11/2026): what the lecturer said, typed instead of recorded. It becomes a "🎙️" item like a
+ * recording: the text is its transcript, so processing only writes the exam remarks from it (no download).
+ */
+export async function addLecturerText(courseId: string, text: string): Promise<string> {
+  const { sb } = await requireUser();
+  const body = text.trim();
+  if (body.length < 20) return "צריך לכתוב קצת יותר (לפחות משפט)";
+  const day = new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" });
+  const { data, error } = await sb.from("lessons").insert({
+    course_id: courseId, kind: "other", title: `🎙️ המרצה על המבחן (${day}) – בכתב`, transcript: body,
+  }).select("id").single();
+  if (error) return error.message;
+  const err = await startLesson(sb, data.id, "gemini");
+  if (err) await sb.from("lessons").update({ status: "error", error: err }).eq("id", data.id);
+  revalidatePath(`/courses/${courseId}`);
+  return err ? `נשמר, אבל העיבוד לא התחיל: ${err}` : "✓ נשמר – הדגשים ייכנסו למבחן המעשי";
+}
+
 /** The full reading chapter of one lesson, on request (lessons get a summary + exercises by default). */
 export async function requestFullChapter(id: string) {
   const { sb } = await requireUser();
