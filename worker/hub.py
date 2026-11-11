@@ -967,6 +967,20 @@ def cmd_summaries(out_dir):
                                                   encoding="utf-8")
 
 
+def cmd_outline(out_dir):
+    """Every lesson of every active course (kind, number, date, title, topics, full chapter) -> outline.json: to check that
+    lecture N and practice N really cover the same topics (his question 11/11/2026)."""
+    sb = db()
+    courses = sb.table("courses").select("id, name").eq("archived", False).execute().data
+    out = []
+    for c in courses:
+        rows = (sb.table("lessons").select("id, kind, number, title, status, topics, chapter_md, created_at")
+                .eq("course_id", c["id"]).order("created_at").execute().data)
+        out.append({"course": c["name"], "id": c["id"], "lessons": rows})
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    (Path(out_dir) / "outline.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
 def cmd_flat():  # noqa: D401
     """Every ready lesson whose chapter is squashed onto a few lines (author.is_flat) - to write again."""
     sb = db()
@@ -1023,6 +1037,7 @@ if __name__ == "__main__":
     p = sub.add_parser("materials"); p.add_argument("course"); p.add_argument("title"); p.add_argument("out_dir")
     p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
+    p = sub.add_parser("outline"); p.add_argument("out_dir")
     p = sub.add_parser("inspect"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
     a = ap.parse_args()
     if a.cmd == "process":
@@ -1080,6 +1095,8 @@ if __name__ == "__main__":
         cmd_archive(a.match)
     elif a.cmd == "summaries":
         cmd_summaries(a.out_dir)
+    elif a.cmd == "outline":
+        cmd_outline(a.out_dir)
     elif a.cmd == "flat":
         cmd_flat()
     elif a.cmd == "inspect":
