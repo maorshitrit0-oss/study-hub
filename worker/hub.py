@@ -997,6 +997,41 @@ def cmd_prepend(match, kind, number, path):
         print(f"::notice title=Note::{kind} {number}: added", flush=True)
 
 
+def cmd_reorder(match, path):
+    """Renumbers lessons so that practice N follows lecture N (his request 11/11/2026). JSON list, run in order:
+    {"from": "practice 2", "to": "other 2", "title": "..."} moves a lesson (refused if the target exists);
+    {"strip": "practice 1"} removes a "🧭" note added on top of the chapter. Nothing is deleted."""
+    sb = db()
+    course = find_course(sb, match)
+
+    def one(spec):
+        kind, number = spec.split()
+        rows = sb.table("lessons").select("id, chapter_md, title").eq("course_id", course["id"]).eq("kind", kind) \
+            .eq("number", int(number)).execute().data
+        return rows
+
+    for op in json.loads(Path(path).read_text(encoding="utf-8")):
+        if op.get("strip"):
+            for r in one(op["strip"]):
+                md = r["chapter_md"] or ""
+                if md.startswith("> 🧭"):
+                    md = md.split("\n\n", 1)[1] if "\n\n" in md else ""
+                    sb.table("lessons").update({"chapter_md": md}).eq("id", r["id"]).execute()
+                    print(f"::notice title=Reorder::{op['strip']}: note removed", flush=True)
+            continue
+        src, dst = one(op["from"]), one(op["to"])
+        if len(src) != 1 or dst:
+            print(f"::warning title=Reorder::{op['from']} -> {op['to']}: {len(src)} source, {len(dst)} target - skipped", flush=True)
+            continue
+        kind, number = op["to"].split()
+        md = src[0]["chapter_md"] or ""
+        if md.startswith("> 🧭") and "\n\n" in md:
+            md = md.split("\n\n", 1)[1]
+        sb.table("lessons").update({"kind": kind, "number": int(number), "title": op.get("title") or src[0]["title"],
+                                    "chapter_md": md}).eq("id", src[0]["id"]).execute()
+        print(f"::notice title=Reorder::{op['from']} -> {op['to']}: {op.get('title') or src[0]['title']}", flush=True)
+
+
 def cmd_flat():  # noqa: D401
     """Every ready lesson whose chapter is squashed onto a few lines (author.is_flat) - to write again."""
     sb = db()
@@ -1054,6 +1089,7 @@ if __name__ == "__main__":
     p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
     p = sub.add_parser("outline"); p.add_argument("out_dir")
+    p = sub.add_parser("reorder"); p.add_argument("course"); p.add_argument("json_path")
     p = sub.add_parser("prepend"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number"); p.add_argument("md")
     p = sub.add_parser("inspect"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
     a = ap.parse_args()
@@ -1114,6 +1150,8 @@ if __name__ == "__main__":
         cmd_summaries(a.out_dir)
     elif a.cmd == "prepend":
         cmd_prepend(a.course, a.kind, a.number, a.md)
+    elif a.cmd == "reorder":
+        cmd_reorder(a.course, a.json_path)
     elif a.cmd == "outline":
         cmd_outline(a.out_dir)
     elif a.cmd == "flat":
