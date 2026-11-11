@@ -732,11 +732,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
 
 ## Lectures vs practices (his question 11/11/2026)
 `fetch.sh outline` (hub outline) dumps every lesson's topics + chapter. Findings:
-- **Digital circuits:** practices 1-3 were written from the TA's notebooks (no class: elections / engineering festival)
-  and run ahead: P1 = lectures 1-2 definitions + the NMOS resistor-load inverter of lecture 4; P2 = CMOS sizing
-  (no CMOS lecture yet); P3 = logical effort. Lectures 3-4 (devices, BJT/NMOS inverters with R / enhancement /
-  depletion loads) had no practice -> **bridge practice = kind other 1** (chapters/fixes/dig_bridge.py, 7 exercises
-  verified numerically, 8 MCQ). "🧭 when to solve" notes prepended to P1-P3 (hub prepend, inspect=prepend).
+- **Digital circuits (final, his wish "lecture N -> practice N, no bridge"):** practice 1 = TA notebook 1 (fits
+  lecture 1); practices 2/3/4 written by Claude for lectures 2/3/4 (chapters/fixes/dig_track.py, numbers verified
+  numerically; hub `reorder` + chapters/digital-reorder.json). The TA notebooks of CMOS sizing and logical effort are
+  now kind other 2 / other 3 ("📦 מחברת המתרגל ...") until those lectures - then make them the matching practice N.
+  A real practice recording that arrives as practice 2-4 would collide: renumber it to its lecture.
 - **Linear:** P1 (op-amp circuits, active filters) and P2 (slew rate, rectifier, regulator) are op-amp material taught
   in lecture 3; lectures 1-2 (two-ports, amplifier models, dB, cascades) have no practice. P3 oscillator.
 - **Communication:** "practice 3" (26/10: noise, NF, cascades) matches lectures 3-4; practice 4 matches lectures 3-4.
