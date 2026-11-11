@@ -737,10 +737,26 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   numerically; hub `reorder` + chapters/digital-reorder.json). The TA notebooks of CMOS sizing and logical effort are
   now kind other 2 / other 3 ("📦 מחברת המתרגל ...") until those lectures - then make them the matching practice N.
   A real practice recording that arrives as practice 2-4 would collide: renumber it to its lecture.
-- **Linear:** P1 (op-amp circuits, active filters) and P2 (slew rate, rectifier, regulator) are op-amp material taught
-  in lecture 3; lectures 1-2 (two-ports, amplifier models, dB, cascades) have no practice. P3 oscillator.
-- **Communication:** "practice 3" (26/10: noise, NF, cascades) matches lectures 3-4; practice 4 matches lectures 3-4.
-- **Waves, Java, micro:** aligned (waves P3 = polarization of lecture 3; micro P1-P2 bitwise ~ lecture 2).
+- **Linear (done 11/11):** practices 1-2 written by Claude for lectures 1-2 (chapters/fixes/lin_track.py: sources and
+  loading, two-ports, H from the pi model, amplifier models; dB, efficiency, bias, cascades - Sedra ch. 1); the class
+  op-amp practice -> practice 3 (fits lecture 3); class practices 2 (slew rate, rectifier, regulator) and 3 (oscillator)
+  -> other 2 / other 3 ("📦 ...") until those lectures. chapters/linear-reorder.json.
+- **Communication (done 11/11):** practices 1-2 written for lectures 1-2 (chapters/fixes/comm_track.py, exam is open);
+  class practices 3-4 already fit lectures 3-4.
+- **Waves, Java, micro:** aligned, left as they are (waves P3 = polarization of lecture 3; micro P1-P2 bitwise ~ lecture 2).
+
+## Always both chapters (11/11/2026)
+No "write the full chapter" button any more: the lesson page says the full chapter is written automatically; the queue
+fills it (lecture / practice with only a summary) and writes the cheap summary for any lesson with only a full chapter
+(sessions too). Claude-written practices (transcript "<!-- written by Claude") are never re-written by Gemini;
+chapters/fixes/track.py builds them: full = recap + every exercise worked out, condensed = recap.
+
+## Lab experiments as lessons (11/11/2026)
+`hub lab-lessons "מעבדה 2"` (inspect=lab-lessons): one lesson kind lab number N per experiment, transcript = booklet docx
+(+ partner's / his .docx summary reports) marked LAB_NOTE; the queue writes the lab chapter (KIND_TASK lab: goal,
+theory, prelab answers, procedure, 3-5 min board explanation, examiner questions) and auto_studio now also makes the
+video + podcast for kind lab (AUTO_STUDIO includes מעבדה). Lab page: "🔬 הניסויים" fold. Experiment 9 has no booklet
+(partner's report only). Run it again when a new booklet is uploaded (existing experiments are skipped).
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
