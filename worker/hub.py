@@ -311,7 +311,7 @@ def answered(job):
 
 # Courses where every new lecture gets a podcast and a video by itself (his request 08/11/2026: he listens to the
 # podcast and watches the video first, then reads). Gemini TTS - the free quota is shared with the chapters.
-AUTO_STUDIO = re.compile(r"גלים ומערכות|VLSI|אקראיים|תקשורת|לינאר|ליניאר|מיקרו|מעגלים ספרתיים|java", re.I)
+AUTO_STUDIO = re.compile(r"גלים ומערכות|VLSI|אקראיים|תקשורת|לינאר|ליניאר|מיקרו|מעגלים ספרתיים|java|מעבדה", re.I)
 # 09/11/2026: every lecture of all his courses (and every self-study / random-signals session) gets a podcast AND a video.
 # 08/11/2026 evening: "הסרטון האחרון שיצרת יצא פגז, ככה אני רוצה מהיום והלאה לכל הרצאה" - the explainer video (subtitles,
 # synced narration) for every new lecture. Podcasts stay manual (he did not ask for them again).
@@ -325,7 +325,8 @@ def auto_studio(job, wait=False):
     """Once per lecture: a podcast and a video (lesson_media rows + media.yml), never twice for the same lesson."""
     les, course = job.lesson, job.course
     session = (les.get("title") or "").startswith("מפגש ")  # a study session (kind other) gets its video too
-    if (les.get("kind") != "lecture" and not session) or not AUTO_STUDIO.search(course.get("name") or "") \
+    # Lab experiments too (his request 11/11/2026: a video and a podcast on every experiment, to explain it at the board).
+    if (les.get("kind") not in ("lecture", "lab") and not session) or not AUTO_STUDIO.search(course.get("name") or "") \
             or (les.get("transcript") or "").startswith(course_site.SITE_NOTE) or os.environ.get("QUIET"):
         return
     try:
@@ -1032,6 +1033,55 @@ def cmd_reorder(match, path):
         print(f"::notice title=Reorder::{op['from']} -> {op['to']}: {op.get('title') or src[0]['title']}", flush=True)
 
 
+LAB_NOTE = "<!-- lab booklet -->"
+
+
+def cmd_lab_lessons(match):
+    """One lesson per lab experiment (kind lab, number N), written from the experiment booklet in the course files
+    (+ his and his partner's summary reports of that experiment): the lab chapter (goal, theory, prelab answers,
+    procedure, a 3-5 minute board explanation, examiner questions) and then a video and a podcast (auto_studio).
+    His request 11/11/2026. Existing experiment lessons are left as they are; new ones go to the queue."""
+    import practical
+    sb = db()
+    course = find_course(sb, match)
+    mats = sb.table("materials").select("title, storage_path, created_at").eq("course_id", course["id"]).order("created_at").execute().data
+    booklet, reports = {}, {}
+    for m in mats:
+        t = m["title"] or ""
+        if m["storage_path"].startswith("drive:") or not t.lower().endswith(".docx"):
+            continue
+        b = re.match(r"ניסוי\s*(\d+)", t)
+        r = re.search(r"(?:דוח|ניסוי)\D{0,12}?(\d+)", t) if re.search(r"דוח|יהונתן|שיראל|שלי", t) else None
+        if b and not re.search(r"דוח|יהונתן|שיראל|שלי", t):
+            n = int(b.group(1))
+            better = re.search(r"מתוקן|תיקון|תשפז", t)
+            if n not in booklet or better or not re.search(r"מתוקן|תיקון|תשפז", booklet[n]["title"]):
+                booklet[n] = m
+        elif r:
+            reports.setdefault(int(r.group(1)), []).append(m)
+    have = {l["number"] for l in sb.table("lessons").select("number").eq("course_id", course["id"]).eq("kind", "lab").execute().data}
+    for n in sorted(set(booklet) | set(reports)):
+        if n in have:
+            print(f"::notice title=Lab::experiment {n}: already a lesson", flush=True)
+            continue
+        parts = []
+        for m in ([booklet[n]] if n in booklet else []) + reports.get(n, []):
+            try:
+                text = practical.docx_text(sb.storage.from_(BUCKET).download(m["storage_path"]))
+            except Exception as e:  # noqa: BLE001
+                print(f"::warning title=Lab::{m['title']}: {e}", flush=True)
+                continue
+            kind = "חוברת הניסוי" if m is booklet.get(n) else "דוח מסכם (של הסטודנט או של השותפה משנה שעברה)"
+            parts.append(f"===== {kind}: {m['title']} =====\n{text}")
+        if not parts:
+            continue
+        transcript = LAB_NOTE + "\n" + "\n\n".join(parts)
+        sb.table("lessons").insert({"user_id": course["user_id"], "course_id": course["id"], "kind": "lab", "number": n,
+                                    "transcript": transcript[:200000], "status": "queued",
+                                    "progress": "בתור – פרק ניסוי, ואחריו סרטון ופודקאסט"}).execute()
+        print(f"::notice title=Lab::experiment {n}: queued ({', '.join(m['title'] for m in ([booklet[n]] if n in booklet else []) + reports.get(n, []))})", flush=True)
+
+
 def cmd_flat():  # noqa: D401
     """Every ready lesson whose chapter is squashed onto a few lines (author.is_flat) - to write again."""
     sb = db()
@@ -1089,6 +1139,7 @@ if __name__ == "__main__":
     p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
     p = sub.add_parser("outline"); p.add_argument("out_dir")
+    p = sub.add_parser("lab-lessons"); p.add_argument("course")
     p = sub.add_parser("reorder"); p.add_argument("course"); p.add_argument("json_path")
     p = sub.add_parser("prepend"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number"); p.add_argument("md")
     p = sub.add_parser("inspect"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
@@ -1152,6 +1203,8 @@ if __name__ == "__main__":
         cmd_prepend(a.course, a.kind, a.number, a.md)
     elif a.cmd == "reorder":
         cmd_reorder(a.course, a.json_path)
+    elif a.cmd == "lab-lessons":
+        cmd_lab_lessons(a.course)
     elif a.cmd == "outline":
         cmd_outline(a.out_dir)
     elif a.cmd == "flat":

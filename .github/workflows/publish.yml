@@ -68,6 +68,7 @@ jobs:
           if [ "$INSPECT" = "shrink" ]; then python shrink.py; exit $?; fi
           if [ "$INSPECT" = "prepend" ]; then python hub.py prepend "$COURSE" "$KIND" "$NUMBER" "../$SHEET"; exit $?; fi
           if [ "$INSPECT" = "reorder" ]; then python hub.py reorder "$COURSE" "../$CHAPTER"; exit $?; fi
+          if [ "$INSPECT" = "lab-lessons" ]; then python hub.py lab-lessons "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "storage" ]; then python storage_report.py; exit $?; fi
           if [ "$INSPECT" = "tidy" ]; then python hub.py tidy "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "forecast" ]; then python hub.py forecast "$COURSE" "../$CHAPTER"; exit $?; fi

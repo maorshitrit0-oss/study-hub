@@ -140,6 +140,8 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
   if (c.kind === "lab") {
     const reports = (materials ?? []).filter((m) => /דוח מסכם/.test(m.title));
     const recordings = ls.filter((l) => (l.title ?? "").startsWith("🎙️"));
+    // One lesson per experiment (11/11/2026): the chapter, then its video and podcast on the lesson page.
+    const experiments = ls.filter((l) => l.kind === "lab").sort((a, b) => (a.number ?? 99) - (b.number ?? 99));
     return (
       <div className="space-y-5">
         <BackLink href={"/courses"}>→ כל הקורסים</BackLink>
@@ -151,6 +153,20 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
         <Link href={`/courses/${id}/entry#report`} className="card block text-center font-medium bg-accent-soft">
           ✍️ להכניס את השאלות שהיו בבוחן הכניסה בניסוי
         </Link>
+        {experiments.length > 0 && (
+          <Fold id="lab-experiments" title="🔬 הניסויים – פרק, סרטון ופודקאסט" hint={`${experiments.length}`}>
+            <ul className="divide-y divide-line">
+              {experiments.map((l) => (
+                <li key={l.id}>
+                  <Link href={`/lessons/${l.id}`} className="flex justify-between gap-3 py-2.5 text-sm">
+                    <span>ניסוי {l.number}{l.title ? ` · ${l.title}` : ""}</span>
+                    <span className={`text-xs shrink-0 ${statusOf(l)[1]}`}>{statusOf(l)[0]}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Fold>
+        )}
         <LabUploads courseId={id} userId={userId} reports={reports.map((m) => m.title)} />
         {recordings.length > 0 && (
           <Fold id="lab-recordings" title="🎙️ מה המרצה אמרה על המבחן" hint={`${recordings.length}`}>
