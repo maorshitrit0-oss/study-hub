@@ -50,7 +50,17 @@ const RUN = /[A-Za-z0-9\\{}()[\]^_+\-=*/|.,:;<>!'~ ]*\\[A-Za-z]+[A-Za-z0-9\\{}()
  */
 const HEBREW = /[\u0590-\u05FF]/;
 
+/** Small repairs inside one formula (a scan of all chapters, 11/11/2026): \(..\) inside $..$, "/\m" units,
+ *  unclosed braces. */
+function cleanTex(tex: string) {
+  tex = tex.replace(/\\[()]/g, "").replace(/\\m(?![A-Za-z])/g, "\\text{m}");
+  const opens = (tex.match(/(?<!\\)\{/g) || []).length - (tex.match(/(?<!\\)\}/g) || []).length;
+  return opens > 0 ? tex + "}".repeat(opens) : tex;
+}
+
 function pairDollars(text: string) {
+  // \(x\) / \[x\] written as delimiters -> $x$ / $$x$$
+  text = text.replace(/\\\[([\s\S]+?)\\\]/g, (_, x) => `$$${x}$$`).replace(/\\\(([^\n]+?)\\\)/g, (_, x) => `$${x}$`);
   const tokens: { at: number; len: number }[] = [];
   for (const m of text.matchAll(/\$+/g)) {
     // "$$$$" = two delimiters; "$$$" = a display one and an inline one.
@@ -66,9 +76,21 @@ function pairDollars(text: string) {
     if (!open) { open = t; continue; }
     const tex = text.slice(open.at + open.len, t.at);
     if (!tex.trim()) { open = t; continue; } // empty pair: the second one opens
+    // "ה-$-$V_{CE} > 0.3$" (his screenshot 11/11/2026): a "pair" around a lone dash / punctuation, or an inline pair
+    // across a paragraph break, is a stray opener - keep the text, the closer opens instead.
+    if (/^[-–.,:;&^\\]$/.test(tex.trim()) || (open.len === 1 && t.len === 1 && tex.includes("\n\n"))) {
+      const before = text.slice(pos, open.at).replace(/\$/g, "");
+      out += before + (before.endsWith(tex.trim()) ? "" : tex);
+      pos = t.at;
+      open = t;
+      continue;
+    }
     if (HEBREW.test(tex.replace(/\\text\{[^}]*\}/g, ""))) { open = t; continue; } // text, not math: stray opener
-    const display = open.len === 2 || t.len === 2 || tex.length > LONG;
-    out += text.slice(pos, open.at).replace(/\$/g, "") + (display ? `\n\n$$${tex.trim()}$$\n\n` : `$${tex.trim()}$`);
+    // inside a list item a medium formula stays inline: a display one splits the item (its tail lost its bullet)
+    const line = text.slice(text.lastIndexOf("\n", open.at) + 1, open.at);
+    const inList = /^\s*([-*]|\d+\.)\s/.test(line);
+    const display = open.len === 2 || t.len === 2 || tex.length > (inList ? 70 : LONG);
+    out += text.slice(pos, open.at).replace(/\$/g, "") + (display ? `\n\n$$${cleanTex(tex.trim())}$$\n\n` : `$${cleanTex(tex.trim())}$`);
     pos = t.at + t.len;
     open = null;
   }
@@ -95,7 +117,9 @@ export function fixArabic(text: string) {
 }
 
 export function wrapBareLatex(md: string) {
-  md = fixArabic(md);
+  // "3. > 🏠 מהחיים: ..." - a quote written as a numbered item shows a stray ">" (his screenshot 11/11/2026):
+  // it becomes a quote of its own.
+  md = fixArabic(md).replace(/^[ \t]*\d+\.[ \t]+>[ \t]*/gm, "\n> ");
   // JSON turned "\b", "\f", "\t", "\r" at the start of \bar, \frac, \theta, \rho into control characters.
   const text = displayOnOwnLine(md.replace(/\x08/g, "\\b").replace(/\x0c/g, "\\f").replace(/\t(?=[a-z]{2,})/g, "\\t").replace(/\r(?=[a-z]{2,})/g, "\\r"));
   return text.split(/(```[\s\S]*?```|`[^`\n]*`|\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/g).map((part, i) => {

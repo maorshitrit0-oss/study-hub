@@ -11,8 +11,9 @@ export default function BackLink({ href, children }: { href: string; children: R
         <Link href={href} className="text-sm text-accent font-medium">{children}</Link>
       </div>
       <Link href={href} aria-label="חזרה"
-        className="fixed z-30 left-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] max-w-[60vw] truncate rounded-full border border-accent/60 bg-[#06142a] px-4 py-2 text-sm font-medium text-accent shadow-lg [transform:translateZ(0)] [will-change:transform] print:hidden">
-        {children}
+        className="fixed z-30 left-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] grid h-10 w-10 place-items-center rounded-full border border-accent/60 bg-[#06142a]/90 text-lg text-accent shadow-lg [transform:translateZ(0)] [will-change:transform] print:hidden">
+        {/* a small round button: the long pill covered the text it floated over (his screenshot 11/11/2026) */}
+        →
       </Link>
     </>
   );
