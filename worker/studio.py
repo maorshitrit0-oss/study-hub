@@ -498,8 +498,10 @@ def make_explainer(job, pages, work, out):
     al = work / "xaudio.txt"
     al.write_text("".join(f"file '{a}'\n" for a in audio))
     media.run_ffmpeg(["-f", "concat", "-safe", "0", "-i", str(vl), "-f", "concat", "-safe", "0", "-i", str(al),
+                      # crf 27 / 48k: a third of the size, the same picture (SSIM 0.998) - storage alert 11/11/2026
                       "-map", "0:v", "-map", "1:a", "-vf", "fps=10,scale=1280:720,setsar=1,format=yuv420p",
-                      "-c:v", "libx264", "-tune", "stillimage", "-g", "20", "-c:a", "aac", "-b:a", "96k", "-ar", "24000",
+                      "-c:v", "libx264", "-preset", "slow", "-tune", "stillimage", "-crf", "27", "-g", "100",
+                      "-c:a", "aac", "-b:a", "48k", "-ar", "24000",
                       "-ac", "1", "-shortest", "-movflags", "+faststart", str(out)])
     md = "\n\n".join(f"**{i + 1}. {s['title']}**\n\n{s['narration']}" for i, s in enumerate(slides))
     return script.get("title") or "", md

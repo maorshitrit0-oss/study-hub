@@ -104,6 +104,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   degree. Storage pressure is handled by moving big files to Google Drive, not by deleting.
 - `worker/usage.py` (morning run of notify.yml) writes `usage_snapshot` and pushes an alert at 75% of a free limit,
   with the recommended fix; the app shows it on home and in settings.
+- **Storage alert 11/11/2026 (128% of 1 GB):** 1.31 GB = media 878 MB (explainer videos: VLSI 299, random signals 227,
+  comm 110...), materials 319 MB (his uploads - untouched), lessons 110 MB (slides). Fix: a fresh backup first
+  (backup.yml), then `publish.yml inspect=shrink` (worker/shrink.py) re-encoded every video >3 MB with crf 27 / g 100 /
+  AAC 48k: ~30% of the size, SSIM 0.998, same length; nothing deleted. studio.py now encodes new videos the same way.
+  `inspect=storage` (worker/storage_report.py) prints what fills the storage; `inspect=shrink-dry` + number = test N.
 - Supabase DB 500 MB: text only, ~15 MB per semester. Free projects pause after 7 idle days; the daily cron touches the DB.
 - GitHub Actions 2,000 min/month for a private repo; a 80-min lecture takes ~35 min. If it runs short, the repo can be
   made public (no secrets in code; data lives in Supabase) for unlimited minutes – ask the user first.
