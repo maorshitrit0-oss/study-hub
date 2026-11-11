@@ -28,6 +28,8 @@ import notify
 BUCKET = "study"
 
 
+from tidy import tidy  # noqa: E402 - layout of exercise solutions (11/11/2026)
+
 def db():
     return create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
 
@@ -257,7 +259,7 @@ def save_exercises(job, exercises):
     done = {k["title"] for k in kept}
     rows = [{
         "user_id": job.lesson["user_id"], "course_id": job.course["id"], "lesson_id": job.lesson["id"], "source": "lesson",
-        "ord": i, "title": x.get("title"), "question_md": x["question_md"], "solution_md": x.get("solution_md"),
+        "ord": i, "title": x.get("title"), "question_md": tidy(x["question_md"]), "solution_md": tidy(x.get("solution_md") or ""),
         "topic": x.get("topic"), "exam_style": bool(x.get("exam_style")), "uncertain": bool(x.get("uncertain")),
     } for i, x in enumerate(exercises) if x.get("title") not in done]
     if rows:
@@ -508,6 +510,9 @@ def cmd_exercises(match, path):
     course = find_course(sb, match)
     fields = ("title", "question_md", "solution_md", "topic", "exam_style", "uncertain")
     for fx in json.loads(Path(path).read_text(encoding="utf-8")):
+        for k in ("question_md", "solution_md"):  # clean layout, also for exercises Claude writes (11/11/2026)
+            if fx.get(k):
+                fx[k] = tidy(fx[k])
         if fx.get("id") and fx.get("to_lesson"):  # move an exercise into a lesson ("kind number"), e.g. a study session
             kind, number = fx["to_lesson"].split()
             les = sb.table("lessons").select("id").eq("course_id", course["id"]).eq("kind", kind).eq("number", int(number)).execute().data
@@ -1001,6 +1006,7 @@ if __name__ == "__main__":
     p = sub.add_parser("drive"); p.add_argument("course"); p.add_argument("files_json")
     p = sub.add_parser("core"); p.add_argument("course"); p.add_argument("core_json")
     p = sub.add_parser("drivefiles"); p.add_argument("ids"); p.add_argument("out_dir")
+    p = sub.add_parser("tidy"); p.add_argument("course")
     p = sub.add_parser("forecast"); p.add_argument("course"); p.add_argument("json_path")
     p = sub.add_parser("course-set"); p.add_argument("course"); p.add_argument("json_path")
     p = sub.add_parser("where"); p.add_argument("course"); p.add_argument("--again", action="store_true")
@@ -1031,6 +1037,10 @@ if __name__ == "__main__":
         cmd_task(a.course, a.title, a.due)
     elif a.cmd == "core":
         cmd_core(a.course, a.core_json)
+    elif a.cmd == "tidy":  # tidy the layout of every exercise of the course (originals kept in storage)
+        import tidy as _t
+        sb = db()
+        _t.run(sb, find_course(sb, a.course))
     elif a.cmd == "forecast":
         cmd_forecast(a.course, a.json_path)
     elif a.cmd == "course-set":

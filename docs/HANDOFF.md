@@ -710,6 +710,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   ["<slot_id>|<date>"]; classMeetings skips them, so lecture N stays N and moves to the next meeting (study weeks,
   upload reminders, exercise weeks all follow); notify.py evening push skips them too. UI: /schedule fold
   "🚫 שיעור שבוטל" (a week back to a week ahead, MeetingsToggle). The make-up is just uploaded as usual.
+- Exercise layout (11/11, "the equations jump, I can't tell what each line says"): worker/tidy.py - layout only (a
+  display formula gets its own line, נוסחה/הצבה/תוצאה labels start lines, glued steps split; text/formulas unchanged,
+  idempotent); applied to every new exercise (hub save_exercises, exercises.py, hub exercises) and per course with
+  publish inspect=tidy (originals saved to storage tidy_backup_<stamp>.json). Order he asked: digital, Java, micro,
+  linear, waves, communication, (random signals).
 - Exercise sources (his request 08/11): every exercise shows "מקור: <file | lesson (date)> · 📍 עמ' N" - worker/locate.py
   matches the exercise text to the PDF pages (file, or the lecture's "הרצאה N" slides) + board snapshot numbers;
   storage <user>/materials/<course>/exercise_where.json; runs in exercises.py for new ones, or publish inspect=where

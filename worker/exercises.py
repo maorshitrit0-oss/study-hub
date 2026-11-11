@@ -7,6 +7,8 @@ Each file is read once (rows keep material_id). A solution file ("פתרון ...
 so the official solution is used when there is one; otherwise Gemini solves and a second pass re-solves every one.
 """
 import json
+
+from tidy import tidy
 import os
 import re
 import sys
@@ -248,7 +250,7 @@ def from_lessons(sb, course, budget_end):
                 raise
             continue
         rows = [{"user_id": course["user_id"], "course_id": course["id"], "lesson_id": l["id"], "source": "lesson",
-                 "ord": i, "title": x.get("title"), "question_md": x["question_md"], "solution_md": x.get("solution_md"),
+                 "ord": i, "title": x.get("title"), "question_md": tidy(x["question_md"]), "solution_md": tidy(x.get("solution_md") or ""),
                  "topic": x.get("topic"), "exam_style": bool(x.get("exam_style")), "uncertain": bool(x.get("uncertain"))}
                 for i, x in enumerate(found)]
         if rows:
@@ -408,7 +410,7 @@ def run(only=None):
                 continue
             src = source_of(m)
             rows = [{"user_id": course["user_id"], "course_id": course["id"], "material_id": m["id"], "source": src,
-                     "ord": i, "title": x.get("title"), "question_md": x["question_md"], "solution_md": x.get("solution_md"),
+                     "ord": i, "title": x.get("title"), "question_md": tidy(x["question_md"]), "solution_md": tidy(x.get("solution_md") or ""),
                      "topic": x.get("topic"), "exam_style": src == "exam" or bool(x.get("exam_style")),
                      "uncertain": bool(x.get("uncertain"))} for i, x in enumerate(found)]
             if rows:
