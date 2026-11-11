@@ -199,6 +199,11 @@ def run():
         print("::notice title=Queue::Gemini quota used up earlier today - fill-ins wait for the reset", flush=True)
         return "quota"
     retry_studio(sb)
+    try:  # weeks still missing their exercise set (weekset.py)
+        import weekset
+        weekset.fill_missing(sb)
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning title=Week sets::{str(e)[:200]}", flush=True)
     start, done, why = time.time(), [], "empty"
     for r, mode in candidates(sb):
         if time.time() - start > BUDGET_SEC:

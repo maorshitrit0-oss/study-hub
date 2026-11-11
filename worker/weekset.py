@@ -40,9 +40,17 @@ def short(md, n=500):
     return md[:n] + ("…" if len(md) > n else "")
 
 
-def run(match):
+def load(sb, course):
+    try:
+        return json.loads(sb.storage.from_(BUCKET).download(f"{course['user_id']}/materials/{course['id']}/week_sets.json").decode())
+    except Exception:  # noqa: BLE001 - none yet
+        return {"weeks": {}}
+
+
+def run(match, only_missing=False):
     sb = hub.db()
     course = hub.find_course(sb, match)
+    old = load(sb, course).get("weeks", {})
     lessons = sb.table("lessons").select("id, kind, number, title, topics, chapter_md").eq("course_id", course["id"]).execute().data
     week = {}
     for l in lessons:
@@ -68,8 +76,10 @@ def run(match):
                     [str(t) for t in (l.get("topics") or [])] + [h for h in heads if "בדיקת" not in h and "העולם" not in h])[:900])
         return "\n".join(out)
 
-    sets = {}
+    sets = dict(old)  # a week whose call fails keeps its earlier set
     for n in range(1, last + 1):
+        if only_missing and str(n) in old:
+            continue
         own = [x for x in ex if x.get("lesson_id") and week.get(x["lesson_id"]) == n]
         if not own and not files:
             continue
@@ -96,6 +106,18 @@ def run(match):
                                     json.dumps({"weeks": sets, "built_at": datetime.now(timezone.utc).isoformat()},
                                                ensure_ascii=False).encode("utf-8"),
                                     {"content-type": "application/json", "upsert": "true"})
+
+
+def fill_missing(sb):
+    """Weeks with no set yet (a Gemini failure, a new lecture) in every active course - run by the queue."""
+    for c in sb.table("courses").select("id, name, user_id, kind").eq("archived", False).execute().data:
+        if c.get("kind") in ("lab", "self"):
+            continue
+        nums = [l["number"] for l in sb.table("lessons").select("number, kind, title").eq("course_id", c["id"]).execute().data
+                if l.get("number") and l["kind"] in ("lecture", "practice") and not (l.get("title") or "").startswith("📦")]
+        have = load(sb, c).get("weeks", {})
+        if nums and any(str(n) not in have for n in range(1, max(nums) + 1)):
+            run("^" + re.escape(c["name"]) + "$", only_missing=True)
 
 
 if __name__ == "__main__":
