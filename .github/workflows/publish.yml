@@ -70,6 +70,7 @@ jobs:
           if [ "$INSPECT" = "reorder" ]; then python hub.py reorder "$COURSE" "../$CHAPTER"; exit $?; fi
           if [ "$INSPECT" = "lab-lessons" ]; then python hub.py lab-lessons "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "weekset" ]; then python weekset.py "$COURSE"; exit $?; fi
+          if [ "$INSPECT" = "tidy-redo" ]; then python hub.py tidy-redo "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "storage" ]; then python storage_report.py; exit $?; fi
           if [ "$INSPECT" = "tidy" ]; then python hub.py tidy "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "forecast" ]; then python hub.py forecast "$COURSE" "../$CHAPTER"; exit $?; fi

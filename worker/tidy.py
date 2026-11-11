@@ -33,10 +33,8 @@ def _split_display(line):
     return out
 
 
-def tidy(md):
-    if not md:
-        return md
-    text = md.replace("\r\n", "\n")
+def _prose(text):
+    """The layout rules, on text outside code (a code line must never be split - 11/11/2026)."""
     # Steps glued with " / " between labels ("**נוסחה:** ... / **הצבה:** ...").
     text = re.sub(rf"\s+/\s+(?=\*\*{LABELS})", "\n", text)
     # A label in the middle of a line starts a new line.
@@ -47,6 +45,15 @@ def tidy(md):
     text = re.sub(r"(?<=\S)[ \t]+(?=📘)", "\n", text)
     # "✅" verdict lines and "💡 הרעיון" start a new line.
     text = re.sub(r"(?<=\S)[ \t]+(?=💡)", "\n\n", text)
+    return text
+
+
+def tidy(md):
+    if not md:
+        return md
+    text = md.replace("\r\n", "\n")
+    # outside code only: ``` blocks and `inline code` are left exactly as they are
+    text = "".join(part if i % 2 else _prose(part) for i, part in enumerate(re.split(r"(```[\s\S]*?```|`[^`\n]*`)", text)))
     lines = []
     in_code = False
     for line in text.split("\n"):
@@ -64,7 +71,28 @@ def tidy(md):
     out = re.sub(r"(?<=[^\n])\n(?=📘|💡|✅)", "\n\n", out)
     out = re.sub(r"\n{3,}", "\n\n", out)
     out = re.sub(r"(💡|✅|📘)\s*\n+\s*(?=\*\*)", r"\1 ", out)  # keep "💡 **הרעיון:**" together
+    out = re.sub(r"(?m)^(\s*\d{1,2}\.)[ \t]*\n+[ \t]*(?=\*\*)", r"\1 ", out)  # "1. **נוסחה:**" stays one item
     return out.strip()
+
+
+def redo(sb, course, log=print):
+    """Lay out again from the ORIGINAL texts (the first tidy_backup of the course), with the current rules: the first
+    version also split code lines and left bare "1." items (his remark 11/11/2026). Only exercises in that backup."""
+    import json
+    store = sb.storage.from_("study")
+    prefix = f"{course['user_id']}/materials/{course['id']}"
+    names = sorted(f["name"] for f in store.list(prefix) if f["name"].startswith("tidy_backup_"))
+    if not names:
+        log(f"::notice title=Tidy::{course['name']}: no backup")
+        return 0
+    orig = json.loads(store.download(f"{prefix}/{names[0]}").decode())
+    n = 0
+    for r in orig:
+        q, s_ = tidy(r["question_md"] or ""), tidy(r["solution_md"] or "")
+        got = sb.table("exercises").update({"question_md": q, "solution_md": s_}).eq("id", r["id"]).execute().data
+        n += bool(got)
+    log(f"::notice title=Tidy::{course['name']}: {n} exercises laid out again from {names[0]}")
+    return n
 
 
 def run(sb, course, log=print):

@@ -1128,6 +1128,7 @@ if __name__ == "__main__":
     p = sub.add_parser("core"); p.add_argument("course"); p.add_argument("core_json")
     p = sub.add_parser("drivefiles"); p.add_argument("ids"); p.add_argument("out_dir")
     p = sub.add_parser("tidy"); p.add_argument("course")
+    p = sub.add_parser("tidy-redo"); p.add_argument("course")
     p = sub.add_parser("forecast"); p.add_argument("course"); p.add_argument("json_path")
     p = sub.add_parser("course-set"); p.add_argument("course"); p.add_argument("json_path")
     p = sub.add_parser("where"); p.add_argument("course"); p.add_argument("--again", action="store_true")
@@ -1162,6 +1163,12 @@ if __name__ == "__main__":
         cmd_task(a.course, a.title, a.due)
     elif a.cmd == "core":
         cmd_core(a.course, a.core_json)
+    elif a.cmd == "tidy-redo":  # again from the original texts, with the fixed rules (code untouched)
+        import tidy as _t
+        sb = db()
+        c = find_course(sb, a.course)
+        _t.redo(sb, c)
+        _t.run(sb, c)
     elif a.cmd == "tidy":  # tidy the layout of every exercise of the course (originals kept in storage)
         import tidy as _t
         sb = db()

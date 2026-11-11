@@ -86,6 +86,12 @@ input, select, textarea { font-size: max(16px, 1em); }
 /* Every code line on ONE line, scrolled sideways like a long formula - a wrapped line reads as two (04/11/2026). */
 .chapter pre { direction: ltr; text-align: left; overflow-x: auto; white-space: pre; overflow-wrap: normal; word-break: normal; font-size: .82em; line-height: 1.5; background: #030a16; border: 1px solid var(--line); color: #e6e9f2; padding: .8em 1em; border-radius: 12px; margin: 1em 0; }
 .chapter pre code { background: none; padding: 0; color: inherit; }
+/* A line of code never breaks in the middle (his remark 11/11/2026, Java / micro): inline code keeps its line and
+   scrolls sideways when it is longer than the screen; the same for quiz / warm-up text (.rich). */
+.chapter :not(pre) > code, .rich :not(pre) > code { white-space: pre; display: inline-block; max-width: 100%; overflow-x: auto; vertical-align: bottom; }
+.rich code { direction: ltr; unicode-bidi: isolate; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .9em; background: var(--accent-soft); padding: .1em .35em; border-radius: 6px; }
+.rich pre { direction: ltr; text-align: left; overflow-x: auto; white-space: pre; font-size: .82em; line-height: 1.5; background: #030a16; border: 1px solid var(--line); color: #e6e9f2; padding: .6em .8em; border-radius: 10px; margin: .5em 0; max-width: 100%; }
+.rich pre code { background: none; padding: 0; display: block; }
 .codelines { margin: -.5em 0 1em; border: 1px solid var(--line); border-radius: 12px; padding: .5em .75em; }
 .codelines ol { list-style: none; margin: .4em 0 0; padding: 0; }
 .codelines li { border-top: 1px solid var(--line); padding: .4em 0; }
