@@ -974,7 +974,7 @@ def cmd_outline(out_dir):
     courses = sb.table("courses").select("id, name").eq("archived", False).execute().data
     out = []
     for c in courses:
-        rows = (sb.table("lessons").select("id, kind, number, title, status, topics, chapter_md, created_at")
+        rows = (sb.table("lessons").select("id, kind, number, title, status, topics, chapter_md, summary_md, progress, created_at")
                 .eq("course_id", c["id"]).order("created_at").execute().data)
         out.append({"course": c["name"], "id": c["id"], "lessons": rows})
     Path(out_dir).mkdir(parents=True, exist_ok=True)
