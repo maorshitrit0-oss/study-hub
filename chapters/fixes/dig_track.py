@@ -192,8 +192,13 @@ def chapter(n, intro, recap):
 
 
 def pack(n, title, topics, ex, qs, intro, recap, uncertain):
+    # Full chapter = the recap + every exercise worked out in order; condensed = the recap only (his wish 11/11/2026:
+    # always both, no button).
     md = chapter(n, intro, recap)
-    return {"title": title, "chapter_md": md, "summary_md": md, "topics": topics, "glossary": [], "course_facts": [],
+    full = NOTE.format(n=n) + "\n" + intro + "\n\n## תזכורת מהרצאה " + str(n) + "\n" + recap + "\n\n" + "\n\n".join(
+        f"## {x['title']}\n\n**השאלה:** {x['question_md']}\n\n**👀 הפתרון:**\n\n{x["solution_md"]}"
+        for x in ex)
+    return {"title": title, "chapter_md": full, "summary_md": md, "topics": topics, "glossary": [], "course_facts": [],
             "syllabus_covered": [], "exam_type": "mcq", "grade_weights": [], "homework": [],
             "exercises": [dict(x, exam_style=True, uncertain=False) for x in ex],
             "questions": [dict(question=q, options=o, correct=c, explanation=e, topic=t, difficulty=d) for q, o, c, e, t, d in qs],

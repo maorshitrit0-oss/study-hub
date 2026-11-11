@@ -7,7 +7,7 @@ import Chapter from "@/components/Chapter";
 import Quiz from "@/components/Quiz";
 import Studio from "@/components/Studio";
 import { loadMedia } from "@/lib/studio";
-import { deleteLesson, markRead, requestFullChapter, retryLesson, updateLesson } from "../../actions";
+import { deleteLesson, markRead, retryLesson, updateLesson } from "../../actions";
 import Exercises, { type Exercise } from "@/components/Exercises";
 import Fold from "@/components/Fold";
 import { LESSON_LABEL, lessonName, isSession, type Lesson } from "@/lib/types";
@@ -172,10 +172,9 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
         </Fold>
       )}
 
+      {/* Always both (his wish 11/11/2026): no button - the queue writes the missing full chapter by itself. */}
       {!full && summaryText && lesson.status === "ready" && (
-        <form action={requestFullChapter.bind(null, id)}>
-          <button className="btn-ghost w-full">📖 לכתוב גם פרק מלא לשיעור הזה (נכנס לתור)</button>
-        </form>
+        <p className="text-sm text-muted text-center">📖 הפרק המלא נכתב אוטומטית ויופיע כאן (בתור, לפי המכסה של Gemini)</p>
       )}
 
       {!self && exerciseFold}

@@ -114,10 +114,13 @@ def candidates(sb):
     fill = []
     for r in rows:
         t = r.get("transcript") or ""
-        if r["status"] != "ready" or r["kind"] not in ("lecture", "practice") or not t or t.startswith(site) \
-                or t.startswith(author.VLSI_NOTE):
+        if r["status"] != "ready" or not t or t.startswith(site) or t.startswith(author.VLSI_NOTE):
             continue
-        if r.get("summary_md") and r.get("chapter_md") == r.get("summary_md"):
+        if r["kind"] not in ("lecture", "practice"):  # a study session / Claude's practice: only the cheap summary
+            if r.get("chapter_md") and not r.get("summary_md"):
+                fill.append((r, "summary"))
+            continue
+        if r.get("summary_md") and r.get("chapter_md") == r.get("summary_md") and not t.startswith("<!-- written by Claude"):
             fill.append((r, "full"))       # has only the summary -> write the full chapter
         elif r.get("chapter_md") and not r.get("summary_md"):
             fill.append((r, "summary"))    # has only the full chapter -> condensed summary from it (text only)
