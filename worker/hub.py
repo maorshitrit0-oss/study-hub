@@ -981,6 +981,22 @@ def cmd_outline(out_dir):
     (Path(out_dir) / "outline.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
+def cmd_prepend(match, kind, number, path):
+    """Adds a short note at the top of a lesson's chapter (e.g. "do this practice after lecture N", 11/11/2026). Adds
+    only: the chapter itself is not changed, and a note already there (same first line) is not added twice."""
+    sb = db()
+    course = find_course(sb, match)
+    note = Path(path).read_text(encoding="utf-8").strip()
+    for les in sb.table("lessons").select("id, chapter_md").eq("course_id", course["id"]).eq("kind", kind) \
+            .eq("number", int(number)).execute().data:
+        md = les["chapter_md"] or ""
+        if note.splitlines()[0] in md:
+            print(f"::notice title=Note::{kind} {number}: already there", flush=True)
+            continue
+        sb.table("lessons").update({"chapter_md": note + "\n\n" + md}).eq("id", les["id"]).execute()
+        print(f"::notice title=Note::{kind} {number}: added", flush=True)
+
+
 def cmd_flat():  # noqa: D401
     """Every ready lesson whose chapter is squashed onto a few lines (author.is_flat) - to write again."""
     sb = db()
@@ -1038,6 +1054,7 @@ if __name__ == "__main__":
     p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
     p = sub.add_parser("outline"); p.add_argument("out_dir")
+    p = sub.add_parser("prepend"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number"); p.add_argument("md")
     p = sub.add_parser("inspect"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
     a = ap.parse_args()
     if a.cmd == "process":
@@ -1095,6 +1112,8 @@ if __name__ == "__main__":
         cmd_archive(a.match)
     elif a.cmd == "summaries":
         cmd_summaries(a.out_dir)
+    elif a.cmd == "prepend":
+        cmd_prepend(a.course, a.kind, a.number, a.md)
     elif a.cmd == "outline":
         cmd_outline(a.out_dir)
     elif a.cmd == "flat":
