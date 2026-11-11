@@ -730,6 +730,18 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   regenerate from fpga/ + PROJECT_SPEC if lost). Then add_repo(push) and move fpga/ there.
 - fetch/* branches carry web/vercel.json (ignoreCommand exit 0) - Vercel had mailed him "Preview deployment failed" for them.
 
+## Lectures vs practices (his question 11/11/2026)
+`fetch.sh outline` (hub outline) dumps every lesson's topics + chapter. Findings:
+- **Digital circuits:** practices 1-3 were written from the TA's notebooks (no class: elections / engineering festival)
+  and run ahead: P1 = lectures 1-2 definitions + the NMOS resistor-load inverter of lecture 4; P2 = CMOS sizing
+  (no CMOS lecture yet); P3 = logical effort. Lectures 3-4 (devices, BJT/NMOS inverters with R / enhancement /
+  depletion loads) had no practice -> **bridge practice = kind other 1** (chapters/fixes/dig_bridge.py, 7 exercises
+  verified numerically, 8 MCQ). "🧭 when to solve" notes prepended to P1-P3 (hub prepend, inspect=prepend).
+- **Linear:** P1 (op-amp circuits, active filters) and P2 (slew rate, rectifier, regulator) are op-amp material taught
+  in lecture 3; lectures 1-2 (two-ports, amplifier models, dB, cascades) have no practice. P3 oscillator.
+- **Communication:** "practice 3" (26/10: noise, NF, cascades) matches lectures 3-4; practice 4 matches lectures 3-4.
+- **Waves, Java, micro:** aligned (waves P3 = polarization of lecture 3; micro P1-P2 bitwise ~ lecture 2).
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
