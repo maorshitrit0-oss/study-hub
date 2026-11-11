@@ -30,7 +30,14 @@ export default async function CourseExercises({ params, searchParams }: PageProp
   // The core was picked per calendar week; each pick now shows in the week of its own lesson (week N = lecture N),
   // and a pick with no lesson (e.g. his own exam) stays in the week it was given.
   const picks = Object.entries(core?.weeks ?? {}).flatMap(([k, list]) => list.map((p) => ({ ...p, k: Number(k) })))
-    .filter((p) => { const x = byId.get(p.id); const pw = x ? weekOf(x) : undefined; return (pw ?? p.k) === w; })
+    // only an exercise with no lesson and no file (his own exam) keeps the week it was given; one from a lesson / file
+    // with no week (a "📦" notebook of a later lecture, material not taught yet) is not shown (his remark 11/11/2026)
+    .filter((p) => {
+      const x = byId.get(p.id);
+      if (!x) return false;
+      const free = !x.lesson_id && !x.material_id;
+      return (free ? p.k : weekOf(x)) === w;
+    })
     .filter((p, i, a) => a.findIndex((q) => q.id === p.id) === i);
   // with the file / lesson it came from and the exact page (a hand-set "where" in the core file wins)
   const coreItems = picks.map((p) => {
@@ -38,7 +45,8 @@ export default async function CourseExercises({ params, searchParams }: PageProp
     return x ? { ...x, why: p.why, where: p.where || x.where } as Exercise : null;
   }).filter((x): x is Exercise => !!x);
   const coreIds = new Set(coreItems.map((x) => x.id));
-  const bankLessons = fromLessons.filter((x) => !coreIds.has(x.id));
+  const lessonIds = new Set(fromLessons.map((x) => x.id));
+  const coreFromFiles = coreItems.filter((x) => !lessonIds.has(x.id));
   const bankFiles = fromFiles.filter((x) => !coreIds.has(x.id));
 
   return (
@@ -78,34 +86,26 @@ export default async function CourseExercises({ params, searchParams }: PageProp
           })}
         </section>
       ) : (
-        coreItems.length > 0 ? (
-          <>
-            <section className="card">
-              <h2 className="font-semibold mb-1">⭐ הליבה של שבוע {w} ({coreItems.length} תרגילים)</h2>
-              <p className="text-xs text-muted mb-3">
-                מה שכדאי לתרגל השבוע, לפי מה ששואלים במבחנים. לקרוא את הפתרון המלא, ואחר כך לנסות לבד.
-                {core?.exam_note ? ` ${core.exam_note}` : ""}
-              </p>
-              <Exercises items={coreItems} />
-            </section>
-            {bankLessons.length + bankFiles.length > 0 && (
-              <Fold id={`bank-${id}-${w}`} title="📚 בנק תרגילים נוסף (רשות)" hint={`${bankLessons.length + bankFiles.length}`}>
-                <Exercises items={[...bankLessons, ...bankFiles]} />
-              </Fold>
-            )}
-          </>
-        ) : <>
+        <>
+          {/* His order (11/11/2026): first the week's own lecture + practice exercises, practice first; then the exam
+              core picks from files; the rest of the files as an optional bank. */}
           <section className="card">
-            <h2 className="font-semibold mb-1">שבוע {w}: מהרצאה {w} ומתרגול {w}</h2>
+            <h2 className="font-semibold mb-1">שבוע {w}: מהרצאה {w} ומתרגול {w} ({fromLessons.length} תרגילים)</h2>
             <p className="text-xs text-muted mb-3">לפתור על דף, ורק אחר כך לפתוח את הפתרון.</p>
-            {fromLessons.length ? <Exercises items={fromLessons} />
+            {fromLessons.length ? <Exercises items={[...fromLessons].sort((a, b) => Number(!(a.label ?? "").includes("תרגול")) - Number(!(b.label ?? "").includes("תרגול")))} />
               : <p className="text-sm text-muted">אין עדיין תרגילים מהשבוע הזה. הם נוספים כשמעלים את ההקלטות של ההרצאה והתרגול.</p>}
           </section>
-          {fromFiles.length > 0 && (
+          {coreFromFiles.length > 0 && (
             <section className="card">
-              <h2 className="font-semibold mb-1">מקבצים: שיעורי בית ומבחנים שאפשר לפתור אחרי השבוע הזה</h2>
-              <Exercises items={fromFiles} />
+              <h2 className="font-semibold mb-1">⭐ ממבחנים ומטלות – על החומר של שבוע {w} ({coreFromFiles.length})</h2>
+              <p className="text-xs text-muted mb-3">מה ששואלים במבחנים על החומר הזה.{core?.exam_note ? ` ${core.exam_note}` : ""}</p>
+              <Exercises items={coreFromFiles} />
             </section>
+          )}
+          {bankFiles.length > 0 && (
+            <Fold id={`bank-${id}-${w}`} title="📚 בנק תרגילים נוסף מקבצים (רשות)" hint={`${bankFiles.length}`}>
+              <Exercises items={bankFiles} />
+            </Fold>
           )}
         </>
       )}
