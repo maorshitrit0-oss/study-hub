@@ -5,6 +5,7 @@ new file is clearly smaller and plays the same length. The weekly backup (backup
   python shrink.py [--dry] [--limit N]
 """
 import os
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -60,6 +61,10 @@ def main():
                 print(f"::warning title=Shrink::{path}: {e}", flush=True)
                 continue
             new = dst.stat().st_size
+            if dry:  # picture similarity to the original (1.0 = identical; above ~0.97 the text reads the same)
+                r = subprocess.run([media.FFMPEG, "-i", str(dst), "-i", str(src), "-lavfi", "ssim", "-f", "null", "-"],
+                                   capture_output=True, text=True, errors="ignore")
+                print(next((x for x in r.stderr.splitlines() if "SSIM" in x), "ssim ?")[-60:], flush=True)
             ok = new <= size * KEEP_IF and abs(a - b) < 1.5
             print(f"{path.rsplit('/', 1)[-1]} {size / 1e6:.1f}MB -> {new / 1e6:.1f}MB, {a:.0f}s/{b:.0f}s {'ok' if ok else 'kept'}",
                   flush=True)
