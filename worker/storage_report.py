@@ -40,24 +40,26 @@ def main():
     print("::notice title=By type::" + "; ".join(f"{k} {mb(v)}" for k, v in by_ext.most_common(12)))
     big = sorted(files, key=lambda x: -x[1])[:25]
     print("::notice title=Largest::" + "; ".join(f"{p.split('/', 1)[-1]} {mb(n)}" for p, n in big))
-    media = [(p, n) for p, n in files if "/media/" in p]
-    if media:
-        ids = [p.rsplit("/", 1)[-1].split(".")[0] for p, _ in media]
-        rows = {}
-        for i in range(0, len(ids), 100):
-            for r in sb.table("media").select("id, kind, status, course_id").in_("id", ids[i:i + 100]).execute().data:
-                rows[r["id"]] = r
-        names = {c["id"]: c["name"] for c in sb.table("courses").select("id, name").execute().data}
-        per = collections.Counter()
-        orphan = 0
-        for p, n in media:
-            r = rows.get(p.rsplit("/", 1)[-1].split(".")[0])
-            if not r:
-                orphan += n
-                continue
-            per[f"{names.get(r['course_id'], '?')}/{r['kind']}"] += n
-        print(f"::notice title=Media::orphan files (no row) {mb(orphan)}; " + "; ".join(f"{k} {mb(v)}" for k, v in per.most_common()))
-
+    media = {p.rsplit("/", 1)[-1].split(".")[0]: n for p, n in files if "/media/" in p}
+    rows = sb.table("lesson_media").select("id, kind, status, course_id, lesson_ids, created_at, duration_sec").execute().data
+    names = {c["id"]: c["name"] for c in sb.table("courses").select("id, name").execute().data}
+    known = {r["id"] for r in rows}
+    orphan = sum(n for k, n in media.items() if k not in known)
+    per, mins = collections.Counter(), collections.Counter()
+    newest = {}
+    for r in sorted(rows, key=lambda r: r["created_at"]):
+        if r["status"] == "ready":
+            newest[(r["kind"], tuple(sorted(r["lesson_ids"] or [])))] = r["id"]
+    superseded = 0
+    for r in rows:
+        n = media.get(r["id"], 0)
+        key = f"{names.get(r['course_id'], '?')}/{r['kind']}"
+        per[key] += n
+        mins[key] += (r.get("duration_sec") or 0) / 60 if n else 0
+        if n and newest.get((r["kind"], tuple(sorted(r["lesson_ids"] or [])))) not in (None, r["id"]):
+            superseded += n
+    print(f"::notice title=Media::no row {mb(orphan)}; older copies replaced by a newer ready one {mb(superseded)}")
+    print("::notice title=Media by course::" + "; ".join(f"{k} {mb(v)} ({mins[k]:.0f} min)" for k, v in per.most_common()))
 
 if __name__ == "__main__":
     main()
