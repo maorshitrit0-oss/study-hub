@@ -44,6 +44,14 @@ export async function exercisesByWeek(sb: SupabaseClient, courseId?: string, use
   for (const l of lessons ?? []) {
     const date = l.number ? meetingDates.get(`${l.course_id}|${l.kind}`)?.[l.number - 1] : undefined;
     if (date) lessonDate.set(l.id, `${date.slice(8, 10)}/${date.slice(5, 7)}`);
+    // His way of studying (11/11/2026): "week N" = lecture N + practice N, whatever the calendar says. A study
+    // session "מפגש N" is week N too; a TA notebook waiting for a later lecture ("📦 ...") is in no week yet.
+    const title = (l.title ?? "") as string;
+    if (title.startsWith("📦")) continue;
+    if (l.number && (l.kind === "lecture" || l.kind === "practice" || title.startsWith("מפגש "))) {
+      lessonWeek.set(l.id, l.number);
+      continue;
+    }
     lessonWeek.set(l.id, date ? semesterWeek(date) : semesterWeek(israelDate(new Date(l.created_at))));
   }
   const fileName = new Map((materials ?? []).map((m) => [m.id, m.title as string]));
@@ -75,7 +83,15 @@ export async function exercisesByWeek(sb: SupabaseClient, courseId?: string, use
     if (!mine.length || mine.some((x) => !x.fits_lesson_id)) return null; // part of it not taught yet
     return Math.max(...mine.map((x) => lessonWeek.get(x.fits_lesson_id!) ?? 0)) || null;
   }
-  return { forWeek, fileExercises, fileReadyWeek, all: labeled, byId: new Map(labeled.map((x) => [x.id, x])) };
+  /** The week an exercise is in (lesson or placed file exercise), or undefined. */
+  const weekOf = (x: ExerciseRow) => x.lesson_id ? lessonWeek.get(x.lesson_id)
+    : !x.duplicate && x.fits_lesson_id ? lessonWeek.get(x.fits_lesson_id) : undefined;
+  /** The weeks the course has, 1..the last one with a lecture / practice / exercise. */
+  function weeksOf(course: string) {
+    const ls = (lessons ?? []).filter((l) => l.course_id === course).map((l) => lessonWeek.get(l.id) ?? 0);
+    return Math.max(1, ...ls.filter((n) => n < 40));
+  }
+  return { forWeek, fileExercises, fileReadyWeek, weekOf, weeksOf, all: labeled, byId: new Map(labeled.map((x) => [x.id, x])) };
 }
 
 /**
@@ -86,7 +102,7 @@ export async function syncExerciseTasks(sb: SupabaseClient) {
   const { studyWeek, STUDY_LAG, weekDays } = await import("./week");
   const { israelLocalToIso } = await import("./format");
   const w = studyWeek();
-  const [{ forWeek }, { data: courses }, { data: tasks }] = await Promise.all([
+  const [{ forWeek, weeksOf }, { data: courses }, { data: tasks }] = await Promise.all([
     exercisesByWeek(sb),
     sb.from("courses").select("id, name").eq("archived", false).neq("kind", "self"),
     sb.from("deadlines").select("id, external_uid, done, title").like("external_uid", "ex:%"),
@@ -94,12 +110,13 @@ export async function syncExerciseTasks(sb: SupabaseClient) {
   const have = new Map((tasks ?? []).map((t) => [t.external_uid as string, t]));
   const add = [];
   for (const c of courses ?? []) {
-    const { fromLessons, fromFiles } = forWeek(c.id, w);
+    const cw = weeksOf(c.id); // week N = lecture N: the course's latest week
+    const { fromLessons, fromFiles } = forWeek(c.id, cw);
     const list = [...fromLessons, ...fromFiles];
     if (!list.length) continue;
     const left = list.filter((x) => !x.done_at).length;
-    const uid = `ex:${c.id}:${w}`;
-    const title = `✍️ לפתור: ${c.name} שבוע ${w} - ${list.length} תרגילים`;
+    const uid = `ex:${c.id}:${cw}`;
+    const title = `✍️ לפתור: ${c.name} שבוע ${cw} (הרצאה ותרגול ${cw}) - ${list.length} תרגילים`;
     const t = have.get(uid);
     if (t) {
       if ((!left) !== t.done || t.title !== title) await sb.from("deadlines").update({ done: !left, title }).eq("id", t.id);
@@ -108,7 +125,7 @@ export async function syncExerciseTasks(sb: SupabaseClient) {
     add.push({
       course_id: c.id, kind: "other", title, done: !left,
       due_at: israelLocalToIso(`${weekDays(w + STUDY_LAG).end}T20:00`),
-      notes: `נוצר אוטומטית. התרגילים: /courses/${c.id}/exercises?w=${w} - נסגר לבד כשמסמנים את כולם כפתורים.`,
+      notes: `נוצר אוטומטית. התרגילים: /courses/${c.id}/exercises?w=${cw} - נסגר לבד כשמסמנים את כולם כפתורים.`,
       external_uid: uid,
     });
   }

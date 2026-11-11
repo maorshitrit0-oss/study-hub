@@ -751,6 +751,14 @@ fills it (lecture / practice with only a summary) and writes the cheap summary f
 (sessions too). Claude-written practices (transcript "<!-- written by Claude") are never re-written by Gemini;
 chapters/fixes/track.py builds them: full = recap + every exercise worked out, condensed = recap.
 
+## Exercises tab: week N = lecture N (11/11/2026)
+He studies lecture N + practice N, then opens the course's "תרגילים" tab and picks week N. `lib/exercises.ts`:
+lessonWeek = the lesson's number for lectures / practices / "מפגש N" sessions (calendar week only for other kinds;
+"📦" notebooks in no week). The tab lists weeks 1..last and opens on the first week with unsolved exercises
+("כאן אני"). Core picks (exercise_core.json, still keyed by calendar week) are shown in the week of their own lesson.
+Lecture / practice pages no longer show the exercises - only a link to that week. Weekly "✍️ לפתור" task = the course's
+latest week.
+
 ## Lab experiments as lessons (11/11/2026)
 `hub lab-lessons "מעבדה 2"` (inspect=lab-lessons): one lesson kind lab number N per experiment, transcript = booklet docx
 (+ partner's / his .docx summary reports) marked LAB_NOTE; the queue writes the lab chapter (KIND_TASK lab: goal,

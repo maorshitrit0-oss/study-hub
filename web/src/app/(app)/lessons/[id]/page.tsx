@@ -177,7 +177,13 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
         <p className="text-sm text-muted text-center">📖 הפרק המלא נכתב אוטומטית ויופיע כאן (בתור, לפי המכסה של Gemini)</p>
       )}
 
-      {!self && exerciseFold}
+      {/* Lectures and practices: the exercises are solved only in the course's exercises tab, week N = lecture N
+          (his way, 11/11/2026) - here only a link to that week. */}
+      {!self && (exercises ?? []).length > 0 && (lesson.kind === "lecture" || lesson.kind === "practice") && lesson.number ? (
+        <Link href={`/courses/${lesson.course_id}/exercises?w=${lesson.number}`} className="card block text-center text-sm font-medium">
+          ✍️ התרגילים של השיעור הזה – בעמודת התרגילים, שבוע {lesson.number}
+        </Link>
+      ) : !self && exerciseFold}
       {quizFold}
       {self && exerciseFold}
 
