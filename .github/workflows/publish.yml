@@ -64,6 +64,8 @@ jobs:
           if [ "$INSPECT" = "studio-retry" ]; then python hub.py studio-retry; exit $?; fi
           if [ "$INSPECT" = "tts" ]; then python hub.py tts; exit $?; fi
           if [ "$INSPECT" = "task" ]; then python hub.py task "$COURSE" "$TITLE" "$NUMBER"; exit $?; fi
+          if [ "$INSPECT" = "shrink-dry" ]; then python shrink.py --dry --limit "$NUMBER"; exit $?; fi
+          if [ "$INSPECT" = "shrink" ]; then python shrink.py; exit $?; fi
           if [ "$INSPECT" = "storage" ]; then python storage_report.py; exit $?; fi
           if [ "$INSPECT" = "tidy" ]; then python hub.py tidy "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "forecast" ]; then python hub.py forecast "$COURSE" "../$CHAPTER"; exit $?; fi
