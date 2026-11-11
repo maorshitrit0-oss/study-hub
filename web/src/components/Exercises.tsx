@@ -27,7 +27,7 @@ export default function Exercises({ items, slideUrls = {} }: { items: Exercise[]
             <p className="text-xs text-muted">
               מקור: {x.label ?? SOURCE[x.source] ?? "-"}{x.where ? ` · 📍 ${x.where}` : ""} · {SOURCE[x.source] ?? ""}{x.exam_style ? " · ⭐ סגנון מבחן" : ""}
             </p>
-            {x.why && <p className="text-xs text-accent mt-1">🎯 למה הוא בליבה: {x.why}</p>}
+            {x.why && <p className="text-xs text-accent mt-1">🎯 למה עכשיו: {x.why}</p>}
             <div className="mt-2"><Chapter md={x.question_md} slideUrls={slideUrls} /></div>
             {x.solution_md && (
               <details className="mt-2">

@@ -393,6 +393,12 @@ def save_chapter(job, ch, by):
         fields.pop("syllabus_covered", None)
         fields.pop("summary_md", None)
         job.update(**fields)
+    if job.lesson.get("kind") in ("lecture", "practice") and not os.environ.get("QUIET"):
+        try:  # the week's exercise set again, now that this lesson has its exercises (weekset.py, 11/11/2026)
+            import weekset
+            weekset.run("^" + re.escape(job.course["name"]) + "$")
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Week sets::{str(e)[:200]}", flush=True)
     try:  # written in the new structure already: enrich.py must not rewrite it
         import enrich
         enrich.mark(job.sb, job.lesson, chapter_md)

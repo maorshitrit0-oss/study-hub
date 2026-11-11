@@ -45,6 +45,17 @@ export default async function CourseExercises({ params, searchParams }: PageProp
     return x ? { ...x, why: p.why, where: p.where || x.where } as Exercise : null;
   }).filter((x): x is Exercise => !!x);
   const coreIds = new Set(coreItems.map((x) => x.id));
+  // The week's set (worker/weekset.py, his request 11/11/2026): 2-4 practice exercises from lecture / practice N,
+  // then up to 2 exam exercises he can already solve. When it exists, the week shows only this list.
+  type WeekSet = { practice: string[]; exam: { id: string; why: string }[] };
+  const sets: { weeks: Record<string, WeekSet> } | null = await sb.storage.from("study").download(`${userId}/materials/${id}/week_sets.json`)
+    .then(async ({ data }) => (data ? JSON.parse(await data.text()) : null)).catch(() => null);
+  const set = sets?.weeks[String(w)];
+  const setItems = set ? [
+    ...set.practice.flatMap((i) => { const x = byId.get(i); return x ? [{ ...x, label: `🎓 תרגול · ${x.label ?? ""}` } as Exercise] : []; }),
+    ...set.exam.map((e) => { const x = byId.get(e.id); return x ? { ...x, why: e.why, label: `⭐ מבחן · ${x.label ?? ""}` } as Exercise : null; })
+      .filter((x): x is Exercise => !!x),
+  ] : [];
   const lessonIds = new Set(fromLessons.map((x) => x.id));
   const coreFromFiles = coreItems.filter((x) => !lessonIds.has(x.id));
   const bankFiles = fromFiles.filter((x) => !coreIds.has(x.id));
@@ -66,7 +77,16 @@ export default async function CourseExercises({ params, searchParams }: PageProp
         </Link>
       </div>
 
-      {files ? (
+      {!files && setItems.length > 0 ? (
+        <section className="card">
+          <h2 className="font-semibold mb-1">שבוע {w}: הרצאה {w} ותרגול {w} ({setItems.length} תרגילים)</h2>
+          <p className="text-xs text-muted mb-3">
+            קודם 🎓 תרגילי תרגול על החומר של השבוע (מהקל לקשה), ואחריהם ⭐ תרגילי מבחן שאפשר לפתור עם מה שלמדת עד עכשיו.
+            לפתור על דף, ורק אחר כך לפתוח את הפתרון.
+          </p>
+          <Exercises items={setItems} />
+        </section>
+      ) : files ? (
         <section className="card">
           <h2 className="font-semibold mb-1">שיעורי בית, מבחנים קודמים ודפי תרגילים</h2>
           <p className="text-xs text-muted mb-3">כל תרגיל מקובץ של הקורס, עם פתרון (רשמי אם היה בקובץ). ⭐ = סגנון מבחן.</p>

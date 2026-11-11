@@ -1,0 +1,100 @@
+"""The week's exercise set (his request 11/11/2026): week N = lecture N + practice N, 3-6 exercises in one list -
+2-4 practice exercises on what lecture N / practice N taught (easy -> harder), then 2 exam exercises on the same
+material that can be solved with ONLY what lectures 1..N taught (an exam exercise that needs later material waits for
+its week). Chosen by Gemini (free), saved as week_sets.json next to the course files; the exercises tab shows only
+this set. Nothing is deleted: the other exercises stay in the database.
+
+  python weekset.py "<course regex>"     (all weeks of the course; run again after a new lecture / file)
+"""
+import json
+import re
+import sys
+from datetime import datetime, timezone
+
+from google.genai import types
+
+import author
+import hub
+
+BUCKET = "study"
+SYSTEM = """אתה מתרגל בהנדסת חשמל שבונה לסטודנט סט תרגילים שבועי. שבוע N = הרצאה N + תרגול N.
+הסטודנט בונה ידע בהדרגה: הוא יודע רק את מה שנלמד בהרצאות ובתרגולים 1 עד N.
+בחר:
+- practice: 2 עד 4 תרגילים מתוך "תרגילי השבוע" (מההרצאה והתרגול של שבוע N), מהקל לקשה, שמכסים את הנושאים העיקריים
+  של השבוע בלי כפילות. עדיפות לתרגילים מהתרגול.
+- exam: עד 2 תרגילים מתוך "תרגילי מבחן ומטלות", שעוסקים בנושאים של שבוע N, ושאפשר לפתור אותם במלואם רק עם החומר
+  של הרצאות 1 עד N. אם תרגיל דורש נושא שעוד לא נלמד (מופיע רק בהרצאות מאוחרות או לא מופיע ברשימה) - אל תבחר אותו.
+  עדיף פחות תרגילים מאשר תרגיל שהסטודנט לא יכול לפתור. why: משפט אחד - על מה התרגיל ולמה הוא מתאים עכשיו.
+סה"כ 3 עד 6 תרגילים. רק מזהים (id) מהרשימות. עברית בלבד."""
+SCHEMA = {"type": "object", "properties": {
+    "practice": {"type": "array", "items": {"type": "string"}},
+    "exam": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "why": {"type": "string"}},
+                                        "required": ["id", "why"]}}},
+    "required": ["practice", "exam"]}
+
+
+def short(md, n=500):
+    md = re.sub(r"\s+", " ", md or "")
+    return md[:n] + ("…" if len(md) > n else "")
+
+
+def run(match):
+    sb = hub.db()
+    course = hub.find_course(sb, match)
+    lessons = sb.table("lessons").select("id, kind, number, title, topics, chapter_md").eq("course_id", course["id"]).execute().data
+    week = {}
+    for l in lessons:
+        t = l.get("title") or ""
+        if t.startswith("📦") or not l.get("number"):
+            continue
+        if l["kind"] in ("lecture", "practice") or t.startswith("מפגש "):
+            week[l["id"]] = l["number"]
+    if not week:
+        print(f"::notice title=Week sets::{course['name']}: no numbered lectures", flush=True)
+        return
+    last = max(week.values())
+    ex = sb.table("exercises").select("id, lesson_id, material_id, title, question_md, topic, exam_style, duplicate") \
+        .eq("course_id", course["id"]).execute().data
+    files = [x for x in ex if not x.get("lesson_id") and not x.get("duplicate")]
+
+    def topics_of(n):
+        out = []
+        for l in lessons:
+            if week.get(l["id"]) == n:
+                heads = re.findall(r"^##+ (.+)$", l.get("chapter_md") or "", re.M)
+                out.append(f"{author.KIND_NAME.get(l['kind'], '')} {n}: " + "; ".join(
+                    [str(t) for t in (l.get("topics") or [])] + [h for h in heads if "בדיקת" not in h and "העולם" not in h])[:900])
+        return "\n".join(out)
+
+    sets = {}
+    for n in range(1, last + 1):
+        own = [x for x in ex if x.get("lesson_id") and week.get(x["lesson_id"]) == n]
+        if not own and not files:
+            continue
+        taught = "\n".join(topics_of(k) for k in range(1, n + 1))
+        later = "\n".join(topics_of(k) for k in range(n + 1, last + 1))
+        prompt = (f"קורס: {course['name']}\nשבוע {n}.\n\n=== מה נלמד עד עכשיו (הרצאות ותרגולים 1-{n}) ===\n{taught}\n\n"
+                  f"=== נושאים של הרצאות מאוחרות (עוד לא נלמדו) ===\n{later or 'אין'}\n\n=== תרגילי השבוע ===\n"
+                  + "\n".join(f"[{x['id']}] {x['title']} | {x.get('topic') or ''} | {short(x['question_md'])}" for x in own)
+                  + "\n\n=== תרגילי מבחן ומטלות ===\n"
+                  + "\n".join(f"[{x['id']}] {x['title']} | {x.get('topic') or ''} | {short(x['question_md'], 400)}" for x in files))
+        try:
+            got = author._generate_json([types.Part.from_text(text=prompt)], SYSTEM, SCHEMA, "LOW")
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Week sets::{course['name']} week {n}: {str(e)[:200]}", flush=True)
+            continue
+        ids_own, ids_files = {x["id"] for x in own}, {x["id"] for x in files}
+        practice = [i for i in got.get("practice", []) if i in ids_own][:4]
+        exam = [e for e in got.get("exam", []) if e.get("id") in ids_files][:2]
+        if len(practice) < 2:  # never fewer than 2 practice exercises when the week has them
+            practice += [x["id"] for x in own if x["id"] not in practice][:2 - len(practice)]
+        sets[str(n)] = {"practice": practice, "exam": exam}
+        print(f"::notice title=Week sets::{course['name']} week {n}: {len(practice)} practice + {len(exam)} exam", flush=True)
+    sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
+                                    json.dumps({"weeks": sets, "built_at": datetime.now(timezone.utc).isoformat()},
+                                               ensure_ascii=False).encode("utf-8"),
+                                    {"content-type": "application/json", "upsert": "true"})
+
+
+if __name__ == "__main__":
+    run(sys.argv[1])
