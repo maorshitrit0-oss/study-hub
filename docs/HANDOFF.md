@@ -114,6 +114,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   each run: 07/11, 08/11, 11/11 = ~2 GB), shrink (0.9 GB). Backups are now incremental (backup.py dump <dir> <since>).
   Avoid whole-storage jobs (shrink, full backup, `where --again` on big courses) until the cycle resets on the 22nd.
   Quotas are per ORGANIZATION: a media project must be in its own free org to get its own 1 GB / 5 GB.
+- **Media project (12/11/2026):** his second free org "study-media", project zpjjrsgosphapghxlbsl (Mumbai), public
+  bucket "media". worker/mediastore.py (GitHub secret MEDIA_SUPABASE_KEY, an sb_secret_ key; the URL is in code).
+  New videos / podcasts go there (storage_path "m:<path>"; web/src/lib/studio.ts builds the public URL; CSP media-src
+  allows the host). usage.py pings it daily. TODO after 22/11 (main egress resets): move the existing ~300 MB of
+  media/ files there (download from main, upload, update storage_path; never delete before the copy is verified).
 - Supabase DB 500 MB: text only, ~15 MB per semester. Free projects pause after 7 idle days; the daily cron touches the DB.
 - GitHub Actions 2,000 min/month for a private repo; a 80-min lecture takes ~35 min. If it runs short, the repo can be
   made public (no secrets in code; data lives in Supabase) for unlimited minutes – ask the user first.
