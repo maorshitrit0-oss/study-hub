@@ -100,6 +100,18 @@ def label(lesson):
     return f"{kinds.get(lesson['kind'], '')} {lesson.get('number') or ''}".strip() + (f" - {lesson['title']}" if lesson.get("title") else "")
 
 
+def store_media(job, path, data, ctype):
+    """The second storage when its key is set (mediastore.py, 12/11/2026), else the app's own; returns storage_path."""
+    import mediastore
+    if mediastore.enabled():
+        try:
+            return mediastore.upload(path, data, ctype)
+        except Exception as e:  # noqa: BLE001 - fall back to the app's storage, the file is not lost
+            print(f"::warning title=Media storage::{str(e)[:200]} - saved in the app's storage", flush=True)
+    job.sb.storage.from_(BUCKET).upload(path, data, {"content-type": ctype, "upsert": "true"})
+    return path
+
+
 def source_text(job):
     parts = [f"קורס: {job.course['name']}"]
     for l in job.lessons:
@@ -695,7 +707,7 @@ def run(media_id):
             out = work / "out.mp4"
             title, script_md = make_explainer(job, pages, work, out)
             path = f"{uid}/media/{media_id}.mp4"
-            job.sb.storage.from_(BUCKET).upload(path, out.read_bytes(), {"content-type": "video/mp4", "upsert": "true"})
+            path = store_media(job, path, out.read_bytes(), "video/mp4")
             job.update(status="ready", storage_path=path, title=job.row.get("title") or title, script=script_md,
                        duration_sec=round(media.duration(out)), progress="מוכן")
             notify.send(job.sb, uid, "🎬 הסרטון מוכן", title or job.course["name"], f"/lessons/{job.lessons[0]['id']}")
@@ -716,8 +728,7 @@ def run(media_id):
         else:
             concat_audio(wavs, out)
         path = f"{uid}/media/{media_id}.{out.suffix[1:]}"
-        job.sb.storage.from_(BUCKET).upload(path, out.read_bytes(),
-                                            {"content-type": "video/mp4" if kind == "video" else "audio/mpeg", "upsert": "true"})
+        path = store_media(job, path, out.read_bytes(), "video/mp4" if kind == "video" else "audio/mpeg")
         script_md = "\n\n".join(f"**{s['speaker']}:** {s['text']}" for s in segs)
         job.update(status="ready", storage_path=path, title=job.row.get("title") or title, script=script_md,
                    duration_sec=round(media.duration(out)), progress="מוכן")
