@@ -1088,6 +1088,16 @@ def cmd_lab_lessons(match):
         print(f"::notice title=Lab::experiment {n}: queued ({', '.join(m['title'] for m in ([booklet[n]] if n in booklet else []) + reports.get(n, []))})", flush=True)
 
 
+def cmd_requeue(match, kind, number):
+    """A failed lesson back to the queue (the same as his "לנסות שוב" button)."""
+    sb = db()
+    course = find_course(sb, match)
+    for l in sb.table("lessons").select("id, status").eq("course_id", course["id"]).eq("kind", kind).eq("number", int(number)).execute().data:
+        if l["status"] == "error":
+            sb.table("lessons").update({"status": "queued", "error": None, "progress": "חזר לתור"}).eq("id", l["id"]).execute()
+            print(f"::notice title=Requeued::{kind} {number} {l['id']}", flush=True)
+
+
 def cmd_flat():  # noqa: D401
     """Every ready lesson whose chapter is squashed onto a few lines (author.is_flat) - to write again."""
     sb = db()
@@ -1146,6 +1156,7 @@ if __name__ == "__main__":
     p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
     p = sub.add_parser("outline"); p.add_argument("out_dir")
+    p = sub.add_parser("requeue"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
     p = sub.add_parser("lab-lessons"); p.add_argument("course")
     p = sub.add_parser("reorder"); p.add_argument("course"); p.add_argument("json_path")
     p = sub.add_parser("prepend"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number"); p.add_argument("md")
@@ -1218,6 +1229,8 @@ if __name__ == "__main__":
         cmd_reorder(a.course, a.json_path)
     elif a.cmd == "lab-lessons":
         cmd_lab_lessons(a.course)
+    elif a.cmd == "requeue":
+        cmd_requeue(a.course, a.kind, a.number)
     elif a.cmd == "outline":
         cmd_outline(a.out_dir)
     elif a.cmd == "flat":

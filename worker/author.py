@@ -322,7 +322,8 @@ def _with_gemini(call):
                     # Overload, or a dropped connection ("Server disconnected without sending a response"): retry.
                     # 500 INTERNAL is Google's side too (05/11/2026 on a site lesson with PDFs): retried, then next model.
                     busy = _is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "disconnected", "timed out",
-                               "Connection reset", "RemoteProtocolError", "500 INTERNAL", "Internal error encountered")
+                               "Connection reset", "RemoteProtocolError", "500 INTERNAL", "Internal error encountered",
+                               "DEADLINE_EXCEEDED", "504")  # Java lecture 4, 12/11/2026: a long lecture timed out once
                     if busy and attempt < 2:
                         time.sleep(20 * (attempt + 1) ** 2)  # 20 s, 80 s: an overload usually passes in a minute or two
                         continue

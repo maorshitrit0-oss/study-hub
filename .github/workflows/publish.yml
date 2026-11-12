@@ -76,6 +76,7 @@ jobs:
           if [ "$INSPECT" = "media-sample" ]; then python mediastore.py sample; exit $?; fi
           if [ "$INSPECT" = "media-move" ]; then python mediastore.py move; exit $?; fi
           if [ "$INSPECT" = "media-test" ]; then python mediastore.py test; exit $?; fi
+          if [ "$INSPECT" = "requeue" ]; then python hub.py requeue "$COURSE" "$KIND" "$NUMBER"; python queue_runner.py; exit $?; fi
           if [ "$INSPECT" = "storage" ]; then python storage_report.py; exit $?; fi
           if [ "$INSPECT" = "tidy" ]; then python hub.py tidy "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "forecast" ]; then python hub.py forecast "$COURSE" "../$CHAPTER"; exit $?; fi
