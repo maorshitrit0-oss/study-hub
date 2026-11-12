@@ -91,11 +91,21 @@ def main():
         title, fix = ADVICE["gemini"]
         alerts.append({"key": "gemini", "level": "warning", "text": f"{title} נגמרה ({quota_errors} הרצאות נכשלו)", "fix": fix})
 
-    data = {"used": used, "limits": limits, "alerts": alerts, "checked_at": datetime.now(timezone.utc).isoformat()}
+    # Push only when something got worse since the last push (a new alert, or warning -> critical): the same yellow
+    # alert every morning was noise (his screenshot 12/11/2026). The app still shows the current state every day.
+    try:
+        prev = (sb.table("usage_snapshot").select("data").eq("id", 1).execute().data or [{}])[0].get("data") or {}
+    except Exception:  # noqa: BLE001
+        prev = {}
+    pushed = dict(prev.get("pushed") or {})
+    fresh = [a for a in alerts if pushed.get(a["key"]) != a["level"] and not (pushed.get(a["key"]) == "critical")]
+    pushed = {a["key"]: (a["level"] if pushed.get(a["key"]) != "critical" else "critical") for a in alerts}
+    data = {"used": used, "limits": limits, "alerts": alerts, "pushed": pushed, "checked_at": datetime.now(timezone.utc).isoformat()}
     sb.table("usage_snapshot").upsert({"id": 1, "data": data, "updated_at": data["checked_at"]}).execute()
     print(json.dumps(data, ensure_ascii=False))
 
-    if alerts:
+    if fresh:
+        alerts = fresh
         users = {r["user_id"] for r in sb.table("push_subscriptions").select("user_id").execute().data}
         body = "\n".join(f"{'🔴' if a['level'] == 'critical' else '🟡'} {a['text']}" for a in alerts)
         for uid in users:
