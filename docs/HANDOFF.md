@@ -109,6 +109,11 @@ Make migrations idempotent (`if not exists`) and make app/worker code tolerate a
   (backup.yml), then `publish.yml inspect=shrink` (worker/shrink.py) re-encoded every video >3 MB with crf 27 / g 100 /
   AAC 48k: ~30% of the size, SSIM 0.998, same length; nothing deleted. studio.py now encodes new videos the same way.
   `inspect=storage` (worker/storage_report.py) prints what fills the storage; `inspect=shrink-dry` + number = test N.
+- **Egress, 12/11/2026:** the org usage page showed egress 5.98 / 5 GB (120%) and cached egress 106% for the cycle
+  22/10-22/11, while storage (as Supabase bills it) was only 39%. Our own downloads were most of it: backups (full copy
+  each run: 07/11, 08/11, 11/11 = ~2 GB), shrink (0.9 GB). Backups are now incremental (backup.py dump <dir> <since>).
+  Avoid whole-storage jobs (shrink, full backup, `where --again` on big courses) until the cycle resets on the 22nd.
+  Quotas are per ORGANIZATION: a media project must be in its own free org to get its own 1 GB / 5 GB.
 - Supabase DB 500 MB: text only, ~15 MB per semester. Free projects pause after 7 idle days; the daily cron touches the DB.
 - GitHub Actions 2,000 min/month for a private repo; a 80-min lecture takes ~35 min. If it runs short, the repo can be
   made public (no secrets in code; data lives in Supabase) for unlimited minutes – ask the user first.

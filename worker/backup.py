@@ -38,25 +38,30 @@ def tables():
     return [t for t in ORDER if t in found] + sorted(t for t in found if t not in ORDER)
 
 
-def walk(store, prefix=""):
-    """All file paths under prefix (folders have no id)."""
+def walk(store, prefix="", since=""):
+    """All file paths under prefix (folders have no id); with since, only files created / changed after it."""
     out, offset = [], 0
     while True:
         items = store.list(prefix, {"limit": PAGE, "offset": offset, "sortBy": {"column": "name", "order": "asc"}})
         for it in items:
             path = f"{prefix}/{it['name']}" if prefix else it["name"]
             if it.get("id") is None:
-                out += walk(store, path)
-            else:
+                out += walk(store, path, since)
+            elif not since or max(it.get("updated_at") or "", it.get("created_at") or "") > since:
                 out.append(path)
         if len(items) < PAGE:
             return out
         offset += PAGE
 
 
-def dump(out):
+def dump(out, since=""):
+    """since (ISO time): an incremental backup - every table, but only the files new or changed since the last backup
+    (12/11/2026: a full copy every week was most of the free plan's monthly download traffic)."""
     sb = db()
-    report = {"tables": {}, "files": {}}
+    if since:  # the previous dump ran for over an hour before its release was created: overlap by 3 hours
+        from datetime import datetime, timedelta
+        since = (datetime.fromisoformat(since.replace("Z", "+00:00")) - timedelta(hours=3)).isoformat()
+    report = {"tables": {}, "files": {}, "since": since or None}
     os.makedirs(f"{out}/tables", exist_ok=True)
     for t in tables():
         rows, start = [], 0
@@ -73,7 +78,7 @@ def dump(out):
     for b in sb.storage.list_buckets():
         name = b.name if hasattr(b, "name") else b["name"]
         store = sb.storage.from_(name)
-        paths = walk(store)
+        paths = walk(store, since=since)
         for p in paths:
             dest = f"{out}/storage/{name}/{p}"
             os.makedirs(os.path.dirname(dest), exist_ok=True)
@@ -115,4 +120,4 @@ def restore(src):
 
 
 if __name__ == "__main__":
-    {"dump": dump, "restore": restore}[sys.argv[1]](sys.argv[2])
+    {"dump": dump, "restore": restore}[sys.argv[1]](*sys.argv[2:])

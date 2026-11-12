@@ -1,7 +1,10 @@
 # Backup and restore
 
 Every Sunday night `.github/workflows/backup.yml` runs `worker/backup.py dump`: all rows of every table and every file in
-storage. The result is encrypted and kept as a GitHub release `backup-<date>` (pre-release, the last 8 are kept).
+storage. Since 12/11/2026 the weekly run is INCREMENTAL (`backup-inc-<date>`: every table, but only files new or
+changed since the previous backup - a full copy every week used most of the free plan's monthly download traffic);
+a full copy (`backup-<date>`) only when backup.yml is run by hand with full=true. To restore: the latest full backup,
+then every later backup-inc in date order (restore never deletes, uploads only missing files). The result is encrypted and kept as a GitHub release `backup-<date>` (pre-release, the last 8 are kept).
 
 - Encryption: a random AES-256 key encrypts `backup.tgz.enc.part*`; that key is encrypted with `backup/backup_pub.pem`
   into `key.bin.enc`. Only the private key opens it. It is in Maor's Google Drive: **"study-hub - מפתח גיבוי (backup_priv.pem)"**.

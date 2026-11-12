@@ -7,6 +7,10 @@ on:
   schedule:
     - cron: "41 1 * * 0"   # Sunday ~03:41-04:41 Israel time
   workflow_dispatch:
+    inputs:
+      full:
+        description: "true = every file (a full copy); otherwise only files new since the last backup"
+        default: "false"
 
 permissions:
   contents: write
@@ -29,7 +33,17 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: python backup.py dump "$RUNNER_TEMP/data"
+          GH_TOKEN: ${{ github.token }}
+          FULL: ${{ inputs.full }}
+        # Incremental by default (12/11/2026): only files new / changed since the latest backup release; restore = the
+        # latest full backup, then every later "backup-inc-" in order (docs/BACKUP.md).
+        run: |
+          since=""
+          if [ "$FULL" != "true" ]; then
+            since=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '[.[] | select(.tag_name | startswith("backup-"))][0].created_at // ""')
+          fi
+          echo "since=$since" >> "$GITHUB_ENV"
+          python backup.py dump "$RUNNER_TEMP/data" "$since"
       - name: pack and encrypt
         run: |
           set -euo pipefail
@@ -50,10 +64,14 @@ jobs:
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP"
-          tag="backup-$(date -u +%Y-%m-%d-%H%M)"
+          if [ -n "$since" ]; then tag="backup-inc-$(date -u +%Y-%m-%d-%H%M)"; else tag="backup-$(date -u +%Y-%m-%d-%H%M)"; fi
           gh release create "$tag" key.bin.enc backup.tgz.enc.part* --repo "$GITHUB_REPOSITORY" \
             --title "$tag" --notes "Encrypted weekly backup (worker/backup.py). Restore: docs/BACKUP.md" \
             --prerelease --latest=false
-          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[] | select(.tag_name | startswith("backup-")) | .tag_name' \
-            | sort -r | tail -n +9 | while read -r old; do gh release delete "$old" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes; done
+          # keep the last 2 full backups and every incremental one after the older of them
+          keep_from=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '[.[] | select((.tag_name | startswith("backup-")) and (.tag_name | startswith("backup-inc-") | not))] | sort_by(.created_at) | reverse | .[1].created_at // ""')
+          if [ -n "$keep_from" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq ".[] | select((.tag_name | startswith(\"backup-\")) and .created_at < \"$keep_from\") | .tag_name" \
+              | while read -r old; do gh release delete "$old" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes; done
+          fi
           echo "::notice title=Backup::$tag saved"
