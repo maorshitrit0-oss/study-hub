@@ -1,6 +1,7 @@
 import Nav from "@/components/Nav";
 import Credit from "@/components/Credit";
 import TopBar from "@/components/TopBar";
+import FitMath from "@/components/FitMath";
 
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
@@ -11,6 +12,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         <Credit className="mt-10" />
       </main>
       <Nav />
+      <FitMath />
     </>
   );
 }

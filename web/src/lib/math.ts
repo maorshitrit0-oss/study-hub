@@ -28,10 +28,11 @@ export function promoteLongMath(md: string) {
   return md.split(/(```[\s\S]*?```|`[^`\n]*`)/g).map((part, i) => {
     if (i % 2 === 1) return part;
     return part.split("\n").map((line) => {
-      // Tables and list items can't hold a display formula without breaking.
-      if (/^\s*(\||[-*+]\s|\d+[.)]\s|>)/.test(line)) return line;
+      // Tables and quotes can't hold a display formula without breaking; a list item can, indented to its text.
+      if (/^\s*(\||>)/.test(line)) return line;
+      const ind = " ".repeat((line.match(/^\s*(?:[-*+]|\d+[.)])\s+/)?.[0] ?? "").length);
       return line.replace(/(?<![$\\])\$(?!\$)([^$\n]+?)\$(?!\$)/g, (m, tex: string) =>
-        tex.length > LONG ? `\n\n$$${splitEquation(tex.trim())}$$\n\n` : m);
+        visual(tex) > LONG ? `\n\n${ind}$$${splitEquation(tex.trim())}$$\n\n${ind}` : m);
     }).join("\n")
       // Display equations already on their own line: split long ones too.
       .replace(/\$\$([^$]+?)\$\$/g, (_, tex: string) => `$$${splitEquation(tex.trim())}$$`);
@@ -58,6 +59,10 @@ function cleanTex(tex: string) {
   return opens > 0 ? tex + "}".repeat(opens) : tex;
 }
 
+/** How wide a formula looks: commands count as one character, braces as none. */
+const visual = (tex: string) => tex.replace(/\\(?:mathrm|text|operatorname|mathbf|boldsymbol)\{([^}]*)\}/g, "$1")
+  .replace(/\\[A-Za-z]+/g, "x").replace(/[{}\s]/g, "").length;
+
 function pairDollars(text: string) {
   // \(x\) / \[x\] written as delimiters -> $x$ / $$x$$
   text = text.replace(/\\\[([\s\S]+?)\\\]/g, (_, x) => `$$${x}$$`).replace(/\\\(([^\n]+?)\\\)/g, (_, x) => `$${x}$`);
@@ -71,14 +76,19 @@ function pairDollars(text: string) {
       n -= len;
     }
   }
-  let out = "", pos = 0, open: { at: number; len: number } | null = null;
+  let out = "", pos = 0, open: { at: number; len: number } | null = null, afterDisplay = false;
+  // the text right after a display formula already got the item's indent: drop its own leading spaces / comma
+  const chunk = (a: number, b: number) => {
+    const c = text.slice(a, b).replace(/\$/g, "");
+    return afterDisplay ? c.replace(/^[ \t]*[,;]?[ \t]*/, "") : c;
+  };
   for (const t of tokens) {
     if (!open) { open = t; continue; }
     const tex = text.slice(open.at + open.len, t.at);
     if (!tex.trim()) { open = t; continue; } // empty pair: the second one opens
     // "ה-$-$V_{CE} > 0.3$" (his screenshot 11/11/2026): a "pair" around a lone dash / punctuation, or an inline pair
     // across a paragraph break, is a stray opener - keep the text, the closer opens instead.
-    if (/^[-–.,:;&^\\]$/.test(tex.trim()) || (open.len === 1 && t.len === 1 && tex.includes("\n\n"))) {
+    if (/^[-–.,:;&^\\]$/.test(tex.trim()) || (open.len === 1 && t.len === 1 && tex.includes("\n"))) {
       const before = text.slice(pos, open.at).replace(/\$/g, "");
       out += before + (before.endsWith(tex.trim()) ? "" : tex);
       pos = t.at;
@@ -86,15 +96,17 @@ function pairDollars(text: string) {
       continue;
     }
     if (HEBREW.test(tex.replace(/\\text\{[^}]*\}/g, ""))) { open = t; continue; } // text, not math: stray opener
-    // inside a list item a medium formula stays inline: a display one splits the item (its tail lost its bullet)
+    // Inside a list item a display formula is indented to the item's text, so it stays in the item and the text after
+    // it keeps its place (his screenshots 11-12/11/2026: formulas mid-line in RTL text jumped around).
     const line = text.slice(text.lastIndexOf("\n", open.at) + 1, open.at);
-    const inList = /^\s*([-*]|\d+\.)\s/.test(line);
-    const display = open.len === 2 || t.len === 2 || tex.length > (inList ? 70 : LONG);
-    out += text.slice(pos, open.at).replace(/\$/g, "") + (display ? `\n\n$$${cleanTex(tex.trim())}$$\n\n` : `$${cleanTex(tex.trim())}$`);
+    const ind = " ".repeat((line.match(/^\s*(?:[-*+]|\d+[.)])\s+/)?.[0] ?? "").length);
+    const display = open.len === 2 || t.len === 2 || visual(tex) > LONG;
+    out += chunk(pos, open.at) + (display ? `\n\n${ind}$$${cleanTex(tex.trim())}$$\n\n${ind}` : `$${cleanTex(tex.trim())}$`);
+    afterDisplay = display;
     pos = t.at + t.len;
     open = null;
   }
-  return (out + text.slice(pos).replace(/\$/g, ""))
+  return (out + chunk(pos, text.length))
     .replace(/\$\$\n\n\s*([.,;:])(?=\s|$)/g, "$$$$\n\n") // the sentence's period after a display formula
     .replace(/\n{3,}/g, "\n\n");
 }

@@ -375,9 +375,9 @@ EXPLAINER_SCHEMA = {"type": "object", "properties": {"title": {"type": "string"}
 SLIDE_CSS = """*{box-sizing:border-box}html,body{overflow:hidden}body{margin:0;width:1280px;height:720px;position:relative;background:linear-gradient(135deg,#0b1d3a,#06142a);
 color:#eef2fb;font-family:Heebo,'DejaVu Sans',Arial,sans-serif;direction:rtl;display:flex;flex-direction:column;padding:48px 64px}
 h1{font-size:46px;margin:0 0 26px;color:#9fc3ff;border-bottom:3px solid #2b4466;padding-bottom:14px}
-.row{display:flex;gap:36px;flex:1;min-height:0;padding-bottom:96px}.txt{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+.row{display:flex;gap:36px;flex:1;min-height:0;padding-bottom:96px}.txt{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:safe center;overflow:hidden}
 ul{margin:0;padding-right:30px}li{font-size:33px;line-height:1.45;margin:8px 0}
-.f{direction:ltr;text-align:center;font-size:40px;overflow:hidden;margin-top:26px;background:#0e2547;border-radius:16px;padding:18px}
+.f{direction:ltr;text-align:center;font-size:40px;overflow:visible;margin-top:26px;background:#0e2547;border-radius:16px;padding:22px 18px}.f .katex-display{margin:0}
 .s{font-size:30px;margin-top:12px;padding:10px}.s:last-child{border:2px solid #f5b84b}
 .img{flex:0 0 500px;width:500px;display:flex;align-items:center;justify-content:center;overflow:hidden}.img img{max-width:500px;max-height:440px;object-fit:contain;border-radius:12px}
 .code{direction:ltr;text-align:left;background:#0a1830;border:1px solid #2a4a78;border-radius:14px;padding:16px 20px;margin:18px 0 0;
@@ -426,6 +426,13 @@ document.fonts.ready.then(() => {{
   for (const f of document.querySelectorAll('.f')) {{  // a long formula: shrink it until it fits its box
     const r = document.createRange(); r.selectNodeContents(f.querySelector('.katex-html') || f); let z = 1;
     while (r.getBoundingClientRect().width > f.clientWidth - 40 && z > 0.4) {{ z -= 0.05; f.style.fontSize = (z * 40) + 'px'; }}
+  }}
+  // the whole text column must fit above the subtitles: an integral's limits were cut off (his screenshot 12/11/2026)
+  const t = document.querySelector('.txt'); let k = 1;
+  while (t && t.scrollHeight > t.clientHeight + 1 && k > 0.45) {{
+    k -= 0.05;
+    for (const li of document.querySelectorAll('li')) li.style.fontSize = (33 * k) + 'px';
+    for (const f of document.querySelectorAll('.f')) f.style.fontSize = (parseFloat(f.style.fontSize || '40') * 0.94) + 'px';
   }}
   document.body.dataset.ready = '1';
 }});</script></body></html>""", encoding="utf-8")
