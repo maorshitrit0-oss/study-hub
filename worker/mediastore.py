@@ -41,8 +41,37 @@ def ping():
     return r.status_code
 
 
+
+def move_all():
+    """Copies every ready studio file still in the app's storage to the media project, checks the copy (same size via
+    the public URL), and only then points lesson_media.storage_path at it. The original stays (deleted only when he
+    says so) - "never delete his study data"."""
+    from supabase import create_client
+    sb = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
+    rows = sb.table("lesson_media").select("id, kind, storage_path").eq("status", "ready").execute().data
+    rows = [r for r in rows if r.get("storage_path") and not r["storage_path"].startswith(PREFIX)]
+    moved = failed = 0
+    for r in rows:
+        path = r["storage_path"]
+        try:
+            data = sb.storage.from_("study").download(path)
+            ctype = "audio/mpeg" if path.endswith(".mp3") else "video/mp4" if path.endswith(".mp4") else "application/octet-stream"
+            new = upload(path, data, ctype)
+            h = requests.head(public_url(new), timeout=60)
+            if h.status_code != 200 or int(h.headers.get("content-length", -1)) != len(data):
+                raise RuntimeError(f"check failed: {h.status_code} {h.headers.get('content-length')} != {len(data)}")
+            sb.table("lesson_media").update({"storage_path": new}).eq("id", r["id"]).execute()
+            moved += 1
+        except Exception as e:  # noqa: BLE001
+            failed += 1
+            print(f"::warning title=Media move::{path}: {str(e)[:200]}", flush=True)
+    print(f"::notice title=Media move::{moved} moved and checked, {failed} failed, originals kept", flush=True)
+
+
 if __name__ == "__main__":
     import sys
+    if sys.argv[1:] == ["move"]:
+        move_all()
     if sys.argv[1:] == ["test"]:
         print("ping", ping())
         p = upload("test/hello.txt", b"hello", "text/plain")

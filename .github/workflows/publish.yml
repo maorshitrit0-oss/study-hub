@@ -72,6 +72,7 @@ jobs:
           if [ "$INSPECT" = "lab-lessons" ]; then python hub.py lab-lessons "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "weekset" ]; then python weekset.py "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "tidy-redo" ]; then python hub.py tidy-redo "$COURSE"; exit $?; fi
+          if [ "$INSPECT" = "media-move" ]; then python mediastore.py move; exit $?; fi
           if [ "$INSPECT" = "media-test" ]; then python mediastore.py test; exit $?; fi
           if [ "$INSPECT" = "storage" ]; then python storage_report.py; exit $?; fi
           if [ "$INSPECT" = "tidy" ]; then python hub.py tidy "$COURSE"; exit $?; fi
