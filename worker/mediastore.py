@@ -69,6 +69,26 @@ def move_all():
 
 
 
+def drop_originals():
+    """He checked the moved files play and wrote "למחוק את המקוריים" (12/11/2026): removes the app-storage original of
+    every item already served from the media project - each one only after its copy answers again on the public URL."""
+    from supabase import create_client
+    sb = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
+    rows = [m for m in sb.table("lesson_media").select("storage_path").execute().data if (m.get("storage_path") or "").startswith(PREFIX)]
+    gone = kept = 0
+    for m in rows:
+        if requests.head(public_url(m["storage_path"]), timeout=60).status_code != 200:
+            kept += 1
+            continue
+        try:
+            sb.storage.from_("study").remove([m["storage_path"][len(PREFIX):]])
+            gone += 1
+        except Exception as e:  # noqa: BLE001
+            kept += 1
+            print(f"::warning title=Media originals::{str(e)[:150]}", flush=True)
+    print(f"::notice title=Media originals::{gone} removed from the app storage, {kept} kept", flush=True)
+
+
 def sample():
     """Which moved items to open for a check (no download): course, lesson, kind, length."""
     from supabase import create_client
@@ -83,6 +103,8 @@ def sample():
 
 if __name__ == "__main__":
     import sys
+    if sys.argv[1:] == ["drop-originals"]:
+        drop_originals()
     if sys.argv[1:] == ["sample"]:
         sample()
     if sys.argv[1:] == ["move"]:
