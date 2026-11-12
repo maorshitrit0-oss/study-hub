@@ -62,6 +62,12 @@ def repo_is_public():
 
 def main():
     sb = notify.db()
+    try:  # keep the media project awake (free projects pause after 7 idle days)
+        import mediastore
+        if mediastore.enabled():
+            print(f"media storage ping: {mediastore.ping()}", flush=True)
+    except Exception as e:  # noqa: BLE001
+        print(f"media ping failed: {e}", flush=True)
     stats = sb.rpc("usage_stats").execute().data or {}
     used = {"storage": stats.get("storage_bytes", 0), "db": stats.get("db_bytes", 0)}
     try:

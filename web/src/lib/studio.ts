@@ -6,6 +6,7 @@ export type Media = {
   lesson_ids: string[]; created_at: string; url?: string;
 };
 
+const MEDIA_URL = "https://zpjjrsgosphapghxlbsl.supabase.co/storage/v1/object/public/media/";
 const ENGINE_SINCE = "2026-11-08T17:20"; // the subtitled, synced explainer video he approved
 
 /** Studio items of a lesson (or of a whole course), newest first, with playable links. */
@@ -16,11 +17,13 @@ export async function loadMedia(sb: SupabaseClient, filter: { lessonId?: string;
   const { data, error } = await q;
   if (error) return null; // studio.sql not run yet
   const rows = (data ?? []) as (Media & { storage_path: string | null })[];
-  const paths = rows.filter((r) => r.storage_path).map((r) => r.storage_path!);
+  // "m:<path>" = the second storage (worker/mediastore.py, 12/11/2026): a public URL, no signing
+  for (const r of rows) if (r.storage_path?.startsWith("m:")) r.url = `${MEDIA_URL}${r.storage_path.slice(2)}`;
+  const paths = rows.filter((r) => r.storage_path && !r.storage_path.startsWith("m:")).map((r) => r.storage_path!);
   if (paths.length) {
     const { data: signed } = await sb.storage.from("study").createSignedUrls(paths, 6 * 3600);
     const byPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
-    for (const r of rows) if (r.storage_path) r.url = byPath.get(r.storage_path) ?? undefined;
+    for (const r of rows) if (r.storage_path && !r.storage_path.startsWith("m:")) r.url = byPath.get(r.storage_path) ?? undefined;
   }
   // A failed item is hidden when the same lessons already have a ready one of that kind from the current video engine
   // (or made after it failed): the worker will not redo it either (queue_runner.retry_studio, ENGINE_SINCE).

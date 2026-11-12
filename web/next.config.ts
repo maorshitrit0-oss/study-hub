@@ -8,7 +8,7 @@ const CSP = [
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${supabase}`,
-  `media-src 'self' blob: ${supabase}`, // podcasts and videos from the studio (Supabase storage)
+  `media-src 'self' blob: ${supabase} https://zpjjrsgosphapghxlbsl.supabase.co`, // studio podcasts / videos (the app storage + the media project, 12/11/2026)
   "font-src 'self' data:",
   `connect-src 'self' ${supabase} ${supabase.replace("https://", "wss://")}`,
   "worker-src 'self' blob:",
