@@ -68,8 +68,23 @@ def move_all():
     print(f"::notice title=Media move::{moved} moved and checked, {failed} failed, originals kept", flush=True)
 
 
+
+def sample():
+    """Which moved items to open for a check (no download): course, lesson, kind, length."""
+    from supabase import create_client
+    sb = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_SERVICE_KEY"])
+    names = {c["id"]: c["name"] for c in sb.table("courses").select("id, name").execute().data}
+    les = {l["id"]: (l["kind"], l.get("number"), l.get("title") or "") for l in sb.table("lessons").select("id, kind, number, title").execute().data}
+    for m in sb.table("lesson_media").select("course_id, kind, storage_path, duration_sec, lesson_ids").eq("status", "ready").execute().data:
+        if (m.get("storage_path") or "").startswith(PREFIX):
+            l = les.get((m.get("lesson_ids") or [""])[0], ("?", None, ""))
+            print(f"::notice title=Moved::{names.get(m['course_id'])} | {l[0]} {l[1]} {l[2][:40]} | {m['kind']} | {round((m.get('duration_sec') or 0) / 60)} min", flush=True)
+
+
 if __name__ == "__main__":
     import sys
+    if sys.argv[1:] == ["sample"]:
+        sample()
     if sys.argv[1:] == ["move"]:
         move_all()
     if sys.argv[1:] == ["test"]:
