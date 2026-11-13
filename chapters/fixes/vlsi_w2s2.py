@@ -240,7 +240,12 @@ VIVADO_MD = r"""## 🖥️ סימולציה – הסדר המלא (חוזר בכ
    שבב `xc7a35tfgg484-2`.)
 2. **קובץ הרכיב:** בצד שמאל, `Flow Navigator` ← `PROJECT MANAGER` ← **`Add Sources`** ← `Add or create design sources` ←
    `Create File` ← File type: **SystemVerilog**, שם: `adder4` ← `OK` ← `Finish` (חלון Define Module – `OK`).
-3. בחלון `Sources` לוחצים פעמיים על `adder4.sv`, מדביקים את **full_adder ו-adder4**, ושומרים: **Ctrl+S**.
+3. בחלון **`Sources`** (צד שמאל) ← תחת `Design Sources` ← **לחיצה כפולה** על `adder4.sv` ← בצד ימין נפתח עורך.
+   אם יש בו שלד ריק – מוחקים הכול (Ctrl+A, Delete). מדביקים את **שני הרכיבים יחד** (adder4 בנוי מ-full_adder, לכן
+   Vivado צריך את שניהם) ושומרים: **Ctrl+S**. הקוד להדבקה:
+
+""" + code(FA + "\n\n" + ADDER4) + r"""
+
 4. **קובץ הבדיקה:** שוב `Add Sources` ← הפעם **`Add or create simulation sources`** ← `Create File` ← SystemVerilog,
    שם `tb_adder4` ← מדביקים את הבדיקה (בתרגיל 5) ← **Ctrl+S**.
 5. ב-`Sources` ← תיקייה `Simulation Sources` ← לחיצה ימנית על `tb_adder4` ← **`Set as Top`**.
