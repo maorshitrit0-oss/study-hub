@@ -246,8 +246,16 @@ VIVADO_MD = r"""## 🖥️ סימולציה – הסדר המלא (חוזר בכ
 
 """ + code(FA + "\n\n" + ADDER4) + r"""
 
-4. **קובץ הבדיקה:** שוב `Add Sources` ← הפעם **`Add or create simulation sources`** ← `Create File` ← SystemVerilog,
-   שם `tb_adder4` ← מדביקים את הבדיקה (בתרגיל 5) ← **Ctrl+S**.
+4. **קובץ הבדיקה (testbench)** – קובץ שני, נפרד. הוא לא חלק מהמעגל: הוא "הבודק" שמזין למחבר מספרים ומדפיס מה יצא.
+   Vivado שומר אותו בתיקייה נפרדת (`Simulation Sources`), כדי שלא ייצרב ללוח.
+   - שוב `Add Sources` (אותו כפתור משלב 2).
+   - בחלון שנפתח בוחרים הפעם באפשרות השלישית: **`Add or create simulation sources`** ← `Next`.
+   - `Create File` ← File type: **SystemVerilog**, שם: **`tb_adder4`** ← `OK` ← `Finish` (חלון Define Module – `OK`).
+   - בחלון `Sources` ← תיקייה **`Simulation Sources`** ← `sim_1` ← **לחיצה כפולה** על `tb_adder4.sv` ← מוחקים את
+     השלד (Ctrl+A, Delete) ← מדביקים ← **Ctrl+S**. הקוד להדבקה:
+
+""" + code(TB) + r"""
+
 5. ב-`Sources` ← תיקייה `Simulation Sources` ← לחיצה ימנית על `tb_adder4` ← **`Set as Top`**.
 6. `Flow Navigator` ← `SIMULATION` ← **`Run Simulation`** ← **`Run Behavioral Simulation`**.
 7. **בודקים – מה אמור להופיע:**
