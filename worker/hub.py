@@ -393,7 +393,8 @@ def save_chapter(job, ch, by):
         fields.pop("syllabus_covered", None)
         fields.pop("summary_md", None)
         job.update(**fields)
-    if job.lesson.get("kind") in ("lecture", "practice") and not os.environ.get("QUIET"):
+    if job.lesson.get("kind") in ("lecture", "practice") and not os.environ.get("QUIET") \
+            and job.course.get("kind") != "self" and not (job.lesson.get("transcript") or "").startswith(author.VLSI_NOTE):
         try:  # the week's exercise set again, now that this lesson has its exercises (weekset.py, 11/11/2026)
             import weekset
             weekset.run("^" + re.escape(job.course["name"]) + "$")
