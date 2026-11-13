@@ -331,7 +331,9 @@ def auto_studio(job, wait=False):
         return
     try:
         have = job.sb.table("lesson_media").select("id, kind, status").contains("lesson_ids", [les["id"]]).execute().data
-        for kind in AUTO_KINDS:
+        # self-study: a video only (his choice 13/11/2026: the video teaches better than the podcast)
+        kinds = ("video",) if (les.get("transcript") or "").startswith(author.VLSI_NOTE) else AUTO_KINDS
+        for kind in kinds:
             old = [m for m in have if m["kind"] == kind]
             if any(m["status"] != "error" for m in old):
                 continue

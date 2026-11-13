@@ -220,26 +220,38 @@ ADD_MD = r"""## 3. מחבר ripple-carry של 4 ביטים
 בזמן שהנשא עוד מתגלגל, ביטי התוצאה יכולים להראות לרגע ערך לא נכון ("glitch"). לכן במערכת עם שעון קוראים את התוצאה
 רק בעליית השעון – אחרי שהכול נרגע. זו בדיוק הסיבה שעיכוב קובע את מהירות השעון."""
 
-VIVADO_MD = r"""## 🖥️ ב-Vivado 2025.2 – מה עושים אחרי שכתבנו קוד (סימולציה, בלי לוח)
-**המטרה:** לראות שהקוד עובד במחשב לפני שצורבים. ככה מגלים טעויות בשניות ולא בחצי שעה.
+VIVADO_MD = r"""## 🖥️ סימולציה – הסדר המלא (חוזר בכל מפגש עד 6.2, כדי שיהפוך לטבעי)
+**המטרה:** לראות שהקוד עובד במחשב לפני שצורבים. מגלים טעויות בשניות ולא בחצי שעה.
 
-1. פותחים את הפרויקט `mini_tpu` (או `Create Project` חדש, אותו שבב: `xc7a35tfgg484-2`).
-2. **קובץ הקוד:** בצד שמאל, `Flow Navigator` ← `PROJECT MANAGER` ← **`Add Sources`** ← `Add or create design sources`
-   ← `Create File` ← File type: **SystemVerilog**, שם: `adder4` ← `OK` ← `Finish`. (אם קופץ חלון Define Module – `OK`.)
-3. בחלון `Sources` לוחצים פעמיים על `adder4.sv` ומדביקים את **full_adder ו-adder4**. שומרים: **Ctrl+S**.
+### דרך א: Vivado 2025.2 (במחשב)
+1. **פותחים:** תפריט התחל ← `Vivado 2025.2` ← `Open Project` ← `mini_tpu`. (פרויקט חדש: `Create Project` ← RTL Project ←
+   שבב `xc7a35tfgg484-2`.)
+2. **קובץ הרכיב:** בצד שמאל, `Flow Navigator` ← `PROJECT MANAGER` ← **`Add Sources`** ← `Add or create design sources` ←
+   `Create File` ← File type: **SystemVerilog**, שם: `adder4` ← `OK` ← `Finish` (חלון Define Module – `OK`).
+3. בחלון `Sources` לוחצים פעמיים על `adder4.sv`, מדביקים את **full_adder ו-adder4**, ושומרים: **Ctrl+S**.
 4. **קובץ הבדיקה:** שוב `Add Sources` ← הפעם **`Add or create simulation sources`** ← `Create File` ← SystemVerilog,
-   שם `tb_adder4` ← מדביקים את הבדיקה (בתרגיל 5) ← Ctrl+S.
+   שם `tb_adder4` ← מדביקים את הבדיקה (בתרגיל 5) ← **Ctrl+S**.
 5. ב-`Sources` ← תיקייה `Simulation Sources` ← לחיצה ימנית על `tb_adder4` ← **`Set as Top`**.
 6. `Flow Navigator` ← `SIMULATION` ← **`Run Simulation`** ← **`Run Behavioral Simulation`**.
-7. **מה אמור להופיע:**
-   - למטה בלשונית **`Tcl Console`**: השורות `5 + 3 = 8` ו-`15 + 1 = 16`. ✅ זה הפידבק הראשון.
-   - חלון גלים (waveform): הסיגנלים a, b, sum לאורך הזמן. לחיצה ימנית על `sum` ← `Radix` ← `Unsigned Decimal` כדי
-     לראות מספרים ולא ביטים. כפתור `Zoom Fit` (ריבוע עם חצים) מציג הכול.
-8. **אם יש שגיאה:** לשונית **`Messages`** למטה – שורות אדומות. הטעויות הנפוצות:
+7. **בודקים – מה אמור להופיע:**
+   - למטה בלשונית **`Tcl Console`**: `5 + 3 = 8` ו-`15 + 1 = 16`. ✅
+   - **חלון הגלים:** הסיגנלים a, b, sum לאורך הזמן. כפתור **`Zoom Fit`** (ריבוע עם חצים) מציג הכול. לחיצה ימנית על `sum`
+     ← `Radix` ← **`Unsigned Decimal`** – רואים מספרים (8, 16) במקום ביטים.
+8. **אם יש שגיאה:** לשונית **`Messages`** למטה ← השורה האדומה הראשונה. 3 הטעויות הנפוצות:
    - חסר `;` בסוף שורה → "syntax error near ...".
    - שם רגל לא תואם (`.cin` ברכיב אבל `.c_in` בחיבור) → "port not found".
-   - שכחת `endmodule`.
-   מתקנים, Ctrl+S, ושוב `Run Behavioral Simulation` (אם שואל לסגור את הסימולציה הקודמת – `Yes`)."""
+   - חסר `endmodule`.
+   מתקנים ← Ctrl+S ← שוב `Run Behavioral Simulation` (אם שואל לסגור את הקודמת – `Yes`).
+
+### דרך ב: EDA Playground (בדפדפן, גם מהטלפון)
+1. נכנסים ל-https://www.edaplayground.com ← **`Log in`** (עם חשבון גוגל – חובה כדי להריץ).
+2. בצד שמאל: `Testbench + Design` ← **SystemVerilog/Verilog**. `Tools & Simulators` ← **Icarus Verilog 12.0**.
+   מסמנים **`Open EPWave after run`**.
+3. בחלון **השמאלי** (`testbench.sv`) מדביקים את הבדיקה, ובחלון **הימני** (`design.sv`) את full_adder ו-adder4.
+4. כדי לראות גלים, מוסיפים בתחילת ה-`initial` בבדיקה שתי שורות: `$dumpfile("dump.vcd"); $dumpvars;`
+5. לוחצים **`Run`** (למעלה). למטה בלשונית `Log` יופיע `5 + 3 = 8`, וחלון הגלים (EPWave) נפתח לבד ← `Get Signals` ←
+   בוחרים את a, b, sum ← `Append All`."""
+
 
 QUIZ = [
     ("מה עושה השורה `assign y = s ? b : a;`?", ["אם s=1 – y שווה b, אחרת a (Mux)", "y שווה s כפול b ועוד a", "שומרת את b בזיכרון", "בודקת אם s גדול מ-b"], 0,
@@ -260,9 +272,10 @@ QUIZ = [
 ]
 
 EX = [
-    dict(title="🔧 משימת הפרויקט: מחבר 4 ביטים על הלוח – כל הצעדים",
+    dict(title="🔧 תרגול על הלוח: מחבר 4 ביטים – כל הצעדים",
          question_md="""בונים על הלוח את המחבר: **SW1–SW4 הם המספר a, SW5–SW8 הם b, והתוצאה (5 ביטים) על LED1–LED5.**
-זה החיבור שנמצא בתוך יחידת ה-MAC של ה-Mini-TPU. **קודם מוודאים שהסימולציה עובדת (תרגיל 5).**""",
+זה תרגול של Vivado והלוח (לא חובה – אם הסימולציה בתרגיל 5 עובדת, הבנת את המפגש). בשבוע 9 המחבר הזה ייכנס
+ליחידת ה-MAC של הפרויקט. **קודם מוודאים שהסימולציה עובדת (תרגיל 5).**""",
          solution_md="""**שלב 1 – קובץ ה-top (מחבר בין הלוח למחבר):** `Add Sources` ← design sources ← Create File ← SystemVerilog, שם `top`:
 
 """ + code(TOP) + """
@@ -297,7 +310,7 @@ EX = [
 - הלוח לא נמצא ב-Auto Connect → כבל USB אחר / הלוח כבוי / דרייבר הכבל (מההתקנה).
 - הלדים הפוכים מהצפוי → לבדוק שהמתג "למעלה" הוא 1 (אפשר לבדוק: כל המתגים למטה = הכול כבוי).
 - שגיאה בסינתזה → `Messages`, השורה האדומה הראשונה.""",
-         topic="משימת הפרויקט"),
+         topic="תרגול על הלוח"),
     dict(title="תרגיל 1 · 🔍 לקרוא ולנחש (בלי לכתוב)",
          question_md="""בלי להריץ – מה היציאה?
 1. ב-`mux2`: `a=0, b=1, s=1` → `y = ?`
@@ -335,7 +348,10 @@ endmodule
 - `s` – קו הבחירה הוא כניסה.
 - `assign` – חוט קבוע.
 - `b` – כש-s=1 בוחרים את b.
-- `endmodule` – סוגרים את המודול (בלי `;`).""",
+- `endmodule` – סוגרים את המודול (בלי `;`).
+
+**עוד תרגול (בדיקה אוטומטית מיידית):** https://hdlbits.01xz.net/wiki/Mux2to1 – כותבים שורה אחת ולוחצים **`Submit`**.
+ואחריו גרסת הווקטורים: https://hdlbits.01xz.net/wiki/Mux2to1v""",
          topic="Mux"),
     dict(title="תרגיל 3 · ✏️ להשלים את החסר – Mux 4:1 משלושה Mux 2:1",
          question_md="""השלם את החיבורים:
@@ -356,7 +372,9 @@ endmodule
 - m1 בוחר בזוג השני (d2/d3) לפי s[0], והתוצאה ב-**hi**.
 - m2 בוחר בין הזוגות לפי **s[1]**.
 
-💡 **שיטה לזכור:** הביט הנמוך בוחר "בתוך זוג", הגבוה – "איזה זוג".""",
+💡 **שיטה לזכור:** הביט הנמוך בוחר "בתוך זוג", הגבוה – "איזה זוג".
+
+**אתגר (רשות):** https://hdlbits.01xz.net/wiki/Mux256to1 – Mux של 256 כניסות בשורה אחת. רמז: `assign out = in[sel];`""",
          topic="Mux"),
     dict(title="תרגיל 4 · 🔧 לשנות – Decoder עם כניסת הפעלה",
          question_md="""קח את `dec2to4` והוסף כניסה `en` (ביט אחד): כש-`en = 0` כל היציאות 0; כש-`en = 1` הוא עובד כרגיל.
@@ -395,7 +413,13 @@ endmodule
 - רמז 1: כמה חוטי נשא פנימיים צריך בין 4 מחברים? (3)
 - רמז 2: מה נכנס ל-`cin` של המחבר הראשון? (`1'b0`)
 - רמז 3: לאן הולך ה-`cout` של האחרון? (`sum[4]`)
-- רמז 4: בבדיקה – `initial begin ... end`, ובין ערכים `#10;`.""",
+- רמז 4: בבדיקה – `initial begin ... end`, ובין ערכים `#10;`.
+
+**איפה כותבים:** ב-Vivado או ב-EDA Playground (הדרכים בפרק, בחלק "סימולציה").
+**עוד תרגול באותו נושא (בדיקה אוטומטית מיידית):**
+- מחבר מלא: https://hdlbits.01xz.net/wiki/Fadd
+- מחבר ripple של 3 ביטים: https://hdlbits.01xz.net/wiki/Adder3
+(ב-HDLBits כותבים בתוך המודול שכבר נתון, לוחצים **`Submit`**, ומקבלים מיד "Success" או גרף של מה שיצא שונה.)""",
          solution_md="""**המחבר:**
 
 """ + code(ADDER4) + """
@@ -424,16 +448,17 @@ def main():
   לכן במחברים רחבים משתמשים ב-carry-lookahead.
 - **איך בונים Mux 4:1 מ-Mux 2:1?** שלושה: שניים בוחרים בתוך כל זוג לפי `s[0]`, השלישי בוחר בין הזוגות לפי `s[1]`.
 
-## 🔧 מה עושים היום בפרויקט
-מחבר של 4 ביטים על הלוח: SW1–4 ועוד SW5–8, התוצאה על הלדים. זה החיבור שבתוך יחידת ה-MAC של ה-Mini-TPU – בהמשך
-המחבר הזה יחבר את מכפלות ה-int8. הצעדים המלאים בתרגיל "משימת הפרויקט"."""])
+## 🔧 היום על הלוח (תרגול)
+מחבר של 4 ביטים: SW1–4 ועוד SW5–8, התוצאה על הלדים. הצעדים המלאים בתרגיל "תרגול על הלוח". זה לא חובה – אם
+הסימולציה עובדת, הבנת. בשבוע 9 המחבר הזה ייכנס ליחידת ה-MAC של הפרויקט."""])
     summary = r"""## 🎯 המסר של המפגש
 - **Mux** בוחר כניסה אחת לפי קו בחירה: `assign y = s ? b : a;`. Mux 4:1 = שלושה Mux 2:1 (`s[0]` בתוך זוג, `s[1]` בין זוגות).
 - **Decoder** 2→4 מדליק קו אחד לפי המספר: `always_comb` + `case` + `default`.
 - **מחבר ripple** = מחברים מלאים בשורה, הנשא מתגלגל ← עיכוב לינארי ב-N.
 - **הדקדוק:** module/endmodule, `input/output logic`, וקטור `[3:0]`, `assign`, `? :`, `4'b0101`, instantiation עם `.port(wire)`.
 - **ב-Vivado:** קוד ← Add Sources ← בדיקה ב-simulation sources ← Set as Top ← Run Behavioral Simulation ← Tcl Console.
-- **על הלוח:** top + XDC ← Synthesis ← Implementation ← Bitstream ← Hardware Manager ← Program."""
+- **על הלוח (תרגול):** top + XDC ← Synthesis ← Implementation ← Bitstream ← Hardware Manager ← Program.
+- **לתרגל עוד:** HDLBits Mux2to1, Fadd, Adder3."""
     data = {"title": "שבוע 2 · מפגש 2: Mux, Decoder ומחבר ripple", "chapter_md": chapter, "summary_md": summary,
             "topics": ["דקדוק SystemVerilog", "Mux", "Decoder", "מחבר ripple", "Vivado"],
             "glossary": [], "course_facts": [], "syllabus_covered": [], "exam_type": "mcq", "grade_weights": [], "homework": [],
