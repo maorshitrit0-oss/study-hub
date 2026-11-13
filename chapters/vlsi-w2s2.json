@@ -1,0 +1,182 @@
+{
+ "title": "שבוע 2 · מפגש 2: Mux, Decoder ומחבר ripple",
+ "chapter_md": "## 🧭 איך המפגש הזה בנוי\nקודם **הדקדוק** של SystemVerilog שצריך היום – 7 חלקים קטנים, כל אחד עם דוגמה של שורה אחת. אחר כך כל רכיב (Mux,\nDecoder, מחבר) מוסבר **שורה אחרי שורה**. ואז תרגול שמטפס בהדרגה: לקרוא ולנחש ← להשלים חסרים ← לשנות ← לכתוב לבד.\nבסוף – המשימה על הלוח עם **כל לחיצה ב-Vivado** ומה אמור להופיע.\n\n> 💡 כמו בשפה: קודם לומדים מילים ומבנה משפט, ורק אז כותבים חיבור. אף אחד לא כותב קוד מדף ריק בלי להכיר את 7 החלקים האלה.\n\n## 📘 הדקדוק של היום – 7 חלקים\n\n**1. מודול = רכיב עם כניסות ויציאות.** כמו שבב על לוח: יש לו שם, רגליים נכנסות ורגליים יוצאות.\n```systemverilog\nmodule name ( input logic a, output logic y );\n    // what is inside\nendmodule\n```\n- `module ... endmodule` – תחילת וסוף הרכיב.\n- `input logic a` – רגל כניסה בשם a, ביט אחד. `output logic y` – רגל יציאה.\n- **אחרי כל שורה בתוך המודול – נקודה-פסיק `;`** (חוץ מ-`begin`/`end`/`endmodule`).\n\n**2. וקטור = כמה ביטים יחד.** `logic [3:0] a` הוא מספר של 4 ביטים: `a[3] a[2] a[1] a[0]` (a[0] הוא הביט הימני, הקטן).\n- `a[0]` – ביט אחד מתוכו. `sw[3:0]` – ארבעת הביטים התחתונים.\n\n**3. `assign` = חוט קבוע.** `assign y = a & b;` אומר \"y מחובר תמיד ל-AND של a ו-b\". זה לא פקודה שרצה פעם אחת –\nזה חיווט: כל שינוי ב-a או b משנה את y מיד.\n\n**4. אופרטורים:** `&` וגם, `|` או, `^` XOR, `~` היפוך, `+` חיבור. ובחירה: `s ? b : a` = \"אם s אז b, אחרת a\" –\nזה בדיוק Mux.\n\n**5. מספרים עם גודל:** `4'b0101` = 4 ביטים בבינארי (5). `4'd5` = 4 ביטים בעשרוני (5). `1'b0` = ביט אחד, אפס.\nהמספר לפני הגרש = כמה ביטים; האות = הבסיס (b בינארי, d עשרוני, h הקסה).\n\n**6. `always_comb` + `case` = טבלת אמת בקוד.** כשנוח יותר לכתוב \"אם הכניסה X – היציאה Y\":\n```systemverilog\nalways_comb begin\n    case (sel)\n        2'd0:    y = 4'b0001;\n        default: y = 4'b1000;\n    endcase\nend\n```\n- `default` חובה: בלי ערך לכל מקרה, הכלי בונה latch (זיכרון) בטעות.\n\n**7. שימוש ברכיב בתוך רכיב (instantiation).** כמו להלחים שבב על לוח ולחבר לו חוטים:\n```systemverilog\nfull_adder fa0 (.a(x), .b(y), .cin(1'b0), .s(s0), .cout(c1));\n```\n- `full_adder` – איזה רכיב. `fa0` – השם של העותק הזה (יכולים להיות כמה עותקים).\n- `.a(x)` – \"את הרגל a של הרכיב מחברים לחוט x שאצלי\". הנקודה = שם הרגל ברכיב, בסוגריים = החוט אצלך.\n\n> ⭐ אם זוכרים את 7 החלקים האלה – אפשר לקרוא ולכתוב את כל הקוד של היום.\n\n## 1. Mux – בורר\n**מה הוא עושה:** בוחר כניסה אחת מתוך כמה ומעביר אותה ליציאה, לפי קו בחירה. כמו מתג בורר בטלוויזיה: HDMI1 או HDMI2.\n\n| s | y |\n|---|---|\n| 0 | a |\n| 1 | b |\n\n```systemverilog\nmodule mux2 (\n    input  logic a, b,   // the two data inputs\n    input  logic s,      // select\n    output logic y\n);\n    assign y = s ? b : a;   // s=1 -> b, s=0 -> a\nendmodule\n```\n\n**שורה אחרי שורה:**\n- `input logic a, b` – שתי כניסות נתונים, ביט אחד כל אחת. `input logic s` – קו הבחירה.\n- `assign y = s ? b : a;` – אם s=1 היציאה היא b, אחרת a. זו כל הלוגיקה.\n\n### Mux 4:1 משלושה Mux 2:1 (שאלת הראיון)\n**הרעיון:** שני mux2 בוחרים \"בתוך זוג\" לפי הביט הנמוך `s[0]`, והשלישי בוחר \"בין הזוגות\" לפי הביט הגבוה `s[1]`.\n\n```systemverilog\nmodule mux4 (\n    input  logic [3:0] d,   // four data inputs d[0]..d[3]\n    input  logic [1:0] s,   // select 0..3\n    output logic y\n);\n    logic lo, hi;           // the outputs of the first two mux2\n\n    mux2 m0 (.a(d[0]), .b(d[1]), .s(s[0]), .y(lo));   // picks d0 / d1\n    mux2 m1 (.a(d[2]), .b(d[3]), .s(s[0]), .y(hi));   // picks d2 / d3\n    mux2 m2 (.a(lo),   .b(hi),   .s(s[1]), .y(y));    // picks between them\nendmodule\n```\n\n**בדיקה עם מספרים:** `s = 2'b10` (=2) → `s[0]=0`: m0 נותן d0, m1 נותן d2 → `s[1]=1`: m2 בוחר את hi = **d2** ✅.\n\n## 2. Decoder – מפענח 2→4\n**מה הוא עושה:** מקבל מספר (0..3) ומדליק **קו אחד בלבד** מתוך 4 – את הקו שמספרו נבחר. כמו בורר קומה במעלית.\n\n| sel | y (y3 y2 y1 y0) |\n|---|---|\n| 0 | 0001 |\n| 1 | 0010 |\n| 2 | 0100 |\n| 3 | 1000 |\n\n```systemverilog\nmodule dec2to4 (\n    input  logic [1:0] sel,\n    output logic [3:0] y\n);\n    always_comb begin            // combinational block: re-evaluated whenever sel changes\n        case (sel)\n            2'd0:    y = 4'b0001;\n            2'd1:    y = 4'b0010;\n            2'd2:    y = 4'b0100;\n            default: y = 4'b1000;   // sel = 3 (default also prevents a latch)\n        endcase\n    end\nendmodule\n```\n\n**שורה אחרי שורה:**\n- `always_comb begin ... end` – בלוק צירופי (בלי זיכרון): מחושב מחדש בכל שינוי של `sel`.\n- `case (sel)` – לפי ערך sel. `2'd0:` – \"כש-sel הוא 0\". `y = 4'b0001;` – מדליקים את y0.\n- `default` – כל מה שלא נכתב (כאן sel=3).\n\n> 🏠 **מקודד עדיפות (Priority encoder)** הוא ההפך: מקבל כמה קווים ומחזיר את **המספר** של הקו הגבוה שדולק – למשל איזו\n> בקשת פסיקה הכי דחופה.\n\n## 3. מחבר ripple-carry של 4 ביטים\n**הרעיון:** מחבר מלא (מהמפגש הקודם) מחבר ביט אחד ומוציא נשא. שמים 4 כאלה בשורה, והנשא של כל אחד נכנס לבא – כמו חיבור\nבמאונך בבית הספר, עמודה אחרי עמודה.\n\n```systemverilog\nmodule full_adder (\n    input  logic a, b, cin,     // three 1-bit inputs\n    output logic s, cout        // sum and carry out\n);\n    assign s    = a ^ b ^ cin;                 // sum: 1 when an odd number of inputs is 1\n    assign cout = (a & b) | (cin & (a ^ b));   // carry: at least two of the three are 1\nendmodule\n```\n\n```systemverilog\nmodule adder4 (\n    input  logic [3:0] a, b,    // two 4-bit numbers (0..15)\n    output logic [4:0] sum      // 5 bits: 15+15 = 30 needs 5 bits\n);\n    logic c1, c2, c3;           // the carries between the stages (\"wires\" inside the module)\n\n    full_adder fa0 (.a(a[0]), .b(b[0]), .cin(1'b0), .s(sum[0]), .cout(c1));\n    full_adder fa1 (.a(a[1]), .b(b[1]), .cin(c1),   .s(sum[1]), .cout(c2));\n    full_adder fa2 (.a(a[2]), .b(b[2]), .cin(c2),   .s(sum[2]), .cout(c3));\n    full_adder fa3 (.a(a[3]), .b(b[3]), .cin(c3),   .s(sum[3]), .cout(sum[4]));\nendmodule\n```\n\n**שורה אחרי שורה:**\n- `logic [3:0] a, b` – שני מספרים של 4 ביטים. `logic [4:0] sum` – 5 ביטים, כי 15+15=30 צריך ביט חמישי.\n- `logic c1, c2, c3;` – החוטים הפנימיים שמעבירים את הנשא מעמודה לעמודה.\n- `fa0 (... .cin(1'b0) ...)` – בעמודה הראשונה אין נשא נכנס: אפס.\n- `.cout(c1)` של fa0 נכנס כ-`.cin(c1)` של fa1 – זה ה\"גלגול\" (ripple).\n- `.cout(sum[4])` של fa3 – הנשא האחרון הוא הביט החמישי של התוצאה.\n\n**דוגמה: 15 + 1 = 16** (1111 + 0001): בעמודה 0 יוצא נשא, שהופך לנשא בעמודה 1, ומשם ל-2 ול-3 – **הנשא עובר דרך כל\nארבעת המחברים** עד שהתוצאה 10000 מוכנה.\n\n### ⏱️ שאלת הראיון: מה העיכוב של מחבר ripple של N ביטים?\n- כל מחבר מלא צריך לחכות לנשא מהקודם. במקרה הגרוע (כמו 15+1) הנשא עובר דרך **כל** N המחברים.\n- לכן העיכוב **גדל לינארית עם N**: בערך $t \\approx N\\cdot t_{carry}$ (כש-$t_{carry}$ הוא עיכוב הנשא במחבר אחד,\n  כ-2 שערים).\n- **התשובה בראיון:** \"O(N) – הנשא מתגלגל דרך כל הביטים. ל-32 ביט זה איטי, ולכן יש מחברי carry-lookahead שמחשבים\n  את הנשאים במקביל.\"\n\n### ⚡ Glitch – קפיצה רגעית\nבזמן שהנשא עוד מתגלגל, ביטי התוצאה יכולים להראות לרגע ערך לא נכון (\"glitch\"). לכן במערכת עם שעון קוראים את התוצאה\nרק בעליית השעון – אחרי שהכול נרגע. זו בדיוק הסיבה שעיכוב קובע את מהירות השעון.\n\n## 🖥️ ב-Vivado 2025.2 – מה עושים אחרי שכתבנו קוד (סימולציה, בלי לוח)\n**המטרה:** לראות שהקוד עובד במחשב לפני שצורבים. ככה מגלים טעויות בשניות ולא בחצי שעה.\n\n1. פותחים את הפרויקט `mini_tpu` (או `Create Project` חדש, אותו שבב: `xc7a35tfgg484-2`).\n2. **קובץ הקוד:** בצד שמאל, `Flow Navigator` ← `PROJECT MANAGER` ← **`Add Sources`** ← `Add or create design sources`\n   ← `Create File` ← File type: **SystemVerilog**, שם: `adder4` ← `OK` ← `Finish`. (אם קופץ חלון Define Module – `OK`.)\n3. בחלון `Sources` לוחצים פעמיים על `adder4.sv` ומדביקים את **full_adder ו-adder4**. שומרים: **Ctrl+S**.\n4. **קובץ הבדיקה:** שוב `Add Sources` ← הפעם **`Add or create simulation sources`** ← `Create File` ← SystemVerilog,\n   שם `tb_adder4` ← מדביקים את הבדיקה (בתרגיל 5) ← Ctrl+S.\n5. ב-`Sources` ← תיקייה `Simulation Sources` ← לחיצה ימנית על `tb_adder4` ← **`Set as Top`**.\n6. `Flow Navigator` ← `SIMULATION` ← **`Run Simulation`** ← **`Run Behavioral Simulation`**.\n7. **מה אמור להופיע:**\n   - למטה בלשונית **`Tcl Console`**: השורות `5 + 3 = 8` ו-`15 + 1 = 16`. ✅ זה הפידבק הראשון.\n   - חלון גלים (waveform): הסיגנלים a, b, sum לאורך הזמן. לחיצה ימנית על `sum` ← `Radix` ← `Unsigned Decimal` כדי\n     לראות מספרים ולא ביטים. כפתור `Zoom Fit` (ריבוע עם חצים) מציג הכול.\n8. **אם יש שגיאה:** לשונית **`Messages`** למטה – שורות אדומות. הטעויות הנפוצות:\n   - חסר `;` בסוף שורה → \"syntax error near ...\".\n   - שם רגל לא תואם (`.cin` ברכיב אבל `.c_in` בחיבור) → \"port not found\".\n   - שכחת `endmodule`.\n   מתקנים, Ctrl+S, ושוב `Run Behavioral Simulation` (אם שואל לסגור את הסימולציה הקודמת – `Yes`).\n\n## 🎤 שאלות הראיון של היום – תשובות קצרות\n- **מה העיכוב של מחבר ripple של N ביטים?** גדל לינארית: הנשא עובר דרך כל N המחברים במקרה הגרוע ($\\approx N\\cdot t_{carry}$).\n  לכן במחברים רחבים משתמשים ב-carry-lookahead.\n- **איך בונים Mux 4:1 מ-Mux 2:1?** שלושה: שניים בוחרים בתוך כל זוג לפי `s[0]`, השלישי בוחר בין הזוגות לפי `s[1]`.\n\n## 🔧 מה עושים היום בפרויקט\nמחבר של 4 ביטים על הלוח: SW1–4 ועוד SW5–8, התוצאה על הלדים. זה החיבור שבתוך יחידת ה-MAC של ה-Mini-TPU – בהמשך\nהמחבר הזה יחבר את מכפלות ה-int8. הצעדים המלאים בתרגיל \"משימת הפרויקט\".",
+ "summary_md": "## 🎯 המסר של המפגש\n- **Mux** בוחר כניסה אחת לפי קו בחירה: `assign y = s ? b : a;`. Mux 4:1 = שלושה Mux 2:1 (`s[0]` בתוך זוג, `s[1]` בין זוגות).\n- **Decoder** 2→4 מדליק קו אחד לפי המספר: `always_comb` + `case` + `default`.\n- **מחבר ripple** = מחברים מלאים בשורה, הנשא מתגלגל ← עיכוב לינארי ב-N.\n- **הדקדוק:** module/endmodule, `input/output logic`, וקטור `[3:0]`, `assign`, `? :`, `4'b0101`, instantiation עם `.port(wire)`.\n- **ב-Vivado:** קוד ← Add Sources ← בדיקה ב-simulation sources ← Set as Top ← Run Behavioral Simulation ← Tcl Console.\n- **על הלוח:** top + XDC ← Synthesis ← Implementation ← Bitstream ← Hardware Manager ← Program.",
+ "topics": [
+  "דקדוק SystemVerilog",
+  "Mux",
+  "Decoder",
+  "מחבר ripple",
+  "Vivado"
+ ],
+ "glossary": [],
+ "course_facts": [],
+ "syllabus_covered": [],
+ "exam_type": "mcq",
+ "grade_weights": [],
+ "homework": [],
+ "exercises": [
+  {
+   "title": "🔧 משימת הפרויקט: מחבר 4 ביטים על הלוח – כל הצעדים",
+   "question_md": "בונים על הלוח את המחבר: **SW1–SW4 הם המספר a, SW5–SW8 הם b, והתוצאה (5 ביטים) על LED1–LED5.**\nזה החיבור שנמצא בתוך יחידת ה-MAC של ה-Mini-TPU. **קודם מוודאים שהסימולציה עובדת (תרגיל 5).**",
+   "solution_md": "**שלב 1 – קובץ ה-top (מחבר בין הלוח למחבר):** `Add Sources` ← design sources ← Create File ← SystemVerilog, שם `top`:\n\n```systemverilog\nmodule top (\n    input  logic [7:0] sw,      // switches SW1..SW8\n    output logic [4:0] led      // LED1..LED5\n);\n    adder4 u_add (.a(sw[3:0]), .b(sw[7:4]), .sum(led));\nendmodule\n```\n\n- `sw[3:0]` הם 4 המתגים הראשונים → המספר a. `sw[7:4]` → המספר b. `led` (5 ביטים) → התוצאה.\n- ב-`Sources` ← `Design Sources` ← לחיצה ימנית על `top` ← **`Set as Top`**.\n\n**שלב 2 – קובץ הפינים (XDC):** `Add Sources` ← **`Add or create constraints`** ← Create File, שם `pins` ← מדביקים\n(רק הפינים שבשימוש – כל פורט ב-top חייב שורה):\n\n```text\nset_property -dict {PACKAGE_PIN H13 IOSTANDARD LVCMOS33} [get_ports {sw[0]}]\nset_property -dict {PACKAGE_PIN G13 IOSTANDARD LVCMOS33} [get_ports {sw[1]}]\nset_property -dict {PACKAGE_PIN G15 IOSTANDARD LVCMOS33} [get_ports {sw[2]}]\nset_property -dict {PACKAGE_PIN G16 IOSTANDARD LVCMOS33} [get_ports {sw[3]}]\nset_property -dict {PACKAGE_PIN J14 IOSTANDARD LVCMOS33} [get_ports {sw[4]}]\nset_property -dict {PACKAGE_PIN H14 IOSTANDARD LVCMOS33} [get_ports {sw[5]}]\nset_property -dict {PACKAGE_PIN G17 IOSTANDARD LVCMOS33} [get_ports {sw[6]}]\nset_property -dict {PACKAGE_PIN G18 IOSTANDARD LVCMOS33} [get_ports {sw[7]}]\nset_property -dict {PACKAGE_PIN J21 IOSTANDARD LVCMOS33} [get_ports {led[0]}]\nset_property -dict {PACKAGE_PIN J19 IOSTANDARD LVCMOS33} [get_ports {led[1]}]\nset_property -dict {PACKAGE_PIN H19 IOSTANDARD LVCMOS33} [get_ports {led[2]}]\nset_property -dict {PACKAGE_PIN K18 IOSTANDARD LVCMOS33} [get_ports {led[3]}]\nset_property -dict {PACKAGE_PIN K19 IOSTANDARD LVCMOS33} [get_ports {led[4]}]\n```\n\n**שלב 3 – הלחיצות, לפי הסדר** (ב-`Flow Navigator`):\n1. `SYNTHESIS` ← **`Run Synthesis`** ← OK. מחכים לסימן ✓ (דקה-שתיים).\n2. בחלון שקופץ: **`Run Implementation`** ← OK.\n3. בחלון שקופץ: **`Generate Bitstream`** ← OK. (אם יש שגיאה אדומה על פורט \"unconstrained\" – חסרה שורה ב-XDC.)\n4. מחברים את הלוח ב-USB ומדליקים אותו. בחלון שקופץ: **`Open Hardware Manager`**.\n5. למעלה בפס הירוק: **`Open target`** ← **`Auto Connect`**. אמור להופיע השבב `xc7a35t`.\n6. **`Program device`** ← `Program`. אחרי כמה שניות הלוח מתוכנת.\n\n**שלב 4 – מה אמור לקרות על הלוח (הבדיקה):**\n| מתגים | a + b | לדים (LED5..LED1) |\n|---|---|---|\n| הכול למטה | 0 + 0 = 0 | הכול כבוי |\n| SW1 ו-SW3 למעלה (a=5), SW5 ו-SW6 למעלה (b=3) | 5 + 3 = 8 | רק **LED4** דולק (01000) |\n| SW1–SW4 למעלה (a=15), SW5 למעלה (b=1) | 15 + 1 = 16 | רק **LED5** דולק (10000) |\n| SW1–SW8 למעלה | 15 + 15 = 30 | LED5, LED4, LED3, LED2 (11110) |\n\n**אם לא עובד:**\n- הלוח לא נמצא ב-Auto Connect → כבל USB אחר / הלוח כבוי / דרייבר הכבל (מההתקנה).\n- הלדים הפוכים מהצפוי → לבדוק שהמתג \"למעלה\" הוא 1 (אפשר לבדוק: כל המתגים למטה = הכול כבוי).\n- שגיאה בסינתזה → `Messages`, השורה האדומה הראשונה.",
+   "topic": "משימת הפרויקט",
+   "exam_style": false,
+   "uncertain": false
+  },
+  {
+   "title": "תרגיל 1 · 🔍 לקרוא ולנחש (בלי לכתוב)",
+   "question_md": "בלי להריץ – מה היציאה?\n1. ב-`mux2`: `a=0, b=1, s=1` → `y = ?`\n2. ב-`mux4`: `d = 4'b1010`, `s = 2'b01` → `y = ?`\n3. ב-`dec2to4`: `sel = 2'd2` → `y = ?`\n4. ב-`adder4`: `a = 4'd6, b = 4'd7` → `sum = ?` (בעשרוני ובבינארי)",
+   "solution_md": "1. `s=1` → בוחר את b → **y = 1**.\n2. `d = 1010` פירושו d[3]=1, d[2]=0, d[1]=1, d[0]=0. `s = 01` → `s[0]=1`: m0 נותן d[1]=1, m1 נותן d[3]=1;\n   `s[1]=0` → m2 בוחר את lo = **1**. (בדיקה: s=1 → d[1]=1 ✅)\n3. `sel=2` → **y = 4'b0100**.\n4. 6+7 = **13** = **01101** (5 ביטים).\n\n💡 **הרעיון:** לפני שכותבים – קוראים קוד ומנחשים. אם הניחוש נכון, מבינים את הרכיב.",
+   "topic": "Mux",
+   "exam_style": false,
+   "uncertain": false
+  },
+  {
+   "title": "תרגיל 2 · ✏️ להשלים את החסר – Mux 2:1",
+   "question_md": "השלם את 4 החסרים (`___`):\n```systemverilog\nmodule mux2 (\n    input  logic a, b,\n    input  logic ___,\n    output logic y\n);\n    ___ y = s ? ___ : a;\n___\n```",
+   "solution_md": "```systemverilog\nmodule mux2 (\n    input  logic a, b,\n    input  logic s,\n    output logic y\n);\n    assign y = s ? b : a;\nendmodule\n```\n- `s` – קו הבחירה הוא כניסה.\n- `assign` – חוט קבוע.\n- `b` – כש-s=1 בוחרים את b.\n- `endmodule` – סוגרים את המודול (בלי `;`).",
+   "topic": "Mux",
+   "exam_style": false,
+   "uncertain": false
+  },
+  {
+   "title": "תרגיל 3 · ✏️ להשלים את החסר – Mux 4:1 משלושה Mux 2:1",
+   "question_md": "השלם את החיבורים:\n```systemverilog\nmodule mux4 (input logic [3:0] d, input logic [1:0] s, output logic y);\n    logic lo, hi;\n    mux2 m0 (.a(d[0]), .b(___),  .s(___),  .y(lo));\n    mux2 m1 (.a(___),  .b(d[3]), .s(s[0]), .y(___));\n    mux2 m2 (.a(lo),   .b(hi),   .s(___),  .y(y));\nendmodule\n```",
+   "solution_md": "```systemverilog\n    mux2 m0 (.a(d[0]), .b(d[1]), .s(s[0]), .y(lo));\n    mux2 m1 (.a(d[2]), .b(d[3]), .s(s[0]), .y(hi));\n    mux2 m2 (.a(lo),   .b(hi),   .s(s[1]), .y(y));\n```\n- m0 בוחר בזוג הראשון (d0/d1) לפי **s[0]**.\n- m1 בוחר בזוג השני (d2/d3) לפי s[0], והתוצאה ב-**hi**.\n- m2 בוחר בין הזוגות לפי **s[1]**.\n\n💡 **שיטה לזכור:** הביט הנמוך בוחר \"בתוך זוג\", הגבוה – \"איזה זוג\".",
+   "topic": "Mux",
+   "exam_style": false,
+   "uncertain": false
+  },
+  {
+   "title": "תרגיל 4 · 🔧 לשנות – Decoder עם כניסת הפעלה",
+   "question_md": "קח את `dec2to4` והוסף כניסה `en` (ביט אחד): כש-`en = 0` כל היציאות 0; כש-`en = 1` הוא עובד כרגיל.\nרמז: `if (!en) ... else case ...` בתוך ה-`always_comb`.",
+   "solution_md": "```systemverilog\nmodule dec2to4_en (\n    input  logic [1:0] sel,\n    input  logic       en,      // new: enable\n    output logic [3:0] y\n);\n    always_comb begin\n        if (!en)\n            y = 4'b0000;            // disabled: nothing on\n        else\n            case (sel)\n                2'd0:    y = 4'b0001;\n                2'd1:    y = 4'b0010;\n                2'd2:    y = 4'b0100;\n                default: y = 4'b1000;\n            endcase\n    end\nendmodule\n```\n- `input logic en` – כניסה חדשה, ומוסיפים פסיק בשורה שלפניה.\n- `if (!en)` – `!` היא \"לא\": כש-en=0.\n- כל ענף נותן ערך ל-y – לכן אין latch.\n\n💡 **ככה כותבים קוד חדש בהתחלה:** לוקחים קוד שעובד ומשנים דבר אחד.",
+   "topic": "Decoder",
+   "exam_style": false,
+   "uncertain": false
+  },
+  {
+   "title": "תרגיל 5 · ✍️ לכתוב לבד – מחבר 4 ביטים + בדיקה (עם רמזים)",
+   "question_md": "נתון לך `full_adder` (בפרק). כתוב לבד:\n1. `adder4` – שני מספרים של 4 ביטים, תוצאה של 5 ביטים, מ-4 עותקים של `full_adder`.\n2. `tb_adder4` – בדיקה ששמה 5+3 ואז 15+1 ומדפיסה את התוצאה.\n\n**סולם רמזים** (לפתוח רק אם נתקעים, אחד אחרי השני):\n- רמז 1: כמה חוטי נשא פנימיים צריך בין 4 מחברים? (3)\n- רמז 2: מה נכנס ל-`cin` של המחבר הראשון? (`1'b0`)\n- רמז 3: לאן הולך ה-`cout` של האחרון? (`sum[4]`)\n- רמז 4: בבדיקה – `initial begin ... end`, ובין ערכים `#10;`.",
+   "solution_md": "**המחבר:**\n\n```systemverilog\nmodule adder4 (\n    input  logic [3:0] a, b,    // two 4-bit numbers (0..15)\n    output logic [4:0] sum      // 5 bits: 15+15 = 30 needs 5 bits\n);\n    logic c1, c2, c3;           // the carries between the stages (\"wires\" inside the module)\n\n    full_adder fa0 (.a(a[0]), .b(b[0]), .cin(1'b0), .s(sum[0]), .cout(c1));\n    full_adder fa1 (.a(a[1]), .b(b[1]), .cin(c1),   .s(sum[1]), .cout(c2));\n    full_adder fa2 (.a(a[2]), .b(b[2]), .cin(c2),   .s(sum[2]), .cout(c3));\n    full_adder fa3 (.a(a[3]), .b(b[3]), .cin(c3),   .s(sum[3]), .cout(sum[4]));\nendmodule\n```\n\n**הבדיקה:**\n\n```systemverilog\nmodule tb_adder4;                 // a testbench has no ports\n    logic [3:0] a, b;\n    logic [4:0] sum;\n\n    adder4 dut (.a(a), .b(b), .sum(sum));   // the circuit under test\n\n    initial begin\n        a = 4'd5;  b = 4'd3;  #10;          // put values, wait 10 ns\n        $display(\"5 + 3 = %0d\", sum);\n        a = 4'd15; b = 4'd1;  #10;\n        $display(\"15 + 1 = %0d\", sum);\n        $finish;                            // end of the simulation\n    end\nendmodule\n```\n\n**שורה אחרי שורה בבדיקה:**\n- `module tb_adder4;` – לבדיקה אין רגליים: היא \"הלוח\" שמחובר לרכיב.\n- `adder4 dut (...)` – העותק של המחבר שנבדק (dut = device under test).\n- `initial begin ... end` – רץ פעם אחת מתחילת הסימולציה.\n- `a = 4'd5; b = 4'd3; #10;` – שמים ערכים ומחכים 10 ננו-שניות שהמעגל יגיב.\n- `$display(\"5 + 3 = %0d\", sum);` – מדפיס ל-Tcl Console. `%0d` = המספר בעשרוני.\n- `$finish;` – סוף.\n\n**ב-Vivado:** לפי הצעדים בפרק (Add Sources ← simulation sources ← Set as Top ← Run Behavioral Simulation).\n**אמור להופיע ב-Tcl Console:** `5 + 3 = 8` ו-`15 + 1 = 16`.",
+   "topic": "מחבר ripple",
+   "exam_style": false,
+   "uncertain": false
+  }
+ ],
+ "questions": [
+  {
+   "question": "מה עושה השורה `assign y = s ? b : a;`?",
+   "options": [
+    "אם s=1 – y שווה b, אחרת a (Mux)",
+    "y שווה s כפול b ועוד a",
+    "שומרת את b בזיכרון",
+    "בודקת אם s גדול מ-b"
+   ],
+   "correct": 0,
+   "explanation": "`? :` היא בחירה: תנאי ? ערך-אם-כן : ערך-אם-לא.",
+   "topic": "דקדוק SystemVerilog",
+   "difficulty": 1
+  },
+  {
+   "question": "כמה ביטים יש ב-`logic [3:0] a`?",
+   "options": [
+    "4",
+    "3",
+    "5",
+    "1"
+   ],
+   "correct": 0,
+   "explanation": "מ-3 עד 0 כולל: a[3], a[2], a[1], a[0].",
+   "topic": "דקדוק SystemVerilog",
+   "difficulty": 1
+  },
+  {
+   "question": "מה פירוש `4'b0110`?",
+   "options": [
+    "מספר של 4 ביטים בבינארי, ערך 6",
+    "המספר 4110",
+    "4 בבסיס 110",
+    "6 ביטים"
+   ],
+   "correct": 0,
+   "explanation": "4 = כמה ביטים, b = בינארי, 0110 = 6.",
+   "topic": "דקדוק SystemVerilog",
+   "difficulty": 1
+  },
+  {
+   "question": "בשורה `full_adder fa1 (.cin(c1), ...);` מה פירוש `.cin(c1)`?",
+   "options": [
+    "את הרגל cin של fa1 מחברים לחוט c1",
+    "c1 שווה cin",
+    "יוצרים רגל חדשה בשם c1",
+    "מעתיקים את fa1 ל-c1"
+   ],
+   "correct": 0,
+   "explanation": "נקודה + שם = הרגל ברכיב; בסוגריים = החוט אצלך.",
+   "topic": "דקדוק SystemVerilog",
+   "difficulty": 2
+  },
+  {
+   "question": "למה צריך `default` ב-`case` בתוך `always_comb`?",
+   "options": [
+    "כדי שלכל ערך תהיה יציאה – אחרת נוצר latch בטעות",
+    "כדי שהקוד ירוץ מהר יותר",
+    "זה רק מנהג, אין לזה השפעה",
+    "כדי לאפס את המערכת"
+   ],
+   "correct": 0,
+   "explanation": "ערך שלא הוגדר = הכלי \"זוכר\" את הקודם = latch.",
+   "topic": "Decoder",
+   "difficulty": 2
+  },
+  {
+   "question": "ב-Mux 4:1 משלושה Mux 2:1, איזה ביט בוחר בשלב האחרון?",
+   "options": [
+    "s[1] – הביט הגבוה",
+    "s[0] – הביט הנמוך",
+    "שניהם יחד",
+    "d[3]"
+   ],
+   "correct": 0,
+   "explanation": "שני הראשונים בוחרים בתוך זוג לפי s[0], האחרון בין הזוגות לפי s[1].",
+   "topic": "Mux",
+   "difficulty": 2
+  },
+  {
+   "question": "מה העיכוב של מחבר ripple של N ביטים?",
+   "options": [
+    "גדל לינארית עם N – הנשא עובר דרך כל המחברים",
+    "קבוע, לא תלוי ב-N",
+    "גדל כמו N בריבוע",
+    "תלוי רק בביט הראשון"
+   ],
+   "correct": 0,
+   "explanation": "במקרה הגרוע הנשא מתגלגל דרך כל N העמודות: O(N).",
+   "topic": "מחבר ripple",
+   "difficulty": 2
+  },
+  {
+   "question": "איפה רואים ב-Vivado את הפלט של `$display` בסימולציה?",
+   "options": [
+    "בלשונית Tcl Console למטה",
+    "על הלדים בלוח",
+    "בדוח הסינתזה",
+    "בקובץ ה-XDC"
+   ],
+   "correct": 0,
+   "explanation": "$display כותב טקסט לקונסולה של הסימולטור.",
+   "topic": "Vivado",
+   "difficulty": 1
+  }
+ ],
+ "verification": {
+  "fixes": [
+   "נכתב מחדש על ידי Claude בגישה של הבנה לפני כתיבה (בקשתו 13/11/2026). הפינים מ-fpga/pa35t_edu.xdc."
+  ],
+  "uncertain": [
+   "שמות הכפתורים ב-Vivado לפי גרסאות 2023-2025; אם שם שונה מעט ב-2025.2 – הסדר זהה."
+  ]
+ }
+}
