@@ -769,6 +769,14 @@ lessonWeek = the lesson's number for lectures / practices / "מפגש N" session
 Lecture / practice pages no longer show the exercises - only a link to that week. Weekly "✍️ לפתור" task = the course's
 latest week.
 
+## Formula display fixes (12-13/11/2026)
+- Chapters: a long formula inside a list item becomes its own line indented to the item (lib/math.ts, width counted
+  as seen); FitMath (app layout) shrinks display formulas to the phone width. Scan of all chapters: 6 of 5,434 broken.
+- Video slides: the text column shrinks until it fits above the subtitles (studio.render_slides).
+- `hub studio-redo <course>` (inspect=studio-redo) queues a new video per lecture / session; retry_studio makes 2 per
+  queue run (cron every 2 h); the app shows only the newest ready video of a lesson. Random signals: 21 queued 13/11.
+  Other courses after it, when he asks / the quota allows.
+
 ## Lab experiments as lessons (11/11/2026)
 `hub lab-lessons "מעבדה 2"` (inspect=lab-lessons): one lesson kind lab number N per experiment, transcript = booklet docx
 (+ partner's / his .docx summary reports) marked LAB_NOTE; the queue writes the lab chapter (KIND_TASK lab: goal,
