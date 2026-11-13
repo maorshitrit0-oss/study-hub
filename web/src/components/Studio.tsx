@@ -14,11 +14,12 @@ const mmss = (s: number | null) => (s ? `${Math.floor(s / 60)}:${String(s % 60).
  * Podcast, video and everyday examples made inside the app from the (fact-checked) chapters.
  * On a lesson page it works on that lesson; on a course page he picks the lessons.
  */
-export default function Studio({ courseId, lessons, items, canVideo = false }: {
+export default function Studio({ courseId, lessons, items, canVideo = false, title }: {
   courseId: string;
   lessons: { id: string; label: string }[]; // one = lesson page; several = pick
   items: Media[] | null;
   canVideo?: boolean;
+  title?: string; // self-study: "🎬 סרטון המפגש"
 }) {
   const single = lessons.length === 1;
   const [picked, setPicked] = useState<Set<string>>(new Set(lessons.map((l) => l.id)));
@@ -41,7 +42,7 @@ export default function Studio({ courseId, lessons, items, canVideo = false }: {
   });
 
   return (
-    <Fold id="studio" title="🎧 סטודיו (פודקאסט, סרטון, דוגמאות)" hint={items.length ? `${items.length}` : undefined}>
+    <Fold id="studio" title={title ?? "🎧 סטודיו (פודקאסט, סרטון, דוגמאות)"} hint={items.length ? `${items.length}` : undefined}>
      <div className="space-y-3">
       {busy && <AutoRefresh seconds={15} />}
       {!single && (

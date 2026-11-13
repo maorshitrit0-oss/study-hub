@@ -51,10 +51,14 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
   const interview = self && lesson.number ? VLSI_PROGRAM[lesson.number - 1]?.interview ?? [] : [];
   const project = (exercises ?? []).filter((x) => (x.title ?? "").startsWith("🔧"));
   const exerciseFold = (exercises ?? []).length > 0 && (
-    <Fold id={`exercises-${id}`} title={self && project.length ? "🔧 משימת הפרויקט ותרגילים" : "✍️ תרגילים מהשיעור"} hint={`${exercises!.length}`}>
+    <Fold id={`exercises-${id}`} title={self && project.length ? (project.some((x) => (x.title ?? "").startsWith("🔧 תרגול")) ? "✍️ תרגילים ותרגול על הלוח" : "🔧 משימת הפרויקט ותרגילים") : "✍️ תרגילים מהשיעור"} hint={`${exercises!.length}`}>
       <p className="text-xs text-muted mb-3">{self && project.length ? "המשימה של היום בפרויקט - כמו תרגיל בית: לנסות לבד, ורק אחר כך לפתוח את הפתרון." : "לפתור על דף, ורק אחר כך לפתוח את הפתרון."}</p>
       <Exercises items={(exercises ?? []) as Exercise[]} slideUrls={slideUrls} />
     </Fold>
+  );
+  const studioFold = lesson.status === "ready" && lesson.chapter_md && (
+    <Studio courseId={lesson.course_id} lessons={[{ id, label: lessonName(lesson) }]} items={media === null ? null : media.filter((m) => m.kind !== "examples")}
+      canVideo={/!\[[^\]]*\]\(slide:\d+\)/.test(lesson.chapter_md)} title={self ? "🎬 סרטון המפגש" : undefined} />
   );
   const quizFold = lesson.status === "ready" && (
     <section className="space-y-3" id="quiz">
@@ -141,7 +145,7 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
       )}
 
       {/* Everything folded by default (05/11/2026) - he opens what he wants: the condensed summary, the full chapter,
-          the exercises, the quiz. Self-study sessions: full chapter -> quiz -> the project task (his order). */}
+          the exercises, the quiz. Self-study sessions: warm-up -> video -> chapter -> exercises -> quiz (13/11/2026). */}
       {/* 🔥 First thing in the lesson (09/11/2026): a warm-up on every lesson before this one, then what to re-read. */}
       {lesson.status === "ready" && warm.questions.length > 0 && (
         <Fold id={`warmup-${id}`} title="🔥 חימום לפני השיעור" defaultOpen={!lesson.read_at}
@@ -150,6 +154,9 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
           <Warmup key={warm.questions.map((q) => q.id).join()} questions={warm.questions} lessons={warm.lessons} courseId={lesson.course_id} />
         </Fold>
       )}
+
+      {/* Self-study: the video right after the warm-up - the order of the session plan (13/11/2026). */}
+      {self && studioFold}
 
       {lesson.status === "ready" && !self && summaryText && (
         <Fold id={`summary-${id}`} title="📝 סיכום מתומצת - מסקנות השיעור">
@@ -184,8 +191,9 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
           ✍️ התרגילים של השיעור הזה – בעמודת התרגילים, שבוע {lesson.number}
         </Link>
       ) : !self && exerciseFold}
-      {quizFold}
+      {/* Self-study: exercises and the board practice come before the closing quiz. */}
       {self && exerciseFold}
+      {quizFold}
 
       {Object.keys(slideUrls).length > 0 && (
         <details className="card">
@@ -209,10 +217,7 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
         </details>
       )}
 
-      {lesson.status === "ready" && lesson.chapter_md && (
-        <Studio courseId={lesson.course_id} lessons={[{ id, label: lessonName(lesson) }]} items={media === null ? null : media.filter((m) => m.kind !== "examples")}
-          canVideo={/!\[[^\]]*\]\(slide:\d+\)/.test(lesson.chapter_md)} />
-      )}
+      {!self && studioFold}
 
 
       <div className="flex justify-between text-sm">
