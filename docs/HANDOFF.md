@@ -784,6 +784,21 @@ theory, prelab answers, procedure, 3-5 min board explanation, examiner questions
 video + podcast for kind lab (AUTO_STUDIO includes מעבדה). Lab page: "🔬 הניסויים" fold. Experiment 9 has no booklet
 (partner's report only). Run it again when a new booklet is uploaded (existing experiments are skipped).
 
+## Self-study redesign (approved 13/11/2026)
+- He reads code but can't write it; Vivado steps were unclear. Approved 4 phases: A foundations (weeks 1-2), B the
+  language step by step (3.1 module/assign, 3.2 always_comb/case, 4.1 always_ff/register/counter, 4.2 parameter +
+  hierarchy/ALU, 5.1 testbench, 5.2 self-checking), C Vivado in depth (6.1 simulation/errors, 6.2 to the board/reports/
+  ILA), D core + Mini-TPU project (7.1 FSM, 7.2 counters/shift, 8.1 timing, 8.2 pipelining/metastability, 9.1 MAC,
+  9.2 systolic array, 10.1 UART, 10.2 FIFO, 11.1 integration, 11.2 synthesis/STA, 12.1 interview Qs, 12.2 mock).
+- Session format: warm-up -> VIDEO only (no podcast for self-study) -> "grammar of the day" -> components line by
+  line -> exercises predict/fill/modify/write (hint ladder) + HDLBits / EDA Playground / ChipDev links -> FULL
+  simulation guide in every session up to 6.2 (Vivado + EDA Playground) -> "🔧 תרגול על הלוח" (weeks 1-6; project task
+  from week 7) -> quiz + interview Qs. Lesson page order matches (self: warm-up, video, chapter, exercises, quiz).
+- 2.2 done in this format (chapters/fixes/vlsi_w2s2.py, code checked with iverilog). Write each next session before he
+  reaches it; vlsiProgram.ts still has the OLD titles from week 3 on - update it with 3.1.
+- His Vivado: project C:\fpga\mini_tpu; must "Run as administrator" (else "Spawn failed"); blink.sv disabled (syntax
+  error line 19). Stopped 13/11 at: set tb_adder4 as simulation top. Reminder set for Friday 20/11 09:00.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
