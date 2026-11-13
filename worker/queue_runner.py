@@ -147,7 +147,8 @@ def retry_studio(sb):
     rows = [r for r in rows if names.get(r["course_id"])]
     # not when the same lessons already have a ready one of that kind from the current engine (made after it failed, or
     # after ENGINE_SINCE: the subtitled, synced video he approved 08/11/2026) - a duplicate would waste the voice quota
-    rows = [r for r in rows if not any(x["kind"] == r["kind"] and sorted(x.get("lesson_ids") or []) == sorted(r.get("lesson_ids") or [])
+    redo = [r for r in rows if "נוסחאות שנחתכו" in (r.get("error") or "")]  # studio-redo: made again on purpose
+    rows = [r for r in rows if r in redo or not any(x["kind"] == r["kind"] and sorted(x.get("lesson_ids") or []) == sorted(r.get("lesson_ids") or [])
                                        and (x["created_at"] > r["created_at"] or x["created_at"] >= ENGINE_SINCE) for x in ready)]
     for m in [r for r in rows if any(w in (r.get("error") or "") for w in ("מכסה", "עמוסים"))][:2]:
         sb.table("lesson_media").update({"status": "queued", "error": None}).eq("id", m["id"]).execute()

@@ -778,6 +778,24 @@ def cmd_studio_new(match, number, kind):
     print(f"::notice title=Studio new::{kind} lecture {number}: {course_site.dispatch_inputs('media.yml', {'media_id': row['id']})}", flush=True)
 
 
+REDO_MSG = "סרטון מחדש (נוסחאות שנחתכו) - " + WAIT_MSG
+
+
+def cmd_studio_redo(match):
+    """A new video for every lecture and study session ("מפגש N") of the course - the formula-clipping fix of 12/11/2026.
+    Queued like a backfill (retry_studio makes 2 per queue run, sessions first); the old video stays until the new
+    one is ready, then the app shows only the newest."""
+    sb = db()
+    course = find_course(sb, match)
+    les = [l for l in sb.table("lessons").select("id, user_id, kind, number, title").eq("course_id", course["id"]).eq("status", "ready").execute().data
+           if l["kind"] == "lecture" or (l.get("title") or "").startswith("מפגש ")]
+    les.sort(key=lambda l: (l["kind"] == "lecture", l.get("number") or 0))
+    for l in les:
+        sb.table("lesson_media").insert({"user_id": l["user_id"], "course_id": course["id"], "kind": "video",
+                                         "lesson_ids": [l["id"]], "status": "error", "error": REDO_MSG}).execute()
+    print(f"::notice title=Studio redo::{course['name']}: {len(les)} videos queued", flush=True)
+
+
 def cmd_media_get(out_dir):
     """The newest ready video and podcast (to check them in a session) -> out_dir."""
     sb = db()
@@ -1151,6 +1169,7 @@ if __name__ == "__main__":
     p = sub.add_parser("media-get"); p.add_argument("out_dir")
     p = sub.add_parser("studio-new"); p.add_argument("course"); p.add_argument("number"); p.add_argument("kind")
     p = sub.add_parser("studio-backfill"); p.add_argument("course")
+    p = sub.add_parser("studio-redo"); p.add_argument("course")
     p = sub.add_parser("studio-list"); p.add_argument("drop", nargs="?", default="")
     p = sub.add_parser("materials"); p.add_argument("course"); p.add_argument("title"); p.add_argument("out_dir")
     p = sub.add_parser("archive"); p.add_argument("match")
@@ -1205,6 +1224,8 @@ if __name__ == "__main__":
         cmd_materials(a.course, a.title, a.out_dir)
     elif a.cmd == "studio-list":
         cmd_studio_list(a.drop)
+    elif a.cmd == "studio-redo":
+        cmd_studio_redo(a.course)
     elif a.cmd == "studio-backfill":
         cmd_studio_backfill(a.course)
     elif a.cmd == "studio-new":

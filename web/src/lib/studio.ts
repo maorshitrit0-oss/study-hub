@@ -28,7 +28,10 @@ export async function loadMedia(sb: SupabaseClient, filter: { lessonId?: string;
   // A failed item is hidden when the same lessons already have a ready one of that kind from the current video engine
   // (or made after it failed): the worker will not redo it either (queue_runner.retry_studio, ENGINE_SINCE).
   const same = (a: string[], b: string[]) => [...a].sort().join() === [...b].sort().join();
-  const shown = rows.filter((r) => r.status !== "error" || !rows.some((x) => x.status === "ready" && x.kind === r.kind
+  // A video made again (studio-redo, 13/11/2026) replaces the older one of the same lessons: only the newest ready shows.
+  const shown = rows.filter((r) => !(r.status === "ready" && rows.some((x) => x.status === "ready" && x.kind === r.kind
+    && same(x.lesson_ids ?? [], r.lesson_ids ?? []) && x.created_at > r.created_at)))
+    .filter((r) => r.status !== "error" || !rows.some((x) => x.status === "ready" && x.kind === r.kind
     && same(x.lesson_ids ?? [], r.lesson_ids ?? []) && (x.created_at > r.created_at || x.created_at >= ENGINE_SINCE)));
   return shown.map(({ storage_path: _, ...r }) => (void _, r)) as Media[];
 }
