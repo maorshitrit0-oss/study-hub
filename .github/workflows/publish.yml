@@ -59,6 +59,7 @@ jobs:
         run: |
           ok() { [[ -z "$1" || "$1" =~ ^chapters/[A-Za-z0-9_.-]+\.$2$ ]] || { echo "::error::bad path $1"; exit 1; }; }
           ok "$CHAPTER" json; ok "$SHEET" md
+          if [ "$INSPECT" = "studio-count" ]; then python hub.py studio-count; exit $?; fi
           if [ "$INSPECT" = "studio-redo" ]; then python hub.py studio-redo "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "studio-backfill" ]; then python hub.py studio-backfill "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "studio-list" ]; then python hub.py studio-list "$TITLE"; exit $?; fi

@@ -796,6 +796,24 @@ def cmd_studio_redo(match):
     print(f"::notice title=Studio redo::{course['name']}: {len(les)} videos queued", flush=True)
 
 
+def cmd_studio_count():
+    """How many videos / podcasts are still waiting, per course and kind (no file is downloaded)."""
+    import collections
+    sb = db()
+    names = {c["id"]: c["name"] for c in sb.table("courses").select("id, name").execute().data}
+    rows = sb.table("lesson_media").select("course_id, kind, status, error, lesson_ids, created_at").execute().data
+    ready = [r for r in rows if r["status"] == "ready"]
+    left = collections.Counter()
+    for r in rows:
+        if r["status"] in ("queued", "processing") or (r["status"] == "error" and any(w in (r.get("error") or "") for w in ("מכסה", "עמוסים"))):
+            done = any(x["kind"] == r["kind"] and sorted(x["lesson_ids"] or []) == sorted(r["lesson_ids"] or []) and x["created_at"] > r["created_at"] for x in ready)
+            if not done:
+                left[(names.get(r["course_id"], "?"), r["kind"])] += 1
+    for (c, k), n in sorted(left.items()):
+        print(f"::notice title=Left::{c} | {k} | {n}", flush=True)
+    print(f"::notice title=Left total::{sum(left.values())}", flush=True)
+
+
 def cmd_media_get(out_dir):
     """The newest ready video and podcast (to check them in a session) -> out_dir."""
     sb = db()
@@ -1170,6 +1188,7 @@ if __name__ == "__main__":
     p = sub.add_parser("studio-new"); p.add_argument("course"); p.add_argument("number"); p.add_argument("kind")
     p = sub.add_parser("studio-backfill"); p.add_argument("course")
     p = sub.add_parser("studio-redo"); p.add_argument("course")
+    sub.add_parser("studio-count")
     p = sub.add_parser("studio-list"); p.add_argument("drop", nargs="?", default="")
     p = sub.add_parser("materials"); p.add_argument("course"); p.add_argument("title"); p.add_argument("out_dir")
     p = sub.add_parser("archive"); p.add_argument("match")
@@ -1224,6 +1243,8 @@ if __name__ == "__main__":
         cmd_materials(a.course, a.title, a.out_dir)
     elif a.cmd == "studio-list":
         cmd_studio_list(a.drop)
+    elif a.cmd == "studio-count":
+        cmd_studio_count()
     elif a.cmd == "studio-redo":
         cmd_studio_redo(a.course)
     elif a.cmd == "studio-backfill":

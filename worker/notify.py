@@ -109,6 +109,14 @@ def daily():
                 lines.append(f"📚 {when:%d/%m}: {name}{course}")
         if unread:
             lines.append(f"📖 {unread} פרקים מחכים לקריאה")
+        try:  # videos / podcasts made since yesterday morning: one line instead of a push each (his remark 13/11/2026)
+            since = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+            made = sb.table("lesson_media").select("kind").eq("user_id", uid).eq("status", "ready").gte("created_at", since).execute().data
+            v, p = sum(m["kind"] == "video" for m in made), sum(m["kind"] == "podcast" for m in made)
+            if v or p:
+                lines.append(f"🎬 מוכנים מאתמול: {v} סרטונים ו-{p} פודקאסטים")
+        except Exception as e:  # noqa: BLE001
+            print(f"studio count failed: {e}")
         lines += week_lines(sb, uid, courses, now)
         try:
             due = reviews_due(sb, uid)

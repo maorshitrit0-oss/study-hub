@@ -717,7 +717,7 @@ def run(media_id):
             path = store_media(job, path, out.read_bytes(), "video/mp4")
             job.update(status="ready", storage_path=path, title=job.row.get("title") or title, script=script_md,
                        duration_sec=round(media.duration(out)), progress="מוכן")
-            notify.send(job.sb, uid, "🎬 הסרטון מוכן", title or job.course["name"], f"/lessons/{job.lessons[0]['id']}")
+            # no push per video (13/11/2026: too many) - the morning message counts them
             return
         slides = {}
         title, segs = make_script(job, kind, slides)
@@ -740,7 +740,7 @@ def run(media_id):
         job.update(status="ready", storage_path=path, title=job.row.get("title") or title, script=script_md,
                    duration_sec=round(media.duration(out)), progress="מוכן")
         where = f"/lessons/{job.lessons[0]['id']}" if len(job.lessons) == 1 else f"/courses/{job.row['course_id']}"
-        notify.send(job.sb, uid, f"{'🎬 הסרטון' if kind == 'video' else '🎙️ הפודקאסט'} מוכן", title or job.course["name"], where)
+        del where  # no push per item (his remark 13/11/2026: many messages a day) - the morning message counts them
     except Exception as e:
         job.update(status="error", error=author.friendly_error(e)[:1500])
         print(f"::error title=Studio {media_id}::{str(e)[:900]}".replace("\n", " "), flush=True)
