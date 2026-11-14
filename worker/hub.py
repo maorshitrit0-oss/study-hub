@@ -1137,6 +1137,26 @@ def cmd_requeue(match, kind, number):
             print(f"::notice title=Requeued::{kind} {number} {l['id']}", flush=True)
 
 
+def cmd_weeksets_dump(out_dir):
+    """Every active course's week sets (weekset.py) with the full text of the chosen exercises -> weeksets.json, so
+    Claude can check the solutions in a session (the weekly core task). Small: rows and one JSON per course."""
+    import weekset
+    sb = db()
+    out = []
+    for c in sb.table("courses").select("id, name, user_id, kind").eq("archived", False).execute().data:
+        sets = weekset.load(sb, c).get("weeks", {})
+        if not sets:
+            continue
+        ids = {i for w in sets.values() for i in w.get("practice", [])} | {e["id"] for w in sets.values() for e in w.get("exam", [])}
+        ex = {}
+        for chunk in [list(ids)[i:i + 100] for i in range(0, len(ids), 100)]:
+            for x in sb.table("exercises").select("id, title, question_md, solution_md, material_id, lesson_id").in_("id", chunk).execute().data:
+                ex[x["id"]] = x
+        out.append({"course": c["name"], "id": c["id"], "weeks": sets, "exercises": ex})
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    (Path(out_dir) / "weeksets.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
 def cmd_flat():  # noqa: D401
     """Every ready lesson whose chapter is squashed onto a few lines (author.is_flat) - to write again."""
     sb = db()
@@ -1197,6 +1217,7 @@ if __name__ == "__main__":
     p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
     p = sub.add_parser("outline"); p.add_argument("out_dir")
+    p = sub.add_parser("weeksets-dump"); p.add_argument("out_dir")
     p = sub.add_parser("requeue"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
     p = sub.add_parser("lab-lessons"); p.add_argument("course")
     p = sub.add_parser("reorder"); p.add_argument("course"); p.add_argument("json_path")
@@ -1276,6 +1297,8 @@ if __name__ == "__main__":
         cmd_lab_lessons(a.course)
     elif a.cmd == "requeue":
         cmd_requeue(a.course, a.kind, a.number)
+    elif a.cmd == "weeksets-dump":
+        cmd_weeksets_dump(a.out_dir)
     elif a.cmd == "outline":
         cmd_outline(a.out_dir)
     elif a.cmd == "flat":
