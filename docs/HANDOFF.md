@@ -810,6 +810,15 @@ comm w4 FM Q (FM not taught); Java week 4: 4 new exercises (static, pass by valu
 Forecasts updated 14/11 (forecasts.py): waves TM/Brewster, digital logical effort + pull-down NOT taught, Java static,
 comm DSB-SC + superheterodyne taught.
 
+## Lesson page order + tasks (14/11/2026)
+- Every lesson page: warm-up -> video (studio) -> full chapter -> condensed -> quiz -> exercises (link to week N, or the
+  fold in self-study).
+- prep.ts: no "📖 ללמוד את הרצאה N לפני ההרצאה הבאה" for a course with no lecture/practice slot (random signals), and
+  its open ones close.
+- rollTasks.resumeSelfStudy: when the first open "vlsi:" session's slot has passed, it and every later open session are
+  re-dated to the coming self-study slots from tomorrow (he continues from where he stopped); vlsi: tasks no longer roll
+  by whole weeks.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so

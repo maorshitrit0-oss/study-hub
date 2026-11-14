@@ -145,7 +145,7 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
       )}
 
       {/* Everything folded by default (05/11/2026) - he opens what he wants: the condensed summary, the full chapter,
-          the exercises, the quiz. Self-study sessions: warm-up -> video -> chapter -> exercises -> quiz (13/11/2026). */}
+          the exercises, the quiz. Every lesson: warm-up -> video -> chapter -> condensed -> quiz -> exercises (14/11/2026). */}
       {/* 🔥 First thing in the lesson (09/11/2026): a warm-up on every lesson before this one, then what to re-read. */}
       {lesson.status === "ready" && warm.questions.length > 0 && (
         <Fold id={`warmup-${id}`} title="🔥 חימום לפני השיעור" defaultOpen={!lesson.read_at}
@@ -155,14 +155,9 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
         </Fold>
       )}
 
-      {/* Self-study: the video right after the warm-up - the order of the session plan (13/11/2026). */}
-      {self && studioFold}
+      {/* Every lesson (14/11/2026): warm-up -> video -> full chapter -> (condensed) -> quiz -> exercises. */}
+      {studioFold}
 
-      {lesson.status === "ready" && !self && summaryText && (
-        <Fold id={`summary-${id}`} title="📝 סיכום מתומצת - מסקנות השיעור">
-          <Chapter md={summaryText} slideUrls={slideUrls} />
-        </Fold>
-      )}
 
       {full && (
         <Fold id={`chapter-${id}`} title="📖 פרק מלא">
@@ -179,6 +174,11 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
         </Fold>
       )}
 
+      {lesson.status === "ready" && !self && summaryText && (
+        <Fold id={`summary-${id}`} title="📝 סיכום מתומצת - מסקנות השיעור">
+          <Chapter md={summaryText} slideUrls={slideUrls} />
+        </Fold>
+      )}
       {/* Always both (his wish 11/11/2026): no button - the queue writes the missing full chapter by itself. */}
       {!full && summaryText && lesson.status === "ready" && (
         <p className="text-sm text-muted text-center">📖 הפרק המלא נכתב אוטומטית ויופיע כאן (בתור, לפי המכסה של Gemini)</p>
@@ -186,14 +186,13 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
 
       {/* Lectures and practices: the exercises are solved only in the course's exercises tab, week N = lecture N
           (his way, 11/11/2026) - here only a link to that week. */}
+      {quizFold}
       {!self && (exercises ?? []).length > 0 && (lesson.kind === "lecture" || lesson.kind === "practice") && lesson.number ? (
         <Link href={`/courses/${lesson.course_id}/exercises?w=${lesson.number}`} className="card block text-center text-sm font-medium">
           ✍️ התרגילים של השיעור הזה – בעמודת התרגילים, שבוע {lesson.number}
         </Link>
       ) : !self && exerciseFold}
-      {/* Self-study: exercises and the board practice come before the closing quiz. */}
       {self && exerciseFold}
-      {quizFold}
 
       {Object.keys(slideUrls).length > 0 && (
         <details className="card">
@@ -217,7 +216,7 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
         </details>
       )}
 
-      {!self && studioFold}
+
 
 
       <div className="flex justify-between text-sm">

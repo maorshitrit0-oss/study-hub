@@ -37,8 +37,16 @@ export async function syncPrepTasks(sb: SupabaseClient) {
   const kinds = new Map((courses ?? []).map((c) => [c.id, c.kind]));
   const have = new Map((tasks ?? []).map((t) => [t.external_uid as string, t]));
   const add = [];
+  // A course with no lecture / practice in the timetable (random signals: a retake studied in Thursday sessions from
+  // old recordings) gets no "learn before the next class" tasks - and the ones it had close (his screenshot 14/11/2026).
+  const inClass = new Set(((slots ?? []) as Slot[]).filter((s) => s.kind === "lecture" || s.kind === "practice").map((s) => s.course_id));
   for (const l of lessons ?? []) {
     if (!["course", "project"].includes(kinds.get(l.course_id) ?? "")) continue;
+    if (!inClass.has(l.course_id)) {
+      const t = have.get(PREFIX + l.id);
+      if (t && !t.done) await sb.from("deadlines").update({ done: true }).eq("id", t.id);
+      continue;
+    }
     const title = `📖 ללמוד את ${lessonName(l)} לפני ${NEXT[l.kind as keyof typeof NEXT]}`;
     const t = have.get(PREFIX + l.id);
     if (t) {
