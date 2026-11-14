@@ -72,6 +72,8 @@ jobs:
           if [ "$INSPECT" = "prepend" ]; then python hub.py prepend "$COURSE" "$KIND" "$NUMBER" "../$SHEET"; exit $?; fi
           if [ "$INSPECT" = "reorder" ]; then python hub.py reorder "$COURSE" "../$CHAPTER"; exit $?; fi
           if [ "$INSPECT" = "lab-lessons" ]; then python hub.py lab-lessons "$COURSE"; exit $?; fi
+          if [ "$INSPECT" = "weekset-drop" ]; then python weekset.py drop "$COURSE" "$NUMBER" "$TITLE"; exit $?; fi
+          if [ "$INSPECT" = "weekset-fill" ]; then python -c "import hub, weekset; weekset.fill_missing(hub.db())"; exit $?; fi
           if [ "$INSPECT" = "weekset" ]; then python weekset.py "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "tidy-redo" ]; then python hub.py tidy-redo "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "media-drop-originals" ]; then python mediastore.py drop-originals; exit $?; fi

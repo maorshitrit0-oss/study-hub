@@ -108,6 +108,26 @@ def run(match, only_missing=False):
                                     {"content-type": "application/json", "upsert": "true"})
 
 
+def drop(match, week, ids):
+    """Removes exercises from a week's set (Claude checked them: wrong or not taught yet); "all" drops the week so the
+    queue builds it again."""
+    sb = hub.db()
+    course = hub.find_course(sb, match)
+    data = load(sb, course)
+    w = data.get("weeks", {}).get(str(week))
+    if w is None:
+        return
+    if ids == ["all"]:
+        data["weeks"].pop(str(week))
+    else:
+        w["practice"] = [i for i in w["practice"] if not any(i.startswith(x) for x in ids)]
+        w["exam"] = [e for e in w["exam"] if not any(e["id"].startswith(x) for x in ids)]
+    sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
+                                    json.dumps(data, ensure_ascii=False).encode("utf-8"),
+                                    {"content-type": "application/json", "upsert": "true"})
+    print(f"::notice title=Week sets::{course['name']} week {week}: dropped {ids}", flush=True)
+
+
 def fill_missing(sb):
     """Weeks with no set yet (a Gemini failure, a new lecture) in every active course - run by the queue."""
     for c in sb.table("courses").select("id, name, user_id, kind").eq("archived", False).execute().data:
@@ -121,4 +141,7 @@ def fill_missing(sb):
 
 
 if __name__ == "__main__":
-    run(sys.argv[1])
+    if sys.argv[1] == "drop":  # weekset.py drop "<course>" <week> <id-prefix,...|all>
+        drop(sys.argv[2], sys.argv[3], sys.argv[4].split(","))
+    else:
+        run(sys.argv[1])

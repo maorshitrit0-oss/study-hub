@@ -1,0 +1,38 @@
+[
+ {
+  "add": true,
+  "kind": "lecture",
+  "number": 4,
+  "title": "תרגיל 1 · static מול משתנה של אובייקט – מה יודפס?",
+  "exam_style": true,
+  "question_md": "**איך לפתור:** קודם על דף – טבלה עם עמודה לכל משתנה – ורק אז לפתוח את הפתרון. הפלט נבדק בהרצה.\n\n```java\npublic class Counter {\n    static int total = 0;\n    int mine = 0;\n\n    void add() {\n        total++;\n        mine++;\n    }\n\n    public static void main(String[] args) {\n        Counter a = new Counter();\n        Counter b = new Counter();\n        a.add();\n        a.add();\n        b.add();\n        System.out.println(a.mine + \" \" + b.mine + \" \" + Counter.total);\n    }\n}\n```",
+  "solution_md": "**הכלל:** `static` = עותק **אחד** למחלקה, משותף לכל האובייקטים. בלי `static` = עותק נפרד **בכל אובייקט**.\n\n| פעולה | a.mine | b.mine | total |\n|---|---|---|---|\n| התחלה | 0 | 0 | 0 |\n| `a.add()` | 1 | 0 | 1 |\n| `a.add()` | 2 | 0 | 2 |\n| `b.add()` | 2 | 1 | 3 |\n\n**הפלט:** `2 1 3` ✅ (נבדק בהרצה)\n\n💡 **הרעיון:** `total` סופר את כל הקריאות מכל האובייקטים; `mine` סופר רק את של האובייקט עצמו. ניגשים ל-static דרך שם המחלקה: `Counter.total`."
+ },
+ {
+  "add": true,
+  "kind": "lecture",
+  "number": 4,
+  "title": "תרגיל 2 · העברה לפי ערך: int מול מערך",
+  "exam_style": true,
+  "question_md": "**איך לפתור:** קודם על דף – טבלה עם עמודה לכל משתנה – ורק אז לפתוח את הפתרון. הפלט נבדק בהרצה.\n\n```java\npublic class Pass {\n    static void change(int x, int[] arr) {\n        x = 100;\n        arr[0] = 100;\n    }\n\n    public static void main(String[] args) {\n        int n = 5;\n        int[] a = {5, 6};\n        change(n, a);\n        System.out.println(n + \" \" + a[0]);\n    }\n}\n```",
+  "solution_md": "**הכלל:** ב-Java **הכול** מועבר לפי ערך (by value). אבל הערך של משתנה מערך / אובייקט הוא **הפניה** (כתובת).\n\n- `x` מקבל **עותק** של 5. `x = 100` משנה רק את העותק ⇐ `n` נשאר **5**.\n- `arr` מקבל עותק של **ההפניה** – מצביע על אותו מערך כמו `a`. `arr[0] = 100` משנה את המערך עצמו ⇐ `a[0]` הופך ל-**100**.\n\n**הפלט:** `5 100` ✅ (נבדק בהרצה)\n\n💡 **הרעיון:** משנים **תוכן** של מערך/אובייקט – רואים את זה בחוץ. משנים משתנה פרימיטיבי – לא."
+ },
+ {
+  "add": true,
+  "kind": "lecture",
+  "number": 4,
+  "title": "תרגיל 3 · החלפה בתוך מערך מול מערך חדש",
+  "exam_style": true,
+  "question_md": "**איך לפתור:** קודם על דף – טבלה עם עמודה לכל משתנה – ורק אז לפתוח את הפתרון. הפלט נבדק בהרצה.\n\n```java\npublic class Swap {\n    static void swap(int[] a) { int t = a[0]; a[0] = a[1]; a[1] = t; }\n    static void swapNew(int[] a) { a = new int[]{9, 9}; }\n\n    public static void main(String[] args) {\n        int[] p = {1, 2};\n        swap(p);\n        swapNew(p);\n        System.out.println(p[0] + \",\" + p[1]);\n    }\n}\n```",
+  "solution_md": "- `swap(p)`: `a` מצביע על אותו מערך כמו `p` ⇐ ההחלפה קורית במערך עצמו ⇐ `p = {2, 1}`.\n- `swapNew(p)`: `a = new int[]{9, 9}` משנה **רק את ההפניה המקומית** `a` – עכשיו היא מצביעה על מערך חדש. `p` עדיין מצביע על הישן.\n\n**הפלט:** `2,1` ✅ (נבדק בהרצה)\n\n💡 **הרעיון:** `a[0] = ...` משנה את המערך; `a = new ...` משנה רק לאן `a` מצביע – והחוץ לא רואה את זה. זו שאלת מבחן קלאסית."
+ },
+ {
+  "add": true,
+  "kind": "lecture",
+  "number": 4,
+  "title": "תרגיל 4 · טווח הכרה: משתנה מקומי שמסתיר שדה",
+  "exam_style": true,
+  "question_md": "**איך לפתור:** קודם על דף – טבלה עם עמודה לכל משתנה – ורק אז לפתוח את הפתרון. הפלט נבדק בהרצה.\n\n```java\npublic class Scope {\n    static int x = 1;\n\n    static void f() {\n        int x = 2;\n        x++;\n        System.out.print(x + \" \");\n    }\n\n    public static void main(String[] args) {\n        f();\n        System.out.print(x + \" \");\n        for (int i = 0; i < 2; i++) {\n            int y = i * 10;\n            x += y;\n        }\n        System.out.println(x);\n    }\n}\n```",
+  "solution_md": "- בתוך `f()`: `int x = 2;` הוא משתנה **מקומי חדש** שמסתיר את השדה `x`. `x++` ⇐ 3 ⇐ מודפס **`3 `**.\n- ב-`main`: `x` הוא השדה הסטטי – לא השתנה ⇐ מודפס **`1 `**.\n- הלולאה: `i=0` ⇐ `y=0`, `x=1`; `i=1` ⇐ `y=10`, `x=11`. (`y` ו-`i` קיימים רק בתוך הלולאה.)\n- מודפס **`11`**.\n\n**הפלט:** `3 1 11` ✅ (נבדק בהרצה)\n\n💡 **הרעיון:** משתנה חי רק בתוך הסוגריים `{}` שבהם הוגדר; מקומי באותו שם \"מסתיר\" את השדה עד סוף הבלוק."
+ }
+]

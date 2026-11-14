@@ -349,7 +349,11 @@ def reformat(sb, course, budget_end):
     as known - where each formula comes from, every function defined, every intermediate step, "💡 הרעיון"."""
     from google.genai import types
     read = read_list(sb, course)
-    rows = [r for r in sb.table("exercises").select("id, solution_md").eq("course_id", course["id"]).execute().data
+    claude = {l["id"] for l in sb.table("lessons").select("id, transcript").eq("course_id", course["id"]).execute().data
+              if (l.get("transcript") or "").startswith("<!-- written by Claude")}
+    rows = [r for r in sb.table("exercises").select("id, solution_md, lesson_id").eq("course_id", course["id"]).execute().data
+            if r.get("lesson_id") not in claude]
+    rows = [r for r in rows
             if r.get("solution_md") and (f"exp:{r['id']}" not in read
                                          # solutions with code: once more for the line-by-line explanation (03/11)
                                          or ("```" in r["solution_md"] and f"code:{r['id']}" not in read))]
@@ -362,7 +366,14 @@ def reformat(sb, course, budget_end):
                                       None, REFORMAT_SCHEMA, "MEDIUM").get("items") or []
         for it in items:
             if 0 <= it.get("id", -1) < len(batch) and (it.get("solution_md") or "").strip():
-                sb.table("exercises").update({"solution_md": it["solution_md"]}).eq("id", batch[it["id"]]["id"]).execute()
+                old_md, new_md = batch[it["id"]]["solution_md"], it["solution_md"]
+                # never lose content (14/11/2026: verified solutions came back cut after the 3rd step): the new text
+                # must be about as long and keep every number of the old one
+                nums = set(re.findall(r"\d+\.\d+|\d{2,}", old_md))
+                if len(new_md) < 0.9 * len(old_md) or not nums <= set(re.findall(r"\d+\.\d+|\d{2,}", new_md)):
+                    print(f"::notice title=Exercises {course['name']}::kept a solution (the rewrite dropped content)", flush=True)
+                    continue
+                sb.table("exercises").update({"solution_md": new_md}).eq("id", batch[it["id"]]["id"]).execute()
         for r in batch:  # a proof may have no substitution at all: never again
             mark_read(sb, course, f"exp:{r['id']}")
             mark_read(sb, course, f"code:{r['id']}")

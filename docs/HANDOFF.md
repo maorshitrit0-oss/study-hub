@@ -799,6 +799,17 @@ video + podcast for kind lab (AUTO_STUDIO includes מעבדה). Lab page: "🔬 
 - His Vivado: project C:\fpga\mini_tpu; must "Run as administrator" (else "Spawn failed"); blink.sv disabled (syntax
   error line 19). Stopped 13/11 at: set tb_adder4 as simulation top. Reminder set for Friday 20/11 09:00.
 
+## Weekly core task = week sets (from 14/11/2026)
+The Saturday task now checks the week sets (weekset.py) instead of hand-made cores: `fetch.sh weeksets` dumps every
+course's sets with the chosen exercises; re-solve the new weeks, fix by id (publish inspect=exercises), drop wrong /
+not-taught picks (inspect=weekset-drop, title=id prefixes or "all") and refill (inspect=weekset-fill). 14/11: exercises.py
+"reformat" had cut Claude's verified practice solutions -> guarded (keeps length + every number; skips lessons
+"written by Claude") and restored (chapters/fixes/weekly_1411.py); fixed waves TM practice + TM exam Q (E_t0=230.9),
+comm exam Q1 (NF 23.0 dB), cascade, DSB SNR; dropped digital w4 depletion+body-effect exam Q (no full solution) and
+comm w4 FM Q (FM not taught); Java week 4: 4 new exercises (static, pass by value, scope; outputs run).
+Forecasts updated 14/11 (forecasts.py): waves TM/Brewster, digital logical effort + pull-down NOT taught, Java static,
+comm DSB-SC + superheterodyne taught.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
