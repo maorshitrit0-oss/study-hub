@@ -98,6 +98,9 @@ def run(match, only_missing=False):
         ids_own, ids_files = {x["id"] for x in own}, {x["id"] for x in files}
         practice = [i for i in got.get("practice", []) if i in ids_own][:4]
         exam = [e for e in got.get("exam", []) if e.get("id") in ids_files][:2]
+        # the exercises solved in class come first, all of them (classex.py; waves: "the exam is built from them")
+        cls = [x["id"] for x in own if (x.get("title") or "").startswith("📌 מהכיתה")]
+        practice = (cls + [i for i in practice if i not in cls])[:10]
         if len(practice) < 2:  # never fewer than 2 practice exercises when the week has them
             practice += [x["id"] for x in own if x["id"] not in practice][:2 - len(practice)]
         sets[str(n)] = {"practice": practice, "exam": exam}
