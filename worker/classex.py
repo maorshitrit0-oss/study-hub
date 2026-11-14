@@ -34,10 +34,11 @@ SCHEMA = {"type": "object", "properties": {"exercises": {"type": "array", "items
 def run(match):
     sb = hub.db()
     course = hub.find_course(sb, match)
-    lessons = sb.table("lessons").select("id, kind, number, title, chapter_md, status").eq("course_id", course["id"]) \
+    lessons = sb.table("lessons").select("id, kind, number, title, chapter_md, status, transcript").eq("course_id", course["id"]) \
         .in_("kind", ["lecture", "practice"]).eq("status", "ready").execute().data
     for l in sorted(lessons, key=lambda l: (l.get("number") or 99, l["kind"])):
-        if (l.get("title") or "").startswith("📦") or not l.get("chapter_md"):
+        if (l.get("title") or "").startswith("📦") or not l.get("chapter_md") \
+                or (l.get("transcript") or "").startswith("<!-- written by Claude"):  # Claude's practices: exercises already
             continue
         have = {x["title"] for x in sb.table("exercises").select("title").eq("lesson_id", l["id"]).execute().data}
         if any((t or "").startswith(MARK) for t in have):
