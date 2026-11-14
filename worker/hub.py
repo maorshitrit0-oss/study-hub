@@ -1157,6 +1157,24 @@ def cmd_weeksets_dump(out_dir):
     (Path(out_dir) / "weeksets.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
+def cmd_course_check(match):
+    """Is every lesson of the course ready for the week? Per lecture / practice: status, full chapter + condensed,
+    quiz, exercises, video / podcast (lectures). Read-only; nothing downloaded."""
+    sb = db()
+    course = find_course(sb, match)
+    les = sb.table("lessons").select("id, kind, number, title, status, chapter_md, summary_md").eq("course_id", course["id"]).execute().data
+    media = sb.table("lesson_media").select("kind, status, lesson_ids").eq("course_id", course["id"]).execute().data
+    for l in sorted(les, key=lambda l: (l.get("number") or 99, l["kind"])):
+        if l["kind"] not in ("lecture", "practice"):
+            continue
+        q = sb.table("questions").select("id", count="exact").eq("lesson_id", l["id"]).execute().count
+        ex = sb.table("exercises").select("id", count="exact").eq("lesson_id", l["id"]).execute().count
+        m = {k: sorted({x["status"] for x in media if l["id"] in (x.get("lesson_ids") or []) and x["kind"] == k}) for k in ("video", "podcast")}
+        ch, su = l.get("chapter_md") or "", l.get("summary_md") or ""
+        print(f"::notice title=Check {l['kind']} {l.get('number')}::{(l.get('title') or '')[:30]} | {l['status']} | full={len(ch) if ch != su else 0} "
+              f"condensed={len(su)} | quiz={q} | ex={ex} | video={m['video']} podcast={m['podcast']}", flush=True)
+
+
 def cmd_flat():  # noqa: D401
     """Every ready lesson whose chapter is squashed onto a few lines (author.is_flat) - to write again."""
     sb = db()
@@ -1217,6 +1235,7 @@ if __name__ == "__main__":
     p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
     p = sub.add_parser("outline"); p.add_argument("out_dir")
+    p = sub.add_parser("course-check"); p.add_argument("course")
     p = sub.add_parser("weeksets-dump"); p.add_argument("out_dir")
     p = sub.add_parser("requeue"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
     p = sub.add_parser("lab-lessons"); p.add_argument("course")
@@ -1299,6 +1318,8 @@ if __name__ == "__main__":
         cmd_requeue(a.course, a.kind, a.number)
     elif a.cmd == "weeksets-dump":
         cmd_weeksets_dump(a.out_dir)
+    elif a.cmd == "course-check":
+        cmd_course_check(a.course)
     elif a.cmd == "outline":
         cmd_outline(a.out_dir)
     elif a.cmd == "flat":
