@@ -139,7 +139,8 @@ def run(match, only_missing=False):
             practice += [x["id"] for x in own if x["id"] not in practice][:2 - len(practice)]
         by_id = {x["id"]: x for x in ex}
         practice = dedupe(practice, by_id)
-        exam = [e for e in exam if e["id"] in dedupe(practice + [e["id"]], by_id)]
+        seen = {i for k, w in sets.items() if k.isdigit() and int(k) < n for i in w["practice"] + [e["id"] for e in w["exam"]]}
+        exam = [e for e in exam if e["id"] not in seen and e["id"] in dedupe(practice + [e["id"]], by_id)]  # once per course
         sets[str(n)] = {"practice": practice, "exam": exam}
         print(f"::notice title=Week sets::{course['name']} week {n}: {len(practice)} practice + {len(exam)} exam", flush=True)
     sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
@@ -168,6 +169,28 @@ def drop(match, week, ids):
     print(f"::notice title=Week sets::{course['name']} week {week}: dropped {ids}", flush=True)
 
 
+def clean(match):
+    """The stored sets without Gemini: no exercise twice in a week (same()), no exam exercise in two weeks."""
+    sb = hub.db()
+    course = hub.find_course(sb, match)
+    data = load(sb, course)
+    by_id = {x["id"]: x for x in sb.table("exercises").select("id, title, question_md").eq("course_id", course["id"]).execute().data}
+    seen = set()
+    for k in sorted((k for k in data.get("weeks", {}) if k.isdigit()), key=int):
+        w = data["weeks"][k]
+        p0, e0 = list(w["practice"]), [e["id"] for e in w["exam"]]
+        w["practice"] = dedupe([i for i in w["practice"] if i in by_id], by_id)
+        keep = dedupe(w["practice"] + [e["id"] for e in w["exam"] if e["id"] in by_id and e["id"] not in seen], by_id)
+        w["exam"] = [e for e in w["exam"] if e["id"] in keep]
+        seen |= set(w["practice"]) | {e["id"] for e in w["exam"]}
+        gone = [i[:8] for i in p0 + e0 if i not in w["practice"] and i not in [e["id"] for e in w["exam"]]]
+        if gone:
+            print(f"::notice title=Week sets::{course['name']} week {k}: removed repeats {gone}", flush=True)
+    sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
+                                    json.dumps(data, ensure_ascii=False).encode("utf-8"),
+                                    {"content-type": "application/json", "upsert": "true"})
+
+
 def fill_missing(sb):
     """Weeks with no set yet (a Gemini failure, a new lecture) in every active course - run by the queue."""
     for c in sb.table("courses").select("id, name, user_id, kind").eq("archived", False).execute().data:
@@ -183,5 +206,7 @@ def fill_missing(sb):
 if __name__ == "__main__":
     if sys.argv[1] == "drop":  # weekset.py drop "<course>" <week> <id-prefix,...|all>
         drop(sys.argv[2], sys.argv[3], sys.argv[4].split(","))
+    elif sys.argv[1] == "clean":  # weekset.py clean "<course>"
+        clean(sys.argv[2])
     else:
         run(sys.argv[1])
