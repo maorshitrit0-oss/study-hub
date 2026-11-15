@@ -828,6 +828,10 @@ waves (chapters/fixes/waves_class_1411.py), digital/micro/linear/comm (chapters/
 one had slide 6's data and V_OL 0.1 - rebuilt from slides 7-12). On 15/11 the Gemini daily quota ran out mid-run:
 re-run at 10:20 added comm lecture/practice 4, Java weeks 1-2, digital lecture 2 - checked in chapters/fixes/class_1511b.py (the comm link-design last distance: board -109.24 dBm not reproducible, flagged).
 
+Duplicates (his report 15/11/2026, waves week 2: exercise 1 = exercise 3 - the class version and the chapter version of
+one board exercise): `weekset.same()/dedupe()` keep the first (class first) of exercises with the same data, the same
+C/Java function, or the same text; the Gemini prompt says so too. The existing sets were cleaned with weekset-drop.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so

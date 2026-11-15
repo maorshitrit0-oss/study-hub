@@ -21,7 +21,7 @@ SYSTEM = """אתה מתרגל בהנדסת חשמל שבונה לסטודנט ס
 הסטודנט בונה ידע בהדרגה: הוא יודע רק את מה שנלמד בהרצאות ובתרגולים 1 עד N.
 בחר:
 - practice: 2 עד 4 תרגילים מתוך "תרגילי השבוע" (מההרצאה והתרגול של שבוע N), מהקל לקשה, שמכסים את הנושאים העיקריים
-  של השבוע בלי כפילות. עדיפות לתרגילים מהתרגול.
+  של השבוע בלי כפילות: לעולם לא שני תרגילים עם אותם נתונים או אותה שאלה (גרסה מהכיתה וגרסה מהפרק = אותו תרגיל). עדיפות לתרגילים מהתרגול.
 - exam: עד 2 תרגילים מתוך "תרגילי מבחן ומטלות", שעוסקים בנושאים של שבוע N, ושאפשר לפתור אותם במלואם רק עם החומר
   של הרצאות 1 עד N. אם תרגיל דורש נושא שעוד לא נלמד (מופיע רק בהרצאות מאוחרות או לא מופיע ברשימה) - אל תבחר אותו.
   עדיף פחות תרגילים מאשר תרגיל שהסטודנט לא יכול לפתור.
@@ -33,6 +33,40 @@ SCHEMA = {"type": "object", "properties": {
     "exam": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "why": {"type": "string"}},
                                         "required": ["id", "why"]}}},
     "required": ["practice", "exam"]}
+
+
+def _nums(md):
+    """The numbers that identify an exercise's data (values >= 10 or decimals; 0-9 are in every exercise)."""
+    return {x for x in re.findall(r"\d+(?:\.\d+)?", md or "") if "." in x or len(x) >= 2}
+
+
+def same(a, b):
+    """The same exercise twice (his report 15/11/2026, waves week 2: exercise 1 = exercise 3) - the class version and a
+    practice / chapter version of one board exercise: the same data, or the same C/Java function, or the same text."""
+    import difflib
+    qa, qb = a.get("question_md") or "", b.get("question_md") or ""
+    na, nb = _nums(qa), _nums(qb)
+    prose = lambda t: re.sub(r"[\s$\\{}]+", " ", re.sub(r"```.*?```", " ", t, flags=re.S))[:800]  # noqa: E731
+    pa, pb = prose(qa), prose(qb)
+    ratio = difflib.SequenceMatcher(None, pa, pb).ratio()
+    common = len(na & nb)
+    if common >= 3 and common / len(na | nb) >= 0.5 or common == 2 and common / len(na | nb) >= 0.8 and ratio >= 0.5:
+        return True
+    inline = lambda t: " ".join(re.findall(r"`([^`\n]+)`", re.sub(r"```.*?```", " ", t, flags=re.S)))  # noqa: E731
+    fa, fb = (set(re.findall(r"\b(\w+)\s*\(", inline(q))) for q in (qa, qb))
+    if fa & fb - {"main", "println", "print", "printf", "if", "for", "while"}:
+        return True
+    return min(len(pa), len(pb)) >= 150 and ratio >= 0.7  # short generic prose ("what is printed?") is not enough
+
+
+def dedupe(ids, by_id):
+    """Keeps the first of each repeated exercise (class exercises come first)."""
+    out = []
+    for i in ids:
+        if i in by_id and any(same(by_id[i], by_id[k]) for k in out if k in by_id):
+            continue
+        out.append(i)
+    return out
 
 
 def short(md, n=500):
@@ -103,6 +137,9 @@ def run(match, only_missing=False):
         practice = (cls + [i for i in practice if i not in cls])[:10]
         if len(practice) < 2:  # never fewer than 2 practice exercises when the week has them
             practice += [x["id"] for x in own if x["id"] not in practice][:2 - len(practice)]
+        by_id = {x["id"]: x for x in ex}
+        practice = dedupe(practice, by_id)
+        exam = [e for e in exam if e["id"] in dedupe(practice + [e["id"]], by_id)]
         sets[str(n)] = {"practice": practice, "exam": exam}
         print(f"::notice title=Week sets::{course['name']} week {n}: {len(practice)} practice + {len(exam)} exam", flush=True)
     sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
