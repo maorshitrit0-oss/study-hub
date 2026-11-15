@@ -1,0 +1,14 @@
+[
+ {
+  "id": "e24e192e-1721-496a-99da-b2e7128ddde9",
+  "solution_md": "**שלב 1 – הזזה:** `1 << 5` מזיז את הסיבית 1 חמישה מקומות שמאלה:\n$$1\\ll5=100000_2=32$$\n\n**שלב 2 – מינוס 1:** כל הסיביות שמתחת הופכות ל-1:\n$$32-1=31=11111_2$$ ✅\n\n```c\n#define AGE_BITS 5\n#define MAX_AGE ((1 << AGE_BITS) - 1)   /* 31 */\n```\n\n💡 **הרעיון:** $(1\\ll n)-1$ נותן מסכה של $n$ אחדות – הערך המקסימלי ששדה של $n$ ביטים יכול להחזיק. כך לא כותבים \"מספר קסם\"."
+ },
+ {
+  "id": "9df26f09-e09c-48b3-a2ca-26a2e76765fc",
+  "solution_md": "**שלב 1 – בדיקת מצביע:** אם המצביע הוא `NULL` מחזירים $-1$.\n\n**שלב 2 – עדכון ביט 1:** המסכה היא $1\\ll1=2$ (בבינארי `00000010`).\n- הדלקה: `OR` עם המסכה – שאר הביטים לא משתנים.\n- כיבוי: `AND` עם השלילה של המסכה (`11111101`) – רק ביט 1 מתאפס.\n\n```c\n#define HAPPY_BIT  1\n#define HAPPY_MASK (1 << HAPPY_BIT)     /* 2 */\n\nint dog_set_is_happy(unsigned char *dog, int status)\n{\n    if (!dog)\n        return -1;\n    if (status)\n        *dog |= HAPPY_MASK;\n    else\n        *dog &= ~HAPPY_MASK;\n    return 0;\n}\n```\n✅\n\n💡 **הרעיון:** הדלקת ביט = `|=` מסכה; כיבוי ביט = `&=` שלילת המסכה."
+ },
+ {
+  "id": "553159a3-4484-466f-a0e1-0cc3cbc6224a",
+  "solution_md": "**שלב 1 – בדיקות:** מצביע לא תקין, או גיל מחוץ ל-$0..31$ ⇐ מחזירים $-1$.\n\n**שלב 2 – המסכה של השדה:** 5 ביטים שמתחילים בביט 2:\n$$AGE\\_MASK=31\\ll2=01111100_2=124$$\n\n**שלב 3 – איפוס השדה:** `AND` עם השלילה (`10000011`) – הביטים 2–6 מתאפסים, ביטים 0, 1, 7 נשמרים.\n\n**שלב 4 – הצבה:** מזיזים את הגיל החדש למקומו ועושים `OR`.\n\n```c\n#define AGE_START_BIT 2\n#define AGE_BITS      5\n#define MAX_AGE  ((1 << AGE_BITS) - 1)            /* 31 */\n#define AGE_MASK (MAX_AGE << AGE_START_BIT)       /* 0x7C */\n\nint dog_set_age(unsigned char *dog, int new_age)\n{\n    if (!dog || new_age < 0 || new_age > MAX_AGE)\n        return -1;\n    *dog &= ~AGE_MASK;                              /* clear bits 2..6 */\n    *dog |= (unsigned char)(new_age << AGE_START_BIT);\n    return 0;\n}\n```\n✅\n\n**דוגמה:** `*dog = 0x83` (ביטים 7, 1, 0 דולקים), `new_age = 5`: איפוס ⇐ `0x83`; $5\\ll2=20=$ `0x14` ⇐ התוצאה `0x97`.\n\n💡 **הרעיון:** עדכון שדה של כמה ביטים = קודם לאפס (`&= ~MASK`), אחר כך להזיז ולהדליק (`|= value << start`). בלי האיפוס – ביטים של הגיל הישן נשארים."
+ }
+]
