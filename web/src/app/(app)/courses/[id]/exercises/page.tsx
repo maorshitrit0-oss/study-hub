@@ -15,9 +15,15 @@ export default async function CourseExercises({ params, searchParams }: PageProp
   if (!course) notFound();
   const { forWeek, fileExercises, fileReadyWeek, byId, weekOf, weeksOf, all } = await exercisesByWeek(sb, id, userId);
   const files = sp.files === "1";
-  // Week N = lecture N + practice N (his way, 11/11/2026). Opens on the first week that still has unsolved exercises.
+  // Week N = lecture N + practice N (his way, 11/11/2026). "Here I am" = the week of the last lecture / practice he read
+  // (his remark 15/11/2026: "I read lecture 2, so I am in week 2"); before reading any, the first unsolved week.
   const last = weeksOf(id);
-  const open = Array.from({ length: last }, (_, k) => k + 1)
+  const { data: readLessons } = await sb.from("lessons").select("kind, number, title, read_at").eq("course_id", id)
+    .not("read_at", "is", null);
+  const readWeek = Math.max(0, ...(readLessons ?? [])
+    .filter((l) => l.number && !(l.title ?? "").startsWith("📦") && (l.kind === "lecture" || l.kind === "practice" || (l.title ?? "").startsWith("מפגש ")))
+    .map((l) => Math.min(l.number as number, last)));
+  const open = readWeek || Array.from({ length: last }, (_, k) => k + 1)
     .find((n) => all.some((x) => x.course_id === id && weekOf(x) === n && !x.done_at));
   const w = Math.max(1, Number(sp.w) || open || last);
   const { fromLessons, fromFiles } = forWeek(id, w);

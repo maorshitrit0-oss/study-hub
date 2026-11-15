@@ -832,6 +832,12 @@ Duplicates (his report 15/11/2026, waves week 2: exercise 1 = exercise 3 - the c
 one board exercise): `weekset.same()/dedupe()` keep the first (class first) of exercises with the same data, the same
 C/Java function, or the same text; the Gemini prompt says so too. The existing sets were cleaned with weekset-drop.
 
+Expected exam = class exercises first (his remark 15/11/2026: "I solved ~10 exercises from the lectures / practices
+and none is in the expected exam; the lecturer said they can all appear"): forecasts.py CLASS maps every exercise of the
+week lists (ids in chapters/weekset_ids.json) to its forecast section, first in the list, and topics taught in class
+that past exams did not show get their own section. **The Saturday update must map the new week's exercises too.**
+Exercises tab "כאן אני" = the week of the last lecture/practice he marked read (lessons.read_at), not the first unsolved.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so

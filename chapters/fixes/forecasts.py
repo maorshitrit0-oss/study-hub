@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 CH = Path(__file__).resolve().parents[1]
-UPDATED = "14/11/2026"
+UPDATED = "15/11/2026"
 
 
 def ids(core, *prefixes):
@@ -124,8 +124,87 @@ F["rnd"] = ("אקראיים", {
         sec("שאלה 4: משערך לינארי עם משתנים רציפים", 80, "שאלה 4 במבחן שלך.", True, 20, None, ids("rnd", "fb317617", "597ce441", "6ddd33ef")),
     ]})
 
+# ---------------------------------------------------------------------------------------------------------------------
+# 15/11/2026, his remark: "the lecturer said every exercise of the lectures and practices can be in the exam - I solved
+# ~10 and not one of them is in the expected exam". So every expected question now lists FIRST the exercises of his
+# weekly lists (week N = lecture N + practice N; "📌 מהכיתה" = solved in class) that train it, then the past-exam ones;
+# topics taught in class that the past exams did not show get a section of their own. Ids: chapters/weekset_ids.json.
+WS_IDS = json.loads((CH / "weekset_ids.json").read_text(encoding="utf-8"))
+
+
+def w(*prefixes):
+    out = []
+    for pre in prefixes:
+        hit = [x for x in WS_IDS if x.startswith(pre)]
+        assert len(hit) == 1, pre
+        out.append(hit[0])
+    return out
+
+
+CLASS_NOTE = "התרגילים מהשבועות שלך (הרצאה + תרגול; 📌 = נפתר בכיתה – המרצה אמר שהם יכולים להופיע במבחן) + שאלות ממבחני עבר"
+CLASS = {  # course -> {section index: week-list exercises}, plus new sections
+    "waves": ({0: w("8c561610", "b751881a"),
+               4: w("30c4dbdd", "19307f4d", "fb766438", "fdf477e9"),
+               5: w("a26af07a", "54addb9c")},
+              [sec("משוואות מקסוול ופרמטרי גל: בדיקת שדה, H מתוך E, k, λ, η, תנאי שפה", 80,
+                   "כל התרגילים מהכיתה של הרצאה 1 ותרגול 1. בשאלת הגל במבחן הסעיפים הראשונים הם בדיוק זה: מתוך E נתון למצוא k, λ, η, את H ולבדוק את משוואות מקסוול.",
+                   True, 15, "רוטור של E ← פאראדיי ← אינטגרל בזמן = B. תמיד לבדוק את ארבע המשוואות: שתי דיברגנץ ושני רוטורים.",
+                   w("e170a79a", "93c7e01d", "768dc496", "b075adf5", "44ec295a", "b56401e0", "ed05ef04"))]),
+    "linear": ({0: w("dc984255", "258f4f74", "8539b42d", "c580b9a6", "b8898460", "40f38d24", "76240755"),
+                3: w("02e76b3d", "e936fb16"),
+                5: w("c1439767", "70038c31", "1261c5ba", "39a78ac1", "b9e4e6c0")},
+               [sec("רשתות שני-זוגיים: פרמטרי h ו-z (גם מתוך מודל π)", 60,
+                    "נפתר בכיתה בהרצאה 1 ובתרגול 1 (מודל π ← פרמטרי h).", True, 15,
+                    "קצר במוצא ← h11, h21; נתק בכניסה ← h12, h22.", w("94a5949d", "8c3880bb", "09c12485")),
+                sec("דיודה – פתרון בשני מודלים", 40, "שאלת מבחן ששייכת לשבוע 1.", True, 10, None, w("7481fc52"))]),
+    "micro": ({0: w("e24e192e", "9df26f09", "553159a3", "912bcbdb", "0c2c2376", "f61b71ba", "5fc67982"),
+               2: w("968bbeb5", "19ec7fa7"),
+               3: w("1b38eb7a")}, []),
+    "comm": ({0: w("6dad52f1", "9333a666", "2d7a8080", "73099eff", "71f4c8e8"),
+              1: w("cbf1a8ce", "e79529cb", "f498bfee", "7056519a", "2420dd4f", "94900492", "e4f0e2e7", "f32f3f8b"),
+              2: w("98fc3b21", "1fce2fb5", "ed625cad", "c4d0ee40"),
+              5: w("c9afaad5", "ff8590cc", "c60c0f64", "f1eb8f9c", "ef88bbdd", "035fdbb6", "c497b4f4", "eacdedd6", "a2058312", "9d07e927", "758c7080")},
+             [sec("מסננים, תהודה והספק של אותות (RC / RL / RLC)", 40, "נפתר בכיתה בהרצאה 1 ובתרגולים 1-2.", True, 10, None,
+                  w("77c57235", "8e534070", "3198b801"))]),
+    "digital": ({0: w("ce0d3288", "73492580", "58d4d12e", "f09fbb0e", "5ffaecdf", "d542fec2", "dd17dfe3", "9a62d056"),
+                 2: w("769434a9", "876fa9fd", "a333d682", "98d9a092"),
+                 3: w("3a95dd1c"),
+                 4: w("ae6f28f5", "e9a1f688", "a4aae128")},
+                [sec("דיודה וטרנזיסטור ביפולרי – מצב עבודה, שערי דיודות", 40, "תרגולים 2-3.", True, None, None,
+                     w("4a92f6c9", "772067ea", "ed75de2a", "1875f5c3"))]),
+    "java": ({0: w("ffdb3a40", "65da62fc", "1719a9c8", "22f606b0"),
+              3: w("f0440317"),
+              6: w("3da55b01", "d2a1a459", "d52984f9", "e31b24f2"),
+              7: w("38d9cc8c")},
+             [sec("כתיבת קוד קצר: תנאים, לולאות, מערכים ומחלקה פשוטה", 70,
+                  "התרגילים מהכיתה של שבועות 1-3 (תרגול 1, הרצאה 2) – ושאלות השלמת קוד במבחן בנויות מהם.", True, None,
+                  "קודם לכתוב בעברית את השלבים, אחר כך קוד; לבדוק ידנית על קלט אחד.",
+                  w("6fee50e7", "45496a5e", "0293c40e", "58304176", "9379c0e8", "262a6118", "482b5658", "89c8155c"))]),
+    "rnd": ({0: w("fe403441", "7888a5c6", "5c348062", "210da1b0", "3661feaf", "e1727d78", "130332dd", "32de7adc"),
+             1: w("3e70590d", "890a8285", "5de8e4b9", "4acf12fb", "699891e8", "92264487", "176bcf82"),
+             2: w("e7f7e0ce", "990a0df6", "f554d180", "11e7e6aa", "f9005ad3", "9a4d8704"),
+             3: w("fb317617", "597ce441", "19cb3529", "bc391d30", "73916e62", "c336bbe3", "8fff574f", "dae0357b", "513ce83e",
+                  "d1f7153a", "462599c1", "5e96963d", "443fa09b", "3a245f8d")},
+            [sec("וקטורים גאוסיים – קווריאנס של Ax, צפיפות מותנית, פונקציה אופיינית", 50, "סעיף בשאלות המשערך והתהליכים.", True, 10, None,
+                 w("d165bb9e", "ac3f2987", "6dc493c5", "4d2c8853"))]),
+}
+
+
+def with_class(key, data):
+    per, new = CLASS.get(key, ({}, []))
+    secs = []
+    for i, s0 in enumerate(data["sections"]):
+        s1 = dict(s0)
+        mine = per.get(i, [])
+        if mine:
+            s1["exercise_ids"] = mine + [x for x in s1["exercise_ids"] if x not in mine]
+            s1["taught"] = True
+        secs.append(s1)
+    return dict(data, sections=secs + new, basis=data["basis"] + " · " + CLASS_NOTE)
+
+
 if __name__ == "__main__":
     for key, (_, data) in F.items():
-        data = dict(data, updated=UPDATED)
+        data = with_class(key, dict(data, updated=UPDATED))
         (CH / f"{key}_forecast.json").write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
         print(key, len(data["sections"]))
