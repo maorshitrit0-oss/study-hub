@@ -826,7 +826,7 @@ inspect=classex, course regex) has Gemini pull every exercise solved in a lectur
 skipped, so a re-run only does the missing ones. **Claude checks every extracted solution** against the slides:
 waves (chapters/fixes/waves_class_1411.py), digital/micro/linear/comm (chapters/fixes/class_1511.py; the digital
 one had slide 6's data and V_OL 0.1 - rebuilt from slides 7-12). On 15/11 the Gemini daily quota ran out mid-run:
-comm lectures 3-4 and the Java week sets were not done; re-run after 10:00 Israel time and check the new ones.
+re-run at 10:20 added comm lecture/practice 4, Java weeks 1-2, digital lecture 2 - checked in chapters/fixes/class_1511b.py (the comm link-design last distance: board -109.24 dBm not reproducible, flagged).
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
