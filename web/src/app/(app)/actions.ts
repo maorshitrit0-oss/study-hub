@@ -176,6 +176,23 @@ export async function retryLesson(id: string) {
   revalidatePath(`/lessons/${id}`);
 }
 
+/**
+ * A recording the server cannot download (Zoom behind a bot check, 16/11/2026): he pastes the transcript Zoom shows next
+ * to the video, and the chapter is written from it (hub reuses an existing transcript instead of downloading).
+ */
+export async function pasteTranscript(id: string, f: FormData) {
+  const { sb } = await requireUser();
+  const text = str(f, "transcript");
+  if (!text || text.length < 200) return;
+  const { data } = await sb.from("lessons")
+    .update({ transcript: `<!-- pasted transcript -->\n${text}`, status: "queued", error: null, progress: "תמלול שהודבק - בתור" })
+    .eq("id", id).select("id");
+  if (!data?.length) return;
+  const err = await startLesson(sb, id);
+  if (err) await sb.from("lessons").update({ status: "error", error: err }).eq("id", id);
+  revalidatePath(`/lessons/${id}`);
+}
+
 export async function deleteLesson(id: string, courseId: string) {
   const { sb, userId } = await requireUser();
   const { data: files } = await sb.storage.from("study").list(`${userId}/lessons/${id}`, { limit: 1000 });
