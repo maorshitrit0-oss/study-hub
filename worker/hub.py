@@ -604,6 +604,19 @@ def cmd_core(match, path):
     print(f"::notice title=Core exercises::{course['name']}: " + ", ".join(f"week {w}: {len(v)}" for w, v in data["weeks"].items()), flush=True)
 
 
+def cmd_assignments(match, path):
+    """📝 The course's graded assignments with full solutions (his request 16/11/2026, communication systems: 10% of the
+    grade). The file comes sealed through the public repo (sealed.py); stored privately as
+    <user>/materials/<course>/assignments.json and shown on /courses/<id>/assignments."""
+    sb = db()
+    course = find_course(sb, match)
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/assignments.json",
+                                    json.dumps(data, ensure_ascii=False).encode("utf-8"),
+                                    {"content-type": "application/json", "upsert": "true"})
+    print(f"::notice title=Assignments::{course['name']}: {len(data.get('items') or [])} assignments", flush=True)
+
+
 def cmd_forecast(match, path):
     """🎯 The expected exam of a course (his request 09/11/2026), updated weekly by Claude: chapters/<course>_forecast.json
     -> <user>/materials/<course>/exam_forecast.json, shown on the course's "מבחן צפוי" page."""
@@ -1217,6 +1230,7 @@ if __name__ == "__main__":
     p.add_argument("title"); p.add_argument("chapter_json")
     p = sub.add_parser("sheet"); p.add_argument("course"); p.add_argument("md")
     p = sub.add_parser("exercises"); p.add_argument("course"); p.add_argument("fixes_json")
+    p = sub.add_parser("assignments"); p.add_argument("course"); p.add_argument("path")
     p = sub.add_parser("drive"); p.add_argument("course"); p.add_argument("files_json")
     p = sub.add_parser("core"); p.add_argument("course"); p.add_argument("core_json")
     p = sub.add_parser("drivefiles"); p.add_argument("ids"); p.add_argument("out_dir")
@@ -1286,6 +1300,8 @@ if __name__ == "__main__":
         locate.run(sb, course)
     elif a.cmd == "drive":
         cmd_drive(a.course, a.files_json)
+    elif a.cmd == "assignments":
+        cmd_assignments(a.course, a.path)
     elif a.cmd == "exercises":
         cmd_exercises(a.course, a.fixes_json)
     elif a.cmd == "materials":
