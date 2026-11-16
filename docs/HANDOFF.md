@@ -851,6 +851,12 @@ Week size (16/11/2026, "comm week 1 has 11 exercises"): class exercises + 1-4 ot
 2 exam; applied to ALL existing weeks (weekset-clean) and to new ones (weekset.run). He insists: every rule he gives is
 for all courses and for the existing weeks too, not only the course he mentioned or the future.
 
+Predicted questions (16/11/2026, his refinement: "they will not repeat the class exercises - they change the data and add
+a catch"): chapters/fixes/predict_<course>.py write "🎯 שאלה צפויה" free exercises (class example + new data + the past
+exams' catch; numbers asserted, Java/C compiled and run), PRED in forecasts.py puts them first in their section and in
+the PDF mock exam. 28 written (digital 4, Java 5, micro 4, linear 5, rnd 4, comm 3, waves 3). New lectures -> new ones
+in the Saturday run.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
