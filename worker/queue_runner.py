@@ -150,6 +150,15 @@ def retry_studio(sb):
     redo = [r for r in rows if "נוסחאות שנחתכו" in (r.get("error") or "")]  # studio-redo: made again on purpose
     rows = [r for r in rows if r in redo or not any(x["kind"] == r["kind"] and sorted(x.get("lesson_ids") or []) == sorted(r.get("lesson_ids") or [])
                                        and (x["created_at"] > r["created_at"] or x["created_at"] >= ENGINE_SINCE) for x in ready)]
+    # a podcast / video left "queued" / "processing" for hours (its run died - Java lectures 1-2 waited from 14/11) goes again
+    try:
+        stale_at = (datetime.now(timezone.utc) - timedelta(hours=6)).isoformat()
+        stale = [dict(r, error="עמוסים (נתקע)") for r in sb.table("lesson_media").select("id, kind, error, course_id, lesson_ids, created_at")
+                 .in_("status", ["queued", "processing"]).lt("created_at", stale_at).order("created_at").execute().data]
+    except Exception:  # noqa: BLE001
+        stale = []
+    # what is missing comes before what is only made again (a lecture with no video > a nicer video of an old one)
+    rows = sorted(stale + rows, key=lambda r: r in redo)
     for m in [r for r in rows if any(w in (r.get("error") or "") for w in ("מכסה", "עמוסים"))][:2]:
         sb.table("lesson_media").update({"status": "queued", "error": None}).eq("id", m["id"]).execute()
         print(f"::notice title=Studio again::{m['kind']} {m['id'][:8]}: {course_site.dispatch_inputs('media.yml', {'media_id': m['id']})}", flush=True)
