@@ -68,6 +68,9 @@ function groupLessons(ls: Lesson[], isLab: boolean): [string, Lesson[]][] {
 export default async function CoursePage({ params }: PageProps<"/courses/[id]">) {
   const { id } = await params;
   const { sb, userId } = await requireUser();
+  // 📝 graded assignments with solutions, when the course has them (communication systems, 16/11/2026)
+  const { data: asg } = await sb.storage.from("study").list(`${userId}/materials/${id}`, { search: "assignments.json" });
+  const hasAssignments = (asg ?? []).some((f) => f.name === "assignments.json");
   const [{ data: course }, { data: lessons }, { data: materials }, { data: deadlines }, stats, { data: facts }, { data: settings }, { data: slots }] = await Promise.all([
     sb.from("courses").select("*").eq("id", id).maybeSingle(),
     sb.from("lessons").select("id, kind, number, title, status, progress, read_at, created_at, source_url").eq("course_id", id).order("created_at"),
@@ -207,6 +210,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
         <Link href={`/courses/${id}/chat`} className="card text-center font-medium">💬 צ&apos;אט על הקורס</Link>
         <Link href={`/courses/${id}/exercises`} className="card text-center font-medium">✍️ תרגילים</Link>
         <Link href={`/courses/${id}/forecast`} className="card text-center font-medium">🎯 מבחן צפוי</Link>
+        {hasAssignments && <Link href={`/courses/${id}/assignments`} className="card text-center font-medium">📝 מטלות ופתרונות</Link>}
         <Link href={`/words?course=${id}`} className="card text-center font-medium">🔤 מילים באנגלית</Link>
         <Link href={`/courses/${id}/doc/formulas`} className="card text-center font-medium">📄 דף נוסחאות</Link>
       </div>

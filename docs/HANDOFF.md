@@ -857,6 +857,13 @@ exams' catch; numbers asserted, Java/C compiled and run), PRED in forecasts.py p
 the PDF mock exam. 28 written (digital 4, Java 5, micro 4, linear 5, rnd 4, comm 3, waves 3). New lectures -> new ones
 in the Saturday run.
 
+Comm assignments (16/11/2026; 10% of the grade, "מגן"): he uploaded tasks 1-10 (PDFs, not in the repo). Claude solved all
+(numbers asserted, MATLAB run in Octave - apt install octave), page /courses/<id>/assignments (fold per task, copy one /
+copy all; link on the course page only when assignments.json exists). The solutions must not be public: they go through
+the repo SEALED (worker/sealed.py: X25519 key derived from SUPABASE_SERVICE_KEY; publish inspect=sealed-pub prints the
+public key O3hrUN/uOWkXjv/hKr/GtSM9XtTs5dVO/Wmn6CWXXFM=; inspect=assignments opens chapters/*.sealed.json -> storage).
+Builder kept in the scratchpad only. Flagged: task 8 Q1 (3 MHz, no option fits), task 5 exam Q (η=0.1 not the marked 0.2).
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
