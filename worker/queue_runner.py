@@ -95,7 +95,7 @@ def to_claude(sb, r):
 def candidates(sb):
     now = datetime.now(timezone.utc)
     old = (now - timedelta(minutes=10)).isoformat()
-    rows = (sb.table("lessons").select("id, kind, status, error, progress, updated_at, created_at, transcript, chapter_md, summary_md, course_id")
+    rows = (sb.table("lessons").select("id, kind, status, error, progress, updated_at, created_at, transcript, chapter_md, summary_md, course_id, source_url")
             .in_("status", ["queued", "error", "ready"]).order("created_at").execute().data)
     active = {c["id"] for c in sb.table("courses").select("id").eq("archived", False).execute().data}
     rows = [r for r in rows if r["course_id"] in active]
@@ -103,6 +103,11 @@ def candidates(sb):
     waiting = [(r, "full" if "פרק מלא" in (r.get("progress") or "") else "auto") for r in rows
                if r["status"] == "queued" and r["updated_at"] < old]
     quota = [(r, "auto") for r in rows if r["status"] == "error" and "מכסה" in (r.get("error") or "")]
+    # a recording Zoom would not let the server download (16/11/2026): tried again once a day with the newest yt-dlp,
+    # so it processes by itself the day the tool is fixed
+    zoom = [(r, "auto") for r in rows if r["status"] == "error" and ("[zoom]" in (r.get("error") or "") or "זום" in (r.get("error") or "")
+            or ("confirm you" in (r.get("error") or "").lower() or "יוטיוב חוסם" in (r.get("error") or "")) and "zoom.us" in (r.get("source_url") or ""))
+            and r["updated_at"] < (now - timedelta(hours=24)).isoformat()]
     busy = [(r, "auto") for r in rows if r["status"] == "error" and ("עמוסים" in (r.get("error") or "") or "INTERNAL" in (r.get("error") or ""))
             and r["updated_at"] < (now - timedelta(minutes=10)).isoformat()
             and r["created_at"] > (now - timedelta(days=2)).isoformat()]
@@ -128,7 +133,7 @@ def candidates(sb):
     fill.sort(key=lambda x: x[1] != "summary")
     # His courses first; self-study sessions (written ahead of time) after them - they are not due yet.
     later = lambda x: (x[0].get("transcript") or "").startswith(author.VLSI_NOTE)  # noqa: E731
-    return sorted(waiting + quota + busy, key=later) + fill
+    return sorted(waiting + quota + busy + zoom[:1], key=later) + fill
 
 
 ENGINE_SINCE = "2026-11-08T17:20"

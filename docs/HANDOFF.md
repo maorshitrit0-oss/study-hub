@@ -868,7 +868,9 @@ Zoom recordings (16/11/2026): ariel-ac-il.zoom.us/rec/play pages are now a JS ap
 yt-dlp's zoom extractor fails ("Unable to extract data"); do NOT try to get around it. He downloads from Zoom -> Google
 Drive (anyone with the link) -> pastes the Drive link in the lesson's edit form (updateLesson relinks + reprocesses).
 friendly_error now says so for "[zoom]" errors (before, yt-dlp's "Confirm you are on the latest version" matched the
-YouTube-block text). Blocked 16/11: waves lecture 5 + practice 5, comm lecture 5 parts A+B.
+YouTube-block text). Blocked 16/11: waves lecture 5 + practice 5, comm lecture 5 parts A+B. Even the yt-dlp nightly of 15/11 fails. process.yml now
+installs the yt-dlp nightly, and queue_runner retries one Zoom-failed lesson per run once it is 24h old - they process by
+themselves when yt-dlp is fixed. Meanwhile: paste Zoom's transcript on the failed lesson page (pasteTranscript).
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
