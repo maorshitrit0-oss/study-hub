@@ -296,7 +296,10 @@ def friendly_error(e):
         return "המכסה היומית החינמית של Gemini נגמרה בכל המודלים. היא מתאפסת כל יום בסביבות 10:00 בבוקר - אז ללחוץ 'לנסות שוב'."
     if _is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "500 INTERNAL", "Internal error encountered"):
         return "השרתים של Gemini היו עמוסים. המערכת תנסה שוב לבד בעוד חצי שעה (אפשר גם ללחוץ 'לנסות שוב')."
-    if _is(e, "confirm you", "not a bot"):
+    if _is(e, "[zoom]"):  # before the YouTube check: yt-dlp's generic text also says "Confirm you are on the latest version"
+        return ("זום לא נותן לשרת להוריד את ההקלטה הזאת (דף ההקלטות של זום חוסם הורדה אוטומטית). "
+                "הפתרון: בדף ההקלטה בזום ללחוץ 'הורדה', ולהעלות את הקובץ כאן (או להעלות אותו לדרייב ולהדביק את הקישור).")
+    if _is(e, "not a bot", "Sign in to confirm"):
         return ("יוטיוב חוסם את השרת שמעבד את ההקלטות, אז אי אפשר להוריד ממנו. "
                 "ללחוץ 'לנסות שוב' - הקלטות יוטיוב נקראות עכשיו דרך Gemini.")
     return str(e)[:1500]
