@@ -95,8 +95,13 @@ def daily():
         lines = entry_quiz_lines(sb, uid, (now.weekday() + 1) % 7, "היום")
         if now.weekday() == 4:  # Friday morning
             lines += self_study_line(sb, uid, "היום")
+        # homework heard in old recordings of a course he does not attend (random signals retake) is not his - 16/11/2026
+        in_class = {x["course_id"] for x in sb.table("schedule_slots").select("course_id, kind").execute().data
+                    if x["kind"] in ("lecture", "practice")}
         for d in deadlines:
             if d.get("check_due"):
+                continue
+            if (d.get("external_uid") or "").startswith("hw:") and d.get("course_id") not in in_class:
                 continue
             when = local(d["due_at"])
             name = f"{KIND.get(d['kind'], '')} {d['title']}".strip()

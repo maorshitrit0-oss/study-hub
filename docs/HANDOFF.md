@@ -838,6 +838,10 @@ week lists (ids in chapters/weekset_ids.json) to its forecast section, first in 
 that past exams did not show get their own section. **The Saturday update must map the new week's exercises too.**
 Exercises tab "כאן אני" = the week of the last lecture/practice he marked read (lessons.read_at), not the first unsolved.
 
+Homework tasks ("📝", external_uid hw:) are only for courses with a lecture/practice slot (16/11/2026: random signals -
+a retake, assignments already graded 100% - pushed "solve homework 1-6" on a Monday): save_homework skips, the morning
+push skips, syncPrepTasks closes open ones (done, not deleted). Random signals reminders = only the Thursday sessions.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so

@@ -286,6 +286,11 @@ def save_homework(job, items):
     """What the lecturer / TA asked to do by next time -> tasks due at the course's next class."""
     if not items:
         return
+    # a course with no lecture / practice in the timetable (random signals: a retake from old recordings, assignments
+    # already graded) gets no homework tasks - his screenshot 16/11/2026
+    kinds = {x["kind"] for x in job.sb.table("schedule_slots").select("kind").eq("course_id", job.course["id"]).execute().data}
+    if not kinds & {"lecture", "practice"}:
+        return
     due = next_class(job.sb, job.course["id"])
     rows = [{"user_id": job.lesson["user_id"], "course_id": job.course["id"], "kind": "assignment",
              "title": f"📝 {text[:180]}", "due_at": due, "done": False,

@@ -65,6 +65,12 @@ export async function syncPrepTasks(sb: SupabaseClient) {
     });
   }
   if (add.length) await sb.from("deadlines").upsert(add, { onConflict: "user_id,external_uid", ignoreDuplicates: true });
+  // "📝" homework heard in an OLD recording of such a course is not his (random signals: a retake, his assignments are
+  // already graded 100%; his screenshot 16/11/2026 - "solve homework 1-6" on a Monday). Closed, never deleted.
+  const { data: hw } = await sb.from("deadlines").select("id, course_id").like("external_uid", "hw:%").eq("done", false);
+  for (const t of hw ?? []) {
+    if (t.course_id && kinds.has(t.course_id) && !inClass.has(t.course_id)) await sb.from("deadlines").update({ done: true }).eq("id", t.id);
+  }
 }
 
 /**
