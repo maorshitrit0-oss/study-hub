@@ -842,6 +842,9 @@ Homework tasks ("📝", external_uid hw:) are only for courses with a lecture/pr
 a retake, assignments already graded 100% - pushed "solve homework 1-6" on a Monday): save_homework skips, the morning
 push skips, syncPrepTasks closes open ones (done, not deleted). Random signals reminders = only the Thursday sessions.
 
+Lesson page bottom (16/11/2026): "✓ סיימתי ⬅️ לשיעור הבא: X" marks read and opens the next lesson in one tap (part A ->
+part B, lecture N -> practice N -> lecture N+1; sessions/labs among themselves); after read it is a plain link.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so

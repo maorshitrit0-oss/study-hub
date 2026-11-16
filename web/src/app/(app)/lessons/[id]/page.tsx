@@ -7,7 +7,7 @@ import Chapter from "@/components/Chapter";
 import Quiz from "@/components/Quiz";
 import Studio from "@/components/Studio";
 import { loadMedia } from "@/lib/studio";
-import { deleteLesson, markRead, retryLesson, updateLesson } from "../../actions";
+import { deleteLesson, markRead, markReadAndGo, retryLesson, updateLesson } from "../../actions";
 import Exercises, { type Exercise } from "@/components/Exercises";
 import Fold from "@/components/Fold";
 import { LESSON_LABEL, lessonName, isSession, type Lesson } from "@/lib/types";
@@ -60,6 +60,17 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
     <Studio courseId={lesson.course_id} lessons={[{ id, label: lessonName(lesson) }]} items={media === null ? null : media.filter((m) => m.kind !== "examples")}
       canVideo={/!\[[^\]]*\]\(slide:\d+\)/.test(lesson.chapter_md)} title={self ? "🎬 סרטון המפגש" : undefined} />
   );
+  // The next lesson of the course (his request 16/11/2026): part A -> part B of the same lecture, lecture N -> practice N,
+  // practice N -> lecture N+1 (lab N -> lab N+1, session N -> session N+1). "📦" notebooks and unnumbered lessons are skipped.
+  const { data: sibs } = await sb.from("lessons").select("id, kind, number, title, status, created_at").eq("course_id", lesson.course_id);
+  const RANK: Record<string, number> = { lecture: 0, practice: 1, lab: 2, other: 3 };
+  const seq = (sibs ?? []).filter((l) => l.number && l.status === "ready" && !(l.title ?? "").startsWith("📦")
+      && (lesson.kind === "other") === (l.kind === "other"))
+    .sort((a, b) => a.number - b.number || (RANK[a.kind] ?? 9) - (RANK[b.kind] ?? 9)
+      || (a.title ?? "").localeCompare(b.title ?? "", "he") || a.created_at.localeCompare(b.created_at));
+  const at = seq.findIndex((l) => l.id === id);
+  const next = at >= 0 ? seq[at + 1] : undefined;
+  const nextName = next ? `${lessonName(next as Lesson)}${/חלק/.test(next.title ?? "") ? ` – ${(next.title ?? "").match(/חלק\s*\S+/)?.[0]}` : ""}` : "";
   const quizFold = lesson.status === "ready" && (
     <section className="space-y-3" id="quiz">
       {questions.length > 0 && (
@@ -88,6 +99,13 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
           <button className="btn-ghost w-full">✓ סיימתי עם השיעור הזה</button>
         )}
       </form>
+      {next && (lesson.read_at ? (
+        <Link href={`/lessons/${next.id}`} className="btn w-full text-center">⬅️ לשיעור הבא: {nextName}</Link>
+      ) : (
+        <form action={markReadAndGo.bind(null, id, next.id)}>
+          <button className="btn w-full">✓ סיימתי ⬅️ לשיעור הבא: {nextName}</button>
+        </form>
+      ))}
       {lesson.kind === "lab" && lesson.number && (
         <Link href={`/courses/${lesson.course_id}/entry?n=${lesson.number}`} className="btn-ghost w-full">🎯 תרגול לבוחן הכניסה של ניסוי {lesson.number}</Link>
       )}

@@ -221,6 +221,12 @@ export async function markRead(id: string, read = true) {
   revalidatePath("/");
 }
 
+/** "Done -> next lesson" in one tap (his request 16/11/2026): marks this lesson read and opens the next one. */
+export async function markReadAndGo(id: string, nextId: string) {
+  await markRead(id, true);
+  redirect(`/lessons/${nextId}`);
+}
+
 // ---------- quiz ----------
 
 /** Records an answer and returns the correct option (checked on the server). */
