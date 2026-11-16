@@ -183,6 +183,10 @@ def clean(match):
         w = data["weeks"][k]
         p0, e0 = list(w["practice"]), [e["id"] for e in w["exam"]]
         w["practice"] = dedupe([i for i in w["practice"] if i in by_id], by_id)
+        # class exercises + only 1-4 others (his rule 16/11/2026, for the weeks built before it too)
+        cls = [i for i in w["practice"] if (by_id[i].get("title") or "").startswith("📌 מהכיתה")]
+        if cls:
+            w["practice"] = cls + [i for i in w["practice"] if i not in cls][:max(1, 4 - len(cls))]
         keep = dedupe(w["practice"] + [e["id"] for e in w["exam"] if e["id"] in by_id and e["id"] not in seen], by_id)
         w["exam"] = [e for e in w["exam"] if e["id"] in keep]
         seen |= set(w["practice"]) | {e["id"] for e in w["exam"]}
