@@ -864,6 +864,12 @@ the repo SEALED (worker/sealed.py: X25519 key derived from SUPABASE_SERVICE_KEY;
 public key O3hrUN/uOWkXjv/hKr/GtSM9XtTs5dVO/Wmn6CWXXFM=; inspect=assignments opens chapters/*.sealed.json -> storage).
 Builder kept in the scratchpad only. Flagged: task 8 Q1 (3 MHz, no option fits), task 5 exam Q (η=0.1 not the marked 0.2).
 
+Zoom recordings (16/11/2026): ariel-ac-il.zoom.us/rec/play pages are now a JS app behind a Cloudflare bot check -
+yt-dlp's zoom extractor fails ("Unable to extract data"); do NOT try to get around it. He downloads from Zoom -> Google
+Drive (anyone with the link) -> pastes the Drive link in the lesson's edit form (updateLesson relinks + reprocesses).
+friendly_error now says so for "[zoom]" errors (before, yt-dlp's "Confirm you are on the latest version" matched the
+YouTube-block text). Blocked 16/11: waves lecture 5 + practice 5, comm lecture 5 parts A+B.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
