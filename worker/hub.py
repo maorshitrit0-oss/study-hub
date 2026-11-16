@@ -149,6 +149,13 @@ def cmd_process(lesson_id, do_author=True):
             if source is not None:
                 video = audio = source
                 title = source.stem
+                # a screen recording he played faster (16/11/2026: Zoom blocks downloads, he records at x2): the file
+                # or lesson title says "x2" / "2x" / "x1.5" -> back to normal speed, so speech and slide times are real
+                sp = re.search(r"(?:^|[\s_-])(?:x(\d(?:\.\d+)?)|(\d(?:\.\d+)?)x)(?=$|[\s_.-])", f"{source.stem} {job.lesson.get('title') or ''}", re.I)
+                speed = float(sp.group(1) or sp.group(2)) if sp else 1.0
+                if 1.1 <= speed <= 3:
+                    job.log(f"ההקלטה במהירות x{speed:g} - מחזיר למהירות רגילה...")
+                    video = audio = media.slow_down(source, speed, work)
             else:
                 video, audio, title = media.download(url, work, log=job.log)
             length = media.duration(audio)

@@ -22,6 +22,20 @@ def run_ffmpeg(args):
                    check=True, creationflags=NO_WINDOW)
 
 
+def slow_down(path, speed, work_dir):
+    """A recording made at x`speed` back to normal speed (video frames spread out, audio stretched with its pitch kept)."""
+    out = Path(work_dir) / f"{Path(path).stem}_x1.mp4"
+    tempo, f = [], 1 / speed
+    while f < 0.5:  # atempo takes 0.5..2 per stage
+        tempo.append("atempo=0.5")
+        f /= 0.5
+    tempo.append(f"atempo={f:.4f}")
+    subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-i", str(path), "-filter:v", f"setpts={speed}*PTS",
+                    "-filter:a", ",".join(tempo), "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28",
+                    "-c:a", "aac", "-b:a", "96k", str(out)], check=True)
+    return out
+
+
 def duration(path):
     """Length of a media file in seconds (0 if unknown)."""
     p = subprocess.run([FFMPEG, "-hide_banner", "-i", str(path)],
