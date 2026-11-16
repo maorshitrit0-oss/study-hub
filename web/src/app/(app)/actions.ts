@@ -193,6 +193,22 @@ export async function pasteTranscript(id: string, f: FormData) {
   revalidatePath(`/lessons/${id}`);
 }
 
+/** The Zoom bookmarklet's transcript (lib/zoomBookmarklet.ts): the lesson whose link is this recording gets it. */
+export async function pasteZoomTranscript(src: string, text: string): Promise<{ lessonId?: string; error?: string }> {
+  const { sb } = await requireUser();
+  const key = (src.split("?")[0].match(/\/rec\/(?:play|share)\/([^/?#]+)/) ?? [])[1];
+  if (!key || text.length < 500) return { error: "לא זוהה קישור הקלטה של זום, או שהתמלול קצר מדי." };
+  const { data } = await sb.from("lessons").select("id, status, created_at").like("source_url", `%${key}%`).order("created_at", { ascending: false });
+  const l = (data ?? []).find((x) => x.status !== "ready") ?? (data ?? [])[0];
+  if (!l) return { error: "לא מצאתי שיעור עם הקישור הזה. קודם להוסיף את ההקלטה לקורס (כרגיל), ואחר כך ללחוץ שוב על הסימנייה." };
+  if (l.status === "ready") return { lessonId: l.id };
+  await sb.from("lessons").update({ transcript: `<!-- zoom transcript -->\n${text}`, status: "queued", error: null, progress: "תמלול מזום - בתור" }).eq("id", l.id);
+  const err = await startLesson(sb, l.id);
+  if (err) await sb.from("lessons").update({ status: "error", error: err }).eq("id", l.id);
+  revalidatePath(`/lessons/${l.id}`);
+  return { lessonId: l.id };
+}
+
 export async function deleteLesson(id: string, courseId: string) {
   const { sb, userId } = await requireUser();
   const { data: files } = await sb.storage.from("study").list(`${userId}/lessons/${id}`, { limit: 1000 });

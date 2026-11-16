@@ -154,7 +154,7 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
               <form action={retryLesson.bind(null, id)}><button className="btn">לנסות שוב</button></form>
               {((lesson.error ?? "").includes("זום") || (lesson.source_url ?? "").includes("zoom.us")) && (
                 <form action={pasteTranscript.bind(null, id)} className="space-y-2 pt-3 border-t border-line">
-                  <p className="text-sm font-medium">או: להדביק את התמלול של זום</p>
+                  <p className="text-sm font-medium">או: התמלול של זום – <Link href="/zoom" className="text-accent underline">בלחיצה אחת עם הסימנייה</Link>, או להדביק כאן</p>
                   <p className="text-xs text-muted">בדף ההקלטה בזום, בחלונית Transcript מימין: לגלול עד הסוף, לסמן הכל, להעתיק ולהדביק כאן. הפרק ייכתב מהתמלול (בלי צילומי השקפים).</p>
                   <textarea name="transcript" rows={5} className="input w-full" dir="auto" placeholder="התמלול מזום..." />
                   <button className="btn">לכתוב את הפרק מהתמלול</button>

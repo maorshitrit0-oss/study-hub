@@ -870,7 +870,10 @@ Drive (anyone with the link) -> pastes the Drive link in the lesson's edit form 
 friendly_error now says so for "[zoom]" errors (before, yt-dlp's "Confirm you are on the latest version" matched the
 YouTube-block text). Blocked 16/11: waves lecture 5 + practice 5, comm lecture 5 parts A+B. Even the yt-dlp nightly of 15/11 fails. process.yml now
 installs the yt-dlp nightly, and queue_runner retries one Zoom-failed lesson per run once it is 24h old - they process by
-themselves when yt-dlp is fixed. Meanwhile: paste Zoom's transcript on the failed lesson page (pasteTranscript).
+themselves when yt-dlp is fixed. Meanwhile: paste Zoom's transcript on the failed lesson page (pasteTranscript), or ONE CLICK: the bookmarklet on /zoom
+(lib/zoomBookmarklet.ts) scrolls Zoom's Transcript panel (virtualized list; keyed by position, tested with a fake
+virtual list of 400 lines) and posts the text to /zoom (ZoomReceiver -> pasteZoomTranscript finds the lesson by the
+recording id in source_url). He refused screen recording; downloading past Zoom's block is not done.
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
