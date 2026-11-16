@@ -44,7 +44,7 @@ export default function Quiz({ questions, title = "שאלון", end }: {
     return (
       <div className="text-center space-y-3 py-4">
         <div className="text-4xl font-bold">{p}%</div>
-        <p>{score} מתוך {questions.length} נכונות. {p >= 85 ? "מצוין! 🎉" : p >= 70 ? "טוב, יש מה לחזק." : "שווה לחזור על הפרק ולנסות שוב."}</p>
+        <p>{score} מתוך {questions.length} נכונות. {p === 100 ? "מושלם! 🎉 ממשיכים הלאה." : p >= 80 ? "טוב מאוד – ממשיכים הלאה 👍" : "פחות מ-80% – לחזור על הפרק ולענות שוב 🔁"}</p>
         <button className="btn" onClick={() => { setI(0); setScore(0); setChosen(null); setCorrect(null); }}>שוב</button>
       </div>
     );

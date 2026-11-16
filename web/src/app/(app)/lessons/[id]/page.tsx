@@ -71,6 +71,12 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
   const at = seq.findIndex((l) => l.id === id);
   const next = at >= 0 ? seq[at + 1] : undefined;
   const nextName = next ? `${lessonName(next as Lesson)}${/חלק/.test(next.title ?? "") ? ` – ${(next.title ?? "").match(/חלק\s*\S+/)?.[0]}` : ""}` : "";
+  // His flow (16/11/2026): lecture (parts) -> practice N -> the exercises of week N -> lecture N+1. So the last lesson of
+  // week N (the practice, or the lecture when there is no practice) leads to the week's exercises, not to lecture N+1.
+  const weekDone = (lesson.kind === "lecture" || lesson.kind === "practice") && !!lesson.number && !self
+    && (!next || (next.number ?? 0) > lesson.number);
+  const nextHref = weekDone ? `/courses/${lesson.course_id}/exercises?w=${lesson.number}` : next ? `/lessons/${next.id}` : "";
+  const nextLabel = weekDone ? `לתרגילים של שבוע ${lesson.number}` : `לשיעור הבא: ${nextName}`;
   const quizFold = lesson.status === "ready" && (
     <section className="space-y-3" id="quiz">
       {questions.length > 0 && (
@@ -99,11 +105,11 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
           <button className="btn-ghost w-full">✓ סיימתי עם השיעור הזה</button>
         )}
       </form>
-      {next && (lesson.read_at ? (
-        <Link href={`/lessons/${next.id}`} className="btn w-full text-center">⬅️ לשיעור הבא: {nextName}</Link>
+      {nextHref && (lesson.read_at ? (
+        <Link href={nextHref} className="btn w-full text-center">⬅️ {nextLabel}</Link>
       ) : (
-        <form action={markReadAndGo.bind(null, id, next.id)}>
-          <button className="btn w-full">✓ סיימתי ⬅️ לשיעור הבא: {nextName}</button>
+        <form action={markReadAndGo.bind(null, id, nextHref)}>
+          <button className="btn w-full">✓ סיימתי ⬅️ {nextLabel}</button>
         </form>
       ))}
       {lesson.kind === "lab" && lesson.number && (

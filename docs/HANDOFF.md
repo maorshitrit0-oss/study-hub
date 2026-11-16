@@ -842,8 +842,10 @@ Homework tasks ("📝", external_uid hw:) are only for courses with a lecture/pr
 a retake, assignments already graded 100% - pushed "solve homework 1-6" on a Monday): save_homework skips, the morning
 push skips, syncPrepTasks closes open ones (done, not deleted). Random signals reminders = only the Thursday sessions.
 
-Lesson page bottom (16/11/2026): "✓ סיימתי ⬅️ לשיעור הבא: X" marks read and opens the next lesson in one tap (part A ->
-part B, lecture N -> practice N -> lecture N+1; sessions/labs among themselves); after read it is a plain link.
+His study flow (16/11/2026), one button at each step: lecture (part A -> part B) -> practice N -> exercises of week N ->
+lecture N+1. Lesson page bottom: "✓ סיימתי ⬅️ <next>" marks read and goes on (the last lesson of week N goes to
+/courses/<id>/exercises?w=N); the week's exercises page ends with "סיימתי את שבוע N – להרצאה N+1". In each lesson:
+video -> full chapter -> condensed -> quiz; his quiz rule: under 80% he redoes it, 80%+ goes on (the result says so).
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.

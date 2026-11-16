@@ -26,6 +26,12 @@ export default async function CourseExercises({ params, searchParams }: PageProp
   const open = readWeek || Array.from({ length: last }, (_, k) => k + 1)
     .find((n) => all.some((x) => x.course_id === id && weekOf(x) === n && !x.done_at));
   const w = Math.max(1, Number(sp.w) || open || last);
+  // The end of week w leads to the first lesson of week w+1 (his flow 16/11/2026: ... practice N -> exercises N -> lecture N+1)
+  const { data: nextWeek } = await sb.from("lessons").select("id, kind, title, created_at").eq("course_id", id).eq("number", w + 1)
+    .in("kind", ["lecture", "practice"]).eq("status", "ready");
+  const nextLesson = (nextWeek ?? []).filter((l) => !(l.title ?? "").startsWith("📦"))
+    .sort((a, b) => Number(a.kind !== "lecture") - Number(b.kind !== "lecture") || (a.title ?? "").localeCompare(b.title ?? "", "he")
+      || a.created_at.localeCompare(b.created_at))[0];
   const { fromLessons, fromFiles } = forWeek(id, w);
   const allFiles = fileExercises(id);
   const weeks = Array.from({ length: last }, (_, k) => k + 1);
@@ -134,6 +140,11 @@ export default async function CourseExercises({ params, searchParams }: PageProp
             </Fold>
           )}
         </>
+      )}
+      {!files && nextLesson && (
+        <Link href={`/lessons/${nextLesson.id}`} className="btn w-full text-center">
+          ⬅️ סיימתי את שבוע {w} – {nextLesson.kind === "lecture" ? "להרצאה" : "לתרגול"} {w + 1}{/חלק/.test(nextLesson.title ?? "") ? ` – ${(nextLesson.title ?? "").match(/חלק\s*\S+/)?.[0]}` : ""}
+        </Link>
       )}
       <p className="text-xs text-muted">
         כל קובץ שמעלים לקורס נקרא לבד: התרגילים שבו נכנסים לשבוע שאחריו אפשר לפתור אותם, הדגשים למבחן נרשמים במידע על

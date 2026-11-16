@@ -222,9 +222,9 @@ export async function markRead(id: string, read = true) {
 }
 
 /** "Done -> next lesson" in one tap (his request 16/11/2026): marks this lesson read and opens the next one. */
-export async function markReadAndGo(id: string, nextId: string) {
+export async function markReadAndGo(id: string, href: string) {
   await markRead(id, true);
-  redirect(`/lessons/${nextId}`);
+  redirect(href.startsWith("/") ? href : `/lessons/${href}`);
 }
 
 // ---------- quiz ----------
