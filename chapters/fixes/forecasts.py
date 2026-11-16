@@ -190,6 +190,18 @@ CLASS = {  # course -> {section index: week-list exercises}, plus new sections
 }
 
 
+# 16/11/2026, his refinement: the exam will NOT repeat the class exercises - the lecturers change the data and add a catch.
+# So each likely question gets "🎯 שאלה צפויה" exercises: a class example with new data + the catch the past exams use,
+# solved and checked (chapters/fixes/predict_<course>.py). Shown first in their section. Key: section index, or the
+# title start of a CLASS section.
+PRED = {
+    "digital": {0: ["dd2ae1a2-a428-4d9f-8c27-aa618fc4b037"], 2: ["dfecb57d-7b54-41e3-bdb3-499b06495b47"],
+                3: ["1a377a5b-8288-4eeb-8be7-7ec751f04c7b"], 4: ["1a377a5b-8288-4eeb-8be7-7ec751f04c7b", "dd2ae1a2-a428-4d9f-8c27-aa618fc4b037"],
+                "דיודה וטרנזיסטור": ["b88208e9-bda3-43b9-beac-210bef71e32d"]},
+}
+PRED_NOTE = "🎯 = שאלה צפויה: דוגמה מההרצאה / מהתרגול עם נתונים אחרים והקאץ' שמבחני העבר מוסיפים – כך המרצים בונים את המבחן"
+
+
 def with_class(key, data):
     per, new = CLASS.get(key, ({}, []))
     secs = []
@@ -200,7 +212,14 @@ def with_class(key, data):
             s1["exercise_ids"] = mine + [x for x in s1["exercise_ids"] if x not in mine]
             s1["taught"] = True
         secs.append(s1)
-    return dict(data, sections=secs + new, basis=data["basis"] + " · " + CLASS_NOTE)
+    secs = secs + [dict(x) for x in new]
+    pred = PRED.get(key, {})
+    for i, s1 in enumerate(secs):
+        mine = pred.get(i, []) + [x for k, v in pred.items() if isinstance(k, str) and s1["title"].startswith(k) for x in v]
+        if mine:
+            s1["exercise_ids"] = mine + [x for x in s1["exercise_ids"] if x not in mine]
+    basis = data["basis"] + " · " + CLASS_NOTE + (" · " + PRED_NOTE if pred else "")
+    return dict(data, sections=secs, basis=basis)
 
 
 if __name__ == "__main__":
