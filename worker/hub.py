@@ -1170,8 +1170,9 @@ def cmd_course_check(match):
     les = sb.table("lessons").select("id, kind, number, title, status, chapter_md, summary_md").eq("course_id", course["id"]).execute().data
     media = sb.table("lesson_media").select("kind, status, lesson_ids").eq("course_id", course["id"]).execute().data
     for l in sorted(les, key=lambda l: (l.get("number") or 99, l["kind"])):
-        if l["kind"] not in ("lecture", "practice"):
-            continue
+        if l["kind"] not in ("lecture", "practice") and not (l["kind"] == "other" and l.get("number")
+                                                          and not (l.get("title") or "").startswith("📦")):
+            continue  # lectures, practices and numbered sessions (random signals Thursdays, self-study)
         q = sb.table("questions").select("id", count="exact").eq("lesson_id", l["id"]).execute().count
         ex = sb.table("exercises").select("id", count="exact").eq("lesson_id", l["id"]).execute().count
         m = {k: sorted({x["status"] for x in media if l["id"] in (x.get("lesson_ids") or []) and x["kind"] == k}) for k in ("video", "podcast")}
