@@ -1,0 +1,52 @@
+[
+ {
+  "add": true,
+  "free": true,
+  "source": "exam",
+  "title": "🎯 שאלה צפויה: מה יודפס – קידום, חילוק שלמים, הזזות ושרשור מחרוזות",
+  "question_md": "מה יודפס? (כמו התרגילים מהכיתה על `++`, `>>` ו-`>>>`, עם נתונים אחרים)\n\n```java\npublic class Q1 {\n    public static void main(String[] args) {\n        int x = 7, y = 2;\n        int a = x++ + --y * 3;\n        double avg = (x + y) / 2;\n        int b = -16 >> 2;\n        int c = -16 >>> 28;\n        System.out.println(a + \" \" + avg + \" \" + b + \" \" + c);\n        System.out.println(\"\" + x + y + (x + y));\n    }\n}\n```",
+  "solution_md": "| שורה | חישוב | ערך |\n|---|---|---|\n| `int a = x++ + --y * 3` | `x++` נותן 7 (ואז $x=8$); `--y` נותן 1; כפל לפני חיבור: $7+1\\cdot3$ | `a = 10` |\n| `double avg = (x + y) / 2` | $8+1=9$, **חילוק שלמים** $9/2=4$, ורק אז הופך ל-double | `4.0` |\n| `-16 >> 2` | הזזה אריתמטית = חלוקה ב-4 עם שמירת סימן | `-4` |\n| `-16 >>> 28` | `0xFFFFFFF0` מוזז 28 מקומות עם אפסים ⇐ נשארות 4 סיביות 1 | `15` |\n| `\"\" + x + y + (x + y)` | משמאל לימין: מחרוזת `\"8\"`, אחר כך `\"81\"`; הסוגריים מחושבים כמספר: 9 | `819` |\n\n**פלט:**\n```text\n10 4.0 -4 15\n819\n```\n✅ (הורץ ב-javac)\n\n**הקאצ'ים:** `(x + y) / 2` הוא **4.0 ולא 4.5**, כי החילוק נעשה בשלמים לפני ההמרה. ו-`\"\" + x + y` משרשר ולא מחבר.\n\n💡 **הרעיון:** סדר פעולות + טיפוס של כל ביטוי ביניים. ברגע שמחרוזת בצד שמאל – כל `+` אחריה משרשר.",
+  "exam_style": true,
+  "uncertain": false
+ },
+ {
+  "add": true,
+  "free": true,
+  "source": "exam",
+  "title": "🎯 שאלה צפויה: מה יודפס – static, העברה לפי ערך והפניה לאובייקט",
+  "question_md": "מה יודפס? (כמו תרגילי שבוע 4 על static והעברת פרמטרים)\n\n```java\npublic class Q2 {\n    static int count = 0;\n    int id;\n\n    Q2() {\n        count++;\n        id = count;\n    }\n\n    static void change(int v, int[] arr, Q2 o) {\n        v++;\n        arr[0]++;\n        o.id += 10;\n        o = new Q2();\n        o.id = 99;\n    }\n\n    public static void main(String[] args) {\n        int v = 1;\n        int[] arr = {1, 2};\n        Q2 a = new Q2();\n        change(v, arr, a);\n        System.out.println(v + \" \" + arr[0] + \" \" + a.id + \" \" + Q2.count);\n    }\n}\n```",
+  "solution_md": "**מעקב:**\n1. `new Q2()` ב-main: `count = 1`, `a.id = 1`.\n2. `change(v, arr, a)`:\n   - `v++` – משנה **עותק**. ה-`v` של main נשאר 1.\n   - `arr[0]++` – `arr` הוא הפניה לאותו מערך ⇐ `arr[0] = 2` גם ב-main.\n   - `o.id += 10` – `o` מצביע על אותו אובייקט כמו `a` ⇐ `a.id = 11`.\n   - `o = new Q2()` – יוצר אובייקט **שני** (`count = 2`) ו-`o` מצביע עליו מעכשיו; `a` לא זז.\n   - `o.id = 99` – משנה רק את האובייקט החדש.\n\n**פלט:**\n```text\n1 2 11 2\n```\n✅ (הורץ ב-javac)\n\n**הקאץ':** `o = new Q2()` לא משנה את `a` – ב-Java מעבירים **ערך של הפניה**. אבל הבנאי כן רץ, ולכן `count` עלה ל-2.\n\n💡 **הרעיון:** פרימיטיבי ⇐ עותק. מערך / אובייקט ⇐ אפשר לשנות את התוכן, אבל לא להחליף את ההפניה של הקורא. `static` = משתנה אחד לכל המחלקה.",
+  "exam_style": true,
+  "uncertain": false
+ },
+ {
+  "add": true,
+  "free": true,
+  "source": "exam",
+  "title": "🎯 שאלה צפויה: == מול equals – מה יודפס",
+  "question_md": "מה יודפס? (כמו שאלה 2 בקובץ הדוגמה, עם קאץ' של קבוע בזמן הידור)\n\n```java\npublic class Q3 {\n    public static void main(String[] args) {\n        String a = \"java\";\n        String b = new String(\"java\");\n        String c = \"ja\" + \"va\";\n        String d = \"ja\";\n        d = d + \"va\";\n        System.out.println((a == b) + \" \" + a.equals(b) + \" \" + (a == c) + \" \" + (a == d) + \" \" + a.equals(d));\n    }\n}\n```",
+  "solution_md": "| ביטוי | למה | ערך |\n|---|---|---|\n| `a == b` | `new String` יוצר אובייקט חדש ⇐ הפניות שונות | `false` |\n| `a.equals(b)` | משווה תוכן | `true` |\n| `a == c` | `\"ja\" + \"va\"` הוא **קבוע** – המהדר מחבר אותו מראש לאותה מחרוזת מהמאגר | `true` |\n| `a == d` | `d + \"va\"` מחושב **בזמן ריצה** ⇐ אובייקט חדש | `false` |\n| `a.equals(d)` | אותו תוכן | `true` |\n\n**פלט:**\n```text\nfalse true true false true\n```\n✅ (הורץ ב-javac)\n\n**הקאץ':** `a == c` הוא `true` אבל `a == d` הוא `false`, למרות שבשניהם \"חיברנו\" את אותן שתי מחרוזות.\n\n💡 **הרעיון:** `==` משווה **הפניות**, `equals` משווה **תוכן**. במחרוזות במבחן – תמיד `equals`.",
+  "exam_style": true,
+  "uncertain": false
+ },
+ {
+  "add": true,
+  "free": true,
+  "source": "exam",
+  "title": "🎯 שאלה צפויה: מה השגיאה בקוד – טווח הכרה, המרה מצמצמת ובאג לוגי",
+  "question_md": "בקוד הבא יש **שתי שגיאות הידור** ועוד **באג לוגי** אחד. מצא את שלושתם, ומה יודפס אחרי התיקון?\n\n```java\npublic class Q4 {\n    static int sum(int[] a) {\n        for (int i = 0; i < a.length; i++) {\n            int s = 0;\n            s += a[i];\n        }\n        return s;\n    }\n\n    public static void main(String[] args) {\n        int[] a = {1, 2, 3};\n        int r = sum(a);\n        double d = 3.5;\n        int k = d;\n        System.out.println(r + k);\n    }\n}\n```",
+  "solution_md": "**שגיאות הידור** (הודעות javac):\n1. שורה 7, `return s;` – `cannot find symbol`: המשתנה `s` הוגדר **בתוך** הלולאה, והטווח שלו נגמר בסוף הבלוק.\n2. שורה 14, `int k = d;` – `possible lossy conversion from double to int`: המרה מצמצמת חייבת להיות מפורשת, `(int) d`.\n\n**באג לוגי:** גם אם רק מזיזים את `return`, ה-`int s = 0` בתוך הלולאה מאפס את הסכום בכל סיבוב. צריך להגדיר את `s` **לפני** הלולאה.\n\n**הקוד המתוקן:**\n```java\npublic class Q4fix {\n    static int sum(int[] a) {\n        int s = 0;\n        for (int i = 0; i < a.length; i++) {\n            s += a[i];\n        }\n        return s;\n    }\n\n    public static void main(String[] args) {\n        int[] a = {1, 2, 3};\n        int r = sum(a);\n        double d = 3.5;\n        int k = (int) d;\n        System.out.println(r + k);\n    }\n}\n```\n\n**פלט:** `9` ✅ ($1+2+3=6$, ו-`(int) 3.5` הוא $3$ – חיתוך, לא עיגול). הורץ ב-javac.\n\n💡 **הרעיון:** בשאלת \"מה השגיאה\" בודקים: טווח הכרה של כל משתנה, התאמת טיפוסים (`double` ל-`int` רק עם המרה), ו-return בכל מסלול.",
+  "exam_style": true,
+  "uncertain": false
+ },
+ {
+  "add": true,
+  "free": true,
+  "source": "exam",
+  "title": "🎯 שאלה צפויה: השלמת קוד – מיקום המקסימום וסכום ארגומנטים",
+  "question_md": "הרצה: `java Q5 3 4 5`. מה יודפס? מה ישתנה אם נחליף את `>` ב-`>=`?\n\n```java\npublic class Q5 {\n    public static void main(String[] args) {\n        int[] a = {3, -1, 7, 7, 2};\n        int m = 0;\n        for (int i = 1; i < a.length; i++) {\n            if (a[i] > a[m]) {\n                m = i;\n            }\n        }\n        System.out.println(m);\n        String all = \"\";\n        int sum = 0;\n        for (String s : args) {\n            all += s;\n            sum += Integer.parseInt(s);\n        }\n        System.out.println(all + \" \" + sum);\n    }\n}\n```",
+  "solution_md": "**חלק 1 – מקסימום:** `m` מתחיל ב-0. ב-$i=2$: $7>3$ ⇐ `m = 2`. ב-$i=3$: $7>7$ לא נכון ⇐ `m` נשאר 2.\n**פלט:** `2` ✅\n\n**הקאץ' – `>=`:** ב-$i=3$ מתקיים $7\\ge7$ ⇐ `m = 3`. כלומר `>` מחזיר את המופע **הראשון** של המקסימום, ו-`>=` את **האחרון**.\n\n**חלק 2 – ארגומנטים:** `args = {\"3\",\"4\",\"5\"}`.\n- `all += s` – שרשור מחרוזות: `\"345\"`.\n- `sum += Integer.parseInt(s)` – המרה למספר: $3+4+5=12$.\n\n**פלט:**\n```text\n2\n345 12\n```\n✅ (הורץ ב-javac עם `3 4 5`)\n\n💡 **הרעיון:** ארגומנטים משורת הפקודה הם תמיד מחרוזות – בלי `Integer.parseInt` מקבלים שרשור. בלולאת מקסימום – לשים לב ל-`>` מול `>=`.",
+  "exam_style": true,
+  "uncertain": false
+ }
+]

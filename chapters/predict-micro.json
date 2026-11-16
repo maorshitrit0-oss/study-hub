@@ -1,0 +1,42 @@
+[
+ {
+  "add": true,
+  "free": true,
+  "source": "exam",
+  "title": "🎯 שאלה צפויה: פעולות ביטים על אוגר – XOR, ניקוי, חילוץ שדה והצבת שדה",
+  "question_md": "מה ידפיס הקוד? (כמו שאלה 1 במבחן ותרגילי הכיתה, עם ערך אחר ושדה של 3 ביטים)\n\n```c\n#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint8_t r = 0xB6;                                   /* 1011 0110 */\n    uint8_t a = r ^ 0x0F;                               /* toggle the low nibble */\n    uint8_t b = r & (uint8_t)~(1U << 2);                /* clear bit 2 */\n    uint8_t c = (r >> 4) & 0x3;                         /* bits 4-5 */\n    uint8_t d = (r & (uint8_t)~(0x7 << 3)) | (5 << 3);  /* field bits 3-5 = 5 */\n    printf(\"0x%02X 0x%02X %u 0x%02X\\n\", a, b, c, d);\n    return 0;\n}\n```",
+  "solution_md": "$r=\\texttt{0xB6}=1011\\,0110_2$.\n\n| ביטוי | חישוב | תוצאה |\n|---|---|---|\n| `r ^ 0x0F` | XOR עם `0000 1111` הופך את 4 הביטים הנמוכים: `0110`←`1001` | `1011 1001` = **0xB9** |\n| `r & ~(1U << 2)` | המסכה `1111 1011` מאפסת את ביט 2 (שהיה 1) | `1011 0010` = **0xB2** |\n| `(r >> 4) & 0x3` | הזזה: `0000 1011`, ואז שני הביטים הנמוכים `11` | **3** |\n| `(r & ~(0x7 << 3)) \\| (5 << 3)` | מאפסים ביטים 3-5 (`1100 0111`): `1000 0110`; מציבים $5=101$ במקום 3: `0010 1000` | `1010 1110` = **0xAE** |\n\n**פלט:** `0xB9 0xB2 3 0xAE` ✅ (הורץ ב-gcc)\n\n**הקאץ':** בהצבת שדה **חייבים לאפס קודם** – בלי האיפוס, `r | (5 << 3)` נותן `0xBE` (ביט 4 הישן נשאר דולק).\n\n💡 **הרעיון:** הדלקה `|`, כיבוי `& ~`, היפוך `^`, חילוץ `>>` ואז `&`. תמיד לכתוב את הערך ב-8 ביטים לפני שמחשבים.",
+  "exam_style": true,
+  "uncertain": false
+ },
+ {
+  "add": true,
+  "free": true,
+  "source": "exam",
+  "title": "🎯 שאלה צפויה: שדות ביטים – מבנה של חתול במקום כלב",
+  "question_md": "כמו תרגיל הכלב מהכיתה, עם חלוקה אחרת: ביטים 0-1 צבע (0-3), ביט 2 ישן, ביטים 3-7 משקל (0-31). השלם את המסכות ואת שתי הפונקציות, ומה ידפיס `main`?\n\n```c\n#include <stdio.h>\n#include <stdint.h>\n\n#define COLOR_BITS   2\n#define SLEEP_BIT    2\n#define WEIGHT_START 3\n#define WEIGHT_BITS  5\n#define COLOR_MASK   ((1 << COLOR_BITS) - 1)                          /* 0x03 */\n#define SLEEP_MASK   (1 << SLEEP_BIT)                                 /* 0x04 */\n#define MAX_WEIGHT   ((1 << WEIGHT_BITS) - 1)                         /* 31 */\n#define WEIGHT_MASK  (MAX_WEIGHT << WEIGHT_START)                     /* 0xF8 */\n\nint cat_get_weight(const uint8_t *cat) {\n    if (!cat)\n        return -1;\n    return (*cat & WEIGHT_MASK) >> WEIGHT_START;\n}\n\nint cat_set_color(uint8_t *cat, int color) {\n    if (!cat || color < 0 || color > COLOR_MASK)\n        return -1;\n    *cat = (*cat & (uint8_t)~COLOR_MASK) | (uint8_t)color;\n    return 0;\n}\n\nint main(void) {\n    uint8_t cat = 0x5D;                  /* 0101 1101 */\n    printf(\"weight=%d color=%d sleeping=%d\\n\", cat_get_weight(&cat), cat & COLOR_MASK, (cat & SLEEP_MASK) != 0);\n    int rc = cat_set_color(&cat, 2);\n    printf(\"rc=%d cat=0x%02X\\n\", rc, cat);\n    printf(\"rc=%d cat=0x%02X\\n\", cat_set_color(&cat, 4), cat);\n    return 0;\n}\n```",
+  "solution_md": "**המסכות:**\n- `COLOR_MASK` $=(1\\ll2)-1=3=$ `0000 0011`\n- `SLEEP_MASK` $=1\\ll2=4=$ `0000 0100`\n- `WEIGHT_MASK` $=31\\ll3=248=$ `1111 1000` = `0xF8`\n\n**מעקב עם** `cat = 0x5D = 0101 1101`:\n- משקל: `0101 1101 & 1111 1000 = 0101 1000`, הזזה ב-3 ⇐ `01011` $=11$\n- צבע: `01` $=1$; ישן: ביט 2 $=1$\n\n**`cat_set_color(&cat, 2)`:** מאפסים ביטים 0-1 ⇐ `0101 1100`, מוסיפים `10` ⇐ `0101 1110` = `0x5E`, מחזיר 0.\n**`cat_set_color(&cat, 4)`:** $4>3$ ⇐ מחוץ לטווח ⇐ מחזיר $-1$ והבית לא משתנה.\n\n**פלט:**\n```text\nweight=11 color=1 sleeping=1\nrc=0 cat=0x5E\nrc=-1 cat=0x5E\n```\n✅ (הורץ ב-gcc -Wall)\n\n**הקאץ':** צבע 4 לא נכנס בשני ביטים – בלי בדיקת הטווח, `| 4` היה מדליק את ביט 2 ו\"מרדים\" את החתול.\n\n💡 **הרעיון:** getter = `(x & MASK) >> START`; setter = בדיקת טווח ⇐ `&= ~MASK` ⇐ `|= value << START`.",
+  "exam_style": true,
+  "uncertain": false
+ },
+ {
+  "add": true,
+  "free": true,
+  "source": "exam",
+  "title": "🎯 שאלה צפויה: כפתור עם INPUT_PULLUP – מה קורה בלחיצה אחת (קוד להבנה)",
+  "question_md": "כפתור מחובר בין GPIO 4 לאדמה:\n```cpp\nconst int BTN = 4, LED = 2;\nint count = 0, last = HIGH;\n\nvoid setup() {\n  pinMode(BTN, INPUT_PULLUP);\n  pinMode(LED, OUTPUT);\n  Serial.begin(115200);\n}\n\nvoid loop() {\n  int now = digitalRead(BTN);\n  if (last == HIGH && now == LOW) {\n    count++;\n    digitalWrite(LED, count % 2);\n    Serial.println(count);\n  }\n  last = now;\n}\n```\n1. מה יודפס ומה מצב הנורית אחרי לחיצה **אחת נקייה** ושחרור?\n2. הכפתור \"מקפץ\" 3 פעמים בלחיצה. מה יודפס עכשיו ומה מצב הנורית?\n3. **הקאץ':** מחליפים ל-`pinMode(BTN, INPUT)` בלי נגד חיצוני. מה יקרה?",
+  "solution_md": "**1. לחיצה נקייה.** משוחרר = HIGH (הנגד הפנימי מושך למעלה), לחוץ = LOW.\nהמעבר `HIGH ← LOW` קורה פעם אחת ⇐ `count = 1`, מודפס `1`, הנורית `1 % 2 = 1` ⇐ **דולקת**. בשחרור (LOW←HIGH) התנאי לא מתקיים ⇐ כלום. ✅\n\n**2. שלוש קפיצות.** כל קפיצה היא עוד מעבר HIGH←LOW ⇐ הקוד סופר **3**: מודפס `1`, `2`, `3`, והנורית $3\\%2=1$ ⇐ דולקת. במקרה של 2 קפיצות היא הייתה **כבויה** – התוצאה תלויה במזל. ✅\n**התיקון:** debounce עם `millis()` – לקבל מצב חדש רק אם הוא יציב 20 ms (כמו בתרגיל מהכיתה).\n\n**3. `INPUT` בלי נגד.** כשהכפתור משוחרר הפין **צף** – לא מחובר לשום מתח, והקריאה אקראית (רעש, אצבע ליד). הקוד יספור \"לחיצות\" בלי שנגעו בכפתור. ✅\n\n💡 **הרעיון:** כפתור לאדמה + `INPUT_PULLUP` ⇐ לחוץ = LOW. מזהים **מעבר** (last מול now), לא מצב – ובלי debounce מעבר אחד נספר כמה פעמים.",
+  "exam_style": true,
+  "uncertain": false
+ },
+ {
+  "add": true,
+  "free": true,
+  "source": "exam",
+  "title": "🎯 שאלה צפויה: ממיר ADC עם מחלק מתח – רזולוציה, קריאה והקאץ' של הרוויה",
+  "question_md": "ESP32: ממיר 12 ביט, מתח ייחוס $3.3\\,V$. חיישן מוציא $0..12\\,V$ ומחובר דרך מחלק מתח.\n\n1. מה מדרגת המתח בכניסת הממיר?\n2. מחלק $R_1=20\\,k\\Omega$ (עליון), $R_2=10\\,k\\Omega$ (תחתון). מה הקריאה כשהחיישן ב-$12\\,V$? מה הבעיה?\n3. מחליפים ל-$R_1=30\\,k\\Omega$, $R_2=10\\,k\\Omega$. מה הקריאה ב-$12\\,V$? אם התקבלה קריאה $2730$ – מה מתח החיישן? מה הרזולוציה במתח החיישן?",
+  "solution_md": "### 1. מדרגה\n**נוסחה:** $$\\Delta V=\\frac{V_{ref}}{2^n}$$\n**הצבה:** $$\\Delta V=\\frac{3.3}{4096}$$\n**תוצאה:** $$\\Delta V\\approx0.806\\,mV$$ ✅\n\n### 2. מחלק $20k/10k$\n$$V_{ADC}=12\\cdot\\frac{10}{20+10}=4\\,V>3.3\\,V$$\n**הקאץ':** המתח מעל מתח הייחוס ⇐ הממיר **ברוויה**, הקריאה נתקעת על $4095$ מכ-$9.9\\,V$ ומעלה – ומתח גבוה מהמותר עלול להזיק לרגל. ✅\nיחס החלוקה חייב להיות $\\le3.3/12=0.275$.\n\n### 3. מחלק $30k/10k$ (יחס $0.25$)\n$$V_{ADC}=12\\cdot0.25=3\\,V\\;\\Rightarrow\\;\\text{קריאה}=\\frac{3}{3.3}\\cdot4096\\approx3723$$ ✅\n\n**מקריאה למתח:**\n$$V_{ADC}=2730\\cdot\\frac{3.3}{4096}=2.20\\,V,\\qquad V_{sensor}=\\frac{2.20}{0.25}\\approx8.80\\,V$$ ✅\n\n**רזולוציה במתח החיישן:** $$0.806\\,mV\\cdot4\\approx3.2\\,mV$$ ✅ (המחלק \"מגדיל\" את המדרגה פי $1/0.25$)\n\n💡 **הרעיון:** קודם לוודא שהמתח המרבי אחרי המחלק קטן מ-$V_{ref}$; אחר כך קריאה ⇐ מתח: $\\times V_{ref}/2^n$, ולחלק ביחס המחלק.",
+  "exam_style": true,
+  "uncertain": false
+ }
+]
