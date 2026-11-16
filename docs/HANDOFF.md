@@ -847,6 +847,10 @@ lecture N+1. Lesson page bottom: "✓ סיימתי ⬅️ <next>" marks read and
 /courses/<id>/exercises?w=N); the week's exercises page ends with "סיימתי את שבוע N – להרצאה N+1". In each lesson:
 video -> full chapter -> condensed -> quiz; his quiz rule: under 80% he redoes it, 80%+ goes on (the result says so).
 
+Week size (16/11/2026, "comm week 1 has 11 exercises"): class exercises + 1-4 others on topics they do not cover + up to
+2 exam; applied to ALL existing weeks (weekset-clean) and to new ones (weekset.run). He insists: every rule he gives is
+for all courses and for the existing weeks too, not only the course he mentioned or the future.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
