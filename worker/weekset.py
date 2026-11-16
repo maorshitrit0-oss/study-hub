@@ -21,7 +21,8 @@ SYSTEM = """אתה מתרגל בהנדסת חשמל שבונה לסטודנט ס
 הסטודנט בונה ידע בהדרגה: הוא יודע רק את מה שנלמד בהרצאות ובתרגולים 1 עד N.
 בחר:
 - practice: 2 עד 4 תרגילים מתוך "תרגילי השבוע" (מההרצאה והתרגול של שבוע N), מהקל לקשה, שמכסים את הנושאים העיקריים
-  של השבוע בלי כפילות: לעולם לא שני תרגילים עם אותם נתונים או אותה שאלה (גרסה מהכיתה וגרסה מהפרק = אותו תרגיל). עדיפות לתרגילים מהתרגול.
+  של השבוע בלי כפילות: לעולם לא שני תרגילים עם אותם נתונים או אותה שאלה (גרסה מהכיתה וגרסה מהפרק = אותו תרגיל).
+  התרגילים שכותרתם מתחילה ב-"📌 מהכיתה" כבר בסט; אל תבחר תרגיל שחוזר על אחד מהם עם מספרים אחרים – רק נושאים שהם לא מכסים. עדיפות לתרגילים מהתרגול.
 - exam: עד 2 תרגילים מתוך "תרגילי מבחן ומטלות", שעוסקים בנושאים של שבוע N, ושאפשר לפתור אותם במלואם רק עם החומר
   של הרצאות 1 עד N. אם תרגיל דורש נושא שעוד לא נלמד (מופיע רק בהרצאות מאוחרות או לא מופיע ברשימה) - אל תבחר אותו.
   עדיף פחות תרגילים מאשר תרגיל שהסטודנט לא יכול לפתור.
@@ -134,7 +135,9 @@ def run(match, only_missing=False):
         exam = [e for e in got.get("exam", []) if e.get("id") in ids_files][:2]
         # the exercises solved in class come first, all of them (classex.py; waves: "the exam is built from them")
         cls = [x["id"] for x in own if (x.get("title") or "").startswith("📌 מהכיתה")]
-        practice = (cls + [i for i in practice if i not in cls])[:10]
+        # ...and the rest only adds new topics: at most 4 in all when class gave few, at least 1 extra (his remark
+        # 16/11/2026: 11 exercises in comm week 1, half of them the class ones again with other numbers)
+        practice = cls + [i for i in practice if i not in cls][:max(1, 4 - len(cls))]
         if len(practice) < 2:  # never fewer than 2 practice exercises when the week has them
             practice += [x["id"] for x in own if x["id"] not in practice][:2 - len(practice)]
         by_id = {x["id"]: x for x in ex}
