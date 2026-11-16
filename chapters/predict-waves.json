@@ -1,0 +1,32 @@
+[
+ {
+  "add": true,
+  "free": true,
+  "source": "exam",
+  "title": "🎯 שאלה צפויה: פגיעה אלכסונית TE מתווך צפוף לאוויר – וזווית קריטית",
+  "question_md": "(כמו שאלה 1 במבחני העבר ותרגול 4.) גל מישורי בקיטוב TE, $1\\,GHz$, עובר מתווך עם $\\varepsilon_r=4$, $\\mu_0$ (בצד $z<0$) לאוויר. זווית פגיעה $20^\\circ$.\n\n1. מצא את זווית ההעברה.\n2. חשב $\\Gamma$ ו-$\\tau$ (של השדה החשמלי).\n3. **הקאץ':** מה הזווית הקריטית? מה קורה בזווית פגיעה של $40^\\circ$?",
+  "solution_md": "### 1. סנל\n$$n_1\\sin\\theta_i=n_2\\sin\\theta_t\\;\\Rightarrow\\;\\sin\\theta_t=2\\sin20^\\circ=0.684\\;\\Rightarrow\\;\\theta_t\\approx43.2^\\circ$$ ✅\n\n### 2. מקדמים (TE)\n$\\eta_1=\\frac{120\\pi}{2}=188.5\\,\\Omega$, $\\eta_2=377\\,\\Omega$:\n**נוסחה:** $$\\Gamma_{TE}=\\frac{\\eta_2\\cos\\theta_i-\\eta_1\\cos\\theta_t}{\\eta_2\\cos\\theta_i+\\eta_1\\cos\\theta_t}$$\n**הצבה:** $$\\Gamma=\\frac{377\\cdot0.940-188.5\\cdot0.729}{377\\cdot0.940+188.5\\cdot0.729}=\\frac{354.3-137.5}{354.3+137.5}$$\n**תוצאה:** $$\\Gamma\\approx0.441,\\qquad\\tau=1+\\Gamma\\approx1.441$$ ✅\n($\\tau>1$ – מותר! זה יחס **שדות**, לא הספקים.)\n\n### 3. הקאץ' – זווית קריטית\n$$\\sin\\theta_c=\\frac{n_2}{n_1}=\\frac12\\;\\Rightarrow\\;\\theta_c=30^\\circ$$ ✅\nב-$40^\\circ>\\theta_c$: $\\sin\\theta_t=1.29>1$ ⇐ **החזרה מלאה**, $|\\Gamma|=1$, ובאוויר נשאר רק גל דועך (אין העברת הספק). ✅\n\n💡 **הרעיון:** קודם $n$ ו-$\\eta$ בכל תווך, אחר כך סנל, ורק אז $\\Gamma$. מתווך צפוף לדליל – תמיד לבדוק זווית קריטית.",
+  "exam_style": true,
+  "uncertain": false
+ },
+ {
+  "add": true,
+  "free": true,
+  "source": "exam",
+  "title": "🎯 שאלה צפויה: חילוץ פרמטרים מביטוי השדה וצפיפות הספק דרך משטח",
+  "question_md": "(כמו תרגילי הכיתה בשבועות 1–2.) בתווך חסר הפסדים עם $\\mu=\\mu_0$:\n$$\\vec E=10\\cos(6\\pi\\cdot10^8t-4\\pi z)\\,\\hat x\\ [V/m]$$\n1. מצא $f$, $\\lambda$, מהירות, $\\varepsilon_r$, $\\eta$.\n2. מצא את $\\vec H$.\n3. מה ההספק הממוצע שעובר דרך משטח של $2\\,m^2$ ש**נטוי ב-$30^\\circ$** ביחס למישור $xy$?",
+  "solution_md": "### 1. פרמטרים\n$\\omega=6\\pi\\cdot10^8$ ⇐ $f=3\\cdot10^8\\,Hz$; $k=4\\pi$ ⇐ $\\lambda=\\frac{2\\pi}k=0.5\\,m$ ✅\n$$v=\\frac\\omega k=1.5\\cdot10^8\\,m/s\\;\\Rightarrow\\;\\varepsilon_r=\\left(\\frac cv\\right)^2=4$$ ✅\n$$\\eta=\\frac{120\\pi}{\\sqrt{\\varepsilon_r}}=60\\pi\\approx188.5\\,\\Omega$$ ✅\n\n### 2. השדה המגנטי\nהתקדמות ב-$+z$, $\\vec E$ ב-$\\hat x$ ⇐ $\\vec H$ ב-$\\hat y$ (כי $\\hat x\\times\\hat y=\\hat z$):\n$$\\vec H=\\frac{10}{188.5}\\cos(6\\pi\\cdot10^8t-4\\pi z)\\,\\hat y\\approx0.053\\cos(\\dots)\\,\\hat y\\ [A/m]$$ ✅\n\n### 3. הספק\n$$S_{avg}=\\frac{E_0^2}{2\\eta}=\\frac{100}{2\\cdot188.5}\\approx0.265\\,W/m^2\\ (\\hat z)$$\n**הקאץ':** רק הרכיב **הניצב** למשטח עובר. הנורמל נטוי ב-$30^\\circ$ מ-$\\hat z$:\n$$P=S_{avg}\\cdot A\\cos30^\\circ=0.265\\cdot2\\cdot0.866\\approx0.46\\,W$$ ✅\n\n💡 **הרעיון:** מהביטוי: $\\omega$ ו-$k$ ⇐ הכל. כיוון $\\vec H$ מ-$\\hat E\\times\\hat H=\\hat k$. הספק דרך משטח = $\\vec S\\cdot\\hat n\\,A$.",
+  "exam_style": true,
+  "uncertain": false
+ },
+ {
+  "add": true,
+  "free": true,
+  "source": "exam",
+  "title": "🎯 שאלה צפויה: מוליך טוב – עומק חדירה ועובי מיגון",
+  "question_md": "(כמו תרגילי התווך המוליך מהכיתה.) נחושת: $\\sigma=5.8\\cdot10^7\\,S/m$, $\\mu_0$, $\\varepsilon_0$. תדר $10\\,MHz$.\n\n1. בדוק שזה מוליך טוב.\n2. מצא $\\alpha$ ועומק החדירה.\n3. **הקאץ':** מה העובי המינימלי של לוח נחושת כדי שההספק שעובר יירד ל-$1\\%$?",
+  "solution_md": "### 1. סיווג\n$$\\frac\\sigma{\\omega\\varepsilon_0}=\\frac{5.8\\cdot10^7}{2\\pi\\cdot10^7\\cdot8.854\\cdot10^{-12}}\\approx10^{11}\\gg1$$ ⇐ מוליך טוב ✅\n\n### 2. ניחות\n**נוסחה:** $$\\alpha=\\sqrt{\\pi f\\mu\\sigma}$$\n**הצבה:** $$\\alpha=\\sqrt{\\pi\\cdot10^7\\cdot4\\pi\\cdot10^{-7}\\cdot5.8\\cdot10^7}$$\n**תוצאה:** $$\\alpha\\approx4.79\\cdot10^4\\,1/m,\\qquad\\delta=\\frac1\\alpha\\approx20.9\\,\\mu m$$ ✅\n\n### 3. הקאץ' – הספק ולא שדה\nהשדה דועך כ-$e^{-\\alpha z}$, אבל **ההספק** כ-$e^{-2\\alpha z}$:\n$$e^{-2z/\\delta}=0.01\\;\\Rightarrow\\;z=\\frac\\delta2\\ln100\\approx2.3\\,\\delta\\approx48\\,\\mu m$$ ✅\n(מי שמשתמש ב-$e^{-z/\\delta}$ מקבל $96\\,\\mu m$ – כפול.)\n\n💡 **הרעיון:** מוליך טוב ⇐ $\\alpha=\\beta=\\sqrt{\\pi f\\mu\\sigma}$, $\\delta=1/\\alpha$. דעיכת הספק – פעמיים מהירה מדעיכת השדה.",
+  "exam_style": true,
+  "uncertain": false
+ }
+]
