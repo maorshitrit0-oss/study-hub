@@ -127,6 +127,15 @@ def cmd_process(lesson_id, do_author=True):
                 if sum(len(d) for d, _ in docs) + len(data) < 18 * 1024 * 1024:  # Gemini's inline request limit
                     docs.append((data, "application/pdf"))
             transcript = course_site.FILE_REF.sub("", transcript).replace(course_site.SITE_NOTE, "").strip()
+            if re.match(r"<!-- (zoom|pasted) transcript -->", transcript):
+                # Zoom's own transcript (16/11/2026: the recordings cannot be downloaded): no board snapshots, so the
+                # lecturer's slides from the course files go along - this lecture's file, or the course's slide deck
+                transcript = re.sub(r"^<!-- (zoom|pasted) transcript -->\s*", "", transcript)
+                for path in lecture_slides(job):
+                    data = job.sb.storage.from_(BUCKET).download(path)
+                    if sum(len(d) for d, _ in docs) + len(data) < 18 * 1024 * 1024:
+                        docs.append((data, "application/pdf"))
+                        job.log(f"מצרף את השקפים: {Path(path).name}")
         elif job.lesson.get("source_path"):  # a file uploaded in the app (lab booklet, prelab...)
             job.log("מוריד את הקובץ...")
             source = work / Path(job.lesson["source_path"]).name
@@ -271,6 +280,22 @@ def save_exercises(job, exercises):
     } for i, x in enumerate(exercises) if x.get("title") not in done]
     if rows:
         job.sb.table("exercises").insert(rows).execute()
+
+
+def lecture_slides(job):
+    """The PDF slides of this lecture / practice among the course files: a file named "הרצאה N" / "תרגול N" / "lecture N"
+    first; otherwise the course's slide deck (kind slides, or a file named after the course / "Introduction")."""
+    n, kind = job.lesson.get("number"), job.lesson.get("kind")
+    mats = [m for m in job.sb.table("materials").select("title, kind, storage_path, size_bytes").eq("course_id", job.course["id"]).execute().data
+            if (m.get("storage_path") or "").lower().endswith(".pdf")]
+    if n:
+        word = r"(?:הרצאה|lecture|שיעור)" if kind == "lecture" else r"(?:תרגול|תרגיל|practice|tutorial)"
+        own = [m for m in mats if re.search(rf"{word}\s*0?{n}(?!\d)", m["title"], re.I)]
+        if own:
+            return [m["storage_path"] for m in own[:2]]
+    deck = [m for m in mats if m.get("kind") == "slides" or re.search(r"introduction|מצגת|slides|שקפים", m["title"], re.I)]
+    deck.sort(key=lambda m: -(m.get("size_bytes") or 0))
+    return [m["storage_path"] for m in deck[:1]]
 
 
 def next_class(sb, course_id):

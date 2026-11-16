@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Study Hub – תמלול זום",
+  "version": "1.0",
+  "description": "כשפותחים הקלטה בזום, התמלול נשלח לבד לשיעור באפליקציה.",
+  "permissions": ["scripting"],
+  "host_permissions": ["https://study-hub-tawny-mu-63.vercel.app/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [{
+    "matches": ["https://*.zoom.us/rec/play/*", "https://*.zoom.us/rec/share/*"],
+    "js": ["zoom.js"],
+    "run_at": "document_idle"
+  }]
+}

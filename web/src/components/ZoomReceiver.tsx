@@ -10,11 +10,12 @@ export default function ZoomReceiver() {
   useEffect(() => {
     let done = false;
     const on = async (e: MessageEvent) => {
-      if (done || !/^https:\/\/([a-z0-9-]+\.)*zoom\.us$/.test(e.origin)) return;
+      // from the bookmarklet (a zoom.us page) or from the Chrome extension (injected into this page itself)
+      if (done || !(/^https:\/\/([a-z0-9-]+\.)*zoom\.us$/.test(e.origin) || e.origin === window.location.origin)) return;
       const d = e.data as { type?: string; src?: string; text?: string };
       if (d?.type !== "zoom-transcript" || !d.src || !d.text) return;
       done = true;
-      (e.source as Window | null)?.postMessage("zoom-ok", e.origin);
+      (e.source as Window | null)?.postMessage("zoom-ok", e.origin === window.location.origin ? window.location.origin : e.origin);
       setState(`התקבלו ${d.text.split("\n").length} שורות. שומר...`);
       const r = await pasteZoomTranscript(d.src, d.text);
       if (r.lessonId) router.push(`/lessons/${r.lessonId}`);

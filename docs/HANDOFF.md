@@ -873,7 +873,11 @@ installs the yt-dlp nightly, and queue_runner retries one Zoom-failed lesson per
 themselves when yt-dlp is fixed. Meanwhile: paste Zoom's transcript on the failed lesson page (pasteTranscript), or ONE CLICK: the bookmarklet on /zoom
 (lib/zoomBookmarklet.ts) scrolls Zoom's Transcript panel (virtualized list; keyed by position, tested with a fake
 virtual list of 400 lines) and posts the text to /zoom (ZoomReceiver -> pasteZoomTranscript finds the lesson by the
-recording id in source_url). He may screen-record at x2 himself (his own viewing): a file / lesson title with "x2" / "2x" / "x1.5" is slowed back
+recording id in source_url). Chrome extension extension/ (zip at web/public/studyhub-zoom.zip, install steps on /zoom): content script on
+*.zoom.us/rec/* collects the transcript when he opens a recording -> background opens /zoom and injects the text ->
+ZoomReceiver (accepts its own origin too). Transcript lessons get the lecturer's slides: hub.lecture_slides picks the
+course PDF named "הרצאה N"/"תרגול N", else the slide deck (comm: Introduction_to_communication_systems ... .pdf;
+waves has הרצאה 1-3 only), sent to Gemini as PDF docs. He may screen-record at x2 himself (his own viewing): a file / lesson title with "x2" / "2x" / "x1.5" is slowed back
 to normal speed before transcription (media.slow_down: setpts + atempo, pitch kept). Downloading past Zoom's block is not done.
 
 ## Open items
