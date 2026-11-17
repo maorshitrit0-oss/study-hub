@@ -892,6 +892,11 @@ sends a separate push "🔁 חזרה שבועית" (he asked ~21:00; pg_cron onl
 hours + notifySchedule). The Saturday trigger now runs 15:41 and first tops up each lesson read that week to >= 5
 understanding questions (course-check prints quiz=N(הבנה M); comm lessons have only 1-5).
 
+TA notebooks (17/11/2026, his request): digital "📦 2" (CMOS inverter + gate sizing) and "📦 3" (logical effort) are
+NOT behind - they are ahead of the lectures (taught up to NMOS inverters in lecture 4). Each is merged into practice N of
+the week its topic is taught (only what the practice lacks), then retitled "📦 (שולב בתרגול N)"; the Saturday run does
+it (step 0b). He thought he had skipped notebook 2 - he has not.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
