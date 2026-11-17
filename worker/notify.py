@@ -11,6 +11,7 @@ notification must not fail the job that sent it.
 import base64
 import json
 import os
+import re
 import sys
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -123,12 +124,7 @@ def daily():
         except Exception as e:  # noqa: BLE001
             print(f"studio count failed: {e}")
         lines += week_lines(sb, uid, courses, now)
-        try:
-            due = reviews_due(sb, uid)
-            if due:
-                lines.append(f"🔁 {due} שאלות לחזרה היום")
-        except Exception as e:  # noqa: BLE001
-            print(f"review count failed: {e}")
+        # (the daily review line is gone: a weekly review on Saturday night instead - his request 17/11/2026)
         if now.weekday() in (6, 2):  # Sunday and Wednesday: tasks with no submission date yet
             for d in unknown_due(sb, uid):
                 course = f" ({courses[d['course_id']]})" if d.get("course_id") in courses else ""
@@ -249,6 +245,25 @@ def unknown_due(sb, uid):
 SLOT_KIND = {"lecture": "הרצאה", "practice": "תרגול"}
 
 
+CALC = re.compile(r"\$|\\\(|\\\[|\d+\s*[=×*/^]\s*\d")  # same test as web lib/review.ts conceptual()
+
+
+def weekly_review_push(sb, uid, courses):
+    """Saturday night: understanding questions (no formulas) from the lessons he marked read in the last 7 days."""
+    since = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    ls = sb.table("lessons").select("id, course_id").eq("user_id", uid).gte("read_at", since).execute().data
+    if not ls:
+        return
+    qs = [q for q in sb.table("questions").select("question, options, source").in_("lesson_id", [l["id"] for l in ls]).execute().data
+          if not q.get("source") and not any(CALC.search(t or "") for t in [q["question"], *(q.get("options") or [])])]
+    if not qs:
+        return
+    names = sorted({courses.get(l["course_id"], "") for l in ls} - {""})
+    body = f"{min(len(qs), 30)} שאלות הבנה, בלי נוסחאות – רק ממה שלמדת השבוע: {', '.join(names)} ({len(ls)} שיעורים)"
+    n = send(sb, uid, "🔁 חזרה שבועית", body, "/review")
+    print(f"{uid}: weekly review {len(qs)} questions -> {n} devices")
+
+
 def evening():
     """Evening (Sun-Thu, Sat): recordings of today's classes still to upload, and a preview of tomorrow."""
     sb = db()
@@ -283,6 +298,10 @@ def evening():
         lines += entry_quiz_lines(sb, uid, (weekday + 1) % 7, "מחר")
         if weekday == 6:  # Saturday night: the session starts right after
             lines = self_study_line(sb, uid, "הערב") + lines
+            try:  # the weekly review gets its own notification (his request 17/11/2026)
+                weekly_review_push(sb, uid, courses)
+            except Exception as e:  # noqa: BLE001
+                print(f"weekly review failed: {e}")
         if tmr:
             lines.append("🗓️ מחר: " + ", ".join(f"{s['start_time'][:5]} {courses.get(s['course_id'], s['title'])}" for s in tmr))
         due = (sb.table("deadlines").select("title, kind, course_id").eq("user_id", uid).eq("done", False)

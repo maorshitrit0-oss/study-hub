@@ -1226,6 +1226,9 @@ def cmd_weeksets_dump(out_dir):
     (Path(out_dir) / "weeksets.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
+CALC = re.compile(r"\$|\\\(|\\\[|\d+\s*[=×*/^]\s*\d")  # a calculation question (notify.py / web lib/review.ts)
+
+
 def cmd_course_check(match):
     """Is every lesson of the course ready for the week? Per lecture / practice: status, full chapter + condensed,
     quiz, exercises, video / podcast (lectures). Read-only; nothing downloaded."""
@@ -1237,7 +1240,8 @@ def cmd_course_check(match):
         if l["kind"] not in ("lecture", "practice") and not (l["kind"] == "other" and l.get("number")
                                                           and not (l.get("title") or "").startswith("📦")):
             continue  # lectures, practices and numbered sessions (random signals Thursdays, self-study)
-        q = sb.table("questions").select("id", count="exact").eq("lesson_id", l["id"]).execute().count
+        qrows = sb.table("questions").select("question, options").eq("lesson_id", l["id"]).execute().data
+        q = f"{len(qrows)}(הבנה {sum(not any(CALC.search(t or '') for t in [r['question'], *(r.get('options') or [])]) for r in qrows)})"
         ex = sb.table("exercises").select("id", count="exact").eq("lesson_id", l["id"]).execute().count
         m = {k: sorted({x["status"] for x in media if l["id"] in (x.get("lesson_ids") or []) and x["kind"] == k}) for k in ("video", "podcast")}
         ch, su = l.get("chapter_md") or "", l.get("summary_md") or ""

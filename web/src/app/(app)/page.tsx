@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
-import { dueReviews } from "@/lib/review";
+import { weeklyReview } from "@/lib/review";
 import { attachOrphanTasks, syncPrepTasks } from "@/lib/prep";
 import { syncExerciseTasks } from "@/lib/exercises";
 import { syncLabTasks } from "@/lib/labTasks";
@@ -34,7 +34,13 @@ export default async function Home() {
   const [plan, { data: usage }, review] = await Promise.all([
     weeklyPlan(sb),
     sb.from("usage_snapshot").select("data").eq("id", 1).maybeSingle(),
-    dueReviews(sb).catch(() => ({ total: 0 })),
+    // the weekly review card: Saturday from 18:00 and Sunday (Israel time)
+    (async () => {
+      const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Jerusalem", weekday: "short", hour: "2-digit", hourCycle: "h23" })
+        .formatToParts(new Date()).map((x) => [x.type, x.value]));
+      const on = p.weekday === "Sun" || (p.weekday === "Sat" && Number(p.hour) >= 18);
+      return on ? weeklyReview(sb).then((r) => ({ total: r.questions.length })) : { total: 0 };
+    })().catch(() => ({ total: 0 })),
   ]);
   // Home lists submissions, exams and quizzes; the automatic reading / exercise / upload tasks live in their own places
   // (the week page, the exercises page, "להעלות").
@@ -144,16 +150,14 @@ export default async function Home() {
         </Link>
       ))}
 
+      {/* Weekly review (17/11/2026): shown from Saturday evening to Sunday, with this week's understanding questions */}
       {review.total > 0 && (
         <Link href="/review" className="card block">
           <span className="flex justify-between items-center">
-            <span className="font-semibold">🔁 חזרה יומית</span>
-            <span className="text-sm text-accent">{review.total} שאלות מחכות ←</span>
+            <span className="font-semibold">🔁 חזרה שבועית</span>
+            <span className="text-sm text-accent">{review.total} שאלות הבנה ←</span>
           </span>
-          <span className="block text-xs text-muted mt-1">
-            שאלות מהשאלונים שכבר ענית עליהם, שחוזרות במרווחים הולכים וגדלים (אחרי 1, 3, 7, 14, 30 ו-60 יום) כדי שלא תשכח;
-            שאלה שטעית בה חוזרת למחרת.
-          </span>
+          <span className="block text-xs text-muted mt-1">רק מהשיעורים שלמדת השבוע, בלי נוסחאות. תזכורת בכל מוצאי שבת.</span>
         </Link>
       )}
 

@@ -1,45 +1,44 @@
 import BackLink from "@/components/BackLink";
-import Link from "next/link";
 import { requireUser } from "@/lib/supabase/server";
 import Quiz from "@/components/Quiz";
-import { dueReviews } from "@/lib/review";
+import { weeklyReview } from "@/lib/review";
+import { lessonName, type Lesson } from "@/lib/types";
 
-const SESSION = 15;
-
-/** Daily spaced review: questions answered before come back after 1, 3, 7, 14, 30, 60 days (sooner after a mistake). */
-export default async function Review({ searchParams }: PageProps<"/review">) {
-  const courseId = (await searchParams).course as string | undefined;
+/**
+ * 🔁 Weekly review (his request 17/11/2026, instead of the daily one): Saturday night, understanding questions only
+ * (no formulas), from the lessons he marked read this week - nothing else.
+ */
+export default async function Review() {
   const { sb } = await requireUser();
-  const [{ total, questions }, { data: courses }] = await Promise.all([
-    dueReviews(sb, courseId),
-    sb.from("courses").select("id, name").eq("archived", false).order("name"),
+  const [{ lessons, questions }, { data: courses }] = await Promise.all([
+    weeklyReview(sb),
+    sb.from("courses").select("id, name"),
   ]);
-  const set = questions.slice(0, SESSION);
   const names = new Map((courses ?? []).map((c) => [c.id, c.name]));
-  const perCourse = new Map<string, number>();
-  for (const q of questions) perCourse.set(q.course_id, (perCourse.get(q.course_id) ?? 0) + 1);
+  const byCourse = new Map<string, string[]>();
+  for (const l of lessons) byCourse.set(l.course_id, [...(byCourse.get(l.course_id) ?? []), lessonName(l as Lesson)]);
 
   return (
     <div className="space-y-4">
       <BackLink href={"/"}>→ דף הבית</BackLink>
-      <h1 className="text-2xl font-bold">🔁 חזרה יומית</h1>
+      <h1 className="text-2xl font-bold">🔁 חזרה שבועית</h1>
       <p className="text-sm text-muted">
-        שאלות שכבר ענית עליהן חוזרות במרווחים שגדלים: אחרי יום, 3 ימים, שבוע, שבועיים, חודש וחודשיים. טעות מחזירה את השאלה למחרת.
+        שאלות הבנה (בלי חישובים ונוסחאות) רק מהשיעורים שסימנת כנקראו בשבוע האחרון. כל מוצאי שבת מגיעה תזכורת.
       </p>
-      {perCourse.size > 1 && (
-        <div className="flex flex-wrap gap-2">
-          <Link href="/review" className={`chip ${!courseId ? "border-accent" : ""}`}>הכל ({total})</Link>
-          {[...perCourse].map(([id, n]) => <Link key={id} href={`/review?course=${id}`} className="chip">{names.get(id)} ({n})</Link>)}
-        </div>
+      {byCourse.size > 0 && (
+        <section className="card text-sm space-y-1">
+          <p className="font-semibold">מה למדת השבוע:</p>
+          {[...byCourse].map(([id, ls]) => <p key={id}><b>{names.get(id)}:</b> {ls.join(", ")}</p>)}
+        </section>
       )}
       <div className="card">
-        {set.length ? (
+        {questions.length ? (
           <>
-            <p className="text-sm text-muted mb-3">{total > SESSION ? `${SESSION} מתוך ${total} שאלות שהגיע זמנן` : `${total} שאלות שהגיע זמנן`}</p>
-            <Quiz key={set.map((q) => q.id).join()} questions={set} title="חזרה" />
+            <p className="text-sm text-muted mb-3">{questions.length} שאלות · קודם שאלות שטעית בהן או שעוד לא ענית עליהן</p>
+            <Quiz key={questions.map((q) => q.id).join()} questions={questions} title="חזרה שבועית" />
           </>
         ) : (
-          <p className="text-muted">אין היום שאלות לחזרה 🎉 הן יופיעו כאן אחרי שתענה על שאלונים בפרקים.</p>
+          <p className="text-muted">עוד לא סימנת השבוע שיעור כנקרא – השאלות יופיעו כאן אחרי &quot;✓ סיימתי&quot; בשיעורים.</p>
         )}
       </div>
     </div>
