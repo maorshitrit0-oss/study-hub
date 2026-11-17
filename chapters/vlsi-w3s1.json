@@ -1,0 +1,174 @@
+{
+ "title": "שבוע 3 · מפגש 1: SystemVerilog – module, logic, assign ו-always_comb",
+ "chapter_md": "## 🧭 איך המפגש הזה בנוי\nהמפגש פותח את **שלב ב – השפה צעד אחר צעד**. היום לומדים לכתוב רכיב צירופי (בלי זיכרון) **בשתי דרכים** – `assign`\nו-`always_comb` – ולבחור ביניהן. אחר כך: Mux בשתי הדרכים ובדיקה שמוכיחה שהן זהות, מפענח לתצוגת 7 מקטעים, תרגול\nשמטפס בהדרגה, סימולציה מלאה, ולוח: ספרה הקסדצימלית מהמתגים על התצוגה.\n\n## 📘 הדקדוק של היום – 6 חלקים\n\n**1. מודול ופורטים (חזרה קצרה).**\n```systemverilog\nmodule mux2_assign (\n    input  logic a, b, s,     // three 1-bit inputs\n    output logic y            // one 1-bit output\n);\n    // the logic\nendmodule\n```\n- רשימת הפורטים בסוגריים; **פסיק** בין פורטים, **בלי פסיק** אחרי האחרון; `);` סוגר את הרשימה.\n- כמה פורטים מאותו סוג בשורה אחת: `input logic a, b, s`.\n\n**2. `logic` – הטיפוס של היום.** ב-SystemVerilog כותבים `logic` כמעט לכל דבר: פורטים וחוטים פנימיים.\n- ב-Verilog הישנה היו שניים: `wire` (חוט – רק `assign` מחובר אליו) ו-`reg` (משתנה בתוך `always`). `logic` מחליף את\n  שניהם: אפשר לתת לו ערך גם ב-`assign` וגם ב-`always`. **הכלל היחיד:** לכל `logic` יש **מקור אחד** – או `assign` אחד,\n  או בלוק `always` אחד. שני מקורות לאותו אות = שגיאה.\n\n**3. `assign` – חוט קבוע.** `assign y = s ? b : a;` – y מחובר **תמיד** לביטוי. מתאים כשהלוגיקה היא **ביטוי אחד**.\n\n**4. `always_comb` – כמה צעדים שמחושבים מחדש בכל שינוי.**\n```systemverilog\nalways_comb begin\n    if (s)\n        y = b;\n    else\n        y = a;\nend\n```\n- `begin ... end` = הסוגריים של הבלוק (כמו `{ }` בג'אווה). בתוכו משתמשים ב-`=`.\n- מתאים כשנוח לחשוב ב\"אם... אחרת...\" או בטבלה (`case`).\n- **חובה לתת ערך ל-y בכל מסלול** (if וגם else, או `default` ב-case). אחרת הכלי \"זוכר\" את הערך הקודם = latch בטעות.\n\n**5. `if` ו-`case` בתוך `always_comb`.** `if (תנאי) ... else ...` לשתי אפשרויות; `case (x) ... default: ... endcase` לטבלה.\n`4'hA` = מספר של 4 ביטים בהקסה (10).\n\n**6. השוואות:** `==` שווה, `!=` שונה (בתוך תנאים). בבדיקות (testbench) משתמשים ב-`!==` – \"שונה, גם אם אחד מהם X\n(לא ידוע)\".\n\n> ⭐ **הכלל לבחירה:** ביטוי אחד ← `assign`. החלטות או טבלה ← `always_comb`. החומרה שנבנית – אותה חומרה.\n\n## 1. Mux 2:1 – אותו רכיב בשתי דרכים\n```systemverilog\nmodule mux2_assign (\n    input  logic a, b, s,\n    output logic y\n);\n    assign y = s ? b : a;          // one line: a wire that is always connected\nendmodule\n\nmodule mux2_comb (\n    input  logic a, b, s,\n    output logic y\n);\n    always_comb begin              // a block of steps, re-run whenever a, b or s change\n        if (s)\n            y = b;\n        else\n            y = a;\n    end\nendmodule\n```\n\n**שורה אחרי שורה:**\n- `mux2_assign`: שורה אחת – `s ? b : a` (\"אם s אז b, אחרת a\").\n- `mux2_comb`: אותו דבר כצעדים – `if (s) y = b; else y = a;`. שני הענפים נותנים ערך ל-y ← אין latch.\n- בסינתזה **שניהם הופכים לאותו Mux** – ההבדל הוא רק בדרך הכתיבה.\n\n### בדיקה שמוכיחה ששתי הגרסאות זהות\n```systemverilog\nmodule tb_mux;\n    logic a, b, s;\n    logic y1, y2;\n    int   errors = 0;\n\n    mux2_assign u1 (.a(a), .b(b), .s(s), .y(y1));\n    mux2_comb   u2 (.a(a), .b(b), .s(s), .y(y2));\n\n    initial begin\n        for (int i = 0; i < 8; i++) begin\n            {s, a, b} = i;                 // all 8 combinations of the 3 inputs\n            #10;\n            $display(\"s=%b a=%b b=%b -> assign:%b always_comb:%b\", s, a, b, y1, y2);\n            if (y1 !== y2) errors++;\n        end\n        if (errors == 0) $display(\"OK: both muxes agree on all 8 inputs\");\n        else             $display(\"ERROR: %0d differences\", errors);\n        $finish;\n    end\nendmodule\n```\n\n**שורה אחרי שורה:**\n- `mux2_assign u1 (...)` ו-`mux2_comb u2 (...)` – שני הרכיבים מקבלים **אותן** כניסות.\n- `for (int i = 0; i < 8; i++)` – לולאה על כל 8 הצירופים (3 כניסות ← $2^3=8$).\n- `{s, a, b} = i;` – **שרשור**: מפרקים את המספר i (0..7) לשלושה ביטים: s הביט השמאלי, b הימני.\n- `if (y1 !== y2) errors++;` – סופרים הבדלים.\n- **אמור להופיע:** 8 שורות, ובסוף `OK: both muxes agree on all 8 inputs` (נבדק).\n\n💡 **בדיקה שעוברת על כל הצירופים** נקראת בדיקה ממצה (exhaustive) – אפשרית כשיש מעט כניסות.\n\n## 2. מפענח לתצוגת 7 מקטעים\n**מה הוא עושה:** מקבל ספרה הקסדצימלית (0..F, 4 ביטים) ומחליט אילו מ-7 המקטעים (a עד g) להדליק.\n\n```text\n aaa\nf   b\n ggg\ne   c\n ddd\n```\n```systemverilog\nmodule hex7seg (\n    input  logic [3:0] x,      // the hex digit 0..F\n    output logic [6:0] seg     // segments g f e d c b a (1 = segment on)\n);\n    always_comb begin\n        case (x)               //        gfedcba\n            4'h0:    seg = 7'b0111111;\n            4'h1:    seg = 7'b0000110;\n            4'h2:    seg = 7'b1011011;\n            4'h3:    seg = 7'b1001111;\n            4'h4:    seg = 7'b1100110;\n            4'h5:    seg = 7'b1101101;\n            4'h6:    seg = 7'b1111101;\n            4'h7:    seg = 7'b0000111;\n            4'h8:    seg = 7'b1111111;\n            4'h9:    seg = 7'b1101111;\n            4'hA:    seg = 7'b1110111;\n            4'hB:    seg = 7'b1111100;\n            4'hC:    seg = 7'b0111001;\n            4'hD:    seg = 7'b1011110;\n            4'hE:    seg = 7'b1111001;\n            default: seg = 7'b1110001;   // F\n        endcase\n    end\nendmodule\n```\n\n**שורה אחרי שורה:**\n- `output logic [6:0] seg` – 7 ביטים: `seg[0]`=a, `seg[1]`=b, ... `seg[6]`=g. הכתיבה `7'b0111111` היא **g..a משמאל לימין**.\n- `4'h0: seg = 7'b0111111;` – ל-0 מדליקים a,b,c,d,e,f (בלי g, הקו האמצעי).\n- `4'h1: seg = 7'b0000110;` – ל-1 רק b ו-c (הצד הימני).\n- `default:` – תופס את F (ומבטיח ערך לכל קלט).\n- נבדק בסימולציה: לכל 16 הספרות נדלקים בדיוק המקטעים הנכונים.\n\n> ⚠️ **קוטביות:** כאן 1 = מקטע דולק. בהרבה לוחות זה הפוך (0 = דולק). בלוח שלך זה לא כתוב במדריך – את זה נגלה היום\n> על הלוח עם מתג אחד, בלי לבנות מחדש.\n\n## 🖥️ סימולציה – הסדר המלא (חוזר בכל מפגש עד 6.2)\n### דרך א: Vivado 2025.2 (במחשב – להפעיל כמנהל: קליק ימני ← Run as administrator)\n1. **פותחים:** `Open Project` ← `C:\\fpga\\mini_tpu`.\n2. **קובץ הרכיבים:** `Flow Navigator` ← `PROJECT MANAGER` ← **`Add Sources`** ← `Add or create design sources` ←\n   `Create File` ← File type: **SystemVerilog**, שם: `mux` ← `OK` ← `Finish` (חלון Define Module – `OK`).\n3. ב-**`Sources`** ← `Design Sources` ← לחיצה כפולה על `mux.sv` ← מוחקים את השלד (Ctrl+A, Delete) ← מדביקים את\n   **שני** הרכיבים ← **Ctrl+S**:\n\n```systemverilog\nmodule mux2_assign (\n    input  logic a, b, s,\n    output logic y\n);\n    assign y = s ? b : a;          // one line: a wire that is always connected\nendmodule\n\nmodule mux2_comb (\n    input  logic a, b, s,\n    output logic y\n);\n    always_comb begin              // a block of steps, re-run whenever a, b or s change\n        if (s)\n            y = b;\n        else\n            y = a;\n    end\nendmodule\n```\n\n4. **קובץ הבדיקה:** שוב `Add Sources` ← **`Add or create simulation sources`** ← `Create File` ← SystemVerilog, שם\n   **`tb_mux`** ← `Finish` ← ב-`Sources` ← `Simulation Sources` ← `sim_1` ← לחיצה כפולה על `tb_mux.sv` ← מוחקים\n   את השלד ← מדביקים ← **Ctrl+S**:\n\n```systemverilog\nmodule tb_mux;\n    logic a, b, s;\n    logic y1, y2;\n    int   errors = 0;\n\n    mux2_assign u1 (.a(a), .b(b), .s(s), .y(y1));\n    mux2_comb   u2 (.a(a), .b(b), .s(s), .y(y2));\n\n    initial begin\n        for (int i = 0; i < 8; i++) begin\n            {s, a, b} = i;                 // all 8 combinations of the 3 inputs\n            #10;\n            $display(\"s=%b a=%b b=%b -> assign:%b always_comb:%b\", s, a, b, y1, y2);\n            if (y1 !== y2) errors++;\n        end\n        if (errors == 0) $display(\"OK: both muxes agree on all 8 inputs\");\n        else             $display(\"ERROR: %0d differences\", errors);\n        $finish;\n    end\nendmodule\n```\n\n5. `Simulation Sources` ← לחיצה ימנית על `tb_mux` ← **`Set as Top`**.\n6. `SIMULATION` ← **`Run Simulation`** ← **`Run Behavioral Simulation`**.\n7. **מה אמור להופיע:** ב-**`Tcl Console`** 8 שורות `s=.. a=.. b=.. -> assign:.. always_comb:..` ובסוף\n   **`OK: both muxes agree on all 8 inputs`** ✅. בחלון הגלים: `Zoom Fit` – y1 ו-y2 נראים זהים.\n8. **שגיאות נפוצות היום** (לשונית `Messages`, השורה האדומה הראשונה):\n   - פסיק אחרי הפורט האחרון ברשימה → \"syntax error near )\".\n   - `y` מקבל ערך גם ב-`assign` וגם ב-`always_comb` → \"multiple drivers\".\n   - שכחת `else` ב-`always_comb` → אזהרה על latch (בסימולציה זה ירוץ, בסינתזה זה שגוי).\n   מתקנים ← Ctrl+S ← `Run Behavioral Simulation` שוב (סגירת הקודמת – `Yes`).\n\n### דרך ב: EDA Playground (בדפדפן, גם מהטלפון)\n1. https://www.edaplayground.com ← `Log in` (חשבון גוגל).\n2. שמאל: **SystemVerilog/Verilog**, `Tools & Simulators` ← **Icarus Verilog 12.0**.\n3. `testbench.sv` (שמאל) ← הבדיקה; `design.sv` (ימין) ← שני ה-mux.\n4. **`Run`** ← בלשונית `Log` למטה אמור להופיע `OK: both muxes agree on all 8 inputs`.\n\n## 🎤 שאלות הראיון של היום – תשובות קצרות\n- **מה ההבדל בין `logic` ל-`wire`?** `wire` הוא חוט שרק `assign` (או יציאה של רכיב) יכול לדחוף. `logic` יכול לקבל ערך\n  גם מ-`assign` וגם מבלוק `always`, ומחליף את `wire` ואת `reg` – בתנאי שיש לו **מקור אחד**. (לאות עם כמה מקורות,\n  כמו באס משותף, עדיין צריך `wire`.)\n- **מתי `always_comb` ולא `assign`?** כשהלוגיקה היא החלטות או טבלה (`if`, `case`) – קריא יותר. `always_comb` גם\n  מזהיר כשנוצר latch בטעות. לביטוי אחד – `assign`.\n\n## 🔧 היום על הלוח (תרגול): ספרה על תצוגת 7 המקטעים\nהמתגים SW1–SW4 הם הספרה (0..F). **SW8 הופך את קוטביות המקטעים, SW7 הופך את קוטביות בחירת הספרות** – כך מגלים את\nהקוטביות של הלוח **בלי לבנות מחדש**. כל ארבע הספרות של תצוגה 1 יציגו את אותה ספרה. הצעדים המלאים – בתרגיל \"תרגול\nעל הלוח\".",
+ "summary_md": "## 🎯 המסר של המפגש\n- **`assign`** = ביטוי אחד, חוט קבוע. **`always_comb`** = צעדים / `if` / `case`; ערך ל-y **בכל מסלול** (else / default) – אחרת latch.\n- **`logic`** מחליף את wire ו-reg; מקור אחד לכל אות.\n- **בדיקה ממצה:** לולאה על כל הצירופים, `{s, a, b} = i;`, השוואה עם `!==`.\n- **7 מקטעים:** `case` על 16 ספרות, `7'b...` = g..a. הקוטביות של הלוח נמצאת עם מתג (`sw[7] ? ~p : p`).\n- **Vivado:** design source ← simulation source ← Set as Top ← Run Behavioral Simulation ← Tcl Console.",
+ "topics": [
+  "assign מול always_comb",
+  "logic",
+  "7 מקטעים",
+  "Testbench",
+  "Vivado"
+ ],
+ "glossary": [],
+ "course_facts": [],
+ "syllabus_covered": [],
+ "exam_type": "mcq",
+ "grade_weights": [],
+ "homework": [],
+ "exercises": [
+  {
+   "title": "🔧 תרגול על הלוח: ספרה הקסדצימלית על תצוגת 7 מקטעים",
+   "question_md": "SW1–SW4 = ספרה 0..F על תצוגה 1. SW8 ו-SW7 – לגלות את הקוטביות. **קודם מוודאים שהסימולציה עובדת.**",
+   "solution_md": "**שלב 1 – קבצים:** `hex7seg` (מהפרק) כ-design source, ועוד קובץ `top`:\n\n```systemverilog\nmodule top (\n    input  logic [7:0] sw,      // SW1..SW4 = the digit, SW7 and SW8 = polarity tests\n    output logic [7:0] seg1,    // display 1: segments a..g and the dot\n    output logic [3:0] dig1     // display 1: which of the 4 digits is on\n);\n    logic [6:0] pat;            // the pattern with 1 = segment on\n\n    hex7seg u_dec (.x(sw[3:0]), .seg(pat));\n\n    assign seg1 = sw[7] ? ~{1'b0, pat} : {1'b0, pat};   // SW8 flips the segment polarity (dot stays off)\n    assign dig1 = sw[6] ? 4'b0000 : 4'b1111;           // SW7 flips the digit-select polarity\nendmodule\n```\n\n- `hex7seg u_dec (.x(sw[3:0]), .seg(pat));` – המפענח מקבל את 4 המתגים הראשונים.\n- `{1'b0, pat}` – 8 ביטים: הנקודה (dp) כבויה + 7 המקטעים.\n- `sw[7] ? ~... : ...` – SW8 למעלה = הופכים את כל הביטים.\n- `dig1 = sw[6] ? 4'b0000 : 4'b1111` – SW7 בוחר אם הספרות פעילות ב-1 או ב-0.\n- `top` ← לחיצה ימנית ← **`Set as Top`**.\n\n**שלב 2 – XDC** (`Add Sources` ← constraints ← קובץ `pins`; אם יש כבר קובץ מהמפגש הקודם – להחליף בו את התוכן):\n```text\nset_property -dict {PACKAGE_PIN H13 IOSTANDARD LVCMOS33} [get_ports {sw[0]}]\nset_property -dict {PACKAGE_PIN G13 IOSTANDARD LVCMOS33} [get_ports {sw[1]}]\nset_property -dict {PACKAGE_PIN G15 IOSTANDARD LVCMOS33} [get_ports {sw[2]}]\nset_property -dict {PACKAGE_PIN G16 IOSTANDARD LVCMOS33} [get_ports {sw[3]}]\nset_property -dict {PACKAGE_PIN J14 IOSTANDARD LVCMOS33} [get_ports {sw[4]}]\nset_property -dict {PACKAGE_PIN H14 IOSTANDARD LVCMOS33} [get_ports {sw[5]}]\nset_property -dict {PACKAGE_PIN G17 IOSTANDARD LVCMOS33} [get_ports {sw[6]}]\nset_property -dict {PACKAGE_PIN G18 IOSTANDARD LVCMOS33} [get_ports {sw[7]}]\nset_property -dict {PACKAGE_PIN F13 IOSTANDARD LVCMOS33} [get_ports {seg1[0]}]\nset_property -dict {PACKAGE_PIN F14 IOSTANDARD LVCMOS33} [get_ports {seg1[1]}]\nset_property -dict {PACKAGE_PIN F16 IOSTANDARD LVCMOS33} [get_ports {seg1[2]}]\nset_property -dict {PACKAGE_PIN E17 IOSTANDARD LVCMOS33} [get_ports {seg1[3]}]\nset_property -dict {PACKAGE_PIN C14 IOSTANDARD LVCMOS33} [get_ports {seg1[4]}]\nset_property -dict {PACKAGE_PIN C15 IOSTANDARD LVCMOS33} [get_ports {seg1[5]}]\nset_property -dict {PACKAGE_PIN E13 IOSTANDARD LVCMOS33} [get_ports {seg1[6]}]\nset_property -dict {PACKAGE_PIN E14 IOSTANDARD LVCMOS33} [get_ports {seg1[7]}]\nset_property -dict {PACKAGE_PIN E16 IOSTANDARD LVCMOS33} [get_ports {dig1[0]}]\nset_property -dict {PACKAGE_PIN D16 IOSTANDARD LVCMOS33} [get_ports {dig1[1]}]\nset_property -dict {PACKAGE_PIN D14 IOSTANDARD LVCMOS33} [get_ports {dig1[2]}]\nset_property -dict {PACKAGE_PIN D15 IOSTANDARD LVCMOS33} [get_ports {dig1[3]}]\n```\n\n**שלב 3 – כמו במפגש הקודם:** `Run Synthesis` ← `Run Implementation` ← `Generate Bitstream` ← `Open Hardware Manager` ←\n`Open target` ← `Auto Connect` ← `Program device`.\n\n**שלב 4 – גילוי הקוטביות (5 דקות):**\n1. SW1–SW4: מעלים את SW1 ו-SW3 (= 5).\n2. מנסים את 4 המצבים של SW7 ו-SW8 עד שמופיע **5** תקין.\n3. **רושמים:** SW8 ___ (למעלה = מקטעים פעילים ב-0), SW7 ___ (למעלה = ספרות פעילות ב-0). זה ישמש בכל המפגשים הבאים.\n4. בודקים כמה ספרות: SW1–SW4 כולם למטה = **0**, כולם למעלה = **F**, SW2+SW4 (1010) = **A**.\n\n**אם לא עובד:** שום דבר לא נדלק באף מצב → `Messages` (אולי חסרה שורה ב-XDC); ספרה \"מבולגנת\" בכל המצבים → סדר\nהמקטעים בלוח שונה (לרשום איזה מקטע נדלק לכל ביט ולשלוח לי).",
+   "topic": "תרגול על הלוח",
+   "exam_style": false,
+   "uncertain": false
+  },
+  {
+   "title": "תרגיל 1 · 🔍 לקרוא ולנחש",
+   "question_md": "בלי להריץ:\n1. `mux2_comb` עם `a=1, b=0, s=0` → `y = ?`\n2. `{s, a, b} = 6;` → `s, a, b = ?`\n3. `hex7seg` עם `x = 4'h7` → אילו מקטעים דולקים? מה יוצג?\n4. `top` עם `sw = 8'b1000_0001` → `seg1 = ?`",
+   "solution_md": "1. `s=0` ← ענף ה-`else` ← **y = a = 1**.\n2. 6 = **110** ← s=1, a=1, b=0.\n3. `7'b0000111` ← a, b, c ← **7**.\n4. הספרה 1 ← `pat = 0000110`, `{1'b0, pat} = 00000110`; SW8 (sw[7]) = 1 ← הופכים ← **`11111001`**.",
+   "topic": "assign מול always_comb",
+   "exam_style": false,
+   "uncertain": false
+  },
+  {
+   "title": "תרגיל 2 · ✏️ להשלים את החסר – Mux ב-always_comb",
+   "question_md": "```systemverilog\nmodule mux2_comb (\n    input  logic a, b, s,\n    output logic y\n);\n    ___ begin\n        if (___)\n            y = b;\n        ___\n            y = a;\n    ___\nendmodule\n```",
+   "solution_md": "`always_comb` · `s` · `else` · `end`. בלי `else` – latch.\n\n**עוד תרגול (בדיקה מיידית):** https://hdlbits.01xz.net/wiki/Always_if – אותו Mux בשתי הדרכים, בדיוק כמו היום.",
+   "topic": "always_comb",
+   "exam_style": false,
+   "uncertain": false
+  },
+  {
+   "title": "תרגיל 3 · 🔧 לשנות – מפענח עם כיבוי",
+   "question_md": "הוסף ל-`hex7seg` כניסה `en`: כש-`en = 0` התצוגה כבויה (כל המקטעים 0), כש-`en = 1` – רגיל.\nרמז: אפשר לעטוף את המפענח הקיים ולהוסיף `assign` אחד.",
+   "solution_md": "```systemverilog\nmodule hex7seg_en (\n    input  logic [3:0] x,\n    input  logic       en,\n    output logic [6:0] seg\n);\n    logic [6:0] pat;\n    hex7seg u (.x(x), .seg(pat));\n    assign seg = en ? pat : 7'b0000000;   // en = 0 -> display dark\nendmodule\n```\n- משתמשים ברכיב הקיים (instantiation) ולא כותבים מחדש את הטבלה.\n- נבדק: `x=3, en=1` ← `1001111`; `en=0` ← `0000000`.\n\n💡 **ככה כותבים קוד חדש:** לוקחים רכיב שעובד ועוטפים או משנים דבר אחד.",
+   "topic": "7 מקטעים",
+   "exam_style": false,
+   "uncertain": false
+  },
+  {
+   "title": "תרגיל 4 · ✍️ לכתוב לבד – XOR בשתי דרכים + בדיקה",
+   "question_md": "כתוב:\n1. `xor_assign` – XOR של שני ביטים עם `assign`.\n2. `xor_comb` – אותו דבר עם `always_comb` ו-`if` (בלי האופרטור `^`).\n3. `tb_xor` – בדיקה ממצה (4 צירופים) שמדפיסה `OK` אם הגרסאות זהות.\n\n**סולם רמזים:** (1) `^` הוא XOR. (2) XOR = 1 כשהביטים **שונים** ← `if (a == b) y = 0; else y = 1;`.\n(3) העתק את המבנה של `tb_mux`: לולאה עד 4, `{a, b} = i;`.\n\n**עוד:** https://hdlbits.01xz.net/wiki/Xnorgate ו-https://hdlbits.01xz.net/wiki/Truthtable1",
+   "solution_md": "```systemverilog\nmodule xor_assign (input logic a, b, output logic y);\n    assign y = a ^ b;\nendmodule\n\nmodule xor_comb (input logic a, b, output logic y);\n    always_comb begin\n        if (a == b)\n            y = 1'b0;\n        else\n            y = 1'b1;\n    end\nendmodule\n\nmodule tb_xor;\n    logic a, b, y1, y2;\n    int errors = 0;\n    xor_assign u1 (.a(a), .b(b), .y(y1));\n    xor_comb   u2 (.a(a), .b(b), .y(y2));\n    initial begin\n        for (int i = 0; i < 4; i++) begin\n            {a, b} = i;\n            #10;\n            $display(\"a=%b b=%b -> %b %b\", a, b, y1, y2);\n            if (y1 !== y2) errors++;\n        end\n        if (errors == 0) $display(\"OK: same truth table\");\n        else             $display(\"ERROR: %0d differences\", errors);\n        $finish;\n    end\nendmodule\n```\n\n**אמור להופיע:** 4 שורות ואז `OK: same truth table` (נבדק ב-Icarus Verilog).",
+   "topic": "assign מול always_comb",
+   "exam_style": false,
+   "uncertain": false
+  }
+ ],
+ "questions": [
+  {
+   "question": "מה ההבדל בין `assign` ל-`always_comb`?",
+   "options": [
+    "assign לביטוי אחד, always_comb לצעדים/החלטות – שניהם בונים לוגיקה צירופית",
+    "assign יוצר זיכרון ו-always_comb לא",
+    "always_comb רץ רק בעליית שעון",
+    "assign עובד רק בסימולציה"
+   ],
+   "correct": 0,
+   "explanation": "שניהם צירופיים (בלי זיכרון); ההבדל בדרך הכתיבה.",
+   "topic": "assign מול always_comb",
+   "difficulty": 1
+  },
+  {
+   "question": "מה יקרה אם ב-`always_comb` יש `if (s) y = b;` בלי `else`?",
+   "options": [
+    "נוצר latch – הכלי זוכר את הערך הקודם כש-s=0",
+    "y יהיה 0 כש-s=0",
+    "שגיאת תחביר",
+    "y יהיה a"
+   ],
+   "correct": 0,
+   "explanation": "בלי ערך בכל מסלול, הכלי חייב לזכור = latch בטעות.",
+   "topic": "always_comb",
+   "difficulty": 2
+  },
+  {
+   "question": "מה ההבדל בין `logic` ל-`wire`?",
+   "options": [
+    "logic יכול לקבל ערך גם מ-assign וגם מבלוק always; wire רק מ-assign",
+    "אין הבדל בכלל",
+    "wire הוא 4 ביטים ו-logic ביט אחד",
+    "logic יוצר תמיד אוגר"
+   ],
+   "correct": 0,
+   "explanation": "logic מחליף את wire ואת reg; הכלל: מקור אחד לכל אות.",
+   "topic": "logic",
+   "difficulty": 2
+  },
+  {
+   "question": "מה עושה `{s, a, b} = 5;`?",
+   "options": [
+    "s=1, a=0, b=1 – מפרק את 101 לשלושה ביטים",
+    "s=a=b=5",
+    "s=5 וה-a,b לא משתנים",
+    "שגיאה"
+   ],
+   "correct": 0,
+   "explanation": "שרשור: הביט השמאלי ל-s, הימני ל-b. 5 = 101.",
+   "topic": "שרשור",
+   "difficulty": 2
+  },
+  {
+   "question": "במפענח, `4'h1: seg = 7'b0000110;` – אילו מקטעים דולקים?",
+   "options": [
+    "b ו-c",
+    "a ו-b",
+    "f ו-g",
+    "d ו-e"
+   ],
+   "correct": 0,
+   "explanation": "הכתיבה היא g..a משמאל לימין: הביטים 1 ו-2 = b ו-c.",
+   "topic": "7 מקטעים",
+   "difficulty": 2
+  },
+  {
+   "question": "למה בבדיקה משתמשים ב-`!==` ולא ב-`!=`?",
+   "options": [
+    "!== מזהה גם הבדל כשאחד הערכים X (לא ידוע)",
+    "!== מהיר יותר",
+    "!= לא קיים בשפה",
+    "אין הבדל"
+   ],
+   "correct": 0,
+   "explanation": "!= עם X נותן X ולא 'אמת' – ההבדל היה מתפספס.",
+   "topic": "Testbench",
+   "difficulty": 3
+  },
+  {
+   "question": "כמה צירופים יש לבדוק בבדיקה ממצה של רכיב עם 3 כניסות של ביט?",
+   "options": [
+    "8",
+    "3",
+    "6",
+    "9"
+   ],
+   "correct": 0,
+   "explanation": "$2^3=8$.",
+   "topic": "Testbench",
+   "difficulty": 1
+  },
+  {
+   "question": "איך מגלים את קוטביות התצוגה בלוח בלי לבנות מחדש?",
+   "options": [
+    "מתג שמחליף בין התבנית להיפוך שלה (`sw[7] ? ~p : p`)",
+    "מחברים מודד",
+    "משנים את קובץ ה-XDC",
+    "אי אפשר"
+   ],
+   "correct": 0,
+   "explanation": "בחירה בזמן ריצה: שני המצבים צרובים, המתג בוחר.",
+   "topic": "לוח",
+   "difficulty": 2
+  }
+ ],
+ "verification": {
+  "fixes": [
+   "נכתב על ידי Claude בפורמט שאושר (13/11/2026). כל הקוד הורץ ב-Icarus Verilog 12: שני ה-Mux זהים ב-8 הצירופים, המפענח נכון ב-16 הספרות, ה-XOR וגרסת ה-en נכונים. הפינים מ-fpga/pa35t_edu.xdc."
+  ],
+  "uncertain": [
+   "קוטביות התצוגה וסדר המקטעים בלוח לא כתובים במדריך – לכן המתגים SW7/SW8 בתרגול על הלוח."
+  ]
+ }
+}
