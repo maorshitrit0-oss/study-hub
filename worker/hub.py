@@ -636,6 +636,25 @@ def cmd_core(match, path):
     print(f"::notice title=Core exercises::{course['name']}: " + ", ".join(f"week {w}: {len(v)}" for w, v in data["weeks"].items()), flush=True)
 
 
+def cmd_quiz_add(match, kind, number, path):
+    """Adds checked multiple-choice questions to an existing lesson's quiz (17/11/2026: random signals sessions 2-4 had 1-2
+    questions). JSON list of {question, options, correct, explanation, topic, difficulty}; a question already there
+    (same text) is skipped, so running it again adds nothing."""
+    sb = db()
+    course = find_course(sb, match)
+    les = sb.table("lessons").select("id, user_id").eq("course_id", course["id"]).eq("kind", kind).eq("number", int(number)).execute().data
+    if not les:
+        print(f"::warning title=Quiz::{course['name']} {kind} {number}: no such lesson", flush=True)
+        return
+    have = {q["question"] for q in sb.table("questions").select("question").eq("lesson_id", les[0]["id"]).execute().data}
+    rows = [{"user_id": les[0]["user_id"], "course_id": course["id"], "lesson_id": les[0]["id"], "topic": q.get("topic"),
+             "question": q["question"], "options": q["options"], "correct": q["correct"], "explanation": q.get("explanation"),
+             "difficulty": q.get("difficulty", 2)} for q in json.loads(Path(path).read_text(encoding="utf-8")) if q["question"] not in have]
+    if rows:
+        sb.table("questions").insert(rows).execute()
+    print(f"::notice title=Quiz::{course['name']} {kind} {number}: +{len(rows)} questions ({len(have) + len(rows)} in all)", flush=True)
+
+
 def cmd_assignments(match, path):
     """📝 The course's graded assignments with full solutions (his request 16/11/2026, communication systems: 10% of the
     grade). The file comes sealed through the public repo (sealed.py); stored privately as
@@ -1263,6 +1282,7 @@ if __name__ == "__main__":
     p = sub.add_parser("sheet"); p.add_argument("course"); p.add_argument("md")
     p = sub.add_parser("exercises"); p.add_argument("course"); p.add_argument("fixes_json")
     p = sub.add_parser("assignments"); p.add_argument("course"); p.add_argument("path")
+    p = sub.add_parser("quiz-add"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number"); p.add_argument("path")
     p = sub.add_parser("drive"); p.add_argument("course"); p.add_argument("files_json")
     p = sub.add_parser("core"); p.add_argument("course"); p.add_argument("core_json")
     p = sub.add_parser("drivefiles"); p.add_argument("ids"); p.add_argument("out_dir")
@@ -1332,6 +1352,8 @@ if __name__ == "__main__":
         locate.run(sb, course)
     elif a.cmd == "drive":
         cmd_drive(a.course, a.files_json)
+    elif a.cmd == "quiz-add":
+        cmd_quiz_add(a.course, a.kind, a.number, a.path)
     elif a.cmd == "assignments":
         cmd_assignments(a.course, a.path)
     elif a.cmd == "exercises":

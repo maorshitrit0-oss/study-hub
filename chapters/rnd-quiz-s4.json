@@ -1,0 +1,119 @@
+[
+ {
+  "question": "$N(t)$ תהליך פואסון בקצב $\\lambda$. מה $P(N(t)=k)$?",
+  "options": [
+   "$\\binom{t}{k}\\lambda^k$",
+   "$e^{-\\lambda t}\\frac{(\\lambda t)^k}{k!}$",
+   "$\\frac{(\\lambda t)^k}{k!}$",
+   "$\\lambda e^{-\\lambda t}$"
+  ],
+  "correct": 1,
+  "explanation": "התפלגות פואסון עם פרמטר $\\lambda t$.",
+  "topic": "פואסון",
+  "difficulty": 1
+ },
+ {
+  "question": "מה $E[N(t)]$ ו-$\\mathrm{Var}(N(t))$?",
+  "options": [
+   "$\\lambda$ ו-$\\lambda$",
+   "שניהם $\\lambda t$",
+   "$\\lambda t$ ו-$(\\lambda t)^2$",
+   "$1/\\lambda$ ו-$1/\\lambda^2$"
+  ],
+  "correct": 1,
+  "explanation": "בפואסון התוחלת שווה לשונות.",
+  "topic": "פואסון",
+  "difficulty": 1
+ },
+ {
+  "question": "הזמן בין שתי הגעות בתהליך פואסון מתפלג:",
+  "options": [
+   "אחיד",
+   "נורמלית",
+   "פואסון",
+   "מעריכית עם תוחלת $1/\\lambda$"
+  ],
+  "correct": 3,
+  "explanation": "$P(T>t)=P(N(t)=0)=e^{-\\lambda t}$.",
+  "topic": "זמני הגעה",
+  "difficulty": 1
+ },
+ {
+  "question": "\"חוסר זיכרון\" אומר:",
+  "options": [
+   "$P(T>s+t\\mid T>s)=P(T>t)$",
+   "$P(T>s+t)=P(T>s)+P(T>t)$",
+   "$T$ תמיד גדול מ-$s$",
+   "$E[T]=0$"
+  ],
+  "correct": 0,
+  "explanation": "מה שכבר חיכית לא משנה את מה שנשאר לחכות.",
+  "topic": "זמני הגעה",
+  "difficulty": 2
+ },
+ {
+  "question": "שני תהליכי פואסון בלתי תלויים בקצבים $\\lambda_1,\\lambda_2$ מאוחדים. התהליך המאוחד:",
+  "options": [
+   "לא פואסון",
+   "פואסון בקצב $\\max(\\lambda_1,\\lambda_2)$",
+   "פואסון בקצב $\\lambda_1\\lambda_2$",
+   "פואסון בקצב $\\lambda_1+\\lambda_2$"
+  ],
+  "correct": 3,
+  "explanation": "איחוד (superposition) של פואסונים בלתי תלויים – פואסון, הקצבים מתחברים.",
+  "topic": "איחוד",
+  "difficulty": 2
+ },
+ {
+  "question": "באותם שני תהליכים – מה ההסתברות שההגעה הראשונה היא מהתהליך הראשון?",
+  "options": [
+   "$\\frac12$",
+   "$\\lambda_1\\lambda_2$",
+   "$\\frac{\\lambda_1}{\\lambda_1+\\lambda_2}$",
+   "$\\frac{\\lambda_2}{\\lambda_1+\\lambda_2}$"
+  ],
+  "correct": 2,
+  "explanation": "$P(T_1<T_2)$ לשני מעריכיים בלתי תלויים.",
+  "topic": "מי ראשון",
+  "difficulty": 2
+ },
+ {
+  "question": "$\\lambda=2$ לדקה. מה ההסתברות שאין אף הגעה ב-1.5 דקות?",
+  "options": [
+   "$e^{-2}\\approx0.135$",
+   "$e^{-1.5}\\approx0.223$",
+   "$e^{-3}\\approx0.050$",
+   "$1-e^{-3}\\approx0.950$"
+  ],
+  "correct": 2,
+  "explanation": "$P(N(1.5)=0)=e^{-\\lambda t}=e^{-3}$.",
+  "topic": "פואסון",
+  "difficulty": 2
+ },
+ {
+  "question": "מספרי ההגעות בשני קטעי זמן **שלא חופפים**:",
+  "options": [
+   "סכומם קבוע",
+   "בלתי תלויים",
+   "תמיד שווים",
+   "תלויים לינארית"
+  ],
+  "correct": 1,
+  "explanation": "תוספות בלתי תלויות – אחת ההגדרות של פואסון.",
+  "topic": "פואסון",
+  "difficulty": 1
+ },
+ {
+  "question": "הזמן עד ההגעה ה-$k$ מתפלג:",
+  "options": [
+   "ארלנג (גאמא) – סכום של $k$ מעריכיים, תוחלת $k/\\lambda$",
+   "אחיד על $[0,k/\\lambda]$",
+   "פואסון עם פרמטר $k$",
+   "מעריכית עם תוחלת $1/\\lambda$"
+  ],
+  "correct": 0,
+  "explanation": "סכום $k$ זמני המתנה בלתי תלויים.",
+  "topic": "זמני הגעה",
+  "difficulty": 3
+ }
+]

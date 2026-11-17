@@ -1,0 +1,119 @@
+[
+ {
+  "question": "מה הקשר בין $S_X(f)$ ל-$R_X(\\tau)$ (וינר-חינצ'ין)?",
+  "options": [
+   "אין ביניהן קשר",
+   "$S_X(f)$ היא התמרת פורייה של $R_X(\\tau)$",
+   "$S_X$ היא הנגזרת של $R_X$",
+   "$S_X(f)=R_X(f)^2$"
+  ],
+  "correct": 1,
+  "explanation": "צפיפות הספק = התמרת פורייה של האוטוקורלציה.",
+  "topic": "צפיפות הספק",
+  "difficulty": 1
+ },
+ {
+  "question": "$X$ סמ\"ר עובר במערכת LTI עם $H(f)$. מה $S_Y(f)$?",
+  "options": [
+   "$|H(f)|^2S_X(f)$",
+   "$H(f)S_X(f)$",
+   "$S_X(f)/|H(f)|^2$",
+   "$|H(f)|S_X(f)$"
+  ],
+  "correct": 0,
+  "explanation": "ההספק מוכפל בריבוע הגבר המשרעת.",
+  "topic": "מסננים",
+  "difficulty": 2
+ },
+ {
+  "question": "ההספק הממוצע של תהליך סמ\"ר הוא:",
+  "options": [
+   "$S_X(0)$",
+   "$\\int_0^\\infty R_X(\\tau)d\\tau$",
+   "$\\max S_X(f)$",
+   "$R_X(0)=\\int_{-\\infty}^{\\infty}S_X(f)\\,df$"
+  ],
+  "correct": 3,
+  "explanation": "השטח מתחת לצפיפות, בשני צדי ציר התדר.",
+  "topic": "צפיפות הספק",
+  "difficulty": 2
+ },
+ {
+  "question": "רעש לבן עם $S_N(f)=\\frac{N_0}2$ עובר במסנן מעביר נמוכים אידיאלי בהגבר 1 ורוחב $B$. מה הספק המוצא?",
+  "options": [
+   "$2N_0B$",
+   "$N_0B$",
+   "$\\frac{N_0B}2$",
+   "אינסופי"
+  ],
+  "correct": 1,
+  "explanation": "$\\frac{N_0}2\\cdot2B$ – הפס מ-$-B$ עד $B$.",
+  "topic": "רעש לבן",
+  "difficulty": 2
+ },
+ {
+  "question": "תוחלת המוצא של מערכת LTI כשהכניסה סמ\"ר עם תוחלת $m_X$:",
+  "options": [
+   "$m_Y=m_X\\,H(0)$",
+   "$m_Y=m_X|H(0)|^2$",
+   "$m_Y=0$ תמיד",
+   "$m_Y=m_X$"
+  ],
+  "correct": 0,
+  "explanation": "קבוע עובר במערכת עם הגבר ה-DC שלה, $H(0)$.",
+  "topic": "מסננים",
+  "difficulty": 2
+ },
+ {
+  "question": "$R_X(\\tau)=e^{-a|\\tau|}$ ($a>0$). מה $S_X(f)$?",
+  "options": [
+   "$e^{-a|f|}$",
+   "$\\frac{2a}{a^2+(2\\pi f)^2}$",
+   "$\\frac{1}{a+j2\\pi f}$",
+   "$\\frac{a}{a^2+f^2}$"
+  ],
+  "correct": 1,
+  "explanation": "זוג פורייה מהדף: אקספוננט דו-צדדי ↔ לורנציאן.",
+  "topic": "צפיפות הספק",
+  "difficulty": 3
+ },
+ {
+  "question": "$R_X(\\tau)=\\tfrac12\\cos(2\\pi f_0\\tau)$. מה $S_X(f)$?",
+  "options": [
+   "$\\cos(2\\pi f_0f)$",
+   "$\\tfrac14[\\delta(f-f_0)+\\delta(f+f_0)]$",
+   "$\\tfrac12[\\delta(f-f_0)+\\delta(f+f_0)]$",
+   "$\\tfrac12\\delta(f-f_0)$"
+  ],
+  "correct": 1,
+  "explanation": "כל קוסינוס = שתי דלתאות בחצי המשרעת: $\\tfrac12\\cdot\\tfrac12$.",
+  "topic": "צפיפות הספק",
+  "difficulty": 2
+ },
+ {
+  "question": "לתהליך סמ\"ר ממשי, $S_X(f)$ תמיד:",
+  "options": [
+   "מרוכבת",
+   "ממשית, אי-שלילית וזוגית",
+   "יכולה להיות שלילית",
+   "אי-זוגית"
+  ],
+  "correct": 1,
+  "explanation": "$R_X$ ממשית וזוגית ⇐ ההתמרה ממשית וזוגית; הספק לא יכול להיות שלילי.",
+  "topic": "צפיפות הספק",
+  "difficulty": 2
+ },
+ {
+  "question": "מה האוטוקורלציה של רעש לבן עם $S(f)=\\frac{N_0}2$?",
+  "options": [
+   "$\\frac{N_0}2$ קבוע",
+   "$N_0\\,\\mathrm{sinc}(\\tau)$",
+   "$0$",
+   "$\\frac{N_0}2\\delta(\\tau)$"
+  ],
+  "correct": 3,
+  "explanation": "ספקטרום שטוח ↔ דלתא: ערכים בזמנים שונים לא קשורים.",
+  "topic": "רעש לבן",
+  "difficulty": 1
+ }
+]

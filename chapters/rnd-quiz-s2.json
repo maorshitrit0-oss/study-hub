@@ -1,0 +1,132 @@
+[
+ {
+  "question": "תהליך $X(t)$ הוא סמ\"ר (סטציונרי במובן הרחב) אם:",
+  "options": [
+   "התוחלת שווה 0",
+   "$R_X$ תלוי רק ב-$t_1+t_2$",
+   "השונות גדלה עם הזמן",
+   "התוחלת קבועה וגם $R_X(t_1,t_2)$ תלוי רק בהפרש $t_2-t_1$"
+  ],
+  "correct": 3,
+  "explanation": "שני התנאים יחד: תוחלת קבועה ואוטוקורלציה שתלויה רק ב-$\\tau$.",
+  "topic": "סמ\"ר",
+  "difficulty": 1
+ },
+ {
+  "question": "$X[n]=A+nB$, $A,B$ בלתי תלויים עם תוחלת 0. מה $R_X[n_1,n_2]$?",
+  "options": [
+   "$n_1n_2(\\sigma_A^2+\\sigma_B^2)$",
+   "$\\sigma_A^2+\\sigma_B^2$",
+   "$\\sigma_A^2+n_1n_2\\sigma_B^2$",
+   "$\\sigma_A^2+(n_2-n_1)\\sigma_B^2$"
+  ],
+  "correct": 2,
+  "explanation": "פותחים סוגריים; $E[AB]=0$ מוחק את האיברים המעורבים.",
+  "topic": "המבחן שלך – שאלה 1",
+  "difficulty": 2
+ },
+ {
+  "question": "באותו תהליך, $Y[n]=X[n+1]-X[n]$. מה נכון?",
+  "options": [
+   "$Y$ לא סמ\"ר כי $X$ לא סמ\"ר",
+   "$Y[n]=B$ – קבוע אקראי, ולכן סמ\"ר עם $R_Y=\\sigma_B^2$",
+   "$R_Y[n_1,n_2]=n_1n_2\\sigma_B^2$",
+   "$Y[n]=A$"
+  ],
+  "correct": 1,
+  "explanation": "קודם לפשט: $A$ מתבטל ו-$nB$ מתקזז, נשאר $B$.",
+  "topic": "המבחן שלך – שאלה 1",
+  "difficulty": 3
+ },
+ {
+  "question": "$X(t)=A\\cos(\\omega_0t+\\Theta)$, $\\Theta$ אחיד על $[0,2\\pi]$ ובלתי תלוי ב-$A$, $E[A^2]=4$. מה $R_X(\\tau)$?",
+  "options": [
+   "$4\\cos(\\omega_0\\tau)$",
+   "$0$",
+   "$2\\cos(\\omega_0(2t+\\tau))$",
+   "$2\\cos(\\omega_0\\tau)$"
+  ],
+  "correct": 3,
+  "explanation": "$R_X(\\tau)=\\frac{E[A^2]}2\\cos\\omega_0\\tau$ – החלק עם הסכום מתאפס בגלל הפאזה האקראית.",
+  "topic": "פאזה אקראית",
+  "difficulty": 2
+ },
+ {
+  "question": "$X[n]=A\\cos\\omega_0n+B\\sin\\omega_0n$, $E[A]=E[B]=0$, $E[AB]=0$. מתי $X$ סמ\"ר?",
+  "options": [
+   "רק כש-$\\sigma_A^2=\\sigma_B^2$",
+   "תמיד",
+   "אף פעם",
+   "רק כש-$\\omega_0=0$"
+  ],
+  "correct": 0,
+  "explanation": "האיבר $\\frac{\\sigma_A^2-\\sigma_B^2}2\\cos\\omega_0(n_1+n_2)$ נעלם רק אם השונויות שוות.",
+  "topic": "משרעות אקראיות",
+  "difficulty": 3
+ },
+ {
+  "question": "$\\cos a\\cos b=$",
+  "options": [
+   "$\\tfrac12[\\cos(a-b)+\\cos(a+b)]$",
+   "$\\tfrac12[\\cos(a-b)-\\cos(a+b)]$",
+   "$\\tfrac12[\\sin(a-b)+\\sin(a+b)]$",
+   "$\\cos(a+b)$"
+  ],
+  "correct": 0,
+  "explanation": "הזהות מפרידה ל\"חלק הפרש\" (נשאר בסמ\"ר) ו\"חלק סכום\" (צריך להתאפס).",
+  "topic": "זהויות",
+  "difficulty": 1
+ },
+ {
+  "question": "$\\Theta$ אחיד על $[0,2\\pi]$. מה $E[\\cos(\\omega_0t+\\Theta)]$?",
+  "options": [
+   "$\\cos(\\omega_0t)$",
+   "$1$",
+   "$0$",
+   "$\\tfrac12$"
+  ],
+  "correct": 2,
+  "explanation": "ממוצע של קוסינוס על מחזור שלם הוא 0, לכל $t$.",
+  "topic": "פאזה אקראית",
+  "difficulty": 1
+ },
+ {
+  "question": "מה המשמעות של $R_X(0)$ בתהליך סמ\"ר?",
+  "options": [
+   "$E[X^2]$ – ההספק הממוצע של התהליך",
+   "הערך המרבי של התהליך",
+   "התוחלת",
+   "השונות תמיד"
+  ],
+  "correct": 0,
+  "explanation": "$R_X(0)=E[X(t)X(t)]$. (שונות = $R_X(0)-m_X^2$.)",
+  "topic": "אוטוקורלציה",
+  "difficulty": 2
+ },
+ {
+  "question": "$X,Y$ סמ\"ר במשותף אם:",
+  "options": [
+   "$R_{XY}=0$",
+   "כל אחד סמ\"ר, וגם $R_{XY}(t_1,t_2)$ תלוי רק בהפרש",
+   "כל אחד סמ\"ר – זה מספיק",
+   "יש להם אותה תוחלת"
+  ],
+  "correct": 1,
+  "explanation": "צריך גם את הקורלציה ההדדית – בדיוק מה שנבדק בשאלת I/Q.",
+  "topic": "סמ\"ר במשותף",
+  "difficulty": 2
+ },
+ {
+  "question": "לתהליך סמ\"ר ממשי מתקיים תמיד:",
+  "options": [
+   "$R_X$ מחזורי",
+   "$R_X(\\tau)$ שלילי",
+   "$R_X(-\\tau)=R_X(\\tau)$",
+   "$R_X(\\tau)>R_X(0)$ לכל $\\tau$"
+  ],
+  "correct": 2,
+  "explanation": "$R_X(-\\tau)=E[X(t)X(t-\\tau)]=R_X(\\tau)$ – פונקציה זוגית, ומקסימלית ב-0.",
+  "topic": "אוטוקורלציה",
+  "difficulty": 2
+ }
+]
