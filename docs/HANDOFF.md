@@ -794,7 +794,9 @@ video + podcast for kind lab (AUTO_STUDIO includes מעבדה). Lab page: "🔬 
   line -> exercises predict/fill/modify/write (hint ladder) + HDLBits / EDA Playground / ChipDev links -> FULL
   simulation guide in every session up to 6.2 (Vivado + EDA Playground) -> "🔧 תרגול על הלוח" (weeks 1-6; project task
   from week 7) -> quiz + interview Qs. Lesson page order matches (self: warm-up, video, chapter, exercises, quiz).
-- 2.2 done in this format (chapters/fixes/vlsi_w2s2.py, code checked with iverilog). Write each next session before he
+- 2.2 done in this format (chapters/fixes/vlsi_w2s2.py, code checked with iverilog). 3.1 done 17/11 (vlsi_w3s1.py +
+  vlsi_w3s1_sv/: mux two ways + exhaustive tb, hex 7-segment, board top with SW8/SW7 polarity switches; video requested).
+  Next: 3.2 (always_comb / case per the 4-phase plan; vlsiProgram.ts still has the old title for 3.2). Write each next session before he
   reaches it; vlsiProgram.ts still has the OLD titles from week 3 on - update it with 3.1.
 - His Vivado: project C:\fpga\mini_tpu; must "Run as administrator" (else "Spawn failed"); blink.sv disabled (syntax
   error line 19). Stopped 13/11 at: set tb_adder4 as simulation top. Reminder set for Friday 20/11 09:00.
@@ -879,6 +881,9 @@ ZoomReceiver (accepts its own origin too). Transcript lessons get the lecturer's
 course PDF named "הרצאה N"/"תרגול N", else the slide deck (comm: Introduction_to_communication_systems ... .pdf;
 waves has הרצאה 1-3 only), sent to Gemini as PDF docs. He may screen-record at x2 himself (his own viewing): a file / lesson title with "x2" / "2x" / "x1.5" is slowed back
 to normal speed before transcription (media.slow_down: setpts + atempo, pitch kept). Downloading past Zoom's block is not done.
+
+Quiz top-ups: hub quiz-add (publish inspect=quiz-add, kind/number, chapters/*.json list) appends questions, skips ones
+already there. 17/11: random signals sessions 2-4 +9-10 each (chapters/fixes/rnd_quiz_1711.py).
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
