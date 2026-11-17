@@ -885,6 +885,13 @@ to normal speed before transcription (media.slow_down: setpts + atempo, pitch ke
 Quiz top-ups: hub quiz-add (publish inspect=quiz-add, kind/number, chapters/*.json list) appends questions, skips ones
 already there. 17/11: random signals sessions 2-4 +9-10 each (chapters/fixes/rnd_quiz_1711.py).
 
+Weekly review (17/11/2026, replaces the daily spaced review): /review = understanding questions only (no $ / no
+calculation, lib/review.ts conceptual(), notify.CALC, hub.CALC) from the lessons with read_at in the last 7 days, max 30,
+wrong/new first; home card Sat 18:00-Sun; morning push no longer has the daily review line; Saturday 20:00 evening run
+sends a separate push "🔁 חזרה שבועית" (he asked ~21:00; pg_cron only reaches 20:00 - 21:00 would need notify_cron.sql
+hours + notifySchedule). The Saturday trigger now runs 15:41 and first tops up each lesson read that week to >= 5
+understanding questions (course-check prints quiz=N(הבנה M); comm lessons have only 1-5).
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
