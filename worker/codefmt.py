@@ -64,7 +64,7 @@ def fmt(code):
     return "\n".join(out)
 
 
-def fix(text):
+def fix(text, lang=None):
     """The question with its one-line code in a block, or None when there is nothing to fix."""
     if "```" in text or "\n" in text.strip() and text.count(";") < 2:
         return None
@@ -82,6 +82,9 @@ def fix(text):
     code = seg[:end + 1]
     if code.count(";") + code.count("{") < 2 or len(code) < 25:
         return None  # a single short expression reads fine inline
-    lang = "c" if C_HINT.search(code) else "java"
-    before, after = text[:s].rstrip(), tail[end + 1:].strip()
+    lang = lang or ("c" if C_HINT.search(code) else "java")
+    before = text[:s].rstrip()
+    if before.endswith("`") and tail[end + 1:].lstrip().startswith("`"):  # it was in inline backticks: drop them
+        before, tail = before[:-1], tail[:end + 1] + tail[end + 1:].lstrip()[1:]
+    before, after = before.rstrip(), tail[end + 1:].strip()
     return f"{before}\n\n```{lang}\n{fmt(code)}\n```\n\n{after}".strip()

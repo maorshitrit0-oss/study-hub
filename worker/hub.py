@@ -649,11 +649,11 @@ def cmd_quiz_code(match, apply=False):
     for c in courses:
         n, shown = 0, 0
         for q in sb.table("questions").select("id, question").eq("course_id", c["id"]).execute().data:
-            new = codefmt.fix(q["question"] or "")
+            new = codefmt.fix(q["question"] or "", "c" if "מיקרו" in c["name"] else None)
             if not new:
                 continue
             n += 1
-            if shown < 2:
+            if shown < 30:
                 print(f"::notice title=Quiz code {c['name']}::{new[:400]!r}", flush=True)
                 shown += 1
             if apply:
