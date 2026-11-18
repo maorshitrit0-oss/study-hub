@@ -905,6 +905,11 @@ read so exercises.py never reformats them). NEW weeks of these two courses: the 
 into clickable multiple choice (mcqOf: "**א.** " options + "התשובה: **X**"): pick -> right/wrong -> solution opens;
 right on the first try marks it solved; "↺ לנסות שוב". Keep the exact format or it falls back to plain text.
 
+Code in quiz questions (18/11/2026, his screenshot: a Java switch written on one line, he got many wrong): codefmt.fix
+moves one-line code into a ```java / ```c block, one statement per line, case bodies indented, array initializers kept;
+applied to all existing questions (publish inspect=quiz-code, title=apply; Java 8, micro 5 - other courses 0) and to
+every new quiz when it is saved (hub, questions insert).
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
