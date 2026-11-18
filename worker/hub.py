@@ -21,6 +21,7 @@ from pathlib import Path
 from supabase import create_client
 
 import author
+import codefmt
 import course_site
 import media
 import notify
@@ -410,9 +411,9 @@ def save_chapter(job, ch, by):
             job.sb.table("questions").delete().eq("lesson_id", job.lesson["id"]).execute()
         job.sb.table("questions").insert([{
             "user_id": job.lesson["user_id"], "course_id": job.course["id"], "lesson_id": job.lesson["id"],
-            "topic": q.get("topic"), "question": q["question"], "options": q["options"],
+            "topic": q.get("topic"), "question": codefmt.fix(q["question"]) or q["question"], "options": q["options"],
             "correct": q["correct"], "explanation": q.get("explanation"), "difficulty": q.get("difficulty", 2),
-        } for q in ch["questions"]]).execute()
+        } for q in ch["questions"]]).execute()  # code on one line -> a code block (codefmt.py, 18/11/2026)
     save_course_facts(job, ch)
     save_glossary(job, ch)
     chapter_md = ch["chapter_md"] + (author.verification_md(ch) if ch.get("verification") else "")
@@ -638,6 +639,26 @@ def cmd_core(match, path):
                                     json.dumps(data, ensure_ascii=False).encode("utf-8"),
                                     {"content-type": "application/json", "upsert": "true"})
     print(f"::notice title=Core exercises::{course['name']}: " + ", ".join(f"week {w}: {len(v)}" for w, v in data["weeks"].items()), flush=True)
+
+
+def cmd_quiz_code(match, apply=False):
+    """Quiz questions with code written on one line (his screenshot 18/11/2026) -> the code in a block, one statement
+    per line. match "*" = every course. Without apply: counts and prints a few examples only."""
+    sb = db()
+    courses = sb.table("courses").select("id, name").execute().data if match == "*" else [find_course(sb, match)]
+    for c in courses:
+        n, shown = 0, 0
+        for q in sb.table("questions").select("id, question").eq("course_id", c["id"]).execute().data:
+            new = codefmt.fix(q["question"] or "")
+            if not new:
+                continue
+            n += 1
+            if shown < 2:
+                print(f"::notice title=Quiz code {c['name']}::{new[:400]!r}", flush=True)
+                shown += 1
+            if apply:
+                sb.table("questions").update({"question": new}).eq("id", q["id"]).execute()
+        print(f"::notice title=Quiz code::{c['name']}: {n} questions {'fixed' if apply else 'to fix'}", flush=True)
 
 
 def cmd_quiz_add(match, kind, number, path):
@@ -1290,6 +1311,7 @@ if __name__ == "__main__":
     p = sub.add_parser("sheet"); p.add_argument("course"); p.add_argument("md")
     p = sub.add_parser("exercises"); p.add_argument("course"); p.add_argument("fixes_json")
     p = sub.add_parser("assignments"); p.add_argument("course"); p.add_argument("path")
+    p = sub.add_parser("quiz-code"); p.add_argument("course"); p.add_argument("--apply", action="store_true")
     p = sub.add_parser("quiz-add"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number"); p.add_argument("path")
     p = sub.add_parser("drive"); p.add_argument("course"); p.add_argument("files_json")
     p = sub.add_parser("core"); p.add_argument("course"); p.add_argument("core_json")
@@ -1360,6 +1382,8 @@ if __name__ == "__main__":
         locate.run(sb, course)
     elif a.cmd == "drive":
         cmd_drive(a.course, a.files_json)
+    elif a.cmd == "quiz-code":
+        cmd_quiz_code(a.course, a.apply)
     elif a.cmd == "quiz-add":
         cmd_quiz_add(a.course, a.kind, a.number, a.path)
     elif a.cmd == "assignments":

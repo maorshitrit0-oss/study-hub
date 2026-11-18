@@ -59,6 +59,7 @@ jobs:
         run: |
           ok() { [[ -z "$1" || "$1" =~ ^chapters/[A-Za-z0-9_.-]+\.$2$ ]] || { echo "::error::bad path $1"; exit 1; }; }
           ok "$CHAPTER" json; ok "$SHEET" md
+          if [ "$INSPECT" = "quiz-code" ]; then python hub.py quiz-code "$COURSE" $( [ "$TITLE" = "apply" ] && echo --apply ); exit $?; fi
           if [ "$INSPECT" = "quiz-add" ]; then python hub.py quiz-add "$COURSE" "$KIND" "$NUMBER" "../$CHAPTER"; exit $?; fi
           if [ "$INSPECT" = "sealed-pub" ]; then python sealed.py pub; exit $?; fi
           if [ "$INSPECT" = "assignments" ]; then python sealed.py open "../$CHAPTER" /tmp/assignments.json && python hub.py assignments "$COURSE" /tmp/assignments.json; exit $?; fi
