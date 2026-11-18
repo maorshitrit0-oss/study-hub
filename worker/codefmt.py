@@ -39,6 +39,17 @@ def fmt(code):
         if depth == 0 and ch == ";":
             line += ch
             push()
+        elif depth == 0 and ch == "{" and line.rstrip().endswith(("=", "]", ",")):
+            # an array initializer {10, 20, 30}: stays on its line
+            j, d = i, 0
+            while j < n:
+                d += (code[j] == "{") - (code[j] == "}")
+                if d == 0:
+                    break
+                j += 1
+            line += " " + code[i:j + 1].strip() if not line.endswith(" ") else code[i:j + 1].strip()
+            i = j + 1
+            continue
         elif depth == 0 and ch == "{":
             line += " {" if line.strip() else "{"
             push()
@@ -87,4 +98,6 @@ def fix(text, lang=None):
     if before.endswith("`") and tail[end + 1:].lstrip().startswith("`"):  # it was in inline backticks: drop them
         before, tail = before[:-1], tail[:end + 1] + tail[end + 1:].lstrip()[1:]
     before, after = before.rstrip(), tail[end + 1:].strip()
-    return f"{before}\n\n```{lang}\n{fmt(code)}\n```\n\n{after}".strip()
+    out = f"{before}\n\n```{lang}\n{fmt(code)}\n```\n\n{after}".strip()
+    # Arabic letters that slipped into the Hebrew text ("`b` و-`x`", "ب-Java")
+    return re.sub(r"(?<=[\s`])و(?=-)", "ו", re.sub(r"(?<=[\s`])ب(?=-)", "ב", out))
