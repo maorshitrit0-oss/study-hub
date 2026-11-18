@@ -901,7 +901,9 @@ Java + micro exercises = exam format (18/11/2026, his request): every week-list 
 (question + code + options א-ד + "✍️ choose, then write why in the notebook"); solution = "התשובה: X" + "מה לכתוב
 במחברת" + "למה לא האחרות". Weeks 1-4 Java (17) and 1-3 micro (12) converted in chapters/fixes/mcq_1811.py (answers spread
 over א-ד; every output run: javac / gcc, files in mcq_1811/). Published with "lock": true (hub exercises marks exp:/code:
-read so exercises.py never reformats them). NEW weeks of these two courses: the Saturday run converts them the same way.
+read so exercises.py never reformats them). NEW weeks of these two courses: the Saturday run converts them the same way. The Exercises component turns this format
+into clickable multiple choice (mcqOf: "**א.** " options + "התשובה: **X**"): pick -> right/wrong -> solution opens;
+right on the first try marks it solved; "↺ לנסות שוב". Keep the exact format or it falls back to plain text.
 
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
