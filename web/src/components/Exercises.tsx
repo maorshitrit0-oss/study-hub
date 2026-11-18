@@ -11,11 +11,25 @@ export type Exercise = {
   where?: string; // the exact page / slide in the source (worker/locate.py, or the core pick's "where")
 };
 
+/**
+ * An exercise written as an exam multiple-choice question (Java / micro, 18/11/2026): "**א.** ..." options and a
+ * solution that starts "התשובה: **X**". Then he clicks an answer, sees right / wrong, and the solution opens.
+ */
+function mcqOf(q: string, sol: string | null) {
+  const answer = sol?.match(/התשובה: \*\*([אבגד])\*\*/)?.[1];
+  const first = q.indexOf("\n\n**א.** ");
+  if (!answer || first < 0) return null;
+  const options = [...q.slice(first).matchAll(/\n\n\*\*([אבגד])\.\*\* ([\s\S]*?)(?=\n\n\*\*[אבגד]\.\*\* |\n\n✍️|$)/g)]
+    .map((m) => ({ letter: m[1], md: m[2].trim() }));
+  return options.length >= 2 ? { stem: q.slice(0, first), options, answer } : null;
+}
+
 const SOURCE: Record<string, string> = { lesson: "מהשיעור", homework: "שיעורי בית", exam: "מבחן קודם", sheet: "דף תרגילים" };
 
 /** Exercises to solve on paper: the question, the solution hidden until he has tried, and "✓ פתרתי". */
 export default function Exercises({ items, slideUrls = {} }: { items: Exercise[]; slideUrls?: Record<number, string> }) {
   const [done, setDone] = useState(() => new Set(items.filter((x) => x.done_at).map((x) => x.id)));
+  const [picked, setPicked] = useState<Record<string, string>>({});
   if (!items.length) return <p className="text-sm text-muted">אין תרגילים.</p>;
   return (
     <ol className="space-y-4">
@@ -28,8 +42,43 @@ export default function Exercises({ items, slideUrls = {} }: { items: Exercise[]
               מקור: {x.label ?? SOURCE[x.source] ?? "-"}{x.where ? ` · 📍 ${x.where}` : ""} · {SOURCE[x.source] ?? ""}{x.exam_style ? " · ⭐ סגנון מבחן" : ""}
             </p>
             {x.why && <p className="text-xs text-accent mt-1">🎯 למה עכשיו: {x.why}</p>}
-            <div className="mt-2"><Chapter md={x.question_md} slideUrls={slideUrls} /></div>
-            {x.solution_md && (
+            {(() => {
+              const m = mcqOf(x.question_md, x.solution_md);
+              if (!m) return <div className="mt-2"><Chapter md={x.question_md} slideUrls={slideUrls} /></div>;
+              const choice = picked[x.id];
+              return (
+                <div className="mt-2 space-y-2">
+                  <Chapter md={m.stem} slideUrls={slideUrls} />
+                  {m.options.map((o) => {
+                    const tone = !choice ? "border-line" : o.letter === m.answer ? "border-good bg-good/10" : o.letter === choice ? "border-bad bg-bad/10" : "border-line opacity-60";
+                    return (
+                      <button key={o.letter} type="button" disabled={!!choice}
+                        className={`w-full text-start rounded-xl border p-2 flex gap-2 items-start ${tone}`}
+                        onClick={() => {
+                          setPicked({ ...picked, [x.id]: o.letter });
+                          if (o.letter === m.answer && !done.has(x.id)) {  // right on the first try = solved
+                            setDone(new Set(done).add(x.id));
+                            toggleExercise(x.id, true).catch(() => {});
+                          }
+                        }}>
+                        <b>{o.letter}.</b><div className="flex-1 min-w-0"><Chapter md={o.md} slideUrls={slideUrls} /></div>
+                      </button>
+                    );
+                  })}
+                  {choice && (
+                    <>
+                      <p className={`font-semibold ${choice === m.answer ? "text-good" : "text-bad"}`}>
+                        {choice === m.answer ? "✅ נכון!" : `❌ לא נכון – התשובה הנכונה: ${m.answer}`}
+                      </p>
+                      <p className="text-xs text-muted">✍️ עכשיו לכתוב במחברת את הנימוק, ולהשוות לפתרון:</p>
+                      <div className="rounded-xl bg-bg p-2"><Chapter md={x.solution_md!} slideUrls={slideUrls} /></div>
+                      <button type="button" className="text-xs text-accent" onClick={() => { const n = { ...picked }; delete n[x.id]; setPicked(n); }}>↺ לנסות שוב</button>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+            {x.solution_md && !mcqOf(x.question_md, x.solution_md) && (
               <details className="mt-2">
                 <summary className="cursor-pointer text-sm text-accent">פתרון (קודם לפתור לבד על דף)</summary>
                 {x.uncertain && <p className="text-sm text-warn mt-2">⚠️ לא בטוח בפתרון - לבדוק מול המרצה / הפתרון הרשמי.</p>}
