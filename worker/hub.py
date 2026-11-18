@@ -1107,6 +1107,17 @@ def cmd_summaries(out_dir):
                                                   encoding="utf-8")
 
 
+def cmd_entry_dump(match, experiment, out_dir):
+    """The lab entry-quiz questions of one experiment (questions.source set) -> entry.json (his request 18/11/2026: a list)."""
+    sb = db()
+    course = find_course(sb, match)
+    rows = (sb.table("questions").select("question, options, correct, explanation, source, topic, created_at")
+            .eq("course_id", course["id"]).eq("experiment", int(experiment)).not_.is_("source", "null").order("created_at").execute().data)
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    (Path(out_dir) / "entry.json").write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"::notice title=Entry dump::{course['name']} experiment {experiment}: {len(rows)}", flush=True)
+
+
 def cmd_outline(out_dir):
     """Every lesson of every active course (kind, number, date, title, topics, full chapter) -> outline.json: to check that
     lecture N and practice N really cover the same topics (his question 11/11/2026)."""
@@ -1311,6 +1322,7 @@ if __name__ == "__main__":
     p = sub.add_parser("sheet"); p.add_argument("course"); p.add_argument("md")
     p = sub.add_parser("exercises"); p.add_argument("course"); p.add_argument("fixes_json")
     p = sub.add_parser("assignments"); p.add_argument("course"); p.add_argument("path")
+    p = sub.add_parser("entry-dump"); p.add_argument("course"); p.add_argument("experiment"); p.add_argument("out_dir")
     p = sub.add_parser("quiz-code"); p.add_argument("course"); p.add_argument("--apply", action="store_true")
     p = sub.add_parser("quiz-add"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number"); p.add_argument("path")
     p = sub.add_parser("drive"); p.add_argument("course"); p.add_argument("files_json")
@@ -1382,6 +1394,8 @@ if __name__ == "__main__":
         locate.run(sb, course)
     elif a.cmd == "drive":
         cmd_drive(a.course, a.files_json)
+    elif a.cmd == "entry-dump":
+        cmd_entry_dump(a.course, a.experiment, a.out_dir)
     elif a.cmd == "quiz-code":
         cmd_quiz_code(a.course, a.apply)
     elif a.cmd == "quiz-add":
