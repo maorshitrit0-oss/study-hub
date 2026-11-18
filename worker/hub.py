@@ -570,6 +570,10 @@ def cmd_exercises(match, path):
         if fx.get("id"):  # by id (from exercises.json of `hub.py materials`)
             got = sb.table("exercises").update({k: fx[k] for k in fields if k in fx}).eq("id", fx["id"]) \
                 .eq("course_id", course["id"]).execute().data
+            if got and fx.get("lock"):  # final form (e.g. the exam-style multiple choice, 18/11/2026): no reformat pass
+                import exercises as exmod
+                exmod.mark_read(sb, course, f"exp:{fx['id']}")
+                exmod.mark_read(sb, course, f"code:{fx['id']}")
             print(f"::notice title=Exercise {'fixed' if got else 'NOT FOUND'}::{fx.get('title') or fx['id']}", flush=True)
             continue
         if fx.get("add") and fx.get("free"):  # an exercise with no lesson and no file (his own exam, rebuilt from his notebook)

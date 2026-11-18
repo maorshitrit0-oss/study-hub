@@ -897,6 +897,12 @@ NOT behind - they are ahead of the lectures (taught up to NMOS inverters in lect
 the week its topic is taught (only what the practice lacks), then retitled "📦 (שולב בתרגול N)"; the Saturday run does
 it (step 0b). He thought he had skipped notebook 2 - he has not.
 
+Java + micro exercises = exam format (18/11/2026, his request): every week-list exercise is a multiple-choice question
+(question + code + options א-ד + "✍️ choose, then write why in the notebook"); solution = "התשובה: X" + "מה לכתוב
+במחברת" + "למה לא האחרות". Weeks 1-4 Java (17) and 1-3 micro (12) converted in chapters/fixes/mcq_1811.py (answers spread
+over א-ד; every output run: javac / gcc, files in mcq_1811/). Published with "lock": true (hub exercises marks exp:/code:
+read so exercises.py never reformats them). NEW weeks of these two courses: the Saturday run converts them the same way.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
