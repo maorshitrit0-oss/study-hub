@@ -557,6 +557,7 @@ def cmd_exercises(match, path):
     sb = db()
     course = find_course(sb, match)
     fields = ("title", "question_md", "solution_md", "topic", "exam_style", "uncertain")
+    week_adds = {}
     for fx in json.loads(Path(path).read_text(encoding="utf-8")):
         for k in ("question_md", "solution_md"):  # clean layout, also for exercises Claude writes (11/11/2026)
             if fx.get(k):
@@ -625,9 +626,8 @@ def cmd_exercises(match, path):
                 import exercises as exmod
                 exmod.mark_read(sb, course, f"exp:{ex_id}")
                 exmod.mark_read(sb, course, f"code:{ex_id}")
-            if fx.get("week"):  # also into that week's exercise list
-                import weekset
-                weekset.add(sb, course, fx["week"], ex_id)
+            if fx.get("week"):  # also into that week's exercise list (written once, after the loop)
+                week_adds.setdefault(int(fx["week"]), []).append(ex_id)
             print(f"::notice title=Exercise {'updated' if have else 'added'}::{fx['kind']} {fx['number']}: {fx.get('title')}", flush=True)
             continue
         lessons = (sb.table("lessons").select("id").eq("course_id", course["id"]).eq("kind", fx["kind"])
@@ -640,6 +640,9 @@ def cmd_exercises(match, path):
         sb.table("exercises").update({k: fx[k] for k in ("title", "question_md", "solution_md") if fx.get(k)}) \
             .eq("id", hit[0]["id"]).execute()
         print(f"::notice title=Exercise fixed::{fx['kind']} {fx['number']}: {fx.get('title') or hit[0]['title']}", flush=True)
+    if week_adds:
+        import weekset
+        weekset.add(sb, course, week_adds)
 
 
 def cmd_core(match, path):

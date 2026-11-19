@@ -174,17 +174,23 @@ def drop(match, week, ids):
     print(f"::notice title=Week sets::{course['name']} week {week}: dropped {ids}", flush=True)
 
 
-def add(sb, course, week, ex_id):
-    """Puts one exercise into a week's set (e.g. the weekly open code question of micro, 19/11/2026); once."""
+def add(sb, course, pending):
+    """Puts exercises into week sets ({week: [ids]}, e.g. the weekly open code question of micro, 19/11/2026); once.
+    One read and one write per run: two quick writes in a row lost one (the storage read served the older file)."""
     data = load(sb, course)
-    w = data.setdefault("weeks", {}).get(str(week))
-    if w is None or ex_id in w.get("practice", []):
+    done = []
+    for week, ids in pending.items():
+        w = data.setdefault("weeks", {}).get(str(week))
+        for ex_id in ids:
+            if w is not None and ex_id not in w.get("practice", []):
+                w.setdefault("practice", []).append(ex_id)
+                done.append(f"{week}:{ex_id[:8]}")
+    if not done:
         return
-    w.setdefault("practice", []).append(ex_id)
     sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
                                     json.dumps(data, ensure_ascii=False).encode("utf-8"),
                                     {"content-type": "application/json", "upsert": "true"})
-    print(f"::notice title=Week sets::{course['name']} week {week}: added {ex_id[:8]}", flush=True)
+    print(f"::notice title=Week sets::{course['name']}: added {done}", flush=True)
 
 
 def set_week(match, week, prefixes):
