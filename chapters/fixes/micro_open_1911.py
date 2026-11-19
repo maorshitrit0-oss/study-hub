@@ -80,7 +80,7 @@ d->data = (d->data & ~AGE_MASK) | (age & AGE_MASK);
 
 💡 **הרעיון:** כתיבה לשדה = **נקה (AND עם ~מסכה) ואז כתוב (OR)**. OR לבד רק מוסיף אחדות."""}
 
-W3 = {"add": True, "kind": "lecture", "number": 3, "week": 3, "lock": True, "exam_style": True,
+W3 = {"add": True, "kind": "practice", "number": 3, "week": 3, "lock": True, "exam_style": True,
       "title": "🧩 שאלה פתוחה: ספירת לחיצות עם זיהוי קצה",
       "question_md": "כפתור בין GPIO 4 ל-GND, לד ב-GPIO 2:\n\n" + C('''
 const int BTN = 4, LED = 2;

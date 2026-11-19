@@ -23,7 +23,7 @@
  },
  {
   "add": true,
-  "kind": "lecture",
+  "kind": "practice",
   "number": 3,
   "week": 3,
   "lock": true,
