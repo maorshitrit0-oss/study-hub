@@ -395,7 +395,8 @@ def save_chapter(job, ch, by):
     ch = author.validate(ch)
     short = bool(ch.get("exercises")) or (by != "claude" and author.summary_mode(job.lesson, job.mode, job.course))
     if short:
-        save_exercises(job, ch["exercises"])
+        if os.environ.get("KEEP_EXERCISES") != "1":  # re-authoring a chapter keeps the exercises Claude already fixed (19/11/2026)
+            save_exercises(job, ch["exercises"])
         if not (job.lesson.get("transcript") or "").startswith(author.VLSI_NOTE):  # no "homework" in self-study
             save_homework(job, [h for h in ch.get("homework") or [] if isinstance(h, str)])
     if ch["questions"] and answered(job):

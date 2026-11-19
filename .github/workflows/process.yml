@@ -16,6 +16,9 @@ on:
       author:
         description: "gemini = write the chapter automatically, none = transcribe only (Claude writes it)"
         default: gemini
+      keep_exercises:
+        description: "1 = re-author the chapter but keep the lesson's exercises"
+        default: "0"
       mode:
         description: "auto = summary + exercises for lectures/practices, full = the full reading chapter (he asked)"
         default: auto
@@ -52,6 +55,7 @@ jobs:
           LESSON_ID: ${{ inputs.lesson_id }}
           AUTHOR: ${{ inputs.author }}
           AUTHOR_MODE: ${{ inputs.mode || 'auto' }}
+          KEEP_EXERCISES: ${{ inputs.keep_exercises || '0' }}
         # Inputs arrive as environment variables (never pasted into the script) and the id must be a UUID.
         run: |
           [[ "$LESSON_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad lesson id"; exit 1; }
