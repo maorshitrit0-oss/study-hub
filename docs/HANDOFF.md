@@ -920,6 +920,10 @@ checks) + "למה לא האחרות" - he must show the work in the exam noteboo
 `hub exercises` "add" (kind/number) is now idempotent by title, honours "lock", and with "week": N also appends the
 exercise to that week's list (weekset.add). Forecast format strings updated (comm open 2×5, linear 6 MCQ). Predicted
 questions (predict_*.py) are still open-style; new ones follow the course format (Saturday run, step 5).
+Course-file names ≠ his lecture numbers (19/11/2026, his question): linear week 1 had picks from the files "הרצאה 4 -
+הדיודה.pdf" / "הרצאה 6 - הביפולרי באות קטן.pdf" (the lecturer's file numbering). Small-signal (gm=IC/VT) was taught in his
+lecture 1 - kept; the diode-models question was not taught yet - dropped (weekset-drop). The label now reads "📄 מקובץ של
+הקורס: <file>", and exam-style picks "⭐ בסגנון מבחן". When picking from files, check the topic against HIS lectures.
 
 Code in quiz questions (18/11/2026, his screenshot: a Java switch written on one line, he got many wrong): codefmt.fix
 moves one-line code into a ```java / ```c block, one statement per line, case bodies indented, array initializers kept;
