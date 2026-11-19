@@ -151,7 +151,7 @@ def run(match, only_missing=False):
     sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
                                     json.dumps({"weeks": sets, "built_at": datetime.now(timezone.utc).isoformat()},
                                                ensure_ascii=False).encode("utf-8"),
-                                    {"content-type": "application/json", "upsert": "true"})
+                                    {"content-type": "application/json", "upsert": "true", "cache-control": "0"})
 
 
 def drop(match, week, ids):
@@ -170,7 +170,7 @@ def drop(match, week, ids):
         w["exam"] = [e for e in w["exam"] if not any(e["id"].startswith(x) for x in ids)]
     sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
                                     json.dumps(data, ensure_ascii=False).encode("utf-8"),
-                                    {"content-type": "application/json", "upsert": "true"})
+                                    {"content-type": "application/json", "upsert": "true", "cache-control": "0"})
     print(f"::notice title=Week sets::{course['name']} week {week}: dropped {ids}", flush=True)
 
 
@@ -189,7 +189,7 @@ def add(sb, course, pending):
         return
     sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
                                     json.dumps(data, ensure_ascii=False).encode("utf-8"),
-                                    {"content-type": "application/json", "upsert": "true"})
+                                    {"content-type": "application/json", "upsert": "true", "cache-control": "0"})
     print(f"::notice title=Week sets::{course['name']}: added {done}", flush=True)
 
 
@@ -211,7 +211,7 @@ def _flush(match):
     data.setdefault("weeks", {}).update(_batch)
     sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
                                     json.dumps(data, ensure_ascii=False).encode("utf-8"),
-                                    {"content-type": "application/json", "upsert": "true"})
+                                    {"content-type": "application/json", "upsert": "true", "cache-control": "0"})
     print(f"::notice title=Week sets::{course['name']}: set by hand {sorted(_batch, key=int)}", flush=True)
 
 
@@ -234,7 +234,7 @@ def set_week(match, week, prefixes, batch=None):
     data.setdefault("weeks", {})[str(week)] = {"practice": ids, "exam": [], "manual": True}
     sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
                                     json.dumps(data, ensure_ascii=False).encode("utf-8"),
-                                    {"content-type": "application/json", "upsert": "true"})
+                                    {"content-type": "application/json", "upsert": "true", "cache-control": "0"})
     print(f"::notice title=Week sets::{course['name']} week {week}: set by hand, {len(ids)} exercises", flush=True)
 
 
@@ -264,7 +264,7 @@ def clean(match):
             print(f"::notice title=Week sets::{course['name']} week {k}: removed repeats {gone}", flush=True)
     sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
                                     json.dumps(data, ensure_ascii=False).encode("utf-8"),
-                                    {"content-type": "application/json", "upsert": "true"})
+                                    {"content-type": "application/json", "upsert": "true", "cache-control": "0"})
 
 
 def fill_missing(sb):
