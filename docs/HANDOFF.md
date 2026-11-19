@@ -925,6 +925,26 @@ Course-file names ≠ his lecture numbers (19/11/2026, his question): linear wee
 lecture 1 - kept; the diode-models question was not taught yet - dropped (weekset-drop). The label now reads "📄 מקובץ של
 הקורס: <file>", and exam-style picks "⭐ בסגנון מבחן". When picking from files, check the topic against HIS lectures.
 
+HAND-BUILT WEEKS (19/11/2026, his request "lecture, practice and the exercises that match them - not exercises from
+irrelevant lectures"; linear first, then random signals):
+- worker/weekset.py: a week with "manual": true is never rebuilt by run() (classex) nor trimmed by clean().
+  `weekset.py set "<course>" <week> <ids>` or `set "<course>" 0 "1=a,b;2=c"` (several weeks, ONE read + write) =
+  publish inspect=weekset-set (number, title). week_sets.json is uploaded with cache-control 0: with the default
+  (3600) a read served the older file and a write right after lost an exercise. `hub exercises` "add"+"week" now
+  writes all week additions once at the end of the run.
+- Linear (chapters/fixes/mcq_linear_weeks_1911.py, WEEKS): week 1 = lecture-1 class example + practice 1 ex 1, 2, 4, 6,
+  7; week 2 = the lecture-2 examples (dBm, saturation, power/efficiency, transfer characteristic, cascade - the
+  lecturer's own, with fixes: gain -200 not 200, dBm working line, P_diss incl. input power, all 4 saturation cases)
+  + practice 2 dB; week 3 = lecture 3 (Miller LPF, finite-A numbers, NEW weighted summer d47baffd + log amp 36d4b197)
+  + the 4 practice-3 class exercises. Out: file picks (diode 7481fc52, small-signal 02e76b3d, Example 5.8 e936fb16,
+  op-amp refresher 76240755) and the practice-2 variants of lecture examples (39a78ac1, b9e4e6c0 - converted to MCQ
+  the same morning, now unused). Forecast CLASS remapped; diode section removed.
+- Random signals: week N = session N (מפגש N): 1 estimation (3), 2 WSS (3), 3 PSD/filters (4), 4 Poisson (4),
+  5 mock 1 (2), 6 his own exam again (his 4 questions, Q1..Q4). The exercises page, for a course with "מפגש" lessons,
+  shows only session tabs, "שבוע N: מפגש N", here-I-am = last read session, next button -> session N+1.
+  Recorded lectures 1-14 are not his weeks (their exercises stay in the lessons).
+- The Saturday task builds each NEW linear week by hand the same way (prompt updated 19/11).
+
 Code in quiz questions (18/11/2026, his screenshot: a Java switch written on one line, he got many wrong): codefmt.fix
 moves one-line code into a ```java / ```c block, one statement per line, case bodies indented, array initializers kept;
 applied to all existing questions (publish inspect=quiz-code, title=apply; Java 8, micro 5 - other courses 0) and to
