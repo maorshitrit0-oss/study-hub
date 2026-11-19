@@ -24,7 +24,7 @@ def mcq(id_, q, opts, ans, note, why_not):
     ans = want
     body = (q.strip() + "\n\n" + "\n\n".join(f"**{L[i]}.** {o}" for i, o in enumerate(opts))
             + "\n\n✍️ *לבחור תשובה, ואז לכתוב במחברת למה – ורק אחר כך לפתוח את הפתרון.*")
-    sol = (f"### התשובה: **{L[ans]}** ✅\n\n**מה לכתוב במחברת:**\n{note.strip()}\n\n**למה לא האחרות:**\n"
+    sol = (f"### התשובה: **{L[ans]}** ✅\n\n**הדרך המלאה (כמו במחברת):**\n\n{note.strip()}\n\n**למה לא האחרות:**\n"
            + "\n".join(f"- **{L[i]}** – {w}" for i, w in why_not.items()))
     return {"id": id_, "question_md": body, "solution_md": sol, "exam_style": True, "lock": True}
 
