@@ -193,7 +193,29 @@ def add(sb, course, pending):
     print(f"::notice title=Week sets::{course['name']}: added {done}", flush=True)
 
 
-def set_week(match, week, prefixes):
+def set_weeks(match, spec):
+    """Several hand-built weeks in ONE read + write: spec "1=id,id;2=id,id" (two runs in a row can lose a write)."""
+    for part in filter(None, spec.split(";")):
+        week, ids = part.split("=")
+        set_week(match, week.strip(), [i.strip() for i in ids.split(",") if i.strip()], _batch)
+    _flush(match)
+
+
+_batch = {}
+
+
+def _flush(match):
+    sb = hub.db()
+    course = hub.find_course(sb, match)
+    data = load(sb, course)
+    data.setdefault("weeks", {}).update(_batch)
+    sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
+                                    json.dumps(data, ensure_ascii=False).encode("utf-8"),
+                                    {"content-type": "application/json", "upsert": "true"})
+    print(f"::notice title=Week sets::{course['name']}: set by hand {sorted(_batch, key=int)}", flush=True)
+
+
+def set_week(match, week, prefixes, batch=None):
     """Week N = exactly these exercises, in this order (built by hand from lecture N + practice N, his request
     19/11/2026: only what he learned). Marked "manual": run() and clean() never touch it again."""
     sb = hub.db()
@@ -205,6 +227,9 @@ def set_week(match, week, prefixes):
         if len(hit) != 1:
             sys.exit(f"::error title=Week sets::{p}: {len(hit)} matches")
         ids.append(hit[0])
+    if batch is not None:
+        batch[str(week)] = {"practice": ids, "exam": [], "manual": True}
+        return
     data = load(sb, course)
     data.setdefault("weeks", {})[str(week)] = {"practice": ids, "exam": [], "manual": True}
     sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
@@ -257,8 +282,11 @@ def fill_missing(sb):
 if __name__ == "__main__":
     if sys.argv[1] == "drop":  # weekset.py drop "<course>" <week> <id-prefix,...|all>
         drop(sys.argv[2], sys.argv[3], sys.argv[4].split(","))
-    elif sys.argv[1] == "set":  # weekset.py set "<course>" <week> <id-prefix,...>
-        set_week(sys.argv[2], sys.argv[3], sys.argv[4].split(","))
+    elif sys.argv[1] == "set":  # weekset.py set "<course>" <week> <id-prefix,...>  |  set "<course>" 0 "1=a,b;2=c"
+        if "=" in sys.argv[4]:
+            set_weeks(sys.argv[2], sys.argv[4])
+        else:
+            set_week(sys.argv[2], sys.argv[3], sys.argv[4].split(","))
     elif sys.argv[1] == "clean":  # weekset.py clean "<course>"
         clean(sys.argv[2])
     else:

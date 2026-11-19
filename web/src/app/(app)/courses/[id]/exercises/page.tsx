@@ -17,11 +17,17 @@ export default async function CourseExercises({ params, searchParams }: PageProp
   const files = sp.files === "1";
   // Week N = lecture N + practice N (his way, 11/11/2026). "Here I am" = the week of the last lecture / practice he read
   // (his remark 15/11/2026: "I read lecture 2, so I am in week 2"); before reading any, the first unsolved week.
-  const last = weeksOf(id);
+  // A course studied in sessions (random signals, "מפגש N" every Thursday): week N = session N only - the recorded
+  // lectures are not his weeks (his request 19/11/2026: only what he learned).
+  const { data: sessRows } = await sb.from("lessons").select("id, number, title, read_at").eq("course_id", id).like("title", "מפגש %");
+  const sessions = (sessRows ?? []).filter((l) => l.number).sort((a, b) => (a.number as number) - (b.number as number));
+  const bySessions = sessions.length > 0;
+  const last = bySessions ? (sessions[sessions.length - 1].number as number) : weeksOf(id);
   const { data: readLessons } = await sb.from("lessons").select("kind, number, title, read_at").eq("course_id", id)
     .not("read_at", "is", null);
   const readWeek = Math.max(0, ...(readLessons ?? [])
-    .filter((l) => l.number && !(l.title ?? "").startsWith("📦") && (l.kind === "lecture" || l.kind === "practice" || (l.title ?? "").startsWith("מפגש ")))
+    .filter((l) => l.number && !(l.title ?? "").startsWith("📦") && (bySessions ? (l.title ?? "").startsWith("מפגש ")
+      : l.kind === "lecture" || l.kind === "practice"))
     .map((l) => Math.min(l.number as number, last)));
   const open = readWeek || Array.from({ length: last }, (_, k) => k + 1)
     .find((n) => all.some((x) => x.course_id === id && weekOf(x) === n && !x.done_at));
@@ -29,12 +35,15 @@ export default async function CourseExercises({ params, searchParams }: PageProp
   // The end of week w leads to the first lesson of week w+1 (his flow 16/11/2026: ... practice N -> exercises N -> lecture N+1)
   const { data: nextWeek } = await sb.from("lessons").select("id, kind, title, created_at").eq("course_id", id).eq("number", w + 1)
     .in("kind", ["lecture", "practice"]).eq("status", "ready");
-  const nextLesson = (nextWeek ?? []).filter((l) => !(l.title ?? "").startsWith("📦"))
-    .sort((a, b) => Number(a.kind !== "lecture") - Number(b.kind !== "lecture") || (a.title ?? "").localeCompare(b.title ?? "", "he")
-      || a.created_at.localeCompare(b.created_at))[0];
+  const nextSession = sessions.find((l) => l.number === w + 1);
+  const nextLesson = bySessions ? (nextSession ? { id: nextSession.id, kind: "session", title: nextSession.title } : undefined)
+    : (nextWeek ?? []).filter((l) => !(l.title ?? "").startsWith("📦"))
+      .sort((a, b) => Number(a.kind !== "lecture") - Number(b.kind !== "lecture") || (a.title ?? "").localeCompare(b.title ?? "", "he")
+        || a.created_at.localeCompare(b.created_at))[0];
+  const weekName = bySessions ? `מפגש ${w}` : `הרצאה ${w} ותרגול ${w}`;
   const { fromLessons, fromFiles } = forWeek(id, w);
   const allFiles = fileExercises(id);
-  const weeks = Array.from({ length: last }, (_, k) => k + 1);
+  const weeks = bySessions ? sessions.map((l) => l.number as number) : Array.from({ length: last }, (_, k) => k + 1);
   // The week's core: 3-5 exercises picked by what the exams ask (his request, 08/11/2026); the rest is an optional bank.
   type Core = { weeks: Record<string, { id: string; why: string; where?: string }[]>; exam_note?: string };
   const core: Core | null = await sb.storage.from("study").download(`${userId}/materials/${id}/exercise_core.json`)
@@ -91,7 +100,7 @@ export default async function CourseExercises({ params, searchParams }: PageProp
 
       {!files && setItems.length > 0 ? (
         <section className="card">
-          <h2 className="font-semibold mb-1">שבוע {w}: הרצאה {w} ותרגול {w} ({setItems.length} תרגילים)</h2>
+          <h2 className="font-semibold mb-1">שבוע {w}: {weekName} ({setItems.length} תרגילים)</h2>
           <p className="text-xs text-muted mb-3">
             קודם 🎓 תרגילי תרגול על החומר של השבוע (מהקל לקשה), ואחריהם ⭐ תרגילי מבחן שאפשר לפתור עם מה שלמדת עד עכשיו.
             לפתור על דף, ורק אחר כך לפתוח את הפתרון.
@@ -122,7 +131,7 @@ export default async function CourseExercises({ params, searchParams }: PageProp
           {/* His order (11/11/2026): first the week's own lecture + practice exercises, practice first; then the exam
               core picks from files; the rest of the files as an optional bank. */}
           <section className="card">
-            <h2 className="font-semibold mb-1">שבוע {w}: מהרצאה {w} ומתרגול {w} ({fromLessons.length} תרגילים)</h2>
+            <h2 className="font-semibold mb-1">שבוע {w}: {bySessions ? `מפגש ${w}` : `מהרצאה ${w} ומתרגול ${w}`} ({fromLessons.length} תרגילים)</h2>
             <p className="text-xs text-muted mb-3">לפתור על דף, ורק אחר כך לפתוח את הפתרון.</p>
             {fromLessons.length ? <Exercises items={[...fromLessons].sort((a, b) => Number(!(a.label ?? "").includes("תרגול")) - Number(!(b.label ?? "").includes("תרגול")))} />
               : <p className="text-sm text-muted">אין עדיין תרגילים מהשבוע הזה. הם נוספים כשמעלים את ההקלטות של ההרצאה והתרגול.</p>}
@@ -143,7 +152,7 @@ export default async function CourseExercises({ params, searchParams }: PageProp
       )}
       {!files && nextLesson && (
         <Link href={`/lessons/${nextLesson.id}`} className="btn w-full text-center">
-          ⬅️ סיימתי את שבוע {w} – {nextLesson.kind === "lecture" ? "להרצאה" : "לתרגול"} {w + 1}{/חלק/.test(nextLesson.title ?? "") ? ` – ${(nextLesson.title ?? "").match(/חלק\s*\S+/)?.[0]}` : ""}
+          ⬅️ סיימתי את שבוע {w} – {nextLesson.kind === "session" ? "למפגש" : nextLesson.kind === "lecture" ? "להרצאה" : "לתרגול"} {w + 1}{/חלק/.test(nextLesson.title ?? "") ? ` – ${(nextLesson.title ?? "").match(/חלק\s*\S+/)?.[0]}` : ""}
         </Link>
       )}
       <p className="text-xs text-muted">
