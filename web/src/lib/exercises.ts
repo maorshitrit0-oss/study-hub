@@ -61,7 +61,7 @@ export async function exercisesByWeek(sb: SupabaseClient, courseId?: string, use
   // Where each exercise comes from, shown on it: the lesson, or the file (homework / past exam / exercise booklet).
   const labeled = rows.map((x) => ({
     ...x,
-    label: x.material_id ? `📄 ${fileName.get(x.material_id) ?? "קובץ"}` : x.lesson_id ? `🎓 ${lessonName.get(x.lesson_id) ?? "שיעור"}` : undefined,
+    label: x.material_id ? `📄 מקובץ של הקורס: ${fileName.get(x.material_id) ?? "קובץ"}` : x.lesson_id ? `🎓 ${lessonName.get(x.lesson_id) ?? "שיעור"}` : undefined,
     where: (where as Record<string, string>)[x.id] || undefined,
   }));
 

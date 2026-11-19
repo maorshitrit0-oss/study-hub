@@ -65,7 +65,7 @@ export default async function CourseExercises({ params, searchParams }: PageProp
   const set = sets?.weeks[String(w)];
   const setItems = set ? [
     ...set.practice.flatMap((i) => { const x = byId.get(i); return x ? [{ ...x, label: `🎓 תרגול · ${x.label ?? ""}` } as Exercise] : []; }),
-    ...set.exam.map((e) => { const x = byId.get(e.id); return x ? { ...x, why: e.why, label: `⭐ מבחן · ${x.label ?? ""}` } as Exercise : null; })
+    ...set.exam.map((e) => { const x = byId.get(e.id); return x ? { ...x, why: e.why, label: `⭐ בסגנון מבחן · ${x.label ?? ""}` } as Exercise : null; })
       .filter((x): x is Exercise => !!x),
   ] : [];
   const lessonIds = new Set(fromLessons.map((x) => x.id));
