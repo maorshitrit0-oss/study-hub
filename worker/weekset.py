@@ -115,6 +115,8 @@ def run(match, only_missing=False):
     for n in range(1, last + 1):
         if only_missing and str(n) in old:
             continue
+        if old.get(str(n), {}).get("manual"):  # built by hand from lecture N + practice N (his request 19/11/2026)
+            continue
         own = [x for x in ex if x.get("lesson_id") and week.get(x["lesson_id"]) == n]
         if not own and not files:
             continue
@@ -185,6 +187,26 @@ def add(sb, course, week, ex_id):
     print(f"::notice title=Week sets::{course['name']} week {week}: added {ex_id[:8]}", flush=True)
 
 
+def set_week(match, week, prefixes):
+    """Week N = exactly these exercises, in this order (built by hand from lecture N + practice N, his request
+    19/11/2026: only what he learned). Marked "manual": run() and clean() never touch it again."""
+    sb = hub.db()
+    course = hub.find_course(sb, match)
+    all_ids = [x["id"] for x in sb.table("exercises").select("id").eq("course_id", course["id"]).execute().data]
+    ids = []
+    for p in prefixes:
+        hit = [i for i in all_ids if i.startswith(p)]
+        if len(hit) != 1:
+            sys.exit(f"::error title=Week sets::{p}: {len(hit)} matches")
+        ids.append(hit[0])
+    data = load(sb, course)
+    data.setdefault("weeks", {})[str(week)] = {"practice": ids, "exam": [], "manual": True}
+    sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
+                                    json.dumps(data, ensure_ascii=False).encode("utf-8"),
+                                    {"content-type": "application/json", "upsert": "true"})
+    print(f"::notice title=Week sets::{course['name']} week {week}: set by hand, {len(ids)} exercises", flush=True)
+
+
 def clean(match):
     """The stored sets without Gemini: no exercise twice in a week (same()), no exam exercise in two weeks."""
     sb = hub.db()
@@ -194,6 +216,9 @@ def clean(match):
     seen = set()
     for k in sorted((k for k in data.get("weeks", {}) if k.isdigit()), key=int):
         w = data["weeks"][k]
+        if w.get("manual"):  # a hand-built week is kept as it is
+            seen |= set(w["practice"]) | {e["id"] for e in w["exam"]}
+            continue
         p0, e0 = list(w["practice"]), [e["id"] for e in w["exam"]]
         w["practice"] = dedupe([i for i in w["practice"] if i in by_id], by_id)
         # class exercises + only 1-4 others (his rule 16/11/2026, for the weeks built before it too)
@@ -226,6 +251,8 @@ def fill_missing(sb):
 if __name__ == "__main__":
     if sys.argv[1] == "drop":  # weekset.py drop "<course>" <week> <id-prefix,...|all>
         drop(sys.argv[2], sys.argv[3], sys.argv[4].split(","))
+    elif sys.argv[1] == "set":  # weekset.py set "<course>" <week> <id-prefix,...>
+        set_week(sys.argv[2], sys.argv[3], sys.argv[4].split(","))
     elif sys.argv[1] == "clean":  # weekset.py clean "<course>"
         clean(sys.argv[2])
     else:
