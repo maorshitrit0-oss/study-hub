@@ -611,11 +611,24 @@ def cmd_exercises(match, path):
             if len(les) != 1:
                 print(f"::warning title=Exercise add::{fx['kind']} {fx['number']}: {len(les)} lessons", flush=True)
                 continue
-            last = sb.table("exercises").select("ord").eq("lesson_id", les[0]["id"]).order("ord", desc=True).limit(1).execute().data
-            sb.table("exercises").insert({"user_id": course["user_id"], "course_id": course["id"], "lesson_id": les[0]["id"],
-                                          "source": "lesson", "ord": (last[0]["ord"] + 1) if last else 0,
-                                          **{k: fx[k] for k in fields if k in fx}}).execute()
-            print(f"::notice title=Exercise added::{fx['kind']} {fx['number']}: {fx.get('title')}", flush=True)
+            row = {k: fx[k] for k in fields if k in fx}
+            have = sb.table("exercises").select("id").eq("lesson_id", les[0]["id"]).eq("title", fx.get("title") or "").execute().data
+            if have:  # once: running the same file again updates it
+                sb.table("exercises").update(row).eq("id", have[0]["id"]).execute()
+                ex_id = have[0]["id"]
+            else:
+                last = sb.table("exercises").select("ord").eq("lesson_id", les[0]["id"]).order("ord", desc=True).limit(1).execute().data
+                ex_id = sb.table("exercises").insert({"user_id": course["user_id"], "course_id": course["id"], "lesson_id": les[0]["id"],
+                                                      "source": "lesson", "ord": (last[0]["ord"] + 1) if last else 0,
+                                                      **row}).execute().data[0]["id"]
+            if fx.get("lock"):
+                import exercises as exmod
+                exmod.mark_read(sb, course, f"exp:{ex_id}")
+                exmod.mark_read(sb, course, f"code:{ex_id}")
+            if fx.get("week"):  # also into that week's exercise list
+                import weekset
+                weekset.add(sb, course, fx["week"], ex_id)
+            print(f"::notice title=Exercise {'updated' if have else 'added'}::{fx['kind']} {fx['number']}: {fx.get('title')}", flush=True)
             continue
         lessons = (sb.table("lessons").select("id").eq("course_id", course["id"]).eq("kind", fx["kind"])
                    .eq("number", int(fx["number"])).execute().data)

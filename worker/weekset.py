@@ -172,6 +172,19 @@ def drop(match, week, ids):
     print(f"::notice title=Week sets::{course['name']} week {week}: dropped {ids}", flush=True)
 
 
+def add(sb, course, week, ex_id):
+    """Puts one exercise into a week's set (e.g. the weekly open code question of micro, 19/11/2026); once."""
+    data = load(sb, course)
+    w = data.setdefault("weeks", {}).get(str(week))
+    if w is None or ex_id in w.get("practice", []):
+        return
+    w.setdefault("practice", []).append(ex_id)
+    sb.storage.from_(BUCKET).upload(f"{course['user_id']}/materials/{course['id']}/week_sets.json",
+                                    json.dumps(data, ensure_ascii=False).encode("utf-8"),
+                                    {"content-type": "application/json", "upsert": "true"})
+    print(f"::notice title=Week sets::{course['name']} week {week}: added {ex_id[:8]}", flush=True)
+
+
 def clean(match):
     """The stored sets without Gemini: no exercise twice in a week (same()), no exam exercise in two weeks."""
     sb = hub.db()
