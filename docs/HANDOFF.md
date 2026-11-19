@@ -905,6 +905,22 @@ read so exercises.py never reformats them). NEW weeks of these two courses: the 
 into clickable multiple choice (mcqOf: "**א.** " options + "התשובה: **X**"): pick -> right/wrong -> solution opens;
 right on the first try marks it solved; "↺ לנסות שוב". Keep the exact format or it falls back to plain text.
 
+EXAM FORMAT PER COURSE (his decision 19/11/2026) - the week exercises look like each course's exam:
+| Course | Exam | Week exercises |
+|---|---|---|
+| Digital circuits | multiple choice, 4 options | MCQ + full method (chapters/fixes/mcq_digital_1911.py, weeks 1-4, 20) |
+| Linear circuits | 6 MCQ; reservists 4 of 6 | MCQ + full method (mcq_linear_1911.py, weeks 1-3, 17) |
+| Java | MCQ | MCQ (mcq_1811.py) |
+| Micro | 6 MCQ (10 pts) + 2 open code questions (20 pts) | MCQ + ONE open code question a week (micro_open_1911.py, weeks 1-3, run in gcc) |
+| Comm | OPEN: 2 questions × 5 parts, 1.5h; alternative assessment 4 parts each | open, full method per part |
+| Waves | open | open |
+| Random signals | open, 4 questions | open |
+Even when he answers right, the solution shows "הדרך המלאה (כמו במחברת)" (formula -> substitution -> result, region
+checks) + "למה לא האחרות" - he must show the work in the exam notebook. Every number is asserted in each file's check().
+`hub exercises` "add" (kind/number) is now idempotent by title, honours "lock", and with "week": N also appends the
+exercise to that week's list (weekset.add). Forecast format strings updated (comm open 2×5, linear 6 MCQ). Predicted
+questions (predict_*.py) are still open-style; new ones follow the course format (Saturday run, step 5).
+
 Code in quiz questions (18/11/2026, his screenshot: a Java switch written on one line, he got many wrong): codefmt.fix
 moves one-line code into a ```java / ```c block, one statement per line, case bodies indented, array initializers kept;
 applied to all existing questions (publish inspect=quiz-code, title=apply; Java 8, micro 5 - other courses 0) and to
