@@ -5,7 +5,7 @@ const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://*.supabase.co"
 // Browser-side hardening: no framing, no foreign scripts, connections only to this site and Supabase.
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'", // wasm: the in-browser ffmpeg that shrinks an uploaded recording
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${supabase}`,
   `media-src 'self' blob: ${supabase} https://zpjjrsgosphapghxlbsl.supabase.co`, // studio podcasts / videos (the app storage + the media project, 12/11/2026)

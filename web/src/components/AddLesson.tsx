@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState } from "react";
 import { addLesson, type AddLessonState } from "@/app/(app)/actions";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import RecordingUpload from "./RecordingUpload";
 
 const KINDS = [["lecture", "הרצאה"], ["practice", "תרגול"], ["lab", "ניסוי במעבדה"], ["web", "קישור לאתר"]] as const;
 
@@ -29,7 +30,7 @@ export default function AddLesson({ courseId, userId, nextByKind, isLab }: {
 
   const placeholder = kind === "web" ? "https://..." : kind === "lab"
     ? "קישור לחוברת הניסוי / דוח מכין בדרייב (או העלאת קובץ למטה)"
-    : "קישור להקלטת זום או לקובץ בדרייב";
+    : "קישור להקלטת זום / לקובץ בדרייב – או העלאת הקלטה מהמכשיר למטה";
 
   return (
     <form action={action} className="space-y-3">
@@ -42,6 +43,12 @@ export default function AddLesson({ courseId, userId, nextByKind, isLab }: {
         ))}
       </div>
       <input className="input" name="url" dir="ltr" inputMode="url" required={!sourcePath} placeholder={placeholder} />
+      {(kind === "lecture" || kind === "practice") && (
+        <>
+          <input type="hidden" name="source_path" value={sourcePath} />
+          <RecordingUpload userId={userId} courseId={courseId} onDone={setSourcePath} />
+        </>
+      )}
       {kind === "lab" && (
         <div className="space-y-1">
           <input type="hidden" name="source_path" value={sourcePath} />
