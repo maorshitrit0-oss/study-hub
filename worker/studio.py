@@ -611,6 +611,57 @@ def split_points(wav, total, lens, window=None, min_gap=1.0):
     return cuts
 
 
+_WHISPER = {}
+
+
+def _norm(w):
+    return re.sub(r"[^\w]", "", re.sub(r"[\u0591-\u05C7]", "", w.lower()))
+
+
+def align_cuts(wav, texts):
+    """Where each slide's narration really starts in one recording of several slides: the Hebrew Whisper model's word
+    times, matched to the first words of each slide (his remark 19/11/2026: in ~90% of the videos the voice ran a slide
+    ahead or behind - the pause guess of split_points missed). None when it cannot tell; the caller falls back."""
+    from difflib import SequenceMatcher
+    try:
+        import numpy as np
+        from faster_whisper import WhisperModel
+        if "m" not in _WHISPER:
+            _WHISPER["m"] = WhisperModel(media.LOCAL_MODEL, device="cpu", compute_type="int8", cpu_threads=os.cpu_count() or 4)
+        pcm = subprocess.run([media.FFMPEG, "-hide_banner", "-loglevel", "error", "-i", str(wav), "-ac", "1", "-ar", "16000",
+                              "-f", "s16le", "-"], capture_output=True, check=True).stdout
+        segs, _ = _WHISPER["m"].transcribe(np.frombuffer(pcm, np.int16).astype(np.float32) / 32768.0, language="he",
+                                           beam_size=1, word_timestamps=True, vad_filter=False, condition_on_previous_text=False)
+        words = [(w.start, w.end, _norm(w.word)) for s in segs for w in (s.words or []) if _norm(w.word)]
+    except Exception as e:  # noqa: BLE001
+        print(f"align: {str(e)[:150]}", flush=True)
+        return None
+    if not words:
+        return None
+
+    def like(a, b):
+        return a == b or (len(a) > 2 and len(b) > 2 and SequenceMatcher(None, a, b).ratio() >= 0.75)
+
+    total_chars = sum(len(t) for t in texts)
+    cuts, pos, acc = [], 0, 0
+    for k in range(1, len(texts)):
+        acc += len(texts[k - 1])
+        head = [_norm(w) for w in texts[k].split()][:5]
+        head = [h for h in head if h][:4]
+        guess = acc / total_chars * words[-1][1]
+        best = None
+        for i in range(pos + 1, len(words)):
+            got = sum(any(like(h, words[j][2]) for j in range(i, min(i + len(head) + 1, len(words)))) for h in head)
+            if got and (best is None or (got, -abs(words[i][0] - guess)) > (best[0], -abs(words[best[1]][0] - guess))):
+                best = (got, i)
+        if not best or best[0] < max(2, len(head) - 1):
+            return None
+        i = best[1]
+        cuts.append((words[i - 1][1] + words[i][0]) / 2 if i else words[i][0])
+        pos = i
+    return cuts
+
+
 def narrate(slides, work):
     """One natural Gemini voice for the whole video, a few slides per request (the free quota counts requests); each slide's
     share of a request is cut out by its length. No robotic fallback (his remark 08/11/2026): on quota the video fails and
@@ -631,7 +682,7 @@ def narrate(slides, work):
         wav = tts_one(text, work, 100 + g, allow_edge=False)
         total = media.duration(wav) or 1
         lens = [len(slides[i]["narration"]) for i in idx]
-        cuts = split_points(wav, total, lens)
+        cuts = (align_cuts(wav, [slides[i]["narration"].strip() for i in idx]) if len(idx) > 1 else []) or split_points(wav, total, lens)
         bounds = [0.0] + cuts + [total]
         for k, i in enumerate(idx):
             piece = work / f"nar_{i:03d}.wav"

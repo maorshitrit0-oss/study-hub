@@ -17,13 +17,18 @@ concurrency:
 jobs:
   studio:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install supabase pywebpush google-genai imageio-ffmpeg numpy matplotlib edge-tts requests pymupdf playwright && python -m playwright install --with-deps chromium && mkdir -p /tmp/katex && curl -sL https://registry.npmjs.org/katex/-/katex-0.16.47.tgz | tar xz -C /tmp/katex
+      - run: pip install supabase pywebpush google-genai imageio-ffmpeg numpy faster-whisper matplotlib edge-tts requests pymupdf playwright && python -m playwright install --with-deps chromium && mkdir -p /tmp/katex && curl -sL https://registry.npmjs.org/katex/-/katex-0.16.47.tgz | tar xz -C /tmp/katex
+      - name: Cache the Hebrew transcription model (aligns the voice to the slides)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: whisper-ivrit-turbo-v1
       - working-directory: worker
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
