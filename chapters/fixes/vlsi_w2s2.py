@@ -336,21 +336,121 @@ EX = [
 - הלדים הפוכים מהצפוי → לבדוק שהמתג "למעלה" הוא 1 (אפשר לבדוק: כל המתגים למטה = הכול כבוי).
 - שגיאה בסינתזה → `Messages`, השורה האדומה הראשונה.""",
          topic="תרגול על הלוח"),
-    dict(title="תרגיל 1 · 🔍 לקרוא ולנחש (בלי לכתוב)",
-         question_md="""בלי להריץ – מה היציאה?
-1. ב-`mux2`: `a=0, b=1, s=1` → `y = ?`
-2. ב-`mux4`: `d = 4'b1010`, `s = 2'b01` → `y = ?`
-3. ב-`dec2to4`: `sel = 2'd2` → `y = ?`
-4. ב-`adder4`: `a = 4'd6, b = 4'd7` → `sum = ?` (בעשרוני ובבינארי)""",
-         solution_md="""1. `s=1` → בוחר את b → **y = 1**.
-2. `d = 1010` פירושו d[3]=1, d[2]=0, d[1]=1, d[0]=0. `s = 01` → `s[0]=1`: m0 נותן d[1]=1, m1 נותן d[3]=1;
-   `s[1]=0` → m2 בוחר את lo = **1**. (בדיקה: s=1 → d[1]=1 ✅)
-3. `sel=2` → **y = 4'b0100**.
-4. 6+7 = **13** = **01101** (5 ביטים).
+    dict(title="מה הקוד עושה 1 · Mux 2:1",
+         question_md="""```systemverilog
+assign y = s ? b : a;   // s=1 -> b, s=0 -> a
+```
+מה יהיה `y` כש-`a=0, b=1, s=1`?
 
-💡 **הרעיון:** לפני שכותבים – קוראים קוד ומנחשים. אם הניחוש נכון, מבינים את הרכיב.""",
-         topic="Mux"),
-    dict(title="תרגיל 2 · ✏️ להשלים את החסר – Mux 2:1",
+**א.** `y = 1`
+
+**ב.** `y = 0`
+
+**ג.** `y = s & a = 0`
+
+**ד.** שגיאת קומפילציה – חסר `always`""",
+         solution_md="""### התשובה: **א** ✅
+
+**הדרך המלאה:**
+1. `? :` היא "אם-אז-אחרת" בשורה אחת: `תנאי ? ערך_אם_כן : ערך_אם_לא`.
+2. התנאי הוא `s`, ו-`s = 1` ⇐ לוקחים את הערך שאחרי `?` ⇐ `b`.
+3. `b = 1` ⇐ `y = 1`.
+
+**למה לא האחרות:**
+- **ב** – זה הערך של `a`, שנבחר רק כש-`s = 0`.
+- **ג** – אין כאן AND; זה בורר, לא שער.
+- **ד** – `assign` עם `? :` חוקי לגמרי; `always` לא נדרש.""", topic="Mux"),
+    dict(title="מה הקוד עושה 2 · Mux 4:1 משלושה Mux 2:1",
+         question_md="""```systemverilog
+logic lo, hi;
+mux2 m0 (.a(d[0]), .b(d[1]), .s(s[0]), .y(lo));   // picks d0 / d1
+mux2 m1 (.a(d[2]), .b(d[3]), .s(s[0]), .y(hi));   // picks d2 / d3
+mux2 m2 (.a(lo),   .b(hi),   .s(s[1]), .y(y));    // picks between them
+```
+`d = 4'b1010`, `s = 2'b01`. איזו כניסה נבחרת ומה `y`?
+
+**א.** `d[1]`, ולכן `y = 1`
+
+**ב.** `d[2]`, ולכן `y = 0`
+
+**ג.** `d[0]`, ולכן `y = 0`
+
+**ד.** `d[3]`, ולכן `y = 1`""",
+         solution_md="""### התשובה: **א** ✅
+
+**הדרך המלאה:**
+1. `d = 1010` נקרא מימין לשמאל: `d[0]=0`, `d[1]=1`, `d[2]=0`, `d[3]=1`.
+2. `s = 01` ⇐ `s[0]=1`, `s[1]=0`.
+3. m0: `s[0]=1` ⇐ בוחר `d[1]=1` ⇐ `lo=1`. m1: בוחר `d[3]=1` ⇐ `hi=1`.
+4. m2: `s[1]=0` ⇐ בוחר את `lo` ⇐ `y = d[1] = 1`.
+5. בדיקה: `s = 01` = 1 בעשרוני ⇐ אמור לבחור את `d[1]` ✓.
+
+**למה לא האחרות:**
+- **ב** – זה `s = 10` (2).
+- **ג** – זה `s = 00`; כאן `s[0]=1`.
+- **ד** – זה `s = 11` (3); כאן `s[1]=0` ולכן m2 בוחר את `lo`.""", topic="Mux"),
+    dict(title="מה הקוד עושה 3 · Decoder 2→4",
+         question_md="""```systemverilog
+always_comb begin
+    case (sel)
+        2'd0:    y = 4'b0001;
+        2'd1:    y = 4'b0010;
+        2'd2:    y = 4'b0100;
+        default: y = 4'b1000;
+    endcase
+end
+```
+מה `y` כש-`sel = 2'd2`?
+
+**א.** `4'b0100`
+
+**ב.** `4'b0010`
+
+**ג.** `4'b0011`
+
+**ד.** `4'b1000`""",
+         solution_md="""### התשובה: **א** ✅
+
+**הדרך המלאה:**
+1. `case (sel)` בודק את `sel` מול כל שורה, לפי הסדר.
+2. `sel = 2'd2` ⇐ השורה `2'd2: y = 4'b0100`.
+3. מפענח מדליק **קו אחד** – זה של המספר: ביט 2 ⇐ `0100`.
+
+**למה לא האחרות:**
+- **ב** – זה עבור `sel = 1`.
+- **ג** – זה 3 בבינארי; מפענח לא מוציא את המספר, אלא מדליק קו אחד.
+- **ד** – זה ה-`default`, ל-`sel = 3`.""", topic="Decoder"),
+    dict(title="מה הקוד עושה 4 · מחבר ripple של 4 ביטים",
+         question_md="""```systemverilog
+full_adder fa0 (.a(a[0]), .b(b[0]), .cin(1'b0), .s(sum[0]), .cout(c1));
+full_adder fa1 (.a(a[1]), .b(b[1]), .cin(c1),   .s(sum[1]), .cout(c2));
+full_adder fa2 (.a(a[2]), .b(b[2]), .cin(c2),   .s(sum[2]), .cout(c3));
+full_adder fa3 (.a(a[3]), .b(b[3]), .cin(c3),   .s(sum[3]), .cout(sum[4]));
+```
+`a = 4'd6`, `b = 4'd7`. מה `sum` (5 ביטים)?
+
+**א.** `5'b01101` (13)
+
+**ב.** `5'b01100` (12)
+
+**ג.** `5'b00001` (1)
+
+**ד.** `5'b11101` (29)""",
+         solution_md="""### התשובה: **א** ✅
+
+**הדרך המלאה:**
+1. `a = 0110`, `b = 0111`.
+2. ביט 0: `0+1+0 = 1` ⇐ `sum[0]=1`, נשא 0.
+3. ביט 1: `1+1+0 = 2` ⇐ `sum[1]=0`, נשא 1.
+4. ביט 2: `1+1+1 = 3` ⇐ `sum[2]=1`, נשא 1.
+5. ביט 3: `0+0+1 = 1` ⇐ `sum[3]=1`, נשא 0 ⇐ `sum[4]=0`.
+6. `sum = 01101` = 13 = 6+7 ✓.
+
+**למה לא האחרות:**
+- **ב** – שכח לכתוב את ביט 0 (0+1 = 1, לא 0).
+- **ג** – חיסר במקום לחבר (7−6 = 1).
+- **ד** – הדליק את `sum[4]` בלי נשא מהביט האחרון.""", topic="מחבר ripple"),
+    dict(title="🔧 תרגול מעשי 1 · ✏️ להשלים את החסר – Mux 2:1",
          question_md="""השלם את 4 החסרים (`___`):
 ```systemverilog
 module mux2 (
@@ -378,7 +478,7 @@ endmodule
 **עוד תרגול (בדיקה אוטומטית מיידית):** https://hdlbits.01xz.net/wiki/Mux2to1 – כותבים שורה אחת ולוחצים **`Submit`**.
 ואחריו גרסת הווקטורים: https://hdlbits.01xz.net/wiki/Mux2to1v""",
          topic="Mux"),
-    dict(title="תרגיל 3 · ✏️ להשלים את החסר – Mux 4:1 משלושה Mux 2:1",
+    dict(title="🔧 תרגול מעשי 2 · ✏️ להשלים את החסר – Mux 4:1 משלושה Mux 2:1",
          question_md="""השלם את החיבורים:
 ```systemverilog
 module mux4 (input logic [3:0] d, input logic [1:0] s, output logic y);
@@ -401,7 +501,7 @@ endmodule
 
 **אתגר (רשות):** https://hdlbits.01xz.net/wiki/Mux256to1 – Mux של 256 כניסות בשורה אחת. רמז: `assign out = in[sel];`""",
          topic="Mux"),
-    dict(title="תרגיל 4 · 🔧 לשנות – Decoder עם כניסת הפעלה",
+    dict(title="🔧 תרגול מעשי 3 · לשנות – Decoder עם כניסת הפעלה",
          question_md="""קח את `dec2to4` והוסף כניסה `en` (ביט אחד): כש-`en = 0` כל היציאות 0; כש-`en = 1` הוא עובד כרגיל.
 רמז: `if (!en) ... else case ...` בתוך ה-`always_comb`.""",
          solution_md="""```systemverilog
@@ -429,7 +529,7 @@ endmodule
 
 💡 **ככה כותבים קוד חדש בהתחלה:** לוקחים קוד שעובד ומשנים דבר אחד.""",
          topic="Decoder"),
-    dict(title="תרגיל 5 · ✍️ לכתוב לבד – מחבר 4 ביטים + בדיקה (עם רמזים)",
+    dict(title="🔧 תרגול מעשי 4 · ✍️ לכתוב לבד – מחבר 4 ביטים + בדיקה (עם רמזים)",
          question_md="""נתון לך `full_adder` (בפרק). כתוב לבד:
 1. `adder4` – שני מספרים של 4 ביטים, תוצאה של 5 ביטים, מ-4 עותקים של `full_adder`.
 2. `tb_adder4` – בדיקה ששמה 5+3 ואז 15+1 ומדפיסה את התוצאה.
@@ -467,6 +567,9 @@ endmodule
 ]
 
 
+from vlsi_w3s1 import _spread  # noqa: E402 - same answer spreading as 3.1
+
+
 def main():
     chapter = "\n\n".join([GRAMMAR, MUX_MD, ADD_MD, VIVADO_MD, r"""## 🎤 שאלות הראיון של היום – תשובות קצרות
 - **מה העיכוב של מחבר ripple של N ביטים?** גדל לינארית: הנשא עובר דרך כל N המחברים במקרה הגרוע ($\approx N\cdot t_{carry}$).
@@ -487,7 +590,9 @@ def main():
     data = {"title": "שבוע 2 · מפגש 2: Mux, Decoder ומחבר ripple", "chapter_md": chapter, "summary_md": summary,
             "topics": ["דקדוק SystemVerilog", "Mux", "Decoder", "מחבר ripple", "Vivado"],
             "glossary": [], "course_facts": [], "syllabus_covered": [], "exam_type": "mcq", "grade_weights": [], "homework": [],
-            "exercises": [dict(x, exam_style=False, uncertain=False) for x in EX],
+            "exercises": [dict(x, exam_style=False, uncertain=False) for x in _spread(
+                [e for e in EX if not e["title"].startswith("🔧")] + [e for e in EX if e["title"].startswith("🔧 תרגול מעשי")]
+                + [e for e in EX if e["title"].startswith("🔧") and not e["title"].startswith("🔧 תרגול מעשי")])],
             "questions": [dict(question=q, options=o, correct=c, explanation=e, topic=t, difficulty=d) for q, o, c, e, t, d in QUIZ],
             "verification": {"fixes": ["נכתב מחדש על ידי Claude בגישה של הבנה לפני כתיבה (בקשתו 13/11/2026). הפינים מ-fpga/pa35t_edu.xdc."],
                              "uncertain": ["שמות הכפתורים ב-Vivado לפי גרסאות 2023-2025; אם שם שונה מעט ב-2025.2 – הסדר זהה."]}}

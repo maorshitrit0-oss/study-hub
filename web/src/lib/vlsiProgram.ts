@@ -154,7 +154,7 @@ export const VLSI_PROGRAM: Session[] = [
   { week: 2, n: 2, title: "Mux, Decoder ומחבר ripple", goal: "לזהות אבני בניין צירופיות ולהבין למה ripple איטי",
     learn: ["Mux, Decoder ו-Priority encoder", "מחבר ripple-carry ולמה הוא איטי", "Glitches ו-hazards בלוגיקה צירופית"],
     task: "מחברים 4 מחברים מלאים למחבר של 4 ביטים ובודקים 5+3 ו-15+1. רואים בגרף את ה-Carry 'מתגלגל'.",
-    board: "מחבר של 4 ביטים: SW1-4 ועוד SW5-8, התוצאה (5 ביטים) על הלדים. זה החיבור שבתוך יחידת ה-MAC של הפרויקט.",
+    board: "חלק המחבר של יחידת ה-MAC (כפל-וצבירה) של ה-Mini-TPU: היחידה מכפילה ומחברת אלפי פעמים כדי לזהות רחפן, וזה המחבר שבתוכה. היום: מחבר של 4 ביטים – SW1-4 ועוד SW5-8, התוצאה (5 ביטים) על הלדים. כ-20 שורות קוד שנשארות בפרויקט (בשבוע 9 מרחיבים אותו ל-int8).",
     interview: [{ q: "מה העיכוב של מחבר ripple של N ביטים?", src: "Virtual Labs IIT Kharagpur - הסבר", url: "https://coa-iitkgp.vlabs.ac.in/exp/ripple-carry-adder/theory.html" }, { q: "איך בונים Mux 4:1 מ-Mux 2:1?", src: "AmbitionBox - שאלות ראיון RTL Design Engineer", url: "https://www.ambitionbox.com/profiles/rtl-design-engineer/interview-questions/fresher-candidates" }] },
   { week: 3, n: 1, title: "SystemVerilog: module, logic, assign ו-always_comb", goal: "לכתוב רכיב צירופי בשתי דרכים ולבחור ביניהן",
     learn: ["module, פורטים ו-logic", "assign מול always_comb (ולמה else / default)", "בדיקה ממצה בלולאה", "מפענח 7 מקטעים"],
