@@ -14,7 +14,7 @@ import Fold from "@/components/Fold";
 import { LESSON_LABEL, lessonName, isSession, type Lesson } from "@/lib/types";
 import { warmupFor } from "@/lib/warmup";
 import Warmup from "@/components/Warmup";
-import { VLSI_PROGRAM } from "@/lib/vlsiProgram";
+import { PROJECT, VLSI_PROGRAM } from "@/lib/vlsiProgram";
 
 export default async function LessonPage({ params }: PageProps<"/lessons/[id]">) {
   const { id } = await params;
@@ -56,6 +56,49 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
       <p className="text-xs text-muted mb-3">{self && project.length ? "המשימה של היום בפרויקט - כמו תרגיל בית: לנסות לבד, ורק אחר כך לפתוח את הפתרון." : "לפתור על דף, ורק אחר כך לפתוח את הפתרון."}</p>
       <Exercises items={(exercises ?? []) as Exercise[]} slideUrls={slideUrls} />
     </Fold>
+  );
+  // Self-study flow (his request 20/11/2026): video -> chapter -> quiz -> "what does this code do" multiple choice ->
+  // what to know before the hands-on part -> the practical work = today's part of the CV project.
+  const sess = self && lesson.number ? VLSI_PROGRAM[lesson.number - 1] : undefined;
+  const codeEx = (exercises ?? []).filter((x) => !(x.title ?? "").startsWith("🔧"));
+  const selfFlow = self && (
+    <>
+      {codeEx.length > 0 && (
+        <>
+          <a href="#self-ex" className="btn w-full text-center">⬅️ סיימתי את השאלון – לתרגילים: מה הקוד עושה</a>
+          <div id="self-ex">
+            <Fold id={`self-ex-${id}`} title="✍️ תרגילים: מה הקוד עושה (אמריקאי)" hint={`${codeEx.length}`}>
+              <p className="text-xs text-muted mb-3">כמו בשאלת קוד בראיון: לקרוא את הקוד, לבחור תשובה – ואז לראות את ההסבר המלא.</p>
+              <Exercises items={codeEx as Exercise[]} slideUrls={slideUrls} />
+            </Fold>
+          </div>
+        </>
+      )}
+      {(project.length > 0 || sess) && (
+        <>
+          <a href="#self-practical" className="btn w-full text-center">⬅️ עכשיו תרגול מעשי – החלק של היום בפרויקט</a>
+          <div id="self-practical">
+            <Fold id={`self-practical-${id}`} title="🛠️ תרגול מעשי + החלק של היום בפרויקט">
+              {sess?.setup && sess.setup.length > 0 && (
+                <div className="mb-4">
+                  <p className="font-semibold">🧰 מה צריך לדעת ולפתוח לפני שמתחילים</p>
+                  <ol className="list-decimal ps-5 text-sm space-y-1 mt-1">{sess.setup.map((x) => <li key={x}>{x}</li>)}</ol>
+                </div>
+              )}
+              {sess?.task && <p className="text-sm mb-3">🎯 <b>המשימה המעשית:</b> {sess.task}</p>}
+              {sess?.board && (
+                <div className="rounded-xl bg-accent-soft p-3 mb-4 text-sm">
+                  <p className="font-semibold">🔧 הפרויקט: חלק {lesson.number} מתוך {VLSI_PROGRAM.length}</p>
+                  <p className="text-xs text-muted">{PROJECT}</p>
+                  <p className="mt-1">היום בונים: {sess.board}</p>
+                </div>
+              )}
+              {project.length > 0 && <Exercises items={project as Exercise[]} slideUrls={slideUrls} />}
+            </Fold>
+          </div>
+        </>
+      )}
+    </>
   );
   const studioFold = lesson.status === "ready" && lesson.chapter_md && (
     <Studio courseId={lesson.course_id} lessons={[{ id, label: lessonName(lesson) }]} items={media === null ? null : media.filter((m) => m.kind !== "examples")}
@@ -225,7 +268,7 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
           ✍️ התרגילים של השיעור הזה – בעמודת התרגילים, שבוע {lesson.number}
         </Link>
       ) : !self && exerciseFold}
-      {self && exerciseFold}
+      {selfFlow}
 
       {Object.keys(slideUrls).length > 0 && (
         <details className="card">
