@@ -11,6 +11,7 @@ import { loadMedia } from "@/lib/studio";
 import { deleteLesson, markRead, markReadAndGo, pasteTranscript, retryLesson, updateLesson } from "../../actions";
 import Exercises, { type Exercise } from "@/components/Exercises";
 import Fold from "@/components/Fold";
+import SelfSteps from "@/components/SelfSteps";
 import { LESSON_LABEL, lessonName, isSession, type Lesson } from "@/lib/types";
 import { warmupFor } from "@/lib/warmup";
 import Warmup from "@/components/Warmup";
@@ -61,44 +62,63 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
   // what to know before the hands-on part -> the practical work = today's part of the CV project.
   const sess = self && lesson.number ? VLSI_PROGRAM[lesson.number - 1] : undefined;
   const codeEx = (exercises ?? []).filter((x) => !(x.title ?? "").startsWith("🔧"));
-  const selfFlow = self && (
+  const quizBody = (
     <>
-      {codeEx.length > 0 && (
-        <>
-          <a href="#self-ex" className="btn w-full text-center">⬅️ סיימתי את השאלון – לתרגילים: מה הקוד עושה</a>
-          <div id="self-ex">
-            <Fold id={`self-ex-${id}`} title="✍️ תרגילים: מה הקוד עושה (אמריקאי)" hint={`${codeEx.length}`}>
-              <p className="text-xs text-muted mb-3">כמו בשאלת קוד בראיון: לקרוא את הקוד, לבחור תשובה – ואז לראות את ההסבר המלא.</p>
-              <Exercises items={codeEx as Exercise[]} slideUrls={slideUrls} />
-            </Fold>
-          </div>
-        </>
-      )}
-      {(project.length > 0 || sess) && (
-        <>
-          <a href="#self-practical" className="btn w-full text-center">⬅️ עכשיו תרגול מעשי – החלק של היום בפרויקט</a>
-          <div id="self-practical">
-            <Fold id={`self-practical-${id}`} title="🛠️ תרגול מעשי + החלק של היום בפרויקט">
-              {sess?.setup && sess.setup.length > 0 && (
-                <div className="mb-4">
-                  <p className="font-semibold">🧰 מה צריך לדעת ולפתוח לפני שמתחילים</p>
-                  <ol className="list-decimal ps-5 text-sm space-y-1 mt-1">{sess.setup.map((x) => <li key={x}>{x}</li>)}</ol>
-                </div>
-              )}
-              {sess?.task && <p className="text-sm mb-3">🎯 <b>המשימה המעשית:</b> {sess.task}</p>}
-              {sess?.board && (
-                <div className="rounded-xl bg-accent-soft p-3 mb-4 text-sm">
-                  <p className="font-semibold">🔧 הפרויקט: חלק {lesson.number} מתוך {VLSI_PROGRAM.length}</p>
-                  <p className="text-xs text-muted">{PROJECT}</p>
-                  <p className="mt-1">היום בונים: {sess.board}</p>
-                </div>
-              )}
-              {project.length > 0 && <Exercises items={project as Exercise[]} slideUrls={slideUrls} />}
-            </Fold>
-          </div>
-        </>
+      <Quiz questions={understandingOnly(questions)} title="שאלון סיכום" />
+      {interview.length > 0 && (
+        <div className="mt-5 border-t border-line pt-3 text-sm">
+          <p className="font-semibold">🎤 לסיום: שאלות מראיונות עבודה</p>
+          <p className="text-xs text-muted mb-2">שאלות פתוחות. לענות בקול או על דף כאילו אתה בראיון, ורק אחר כך לפתוח את המקור ולבדוק.</p>
+          <ol className="list-decimal ps-5 space-y-1">
+            {interview.map((x) => (
+              <li key={x.q}>
+                {x.q}{" "}
+                <a href={x.url} target="_blank" rel="noopener noreferrer" className="text-xs text-accent underline">🔗 {x.src}</a>
+              </li>
+            ))}
+          </ol>
+        </div>
       )}
     </>
+  );
+  const selfSteps = [
+    ...(questions.length ? [{ title: "✅ שאלון אמריקאי – הבנה במילים", body: quizBody,
+      next: codeEx.length ? "⬅️ סיימתי את השאלון – לתרגילים: מה הקוד עושה" : "⬅️ סיימתי את השאלון – לתרגול המעשי" }] : []),
+    ...(codeEx.length ? [{ title: "✍️ תרגילים: מה הקוד עושה", next: "⬅️ סיימתי את התרגילים – לתרגול המעשי", body: (
+      <>
+        <p className="text-xs text-muted">כמו בשאלת קוד בראיון: לקרוא את הקוד, ללחוץ על תשובה – ואז מופיע ההסבר המלא.</p>
+        <Exercises items={codeEx as Exercise[]} slideUrls={slideUrls} />
+      </>
+    ) }] : []),
+    ...(project.length || sess ? [{ title: "🛠️ תרגול מעשי = החלק של היום בפרויקט", next: "", body: (
+      <>
+        <p className="text-xs text-muted">מה שכותבים כאן ב-Vivado נשאר בפרויקט: כל מפגש בונה עוד חלק ממנו.</p>
+        {sess?.setup && sess.setup.length > 0 && (
+          <div>
+            <p className="font-semibold">🧰 מה צריך לדעת ולפתוח לפני שמתחילים</p>
+            <ol className="list-decimal ps-5 text-sm space-y-1 mt-1">{sess.setup.map((x) => <li key={x}>{x}</li>)}</ol>
+          </div>
+        )}
+        {sess?.task && <p className="text-sm">🎯 <b>המשימה המעשית:</b> {sess.task}</p>}
+        {sess?.board && (
+          <div className="rounded-xl bg-accent-soft p-3 text-sm">
+            <p className="font-semibold">🔧 הפרויקט: חלק {lesson.number} מתוך {VLSI_PROGRAM.length}</p>
+            <p className="text-xs text-muted">{PROJECT}</p>
+            <p className="mt-1">היום בונים: {sess.board}</p>
+          </div>
+        )}
+        {project.length > 0 && <Exercises items={project as Exercise[]} slideUrls={slideUrls} />}
+      </>
+    ) }] : []),
+  ];
+  const selfFlow = self && lesson.status === "ready" && selfSteps.length > 0 && (
+    <SelfSteps id={id} steps={selfSteps} finish={lesson.read_at ? (
+      <Link href="/self" className="btn w-full text-center">✅ המפגש הושלם ⬅️ ללימוד העצמי</Link>
+    ) : (
+      <form action={markReadAndGo.bind(null, id, "/self")}>
+        <button className="btn w-full">✅ סיימתי את המפגש</button>
+      </form>
+    )} />
   );
   const studioFold = lesson.status === "ready" && lesson.chapter_md && (
     <Studio courseId={lesson.course_id} lessons={[{ id, label: lessonName(lesson) }]} items={media === null ? null : media.filter((m) => m.kind !== "examples")}
@@ -262,7 +282,7 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
 
       {/* Lectures and practices: the exercises are solved only in the course's exercises tab, week N = lecture N
           (his way, 11/11/2026) - here only a link to that week. */}
-      {quizFold}
+      {!self && quizFold}
       {!self && (exercises ?? []).length > 0 && (lesson.kind === "lecture" || lesson.kind === "practice") && lesson.number ? (
         <Link href={`/courses/${lesson.course_id}/exercises?w=${lesson.number}`} className="card block text-center text-sm font-medium">
           ✍️ התרגילים של השיעור הזה – בעמודת התרגילים, שבוע {lesson.number}

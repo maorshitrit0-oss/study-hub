@@ -972,6 +972,10 @@ irrelevant lectures"; linear first, then random signals):
   whose title starts with 🔧). VLSI_TASK writes sessions that way; 3.1 converted (4 MCQ + 3 practical + board, the
   board task framed as the Mini-TPU's display module). Each next session (3.2 ...) must be written in this flow and
   its board step named as a piece of the Mini-TPU (he wants to build the project from now, not from week 7).
+- Self-study page = STAGES (his correction 20/11, components/SelfSteps.tsx): after the chapter, one stage at a time with
+  ONE button at its end: 1 quiz (understanding) -> 2 "what does this code do" MCQ -> 3 practical (= today's part of the
+  project, written in Vivado) -> "✅ סיימתי את המפגש" (markRead -> session done on /self). The stage he reached is kept
+  in localStorage. The earlier anchor buttons jumped to a CLOSED fold, so he saw an empty screen ("לא רשום שם כלום").
 - Next.js 16.4.2: the build prints a security-upgrade notice (`next upgrade`); not done - ask him.
 
 Code in quiz questions (18/11/2026, his screenshot: a Java switch written on one line, he got many wrong): codefmt.fix
