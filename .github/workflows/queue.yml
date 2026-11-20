@@ -39,6 +39,9 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           YT_COOKIES: ${{ secrets.YT_COOKIES }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+          GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
+          GEMINI_API_KEY_4: ${{ secrets.GEMINI_API_KEY_4 }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
           HAS_CLAUDE: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
         run: python queue_runner.py --loop

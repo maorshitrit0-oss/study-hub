@@ -279,7 +279,10 @@ def _list(v):
 
 
 def _keys():
-    return _list(os.environ.get("GEMINI_API_KEY"))
+    """Every Gemini key he set (20/11/2026: several free keys = several daily quotas): GEMINI_API_KEY, and
+    GEMINI_API_KEY_2.._4; inside each, keys separated by commas, new lines, spaces or semicolons."""
+    raw = " ".join(os.environ.get(n) or "" for n in ("GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3", "GEMINI_API_KEY_4"))
+    return list(dict.fromkeys(k.strip().strip('"\'') for k in re.split(r"[\s,;]+", raw) if k.strip().strip('"\'')))
 
 
 def _models():
