@@ -892,7 +892,7 @@ def cmd_studio_new(match, number, kind):
     print(f"::notice title=Studio new::{kind} lecture {number}: {course_site.dispatch_inputs('media.yml', {'media_id': row['id']})}", flush=True)
 
 
-REDO_MSG = "סרטון מחדש (נוסחאות שנחתכו) - " + WAIT_MSG
+REDO_MSG = "סרטון מחדש (קול מסונכרן לשקופית; נוסחאות שנחתכו) - " + WAIT_MSG
 
 
 def cmd_studio_redo(match):
