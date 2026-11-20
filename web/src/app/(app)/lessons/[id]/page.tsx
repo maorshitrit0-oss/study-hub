@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { understandingOnly } from "@/lib/review";
 import BackLink from "@/components/BackLink";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
@@ -80,8 +81,8 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
   const quizFold = lesson.status === "ready" && (
     <section className="space-y-3" id="quiz">
       {questions.length > 0 && (
-        <Fold id={`quiz-${id}`} title="✅ שאלון אמריקאי" hint={`${questions.length}`}>
-          <Quiz questions={questions} title="שאלון סיכום" />
+        <Fold id={`quiz-${id}`} title="✅ שאלון אמריקאי" hint={`${understandingOnly(questions).length}`}>
+          <Quiz questions={understandingOnly(questions)} title="שאלון סיכום" />
           {interview.length > 0 && (
             <div className="mt-5 border-t border-line pt-3 text-sm">
               <p className="font-semibold">🎤 לסיום: שאלות מראיונות עבודה</p>

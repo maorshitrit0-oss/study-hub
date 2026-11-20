@@ -47,6 +47,13 @@ export async function dueReviews(sb: SupabaseClient, courseId?: string) {
 }
 
 /** A question about understanding, not calculation: no math markup and no number-crunching in it or its options. */
+/** His rule (20/11/2026, every course): multiple-choice = understanding, not plugging into a formula. When a set has at
+ *  least 5 understanding questions, only those are shown; otherwise they come first. */
+export function understandingOnly<T extends { question: string; options: string[] }>(qs: T[]): T[] {
+  const ok = qs.filter(conceptual);
+  return ok.length >= 5 ? ok : [...ok, ...qs.filter((q) => !conceptual(q))];
+}
+
 export function conceptual(q: { question: string; options: string[] }) {
   return ![q.question, ...q.options].some((t) => /\$|\\\(|\\\[|\d+\s*[=×*/^]\s*\d/.test(t));
 }

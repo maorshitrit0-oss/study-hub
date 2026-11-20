@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { understandingOnly } from "@/lib/review";
 import BackLink from "@/components/BackLink";
 import { requireUser } from "@/lib/supabase/server";
 import Quiz from "@/components/Quiz";
@@ -30,7 +31,7 @@ export default async function Practice({ params, searchParams }: PageProps<"/cou
   const last = new Map<string, boolean>();
   for (const a of attempts ?? []) last.set(a.question_id, a.is_correct);
   const maps = topic ? await topicMaps(sb, [id]) : new Map();
-  const pool = ((questions ?? []) as Question[]).filter((x) => !topic || mergedTopic(maps, id, x.topic) === topic);
+  const pool = understandingOnly(((questions ?? []) as Question[])).filter((x) => !topic || mergedTopic(maps, id, x.topic) === topic);
   const set = pickPractice(pool, last, SIZE);
 
   return (

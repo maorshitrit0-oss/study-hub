@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Quiz from "./Quiz";
+import { understandingOnly } from "@/lib/review";
 import type { Question } from "@/lib/types";
 
 import type { WarmLesson } from "@/lib/warmup";
@@ -12,7 +13,7 @@ import type { WarmLesson } from "@/lib/warmup";
  */
 export default function Warmup({ questions, lessons, courseId }: { questions: Question[]; lessons: WarmLesson[]; courseId: string }) {
   return (
-    <Quiz questions={questions} title="🔥 חימום" end={(results, again) => {
+    <Quiz questions={understandingOnly(questions)} title="🔥 חימום" end={(results, again) => {
       const rows = lessons.map((l) => {
         const qs = questions.filter((q) => q.lesson_id === l.id);
         const ok = qs.filter((q) => results[q.id]).length;
