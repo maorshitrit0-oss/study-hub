@@ -166,7 +166,9 @@ def retry_studio(sb):
         stale = []
     # what is missing comes before what is only made again (a lecture with no video > a nicer video of an old one)
     rows = sorted(stale + rows, key=lambda r: r in redo)
-    for m in [r for r in rows if any(w in (r.get("error") or "") for w in ("מכסה", "עמוסים"))][:2]:
+    picks = [r for r in rows if any(w in (r.get("error") or "") for w in ("מכסה", "עמוסים"))]
+    picks = [r for r in picks if r not in redo][:2] or picks[:1]  # remakes: one at a time, after what is missing
+    for m in picks:
         sb.table("lesson_media").update({"status": "queued", "error": None}).eq("id", m["id"]).execute()
         print(f"::notice title=Studio again::{m['kind']} {m['id'][:8]}: {course_site.dispatch_inputs('media.yml', {'media_id': m['id']})}", flush=True)
 
@@ -254,7 +256,13 @@ def run():
                     break
         print("::notice title=Queue::Gemini quota used up earlier today - fill-ins wait for the reset", flush=True)
         return "quota"
-    retry_studio(sb)
+    # a lecture he is waiting for comes before any video (his remark 20/11/2026: "it happened twice" - the video
+    # remakes used up Gemini's daily quota and his new lecture failed on it): no studio work while a lesson waits
+    waiting_lesson = any(r["status"] != "ready" for r, _ in candidates(sb))
+    if waiting_lesson:
+        print("::notice title=Studio::a lesson is waiting - videos wait for it", flush=True)
+    else:
+        retry_studio(sb)
     try:  # weeks still missing their exercise set (weekset.py)
         import weekset
         weekset.fill_missing(sb)
