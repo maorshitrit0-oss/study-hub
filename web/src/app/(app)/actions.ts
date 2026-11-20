@@ -233,7 +233,10 @@ export async function updateLesson(id: string, f: FormData) {
     .update({
       number: int(f, "number"), title: str(f, "title"), ...(kind ? { kind } : {}),
       ...(relink ? { source_url: url, status: "queued", error: null, transcript: null, progress: "קישור חדש - בתור" } : {}),
-      ...(reupload ? { source_path: sourcePath, source_url: null, status: "queued", error: null, transcript: null, progress: "הקלטה הועלתה - בתור" } : {}),
+      // the uploaded file is what gets processed; the link (if he gave one) stays as "המקור" to watch the lecture
+      ...(reupload ? { source_path: sourcePath, source_url: url ?? before?.source_url ?? null, status: "queued", error: null, transcript: null, progress: "הקלטה הועלתה - בתור" } : {}),
+      // a ready lesson: a new link only becomes "המקור" (to watch it) - nothing is processed again (20/11/2026)
+      ...(!relink && !reupload && url && url !== before?.source_url && before?.status === "ready" ? { source_url: url } : {}),
     })
     .eq("id", id).select("course_id").single();
   if (relink || reupload) await startLesson(sb, id);

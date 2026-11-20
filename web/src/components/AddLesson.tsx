@@ -30,7 +30,7 @@ export default function AddLesson({ courseId, userId, nextByKind, isLab }: {
 
   const placeholder = kind === "web" ? "https://..." : kind === "lab"
     ? "קישור לחוברת הניסוי / דוח מכין בדרייב (או העלאת קובץ למטה)"
-    : "קישור להקלטת זום / לקובץ בדרייב – או העלאת הקלטה מהמכשיר למטה";
+    : "קישור להקלטת זום / לקובץ בדרייב (עם העלאה מהמכשיר: הקישור נשמר לצפייה)";
 
   return (
     <form action={action} className="space-y-3">

@@ -203,7 +203,7 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
             <input className="input" name="title" defaultValue={lesson.title ?? ""} placeholder="כותרת, למשל: חלק 1 - מבוא ל-GPIO" />
             {lesson.kind !== "web" && (
               <input className="input" name="url" dir="ltr" inputMode="url" defaultValue={lesson.source_url ?? ""}
-                placeholder="קישור (זום / יוטיוב / דרייב) - קישור חדש מעבד את ההקלטה מחדש" aria-label="קישור" />
+                placeholder={lesson.status === "ready" ? "קישור להקלטה (זום / יוטיוב / דרייב) - לצפייה דרך \"המקור\" למטה" : "קישור (זום / יוטיוב / דרייב) - קישור חדש מעבד את ההקלטה מחדש"} aria-label="קישור" />
             )}
             {lesson.status !== "ready" && (lesson.kind === "lecture" || lesson.kind === "practice") && (
               <RecordingField userId={userId} courseId={lesson.course_id} />
