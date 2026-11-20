@@ -945,6 +945,35 @@ irrelevant lectures"; linear first, then random signals):
   Recorded lectures 1-14 are not his weeks (their exercises stay in the lessons).
 - The Saturday task builds each NEW linear week by hand the same way (prompt updated 19/11).
 
+20/11/2026 - his long list of remarks (he hit his weekly limit and asked to do all of it):
+- Display (all courses): single line breaks now show as written (remark-breaks in Chapter.tsx) - exam givens no longer
+  run together; no scroll bars under inline formulas (globals.css; the bars under "τ = t2 − t1" read like minus signs).
+- Exercises: "📐 הנוסחה לשאלה (בלי התשובה)" fold = the formula lines of the solution (Exercises.tsx formulaOf: lines
+  with נוסחה/נוסחאות/הקשרים/הכלי up to "למה לא"). 82/194 current exercises have one; new solutions must label formulas.
+- Linear weeks 1-3: every solution rewritten (chapters/fixes/linear_explained_2011.py, 18): "📘 מה צריך לדעת קודם"
+  (from lectures 1-3, e.g. RMS power of a sine, the 4 amplifier models, op-amp golden rules) -> every step -> why not
+  the others. Lecture 2 and 3 chapters were near-empty (2.5k / 7.9k chars) - re-authored from the recordings
+  (process.yml keep_exercises=1: the chapter is rewritten, the lesson's fixed exercises stay): 24k / 23k.
+- Practice recordings ("📦 תרגול בכיתה 2/3": slew rate, rectifier, 7805, Wien oscillator): NOT moved (his rule 19/11:
+  a TA topic goes to the week whose lecture teaches it; if the lecturer has not reached it, to the latest week so he
+  misses nothing) -> week 3 holds them for now (648f670e, be58fd65, 30b7e515, e8fdad76; still open format).
+- Videos: the voice ran a slide ahead/behind (~90%): several slides are voiced in one request and were cut at a
+  guessed pause. Now cut where each slide's first words are actually spoken (studio.align_cuts: Hebrew Whisper word
+  times, model cached in media.yml; log "align group N: by words / by pauses (fallback)"); EXPLAINER: narration only
+  about its own slide. 73 videos queued again (studio-redo, all courses; old ones stay until the new one is ready).
+- Multiple choice = understanding, every course: quiz / practice / warm-up show only no-formula questions when a set
+  has 5+ (lib/review.ts understandingOnly); author.SYSTEM + VLSI_TASK: no calculation questions at all.
+- Random signals: her level = her 4 Ariel exams (docx in the course files: sem B moed A 12/07, moed B 29/07, summer
+  moed A 08/10, his 26/10). Random phase is in none of them -> out. Week 2 = his Q1 + her two process questions
+  (chapters/fixes/rnd_ariel_w2_2011.py: A cos + B sin / JWSS, i.i.d + random walk). Session 2 rewritten (words first,
+  by her exams). Scheduled 24/11 10:17: session 3 + weeks 3-6 + formula sheet the same way.
+- Self-study flow (lesson page, self): video -> chapter -> quiz -> "⬅️ לתרגילים: מה הקוד עושה" (MCQ code questions,
+  clickable) -> "⬅️ עכשיו תרגול מעשי" (what to open/know first, the task, "🔧 הפרויקט: חלק N מתוך 24" + the exercises
+  whose title starts with 🔧). VLSI_TASK writes sessions that way; 3.1 converted (4 MCQ + 3 practical + board, the
+  board task framed as the Mini-TPU's display module). Each next session (3.2 ...) must be written in this flow and
+  its board step named as a piece of the Mini-TPU (he wants to build the project from now, not from week 7).
+- Next.js 16.4.2: the build prints a security-upgrade notice (`next upgrade`); not done - ask him.
+
 Code in quiz questions (18/11/2026, his screenshot: a Java switch written on one line, he got many wrong): codefmt.fix
 moves one-line code into a ```java / ```c block, one statement per line, case bodies indented, array initializers kept;
 applied to all existing questions (publish inspect=quiz-code, title=apply; Java 8, micro 5 - other courses 0) and to
