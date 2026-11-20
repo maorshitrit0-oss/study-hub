@@ -391,6 +391,42 @@ def auto_studio(job, wait=False):
         print(f"::warning title=Auto studio::{str(e)[:200]}", flush=True)
 
 
+def looks_like_file(title):
+    t = title or ""
+    return bool(re.search(r"(?i)recording|zoom|shared_screen|speaker_view|\.mp4|^\d{6,}|_{2,}", t)) or ("_" in t and " " not in t)
+
+
+def match_lecture(job, ch):
+    """Which lecture a practice of unknown number belongs to: the lecture whose topics share the most words with the
+    practice's topics and headings. No match -> the next lecture number (the lecturer has not reached it yet; his rule
+    19/11/2026: then it waits in the latest week)."""
+    def words(texts):
+        return {w for t in texts for w in re.findall(r"[\w\-]{3,}", (t or "").lower())}
+    mine = words((ch.get("topics") or []) + re.findall(r"^#+ (.+)$", ch.get("chapter_md") or "", re.M))
+    lectures = job.sb.table("lessons").select("number, topics, chapter_md").eq("course_id", job.course["id"]) \
+        .eq("kind", "lecture").execute().data
+    best, score = None, 0
+    for l in lectures:
+        if not l.get("number"):
+            continue
+        theirs = words((l.get("topics") or []) + re.findall(r"^#+ (.+)$", l.get("chapter_md") or "", re.M))
+        sc = len(mine & theirs)
+        if sc > score:
+            best, score = l["number"], sc
+    if best and score >= 3:
+        return best
+    return max([l["number"] or 0 for l in lectures] or [0]) + 1
+
+
+def cmd_retitle(match, kind, number, title):
+    """A lesson's title by hand (e.g. an uploaded file's name)."""
+    sb = db()
+    course = find_course(sb, match)
+    got = sb.table("lessons").update({"title": title}).eq("course_id", course["id"]).eq("kind", kind) \
+        .eq("number", int(number)).execute().data
+    print(f"::notice title=Retitle::{kind} {number}: {len(got)} -> {title}", flush=True)
+
+
 def save_chapter(job, ch, by):
     ch = author.validate(ch)
     short = bool(ch.get("exercises")) or (by != "claude" and author.summary_mode(job.lesson, job.mode, job.course))
@@ -426,8 +462,13 @@ def save_chapter(job, ch, by):
         fields["summary_md"] = chapter_md  # the full chapter, if he asks for one later, replaces chapter_md only
     if (ch.get("summary_md") or "").strip():  # Claude writes both: the full chapter and a condensed summary
         fields["summary_md"] = author.fix_arabic(ch["summary_md"].strip())
-    if not job.lesson.get("title") or job.lesson["kind"] == "web":
-        fields["title"] = ch.get("title")
+    if not job.lesson.get("title") or job.lesson["kind"] == "web" or looks_like_file(job.lesson.get("title")):
+        fields["title"] = ch.get("title")  # 20/11/2026: an uploaded file's name ("Recording_1_-_..._Zoom") is no title
+    if job.lesson["kind"] == "practice" and not job.lesson.get("number"):
+        n = match_lecture(job, ch)  # "a practice - I don't know which one" (20/11/2026)
+        if n:
+            fields["number"] = n
+            print(f"::notice title=Practice number::matched to lecture {n}", flush=True)
     try:
         job.update(**fields)
     except Exception:  # noqa: BLE001 - database without the syllabus_covered / summary_md column yet
@@ -1190,7 +1231,7 @@ def cmd_reorder(match, path):
                     print(f"::notice title=Reorder::{op['strip']}: note removed", flush=True)
             continue
         src, dst = one(op["from"]), one(op["to"])
-        if len(src) != 1 or dst:
+        if len(src) != 1 or (dst and not op.get("part")):  # "part": true = another part of the same practice (20/11)
             print(f"::warning title=Reorder::{op['from']} -> {op['to']}: {len(src)} source, {len(dst)} target - skipped", flush=True)
             continue
         kind, number = op["to"].split()
@@ -1356,6 +1397,7 @@ if __name__ == "__main__":
     sub.add_parser("flat")
     sub.add_parser("stuck")
     sub.add_parser("ping")
+    p = sub.add_parser("retitle"); p.add_argument("match"); p.add_argument("kind"); p.add_argument("number"); p.add_argument("title")
     sub.add_parser("tts")
     sub.add_parser("studio-retry")
     p = sub.add_parser("media-get"); p.add_argument("out_dir")
@@ -1441,6 +1483,8 @@ if __name__ == "__main__":
         cmd_studio_retry()
     elif a.cmd == "tts":
         cmd_tts()
+    elif a.cmd == "retitle":
+        cmd_retitle(a.match, a.kind, a.number, a.title)
     elif a.cmd == "ping":
         cmd_ping()
     elif a.cmd == "stuck":

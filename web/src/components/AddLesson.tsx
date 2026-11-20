@@ -15,6 +15,7 @@ export default function AddLesson({ courseId, userId, nextByKind, isLab }: {
 }) {
   const [state, action, pending] = useActionState<AddLessonState, FormData>(addLesson.bind(null, courseId), {});
   const [kind, setKind] = useState<string>(isLab ? "lab" : "lecture");
+  const [unknown, setUnknown] = useState(false);
   const [uploading, setUploading] = useState("");
   const [sourcePath, setSourcePath] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
@@ -31,7 +32,7 @@ export default function AddLesson({ courseId, userId, nextByKind, isLab }: {
 
   const placeholder = kind === "web" ? "https://..." : kind === "lab"
     ? "קישור לחוברת הניסוי / דוח מכין בדרייב (או העלאת קובץ למטה)"
-    : "קישור להקלטת זום / לקובץ בדרייב (עם העלאה מהמכשיר: הקישור נשמר לצפייה)";
+    : "קישור להקלטה (זום / דרייב / יוטיוב) – רק אם לא מעלים קובץ למטה";
 
   return (
     <form ref={formRef} action={action} className="space-y-3">
@@ -65,10 +66,17 @@ export default function AddLesson({ courseId, userId, nextByKind, isLab }: {
       )}
       <div className="flex gap-3">
         {kind !== "web" && (
-          <input key={kind} className="input w-24" name="number" type="number" min={1} defaultValue={nextByKind[kind] ?? 1} aria-label="מספר" />
+          <input key={kind + unknown} className="input w-24" name="number" type="number" min={1} disabled={unknown}
+            defaultValue={unknown ? "" : nextByKind[kind] ?? 1} aria-label="מספר" />
         )}
         <input className="input flex-1" name="title" placeholder={kind === "lab" ? "שם הניסוי (לא חובה)" : "כותרת (לא חובה)"} />
       </div>
+      {kind === "practice" && (
+        <label className="flex gap-2 text-sm">
+          <input type="checkbox" checked={unknown} onChange={(e) => setUnknown(e.target.checked)} />
+          🤷 לא יודע איזה תרגול – המערכת תזהה לפי הנושאים לאיזו הרצאה הוא שייך
+        </label>
+      )}
       <details className="text-sm">
         <summary className="text-muted cursor-pointer">מי כותב את הפרק?</summary>
         <label className="flex gap-2 mt-2"><input type="radio" name="author" value="gemini" defaultChecked /> אוטומטי (Gemini) - מוכן לבד</label>

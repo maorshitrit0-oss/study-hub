@@ -81,7 +81,7 @@ export type AddLessonState = { error?: string; ok?: boolean };
 
 export async function addLesson(courseId: string, _: AddLessonState, f: FormData): Promise<AddLessonState> {
   const { sb } = await requireUser();
-  const url = str(f, "url");
+  const url = str(f, "url") ?? (str(f, "source_path") ? str(f, "watch_url") : null); // the link of an uploaded file = "המקור"
   const sourcePath = str(f, "source_path");
   const kind = str(f, "kind") ?? "lecture";
   if (!url && !sourcePath) return { error: "צריך קישור או קובץ" };
@@ -220,7 +220,7 @@ export async function deleteLesson(id: string, courseId: string) {
 export async function updateLesson(id: string, f: FormData) {
   const { sb } = await requireUser();
   const kind = str(f, "kind");
-  const url = str(f, "url");
+  const url = str(f, "url") ?? (str(f, "source_path") ? str(f, "watch_url") : null);
   const { data: before } = await sb.from("lessons").select("source_url, status").eq("id", id).single();
   // A new recording link (e.g. the class Zoom instead of a YouTube link YouTube would not serve): process it again.
   // Only for a lesson that never finished: a ready chapter (and its transcript) is never thrown away.

@@ -76,6 +76,9 @@ export default function RecordingUpload({ userId, courseId, onDone }: {
 
   return (
     <div className="space-y-1">
+      {/* the original recording's link, kept as "המקור" to watch it later (his request 20/11/2026) */}
+      <input className="input" name="watch_url" dir="ltr" inputMode="url"
+        placeholder="קישור הזום של ההקלטה המקורית (לצפייה בהמשך) – להדביק לפני / בזמן ההעלאה" />
       <label className={`btn-ghost w-full text-center block ${busy ? "opacity-60 pointer-events-none" : "cursor-pointer"}`}>
         🎬 העלאת הקלטה מהמכשיר (MP4 / קובץ קול)
         <input type="file" accept="video/*,audio/*,.mp4,.m4a,.mp3" className="hidden" disabled={busy}
