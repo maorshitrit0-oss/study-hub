@@ -103,7 +103,11 @@ input, select, textarea { font-size: max(16px, 1em); }
 /* Formulas: always left-to-right and never broken across lines; a long one scrolls sideways instead. */
 .katex-display { direction: ltr; overflow-x: auto; overflow-y: hidden; padding: .3em 0; font-size: .92em; }
 .katex { direction: ltr; unicode-bidi: isolate; white-space: nowrap; }
-:not(.katex-display) > .katex { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: middle; padding: .1em 0; }
+:not(.katex-display) > .katex { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: middle; padding: .1em 0; scrollbar-width: none; }
+/* no scroll bars under inline formulas (his screenshot 19/11/2026: two bars under "τ = t2 − t1" read like minus signs);
+   a formula wider than the screen still scrolls with the finger */
+:not(.katex-display) > .katex::-webkit-scrollbar { display: none; }
+.katex-display { scrollbar-width: thin; }
 
 /* Formula sheet: two A4 pages when printed (the one double-sided page allowed in the exam). */
 @media print {

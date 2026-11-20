@@ -24,6 +24,26 @@ function mcqOf(q: string, sol: string | null) {
   return options.length >= 2 ? { stem: q.slice(0, first), options, answer } : null;
 }
 
+/** The formula(s) the solution uses, without the substitution or the result (his request 19/11/2026: he does not know
+ *  the formulas by heart and not all are on the formula sheet - he wants the formula, then solves alone). */
+function formulaOf(sol: string | null): string | null {
+  if (!sol) return null;
+  const lines = sol.split("\n");
+  const out: string[] = [];
+  for (let i = 0; i < lines.length && out.length < 4; i++) {
+    const l = lines[i];
+    if (/למה לא/.test(l)) break;  // the wrong-options notes are not formulas
+    if (!/נוסח[הא]|הקשרים|הכלי/.test(l) || /הצבה|תוצאה/.test(l) || /^\s*-/.test(l)) continue;
+    if (l.includes("$")) { out.push(l.replace(/^\*\*\d+\.\s*/, "**").replace(/^#+\s*/, "")); continue; }
+    // "**נוסחה:**" with the formula in one of the next lines
+    for (let j = i + 1; j < Math.min(lines.length, i + 5); j++) {
+      if (/הצבה|תוצאה/.test(lines[j])) break;
+      if (lines[j].includes("$$")) { out.push(lines[j]); i = j; break; }
+    }
+  }
+  return out.length ? out.join("\n\n") : null;
+}
+
 const SOURCE: Record<string, string> = { lesson: "מהשיעור", homework: "שיעורי בית", exam: "מבחן קודם", sheet: "דף תרגילים" };
 
 /** Exercises to solve on paper: the question, the solution hidden until he has tried, and "✓ פתרתי". */
@@ -42,6 +62,12 @@ export default function Exercises({ items, slideUrls = {} }: { items: Exercise[]
               מקור: {x.label ?? SOURCE[x.source] ?? "-"}{x.where ? ` · 📍 ${x.where}` : ""} · {SOURCE[x.source] ?? ""}{x.exam_style ? " · ⭐ סגנון מבחן" : ""}
             </p>
             {x.why && <p className="text-xs text-accent mt-1">🎯 למה עכשיו: {x.why}</p>}
+            {formulaOf(x.solution_md) && (
+              <details className="mt-2 rounded-xl bg-accent-soft p-2">
+                <summary className="cursor-pointer text-sm text-accent">📐 הנוסחה לשאלה (בלי התשובה)</summary>
+                <div className="mt-1"><Chapter md={formulaOf(x.solution_md)!} slideUrls={slideUrls} /></div>
+              </details>
+            )}
             {(() => {
               const m = mcqOf(x.question_md, x.solution_md);
               if (!m) return <div className="mt-2"><Chapter md={x.question_md} slideUrls={slideUrls} /></div>;
