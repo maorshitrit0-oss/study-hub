@@ -682,7 +682,9 @@ def narrate(slides, work):
         wav = tts_one(text, work, 100 + g, allow_edge=False)
         total = media.duration(wav) or 1
         lens = [len(slides[i]["narration"]) for i in idx]
-        cuts = (align_cuts(wav, [slides[i]["narration"].strip() for i in idx]) if len(idx) > 1 else []) or split_points(wav, total, lens)
+        cuts = align_cuts(wav, [slides[i]["narration"].strip() for i in idx]) if len(idx) > 1 else []
+        print(f"align group {g}: {len(idx)} slides, {'by words' if cuts else 'by pauses (fallback)' if len(idx) > 1 else 'one slide'}", flush=True)
+        cuts = cuts or split_points(wav, total, lens)
         bounds = [0.0] + cuts + [total]
         for k, i in enumerate(idx):
             piece = work / f"nar_{i:03d}.wav"
