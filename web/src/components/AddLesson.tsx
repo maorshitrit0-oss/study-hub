@@ -18,6 +18,7 @@ export default function AddLesson({ courseId, userId, nextByKind, isLab }: {
   const [uploading, setUploading] = useState("");
   const [sourcePath, setSourcePath] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   async function upload(file: File | undefined) {
     if (!file) return;
@@ -33,7 +34,7 @@ export default function AddLesson({ courseId, userId, nextByKind, isLab }: {
     : "קישור להקלטת זום / לקובץ בדרייב (עם העלאה מהמכשיר: הקישור נשמר לצפייה)";
 
   return (
-    <form action={action} className="space-y-3">
+    <form ref={formRef} action={action} className="space-y-3">
       <div className="flex gap-2 flex-wrap">
         {KINDS.map(([v, l]) => (
           <label key={v} className={`chip cursor-pointer py-1.5 px-3 ${kind === v ? "!bg-accent !text-white" : ""}`}>
@@ -46,7 +47,10 @@ export default function AddLesson({ courseId, userId, nextByKind, isLab }: {
       {(kind === "lecture" || kind === "practice") && (
         <>
           <input type="hidden" name="source_path" value={sourcePath} />
-          <RecordingUpload userId={userId} courseId={courseId} onDone={setSourcePath} />
+          <RecordingUpload userId={userId} courseId={courseId} onDone={(p) => {
+            setSourcePath(p);
+            setTimeout(() => formRef.current?.requestSubmit(), 50); // adds + processes by itself (20/11/2026)
+          }} />
         </>
       )}
       {kind === "lab" && (

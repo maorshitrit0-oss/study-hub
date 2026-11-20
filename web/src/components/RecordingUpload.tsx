@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 const LIMIT = 48 * 1024 * 1024; // the storage takes up to 50 MB a file
@@ -65,7 +65,7 @@ export default function RecordingUpload({ userId, courseId, onDone }: {
       const path = `${userId}/sources/${courseId}/${Date.now()}_${stem}.mp4`;
       const { error } = await supabaseBrowser().storage.from("study").upload(path, blob, { contentType: "video/mp4" });
       if (error) throw new Error(error.message);
-      setMsg(`✓ ${file.name} הועלה – עכשיו "הוספה ועיבוד"`);
+      setMsg(`✓ ${file.name} הועלה – השיעור נוסף והעיבוד מתחיל לבד. אפשר לצאת מהדף.`);
       onDone(path);
     } catch (e) {
       setMsg(`⚠️ ${(e as Error).message}`);
@@ -82,7 +82,7 @@ export default function RecordingUpload({ userId, courseId, onDone }: {
           onChange={(e) => pick(e.target.files?.[0])} />
       </label>
       {msg && <p className="text-sm text-muted">{msg}</p>}
-      {busy && <p className="text-xs text-muted">לא לסגור את הדף עד שההעלאה מסתיימת.</p>}
+      {busy && <p className="text-xs text-muted">להשאיר את הדף פתוח רק עד ש-✓ מופיע; אחרי זה הכל קורה לבד.</p>}
     </div>
   );
 }
@@ -90,10 +90,14 @@ export default function RecordingUpload({ userId, courseId, onDone }: {
 /** The same upload inside a form (a lesson whose Zoom link failed): fills a hidden "source_path" field. */
 export function RecordingField({ userId, courseId }: { userId: string; courseId: string }) {
   const [path, setPath] = useState("");
+  const ref = useRef<HTMLInputElement>(null);
   return (
     <>
-      <input type="hidden" name="source_path" value={path} />
-      <RecordingUpload userId={userId} courseId={courseId} onDone={setPath} />
+      <input ref={ref} type="hidden" name="source_path" value={path} />
+      <RecordingUpload userId={userId} courseId={courseId} onDone={(p) => {
+        setPath(p);
+        setTimeout(() => ref.current?.form?.requestSubmit(), 50); // saves by itself (his wish: only upload the file)
+      }} />
     </>
   );
 }

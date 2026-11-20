@@ -9,12 +9,14 @@ Nothing is deleted: a quiz he already answered is kept (hub.save_chapter), and a
   python queue_runner.py         one pass (time budget)
 """
 import json
+import re
 import os
 import time
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import author
+import course_site
 import hub
 
 BUCKET = "study"
@@ -202,9 +204,48 @@ def unstick(sb):
             print(f"::notice title=Queue::retry {r['id'][:8]} {(r.get('title') or '')[:50]}", flush=True)
 
 
+REC_EXT = (".mp4", ".mov", ".m4v", ".webm", ".mkv", ".m4a", ".mp3", ".wav", ".ogg", ".opus", ".aac")
+
+
+def adopt_uploads(sb):
+    """A recording he uploaded in the app with no lesson yet (his wish 20/11/2026: "I only upload the file - that's it"):
+    becomes the next lecture of its course (a practice when the name says so) and is processed. Files younger than 10
+    minutes are left to the page, which adds the lesson itself."""
+    now = datetime.now(timezone.utc)
+    for c in sb.table("courses").select("id, user_id, name").eq("archived", False).execute().data:
+        folder = f"{c['user_id']}/sources/{c['id']}"
+        try:
+            files = sb.storage.from_(hub.BUCKET).list(folder, {"limit": 100})
+        except Exception:  # noqa: BLE001
+            continue
+        les = sb.table("lessons").select("kind, number, source_path").eq("course_id", c["id"]).execute().data
+        used = {l.get("source_path") for l in les}
+        for f in files or []:
+            name, path = f.get("name") or "", f"{folder}/{f.get('name')}"
+            if not name.lower().endswith(REC_EXT) or path in used:
+                continue
+            made = f.get("created_at") or ""
+            try:
+                if now - datetime.fromisoformat(made.replace("Z", "+00:00")) < timedelta(minutes=10):
+                    continue
+            except ValueError:
+                pass
+            kind = "practice" if re.search(r"תרגול|tirgul|practice|tutorial", name, re.I) else "lecture"
+            number = max([l["number"] or 0 for l in les if l["kind"] == kind] or [0]) + 1
+            row = sb.table("lessons").insert({"user_id": c["user_id"], "course_id": c["id"], "kind": kind, "number": number,
+                                              "source_path": path, "status": "queued", "progress": "הקלטה הועלתה - בתור"}).execute().data[0]
+            les.append({"kind": kind, "number": number, "source_path": path})
+            print(f"::notice title=Upload adopted::{c['name']} {kind} {number} <- {name}: "
+                  f"{course_site.dispatch_inputs('process.yml', {'lesson_id': row['id']})}", flush=True)
+
+
 def run():
     sb = hub.db()
     unstick(sb)
+    try:
+        adopt_uploads(sb)
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning title=Uploads::{str(e)[:200]}", flush=True)
     if quota_blocked(sb):
         # Gemini is out for today: lessons he is waiting for go to Claude (a few a day); fill-ins wait for the reset.
         for r, mode in candidates(sb):
