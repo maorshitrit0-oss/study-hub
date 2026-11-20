@@ -159,7 +159,7 @@ export const VLSI_PROGRAM: Session[] = [
   { week: 3, n: 1, title: "SystemVerilog: module, logic, assign ו-always_comb", goal: "לכתוב רכיב צירופי בשתי דרכים ולבחור ביניהן",
     learn: ["module, פורטים ו-logic", "assign מול always_comb (ולמה else / default)", "בדיקה ממצה בלולאה", "מפענח 7 מקטעים"],
     task: "כותבים מחדש את ה-Mux בשתי דרכים (assign ו-always_comb) ומוודאים בבדיקה ששתיהן נותנות אותה תוצאה.",
-    board: "מפענח 7-segment: ספרה הקסדצימלית מהמתגים על ספרה אחת בתצוגה. קודם מגלים את הקוטביות (מדליקים הכל ב-0 ואז ב-1).",
+    board: "חלק התצוגה של ה-Mini-TPU (בסוף הוא יציג על הלוח מה זוהה: 1 = רחפן, 0 = רעש רקע). היום: מפענח 7-segment – ספרה הקסדצימלית מהמתגים על ספרה אחת בתצוגה. קודם מגלים את הקוטביות (מדליקים הכל ב-0 ואז ב-1). כ-25 שורות קוד שנשארות בפרויקט.",
     interview: [{ q: "מה ההבדל בין logic ל-wire?", src: "ChipVerify - הסבר", url: "https://chipverify.com/systemverilog/systemverilog-data-type-logic" }, { q: "מתי משתמשים ב-always_comb ולא ב-assign?", src: "Verification Academy - דיון", url: "https://verificationacademy.com/forums/t/continuous-assignment-vs-always-comb/32792" }],
     cadence: "SystemVerilog for Design and Verification - סקירה וטיפוסי נתונים" },
   { week: 3, n: 2, title: "always_ff ו-<= מול =", goal: "לכתוב אוגר נכון ולהבין למה non-blocking",

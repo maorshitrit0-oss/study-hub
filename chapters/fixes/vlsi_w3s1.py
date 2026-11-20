@@ -189,18 +189,121 @@ EXS = [
 
 **אם לא עובד:** שום דבר לא נדלק באף מצב → `Messages` (אולי חסרה שורה ב-XDC); ספרה "מבולגנת" בכל המצבים → סדר
 המקטעים בלוח שונה (לרשום איזה מקטע נדלק לכל ביט ולשלוח לי).""", topic="תרגול על הלוח"),
-    dict(title="תרגיל 1 · 🔍 לקרוא ולנחש",
-         question_md="""בלי להריץ:
-1. `mux2_comb` עם `a=1, b=0, s=0` → `y = ?`
-2. `{s, a, b} = 6;` → `s, a, b = ?`
-3. `hex7seg` עם `x = 4'h7` → אילו מקטעים דולקים? מה יוצג?
-4. `top` עם `sw = 8'b1000_0001` → `seg1 = ?`""",
-         solution_md="""1. `s=0` ← ענף ה-`else` ← **y = a = 1**.
-2. 6 = **110** ← s=1, a=1, b=0.
-3. `7'b0000111` ← a, b, c ← **7**.
-4. הספרה 1 ← `pat = 0000110`, `{1'b0, pat} = 00000110`; SW8 (sw[7]) = 1 ← הופכים ← **`11111001`**.""",
-         topic="assign מול always_comb"),
-    dict(title="תרגיל 2 · ✏️ להשלים את החסר – Mux ב-always_comb",
+    dict(title="מה הקוד עושה 1 · Mux ב-always_comb",
+         question_md="""```systemverilog
+always_comb begin
+    if (s)
+        y = b;
+    else
+        y = a;
+end
+```
+מה יהיה `y` כש-`a=1, b=0, s=0`?
+
+**א.** `y = 1`
+
+**ב.** `y = 0`
+
+**ג.** `y = x` (לא מוגדר)
+
+**ד.** נוצר latch ו-`y` שומר את הערך הקודם""",
+         solution_md="""### התשובה: **א** ✅
+
+**הדרך המלאה:**
+1. `always_comb` רץ מחדש בכל שינוי של `a`, `b` או `s`.
+2. `s = 0` ⇐ התנאי `if (s)` שקר ⇐ נכנסים ל-`else`.
+3. `y = a = 1`.
+
+**למה לא האחרות:**
+- **ב** – זה הערך של `b`, שנבחר רק כש-`s = 1`.
+- **ג** – כל הכניסות מוגדרות, ולכן גם המוצא.
+- **ד** – יש `else`, אז `y` מקבל ערך בכל מסלול – אין latch.""", topic="always_comb"),
+    dict(title="מה הקוד עושה 2 · שרשור ביטים",
+         question_md="""```systemverilog
+logic s, a, b;
+initial begin
+    {s, a, b} = 6;
+end
+```
+מה הערכים אחרי ההשמה?
+
+**א.** `s=1, a=1, b=0`
+
+**ב.** `s=0, a=1, b=1`
+
+**ג.** `s=1, a=0, b=1`
+
+**ד.** `s=0, a=0, b=1`""",
+         solution_md="""### התשובה: **א** ✅
+
+**הדרך המלאה:**
+1. `{s, a, b}` מחבר שלושה ביטים למספר אחד: `s` הוא הביט השמאלי (הכי משמעותי), `b` הימני.
+2. 6 בבינארי בשלושה ביטים = `110`.
+3. מחלקים משמאל לימין: `s=1`, `a=1`, `b=0`.
+
+**למה לא האחרות:**
+- **ב** – זה 3 (`011`), סדר הפוך.
+- **ג** – זה 5 (`101`).
+- **ד** – זה 1 (`001`).""", topic="assign מול always_comb"),
+    dict(title="מה הקוד עושה 3 · מפענח 7 מקטעים",
+         question_md="""```systemverilog
+always_comb begin
+    case (x)               //        gfedcba
+        4'h1:    seg = 7'b0000110;
+        4'h7:    seg = 7'b0000111;
+        4'h8:    seg = 7'b1111111;
+        default: seg = 7'b0000000;
+    endcase
+end
+```
+`x = 4'h7`. אילו מקטעים דולקים, ומה מוצג?
+
+**א.** a, b, c – הספרה 7
+
+**ב.** e, f, g – הספרה 7
+
+**ג.** b, c – הספרה 1
+
+**ד.** כל המקטעים – הספרה 8""",
+         solution_md="""### התשובה: **א** ✅
+
+**הדרך המלאה:**
+1. `x = 4'h7` ⇐ השורה `4'h7: seg = 7'b0000111`.
+2. סדר הביטים לפי ההערה: משמאל `g f e d c b a`.
+3. שלושת הביטים הימניים הם 1 ⇐ `c`, `b`, `a` דולקים.
+4. a (למעלה) + b ו-c (הצד הימני) = הצורה של **7**.
+
+**למה לא האחרות:**
+- **ב** – קרא את הביטים מהצד הלא נכון.
+- **ג** – זו השורה של `4'h1`.
+- **ד** – זו השורה של `4'h8`.""", topic="7 מקטעים"),
+    dict(title="מה הקוד עושה 4 · היפוך קוטביות עם מתג",
+         question_md="""```systemverilog
+hex7seg u_dec (.x(sw[3:0]), .seg(pat));
+assign seg1 = sw[7] ? ~{1'b0, pat} : {1'b0, pat};
+```
+(`hex7seg` נותן לספרה 1 את `pat = 7'b0000110`.) מה `seg1` כש-`sw = 8'b1000_0001`?
+
+**א.** `8'b11111001`
+
+**ב.** `8'b00000110`
+
+**ג.** `8'b10000110`
+
+**ד.** `8'b01111001`""",
+         solution_md="""### התשובה: **א** ✅
+
+**הדרך המלאה:**
+1. `sw[3:0] = 0001` ⇐ הספרה 1 ⇐ `pat = 0000110`.
+2. `{1'b0, pat}` = מוסיפים 0 משמאל (הנקודה כבויה) ⇐ `00000110`.
+3. `sw[7]` הוא הביט השמאלי של `sw` = **1** ⇐ בוחרים את ההיפוך `~`.
+4. `~00000110 = 11111001`.
+
+**למה לא האחרות:**
+- **ב** – זה המצב כש-`sw[7] = 0` (בלי היפוך).
+- **ג** – הפך רק את הביט העליון.
+- **ד** – הפך את כל הביטים, אבל של `{1'b1, pat}` – שרשור לא נכון.""", topic="7 מקטעים"),
+    dict(title="🔧 תרגול מעשי 1 · ✏️ להשלים את החסר – Mux ב-always_comb",
          question_md="""```systemverilog
 module mux2_comb (
     input  logic a, b, s,
@@ -218,7 +321,7 @@ endmodule
 
 **עוד תרגול (בדיקה מיידית):** https://hdlbits.01xz.net/wiki/Always_if – אותו Mux בשתי הדרכים, בדיוק כמו היום.""",
          topic="always_comb"),
-    dict(title="תרגיל 3 · 🔧 לשנות – מפענח עם כיבוי",
+    dict(title="🔧 תרגול מעשי 2 · לשנות – מפענח עם כיבוי",
          question_md="""הוסף ל-`hex7seg` כניסה `en`: כש-`en = 0` התצוגה כבויה (כל המקטעים 0), כש-`en = 1` – רגיל.
 רמז: אפשר לעטוף את המפענח הקיים ולהוסיף `assign` אחד.""",
          solution_md="""```systemverilog
@@ -237,7 +340,7 @@ endmodule
 
 💡 **ככה כותבים קוד חדש:** לוקחים רכיב שעובד ועוטפים או משנים דבר אחד.""",
          topic="7 מקטעים"),
-    dict(title="תרגיל 4 · ✍️ לכתוב לבד – XOR בשתי דרכים + בדיקה",
+    dict(title="🔧 תרגול מעשי 3 · ✍️ לכתוב לבד – XOR בשתי דרכים + בדיקה",
          question_md="""כתוב:
 1. `xor_assign` – XOR של שני ביטים עם `assign`.
 2. `xor_comb` – אותו דבר עם `always_comb` ו-`if` (בלי האופרטור `^`).
@@ -252,6 +355,35 @@ endmodule
 **אמור להופיע:** 4 שורות ואז `OK: same truth table` (נבדק ב-Icarus Verilog).""",
          topic="assign מול always_comb"),
 ]
+
+
+def _spread(exs):
+    """The 'what does this code do' answers are written with the right one at א; move it to א/ב/ג/ד in turn."""
+    import re as _re
+    L = "אבגד"
+    out, k = [], 0
+    for x in exs:
+        if not x["title"].startswith("מה הקוד עושה"):
+            out.append(x)
+            continue
+        want = [0, 2, 1, 3][k % 4]
+        k += 1
+        q, sol = x["question_md"], x["solution_md"]
+        first = q.index("\n\n**א.** ")
+        opts = _re.findall(r"\n\n\*\*([אבגד])\.\*\* (.*?)(?=\n\n\*\*[אבגד]\.\*\* |$)", q[first:], _re.S)
+        order = [1, 2, 3]
+        order.insert(want, 0)                         # new position -> old index
+        newq = q[:first] + "".join(f"\n\n**{L[i]}.** {opts[o][1]}" for i, o in enumerate(order))
+        m = {L[o]: L[i] for i, o in enumerate(order)}
+        sol = _re.sub(r"\*\*([אבגד])\*\*", lambda mm: f"**{m[mm.group(1)]}**", sol)
+        lines = sol.split("\n")                       # keep "why not" in א..ד order
+        idx = [i for i, l in enumerate(lines) if _re.match(r"- \*\*[אבגד]\*\* –", l)]
+        if idx:
+            block = sorted((lines[i] for i in idx), key=lambda l: L.index(l[4]))
+            for i, l in zip(idx, block):
+                lines[i] = l
+        out.append(dict(x, question_md=newq, solution_md="\n".join(lines)))
+    return out
 
 
 def main():
@@ -270,7 +402,9 @@ def main():
     data = {"title": "שבוע 3 · מפגש 1: SystemVerilog – module, logic, assign ו-always_comb", "chapter_md": chapter,
             "summary_md": summary, "topics": ["assign מול always_comb", "logic", "7 מקטעים", "Testbench", "Vivado"],
             "glossary": [], "course_facts": [], "syllabus_covered": [], "exam_type": "mcq", "grade_weights": [], "homework": [],
-            "exercises": [dict(x, exam_style=False, uncertain=False) for x in EXS],
+            "exercises": [dict(x, exam_style=False, uncertain=False) for x in _spread(
+                [e for e in EXS if not e["title"].startswith("🔧")] + [e for e in EXS if e["title"].startswith("🔧 תרגול מעשי")]
+                + [e for e in EXS if e["title"].startswith("🔧") and not e["title"].startswith("🔧 תרגול מעשי")])],
             "questions": [dict(question=q, options=o, correct=c, explanation=e, topic=t, difficulty=d) for q, o, c, e, t, d in QUIZ],
             "verification": {"fixes": ["נכתב על ידי Claude בפורמט שאושר (13/11/2026). כל הקוד הורץ ב-Icarus Verilog 12: שני ה-Mux זהים ב-8 הצירופים, המפענח נכון ב-16 הספרות, ה-XOR וגרסת ה-en נכונים. הפינים מ-fpga/pa35t_edu.xdc."],
                              "uncertain": ["קוטביות התצוגה וסדר המקטעים בלוח לא כתובים במדריך – לכן המתגים SW7/SW8 בתרגול על הלוח."]}}
