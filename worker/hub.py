@@ -438,7 +438,9 @@ def save_chapter(job, ch, by):
             and job.course.get("kind") != "self" and not (job.lesson.get("transcript") or "").startswith(author.VLSI_NOTE):
         try:  # the week's exercise set again, now that this lesson has its exercises (weekset.py, 11/11/2026)
             import weekset
-            weekset.run("^" + re.escape(job.course["name"]) + "$")
+            # only a week that has no list yet (20/11/2026: rebuilding every week with Gemini made a publish take
+            # 20+ minutes when the quota was gone; existing weeks are rebuilt by the Saturday run)
+            weekset.run("^" + re.escape(job.course["name"]) + "$", only_missing=True)
         except Exception as e:  # noqa: BLE001
             print(f"::warning title=Week sets::{str(e)[:200]}", flush=True)
     try:  # written in the new structure already: enrich.py must not rewrite it
