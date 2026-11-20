@@ -86,3 +86,14 @@ export default function RecordingUpload({ userId, courseId, onDone }: {
     </div>
   );
 }
+
+/** The same upload inside a form (a lesson whose Zoom link failed): fills a hidden "source_path" field. */
+export function RecordingField({ userId, courseId }: { userId: string; courseId: string }) {
+  const [path, setPath] = useState("");
+  return (
+    <>
+      <input type="hidden" name="source_path" value={path} />
+      <RecordingUpload userId={userId} courseId={courseId} onDone={setPath} />
+    </>
+  );
+}

@@ -12,6 +12,7 @@ import { deleteLesson, markRead, markReadAndGo, pasteTranscript, retryLesson, up
 import Exercises, { type Exercise } from "@/components/Exercises";
 import Fold from "@/components/Fold";
 import SelfSteps from "@/components/SelfSteps";
+import { RecordingField } from "@/components/RecordingUpload";
 import { LESSON_LABEL, lessonName, isSession, type Lesson } from "@/lib/types";
 import { warmupFor } from "@/lib/warmup";
 import Warmup from "@/components/Warmup";
@@ -203,6 +204,9 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
             {lesson.kind !== "web" && (
               <input className="input" name="url" dir="ltr" inputMode="url" defaultValue={lesson.source_url ?? ""}
                 placeholder="קישור (זום / יוטיוב / דרייב) - קישור חדש מעבד את ההקלטה מחדש" aria-label="קישור" />
+            )}
+            {lesson.status !== "ready" && (lesson.kind === "lecture" || lesson.kind === "practice") && (
+              <RecordingField userId={userId} courseId={lesson.course_id} />
             )}
             <button className="btn w-full">שמירה</button>
           </form>

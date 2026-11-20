@@ -976,6 +976,14 @@ irrelevant lectures"; linear first, then random signals):
   ONE button at its end: 1 quiz (understanding) -> 2 "what does this code do" MCQ -> 3 practical (= today's part of the
   project, written in Vivado) -> "✅ סיימתי את המפגש" (markRead -> session done on /self). The stage he reached is kept
   in localStorage. The earlier anchor buttons jumped to a CLOSED fold, so he saw an empty screen ("לא רשום שם כלום").
+- Recording upload from the device (his request 20/11, "not via Drive"): components/RecordingUpload.tsx on "add lesson"
+  (lecture/practice) and in the edit form of a lesson that is not ready. Over 48 MB the browser shrinks it with
+  ffmpeg.wasm (@ffmpeg/ffmpeg 0.12.15 + core 0.12.10, copied to public/ffmpeg by the postinstall script - same origin
+  for the CSP; script-src has 'wasm-unsafe-eval'; proxy matcher skips /ffmpeg/): keyframes only, a frame every 2 s
+  (5 s if still > 48 MB), 1280 wide, x264 stillimage crf 32, AAC 24k mono 16 kHz. Tested in Chromium under the app's
+  CSP: 3 min / 72 MB -> 2.1 MB in 10 s. Goes to study/<user>/sources/<course>/<time>_<name>.mp4 (name kept: "x2"
+  still slows it back); the worker's source_path path processes it like any recording. The uploaded file is NOT
+  deleted after processing (his rule: no deletion without approval) - asked him.
 - Next.js 16.4.2: the build prints a security-upgrade notice (`next upgrade`); not done - ask him.
 
 Code in quiz questions (18/11/2026, his screenshot: a Java switch written on one line, he got many wrong): codefmt.fix

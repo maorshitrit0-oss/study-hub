@@ -226,13 +226,17 @@ export async function updateLesson(id: string, f: FormData) {
   // Only for a lesson that never finished: a ready chapter (and its transcript) is never thrown away.
   const relink = !!url && url !== before?.source_url && before?.status !== "ready"
     && /zoom\.us\/|drive\.google\.com|docs\.google\.com|youtube\.com\/|youtu\.be\//.test(url);
+  // ...or a recording he uploaded from the device (20/11/2026; the path is his own folder - storage rules check it)
+  const sourcePath = str(f, "source_path");
+  const reupload = !!sourcePath && before?.status !== "ready";
   const { data } = await sb.from("lessons")
     .update({
       number: int(f, "number"), title: str(f, "title"), ...(kind ? { kind } : {}),
       ...(relink ? { source_url: url, status: "queued", error: null, transcript: null, progress: "קישור חדש - בתור" } : {}),
+      ...(reupload ? { source_path: sourcePath, source_url: null, status: "queued", error: null, transcript: null, progress: "הקלטה הועלתה - בתור" } : {}),
     })
     .eq("id", id).select("course_id").single();
-  if (relink) await startLesson(sb, id);
+  if (relink || reupload) await startLesson(sb, id);
   revalidatePath(`/lessons/${id}`);
   if (data) revalidatePath(`/courses/${data.course_id}`);
 }
