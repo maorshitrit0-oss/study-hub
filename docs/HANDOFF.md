@@ -984,6 +984,17 @@ irrelevant lectures"; linear first, then random signals):
   CSP: 3 min / 72 MB -> 2.1 MB in 10 s. Goes to study/<user>/sources/<course>/<time>_<name>.mp4 (name kept: "x2"
   still slows it back); the worker's source_path path processes it like any recording. The uploaded file is NOT
   deleted after processing (his rule: no deletion without approval) - asked him.
+- 20/11 later: uploads add + process by themselves when the file is up (no button; the queue also adopts any
+  uploaded recording without a lesson - queue_runner.adopt_uploads). Next to the file: "watch_url" = the Zoom link,
+  kept as "המקור". "🤷 לא יודע איזה תרגול" (practice, no number) -> hub.match_lecture gives it the number of the
+  lecture whose topics/headings share the most words (none -> next lecture number). File-name titles
+  (hub.looks_like_file) are replaced by the chapter title. publish inspect=retitle (course, kind, number, title).
+- Gemini: 3 free keys now (he added them 20/11; author._keys reads GEMINI_API_KEY with keys split by , / space / new
+  line + secrets GEMINI_API_KEY_2.._4). Lessons before videos; video remakes paused until 21/11 09:00 UTC; a publish
+  builds only the MISSING week list. ping (publish inspect=ping) showed 3 keys answering.
+- Digital: his upload = lecture 5 (Claude wrote it: chapters/fixes/digital_l5.py). TA notebooks "📦 2" (CMOS +
+  sizing) and "📦 3" (logical effort) became practice 5 part A / part B (reorder with "part": true) - his rule: no
+  separate "חומר N", a TA topic goes to the practice of the lecture that teaches it (or the latest one).
 - Next.js 16.4.2: the build prints a security-upgrade notice (`next upgrade`); not done - ask him.
 
 Code in quiz questions (18/11/2026, his screenshot: a Java switch written on one line, he got many wrong): codefmt.fix
