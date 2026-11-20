@@ -1,6 +1,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import remarkBreaks from "remark-breaks";
 import rehypeKatex from "rehype-katex";
 import { fixArabic, promoteLongMath, wrapBareLatex } from "@/lib/math";
 import Wave from "./Wave";
@@ -11,7 +12,7 @@ export default function Chapter({ md, slideUrls }: { md: string; slideUrls: Reco
   return (
     <div className="chapter">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
+        remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
         rehypePlugins={[rehypeKatex]}
         urlTransform={(url) => url}
         components={{
@@ -53,7 +54,7 @@ export default function Chapter({ md, slideUrls }: { md: string; slideUrls: Reco
 export function Rich({ text }: { text: string }) {
   return (
     <span className="rich">
-      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]} rehypePlugins={[rehypeKatex]}
         components={{ p: ({ children }) => <span className="block">{children}</span> }}>
         {fixArabic(text)}
       </ReactMarkdown>
