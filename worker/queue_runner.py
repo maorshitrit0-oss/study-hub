@@ -167,6 +167,10 @@ def retry_studio(sb):
     # what is missing comes before what is only made again (a lecture with no video > a nicer video of an old one)
     rows = sorted(stale + rows, key=lambda r: r in redo)
     picks = [r for r in rows if any(w in (r.get("error") or "") for w in ("מכסה", "עמוסים"))]
+    # 20/11/2026: he uploads a whole batch of lectures today - the video remakes wait until tomorrow morning, so all of
+    # Gemini's quota goes to his lessons
+    if datetime.now(timezone.utc) < datetime(2026, 11, 21, 9, 0, tzinfo=timezone.utc):
+        picks = [r for r in picks if r not in redo]
     picks = [r for r in picks if r not in redo][:2] or picks[:1]  # remakes: one at a time, after what is missing
     for m in picks:
         sb.table("lesson_media").update({"status": "queued", "error": None}).eq("id", m["id"]).execute()
