@@ -271,7 +271,7 @@ def build_prompt(course, lesson, transcript, slide_count, previous_topics, mode=
 # Free-tier quotas are per project AND per model (e.g. 20 requests/day on the newest Flash): fall back
 # across models, and across keys when GEMINI_API_KEY holds several comma-separated keys.
 # 2.5 models are gone for new keys (404, Oct 2026); Google names gemini-3.8-flash / gemini-3.5-flash-lite instead.
-WORK_MODELS = ["gemini-flash-latest", "gemini-3.8-flash", "gemini-flash-lite-latest", "gemini-3.5-flash-lite"]
+WORK_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite"]  # the "-latest" aliases answer 404 (21/11/2026)
 
 
 def _list(v):
