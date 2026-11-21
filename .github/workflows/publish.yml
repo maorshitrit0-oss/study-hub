@@ -81,6 +81,7 @@ jobs:
           if [ "$INSPECT" = "lab-lessons" ]; then python hub.py lab-lessons "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "classex" ]; then python classex.py "$COURSE" && python -c "import hub, weekset, sys; c=hub.find_course(hub.db(), sys.argv[1]); d=weekset.load(hub.db(), c); weekset.run(sys.argv[1])" "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "weekset-drop" ]; then python weekset.py drop "$COURSE" "$NUMBER" "$TITLE"; exit $?; fi
+          if [ "$INSPECT" = "sync-done" ]; then python hub.py sync-done "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "retitle" ]; then python hub.py retitle "$COURSE" "$KIND" "$NUMBER" "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "weekset-set" ]; then python weekset.py set "$COURSE" "$NUMBER" "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "weekset-clean" ]; then python weekset.py clean "$COURSE"; exit $?; fi

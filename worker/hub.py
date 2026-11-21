@@ -418,6 +418,40 @@ def match_lecture(job, ch):
     return max([l["number"] or 0 for l in lectures] or [0]) + 1
 
 
+def cmd_sync_done(skip_rx):
+    """His request 21/11/2026: a week whose lecture(s) AND practice(s) he marked read -> its week-list exercises are
+    marked solved too (he solves them in that flow; the marks were missing). Courses matching skip_rx are left alone
+    (waves: last week's exercises really are not done). Only adds marks - never removes one."""
+    import weekset
+    sb = db()
+    now = datetime.now(timezone.utc).isoformat()
+    skip = re.compile(skip_rx) if skip_rx else None
+    for c in sb.table("courses").select("id, name, user_id, kind").eq("archived", False).execute().data:
+        if c.get("kind") in ("lab", "self") or (skip and skip.search(c["name"] or "")):
+            continue
+        weeks = weekset.load(sb, c).get("weeks", {})
+        les = sb.table("lessons").select("kind, number, title, read_at, status").eq("course_id", c["id"]).execute().data
+        sessions = any((l.get("title") or "").startswith("מפגש ") for l in les)
+        total = 0
+        for k, w in weeks.items():
+            if not k.isdigit():
+                continue
+            n = int(k)
+            mine = [l for l in les if l.get("number") == n and l.get("status") == "ready" and not (l.get("title") or "").startswith("📦")
+                    and ((l.get("title") or "").startswith("מפגש ") if sessions else l["kind"] in ("lecture", "practice"))]
+            if not mine or not all(l.get("read_at") for l in mine):
+                continue
+            if not sessions and not {"lecture", "practice"} <= {l["kind"] for l in mine}:
+                continue  # both the lecture and the practice of the week, read
+            ids = list(w.get("practice", [])) + [e["id"] for e in w.get("exam", [])]
+            if ids:
+                got = sb.table("exercises").update({"done_at": now}).in_("id", ids).is_("done_at", "null").execute().data
+                total += len(got)
+                if got:
+                    print(f"::notice title=Synced::{c['name']} week {n}: +{len(got)} solved", flush=True)
+        print(f"::notice title=Sync::{c['name']}: {total} marked", flush=True)
+
+
 def cmd_retitle(match, kind, number, title):
     """A lesson's title by hand (e.g. an uploaded file's name)."""
     sb = db()
@@ -1439,6 +1473,7 @@ if __name__ == "__main__":
     sub.add_parser("flat")
     sub.add_parser("stuck")
     sub.add_parser("ping")
+    p = sub.add_parser("sync-done"); p.add_argument("skip", nargs="?", default="")
     p = sub.add_parser("retitle"); p.add_argument("match"); p.add_argument("kind"); p.add_argument("number"); p.add_argument("title")
     sub.add_parser("tts")
     sub.add_parser("studio-retry")
@@ -1527,6 +1562,8 @@ if __name__ == "__main__":
         cmd_tts()
     elif a.cmd == "retitle":
         cmd_retitle(a.match, a.kind, a.number, a.title)
+    elif a.cmd == "sync-done":
+        cmd_sync_done(a.skip)
     elif a.cmd == "ping":
         cmd_ping()
     elif a.cmd == "stuck":
