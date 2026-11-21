@@ -490,6 +490,16 @@ def save_chapter(job, ch, by):
     except Exception as e:  # noqa: BLE001
         print(f"structure mark not saved: {e}")
     print(f"published: {count}", flush=True)
+    num = fields.get("number") or job.lesson.get("number")
+    if job.lesson["kind"] == "practice" and num:  # a second practice N (e.g. his upload matched to lecture N): ONE
+        other = [l for l in job.sb.table("lessons").select("id, created_at").eq("course_id", job.course["id"])
+                 .eq("kind", "practice").eq("number", num).execute().data if l["id"] != job.lesson["id"]]
+        if other:  # his rule 21/11/2026: "practice 5 once, not three times" - merged into the older one
+            tmp = Path(tempfile.mkdtemp()) / "merge.json"
+            tmp.write_text(json.dumps([{"merge": [job.lesson["id"]], "into": sorted(other, key=lambda l: l["created_at"])[0]["id"]}]),
+                           encoding="utf-8")
+            cmd_reorder("^" + re.escape(job.course["name"]) + "$", tmp)
+            return
     auto_studio(job)
     if (job.lesson.get("transcript") or "").startswith(course_site.SITE_NOTE) or os.environ.get("QUIET"):
         return  # last year's material from the course site / a background fill: no push for each

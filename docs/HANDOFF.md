@@ -1004,6 +1004,10 @@ irrelevant lectures"; linear first, then random signals):
   5 part C; week 6 dropped. Practice 5 also holds NAND/NOR sizing + logical effort (not taught yet - left out of the
   week lists). Comm week 5 = 63280649 (DSB-SC, rewritten 5 parts) + SSB + spectrum (manual). Video sync verified:
   "align group N: by words" in every group. fetch.sh/keys had to be rebuilt (scratchpad cleared with the container).
+- ONE lesson per practice N (his screenshot 21/11: "practice 5 three times"): reorder op {"merge": [ids], "into": id,
+  "title"} appends chapters + summaries, moves exercises and questions, and hides the parts ("📦 (שולב ב...)" titles are
+  filtered out of the course list). save_chapter merges a newly published practice N into an existing practice N by
+  itself. Digital practice 5 = parts A+B+C merged (c688ca4a).
 - Next.js 16.4.2: the build prints a security-upgrade notice (`next upgrade`); not done - ask him.
 
 Code in quiz questions (18/11/2026, his screenshot: a Java switch written on one line, he got many wrong): codefmt.fix
