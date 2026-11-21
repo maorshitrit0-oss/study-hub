@@ -995,6 +995,15 @@ irrelevant lectures"; linear first, then random signals):
 - Digital: his upload = lecture 5 (Claude wrote it: chapters/fixes/digital_l5.py). TA notebooks "📦 2" (CMOS +
   sizing) and "📦 3" (logical effort) became practice 5 part A / part B (reorder with "part": true) - his rule: no
   separate "חומר N", a TA topic goes to the practice of the lecture that teaches it (or the latest one).
+- Saturday run 21/11: weekly review +57 understanding questions in 16 read lessons (chapters/fixes/review_q_2111.py;
+  quiz-add now takes [{lesson_id, questions}] - lectures in parts share kind+number). Linear week 2: the lecture-2
+  examples deleted by the 19/11 re-author (b27aa2be, 9f29e3c8) came back as 38a70d7f, 4162a96b (week_fix_2111.py).
+  Digital week 5: V_OL TA question -> MCQ; d15cf3ba (dynamic CMOS, 9-NMOS stack) dropped - not taught, official
+  solution arithmetic wrong (the 3 only comes with the /9 of the stack). His damaged upload (only 19 min readable:
+  media.transcribe_local now decodes what it can; save_slides skips damaged snapshots) was the TA practice -> practice
+  5 part C; week 6 dropped. Practice 5 also holds NAND/NOR sizing + logical effort (not taught yet - left out of the
+  week lists). Comm week 5 = 63280649 (DSB-SC, rewritten 5 parts) + SSB + spectrum (manual). Video sync verified:
+  "align group N: by words" in every group. fetch.sh/keys had to be rebuilt (scratchpad cleared with the container).
 - Next.js 16.4.2: the build prints a security-upgrade notice (`next upgrade`); not done - ask him.
 
 Code in quiz questions (18/11/2026, his screenshot: a Java switch written on one line, he got many wrong): codefmt.fix
