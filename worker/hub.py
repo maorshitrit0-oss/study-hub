@@ -452,6 +452,34 @@ def cmd_sync_done(skip_rx):
         print(f"::notice title=Sync::{c['name']}: {total} marked", flush=True)
 
 
+def cmd_sync_undo(start, end):
+    """Removes ONLY the solved marks that sync-done set in [start, end] (one run = one timestamp); his own marks stay."""
+    sb = db()
+    got = sb.table("exercises").update({"done_at": None}).gte("done_at", start).lte("done_at", end).execute().data
+    print(f"::notice title=Sync undone::{len(got)} marks removed", flush=True)
+
+
+def cmd_done_report():
+    """What HE marked solved (his clicks / right first try): per course and week - and which of them are not in the
+    week lists (the week page then looks unsolved)."""
+    import weekset
+    sb = db()
+    for c in sb.table("courses").select("id, name, user_id, kind").eq("archived", False).execute().data:
+        if c.get("kind") in ("lab", "self"):
+            continue
+        weeks = weekset.load(sb, c).get("weeks", {})
+        where = {i: k for k, w in weeks.items() if k.isdigit() for i in list(w.get("practice", [])) + [e["id"] for e in w.get("exam", [])]}
+        les = {l["id"]: l for l in sb.table("lessons").select("id, kind, number, title").eq("course_id", c["id"]).execute().data}
+        done = sb.table("exercises").select("id, title, lesson_id, done_at").eq("course_id", c["id"]).not_.is_("done_at", "null").execute().data
+        in_list = [x for x in done if x["id"] in where]
+        out = [x for x in done if x["id"] not in where]
+        print(f"::notice title={c['name'][:20]}::{len(done)} solved by him - {len(in_list)} in week lists, {len(out)} not", flush=True)
+        for x in sorted(done, key=lambda x: x["done_at"]):
+            l = les.get(x.get("lesson_id")) or {}
+            print(f"  {x['done_at'][:16]} | {'week ' + where[x['id']] if x['id'] in where else 'NOT IN LIST'} | "
+                  f"{l.get('kind', 'file')} {l.get('number', '')} | {x['title'][:60]}", flush=True)
+
+
 def cmd_retitle(match, kind, number, title):
     """A lesson's title by hand (e.g. an uploaded file's name)."""
     sb = db()
@@ -1473,6 +1501,8 @@ if __name__ == "__main__":
     sub.add_parser("flat")
     sub.add_parser("stuck")
     sub.add_parser("ping")
+    p = sub.add_parser("sync-undo"); p.add_argument("start"); p.add_argument("end")
+    sub.add_parser("done-report")
     p = sub.add_parser("sync-done"); p.add_argument("skip", nargs="?", default="")
     p = sub.add_parser("retitle"); p.add_argument("match"); p.add_argument("kind"); p.add_argument("number"); p.add_argument("title")
     sub.add_parser("tts")
@@ -1564,6 +1594,10 @@ if __name__ == "__main__":
         cmd_retitle(a.match, a.kind, a.number, a.title)
     elif a.cmd == "sync-done":
         cmd_sync_done(a.skip)
+    elif a.cmd == "sync-undo":
+        cmd_sync_undo(a.start, a.end)
+    elif a.cmd == "done-report":
+        cmd_done_report()
     elif a.cmd == "ping":
         cmd_ping()
     elif a.cmd == "stuck":
