@@ -234,9 +234,13 @@ def save_slides(video, scenes, out_dir):
     for n, (start, end) in enumerate(scenes, 1):
         # Snapshot at the end of the scene: the board / slide is in its most complete state.
         p = slide_dir / f"slide_{n:03d}.webp"
-        run_ffmpeg(["-ss", f"{end:.2f}", "-i", str(video), "-frames:v", "1",
-                    "-vf", "scale='min(1280,iw)':-2", "-c:v", "libwebp", "-quality", "70", str(p)])
-        if p.exists():
+        try:
+            run_ffmpeg(["-ss", f"{end:.2f}", "-i", str(video), "-frames:v", "1",
+                        "-vf", "scale='min(1280,iw)':-2", "-c:v", "libwebp", "-quality", "70", str(p)])
+        except subprocess.CalledProcessError:  # a damaged part of the video (20/11/2026): skip this snapshot only
+            print(f"snapshot at {end:.0f}s skipped (damaged video there)", flush=True)
+            continue
+        if p.exists() and p.stat().st_size > 0:
             # Marked in the transcript at the moment it was taken (the scene's end): it shows what was said BEFORE.
             paths.append((n, end, p))
     return paths
