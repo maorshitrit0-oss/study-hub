@@ -50,6 +50,15 @@ const SOURCE: Record<string, string> = { lesson: "מהשיעור", homework: "ש
 export default function Exercises({ items, slideUrls = {} }: { items: Exercise[]; slideUrls?: Record<number, string> }) {
   const [done, setDone] = useState(() => new Set(items.filter((x) => x.done_at).map((x) => x.id)));
   const [picked, setPicked] = useState<Record<string, string>>({});
+  // Another week's list in the same place (week tabs, 21/11/2026: his week 2 looked unsolved after opening week 3
+  // first - the marks of the first list stayed): take the new list's marks.
+  const itemsKey = items.map((x) => x.id + (x.done_at ? "1" : "0")).join(",");
+  const [shownKey, setShownKey] = useState(itemsKey);
+  if (shownKey !== itemsKey) {
+    setShownKey(itemsKey);
+    setDone(new Set(items.filter((x) => x.done_at).map((x) => x.id)));
+    setPicked({});
+  }
   if (!items.length) return <p className="text-sm text-muted">אין תרגילים.</p>;
   return (
     <ol className="space-y-4">
