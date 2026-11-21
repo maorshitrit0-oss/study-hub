@@ -167,9 +167,16 @@ def transcribe_local(audio, log=print):
     model = WhisperModel(LOCAL_MODEL, device="cpu", compute_type="int8",
                          cpu_threads=os.cpu_count() or 4)
     # Decode with our own ffmpeg: faster-whisper's PyAV loader breaks on newer PyAV releases.
-    pcm = subprocess.run([FFMPEG, "-hide_banner", "-loglevel", "error", "-i", str(audio), "-vn",
-                          "-ac", "1", "-ar", "16000", "-f", "s16le", "-"],
-                         capture_output=True, check=True, creationflags=NO_WINDOW).stdout
+    # A damaged part of the file (an upload from 20/11/2026 broke at minute 37): decode what can be read and go on,
+    # instead of losing the whole lecture.
+    r = subprocess.run([FFMPEG, "-hide_banner", "-loglevel", "error", "-err_detect", "ignore_err", "-fflags", "+discardcorrupt",
+                        "-i", str(audio), "-vn", "-ac", "1", "-ar", "16000", "-f", "s16le", "-"],
+                       capture_output=True, creationflags=NO_WINDOW)
+    pcm = r.stdout
+    if r.returncode != 0:
+        if len(pcm) < 16000 * 2 * 60:  # less than a minute of sound: really broken
+            raise RuntimeError("קובץ ההקלטה פגום – אי אפשר לקרוא ממנו את הקול. כדאי להעלות אותו שוב")
+        log(f"⚠️ חלק מהקובץ פגום – מתמלל את {fmt_time(len(pcm) / 32000)} הראשונות שאפשר לקרוא")
     samples = np.frombuffer(pcm, np.int16).astype(np.float32) / 32768.0
     segments, info = model.transcribe(samples, language="he", beam_size=1,
                                       vad_filter=True, condition_on_previous_text=False)
