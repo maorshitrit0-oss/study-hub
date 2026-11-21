@@ -1237,6 +1237,23 @@ def cmd_reorder(match, path):
         return rows
 
     for op in json.loads(Path(path).read_text(encoding="utf-8")):
+        if op.get("merge"):  # {"merge": [id, id], "into": id, "title": "..."} - parts become ONE lesson (21/11/2026)
+            into = sb.table("lessons").select("id, title, chapter_md, summary_md").eq("id", op["into"]).single().execute().data
+            md, summ = [into["chapter_md"] or ""], [into.get("summary_md") or ""]
+            for sid in op["merge"]:
+                src = sb.table("lessons").select("id, title, chapter_md, summary_md").eq("id", sid).single().execute().data
+                head = re.sub(r"^.*?·\s*", "", src["title"] or "")
+                md.append(f"---\n\n# {head}\n\n{src['chapter_md'] or ''}")
+                if src.get("summary_md"):
+                    summ.append(f"---\n\n### {head}\n\n{src['summary_md']}")
+                sb.table("exercises").update({"lesson_id": into["id"]}).eq("lesson_id", sid).execute()
+                sb.table("questions").update({"lesson_id": into["id"]}).eq("lesson_id", sid).execute()
+                sb.table("lessons").update({"kind": "other", "number": None,
+                                            "title": f"📦 (שולב ב{op.get('title') or into['title']}) {src['title']}"}).eq("id", sid).execute()
+            sb.table("lessons").update({"chapter_md": "\n\n".join(md), "summary_md": "\n\n".join(x for x in summ if x),
+                                        "title": op.get("title") or into["title"]}).eq("id", into["id"]).execute()
+            print(f"::notice title=Merge::{len(op['merge'])} parts -> {op.get('title') or into['title']}", flush=True)
+            continue
         if op.get("strip"):
             for r in one(op["strip"]):
                 md = r["chapter_md"] or ""

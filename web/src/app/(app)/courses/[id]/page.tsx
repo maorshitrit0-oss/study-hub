@@ -94,7 +94,8 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
   const mine = open.find((r) => sameCode(r.code, c.code) || r.name === c.name);
   const sofar = totals(gradeRows);
   const need90 = mine ? needed(90, sofar.sum, sofar.credits, open.reduce((a, r) => a + Number(r.credits), 0)) : null;
-  const ls = (lessons ?? []) as Lesson[];
+  // a part merged into another lesson ("📦 (שולב ב...)", his request 21/11/2026: one practice 5, not three) is hidden
+  const ls = ((lessons ?? []) as Lesson[]).filter((l) => !(l.title ?? "").startsWith("📦 (שולב"));
   const merged = await mergedFacts(sb, userId, id, (facts ?? []) as Fact[]);
   const nextByKind = Object.fromEntries(["lecture", "practice", "lab", "other"]
     .map((k) => [k, Math.max(0, ...ls.filter((l) => l.kind === k).map((l) => l.number ?? 0)) + 1]));
