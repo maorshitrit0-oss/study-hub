@@ -1,0 +1,215 @@
+{
+ "title": "הרצאה 5: המרת טיפוסים, השוואת אובייקטים, getClass ו-instanceof, איברים סטטיים, Math/StringBuffer/מחלקות עוטפות",
+ "chapter_md": "# הרצאה 5: המרת טיפוסים, השוואת אובייקטים, תורשה ראשונית, ומחלקות שימושיות (J7–J8)\n\n> 🎯 **במשפט אחד:** מתי Java ממירה טיפוס לבד ומתי צריך לכתוב `(int)` בעצמך, איך משווים אובייקטים (ולמה `==` מטעה), איך אובייקט \"מספר\" מה הוא בזמן ריצה, ותרגול מלא של מחלקה `Car` עם איברים סטטיים ואיברי מופע.\n\n## 1. תזכורת: שני סוגי משתנים\n| סוג | מה הוא מכיל | דוגמה |\n|---|---|---|\n| **פרימיטיבי** | את **הערך** עצמו | `int`, `double`, `float`, `boolean` |\n| **הפניה (reference)** | **כתובת** של אובייקט בזיכרון | `Car`, `String`, מערך |\n\nכל מה שלא פרימיטיבי הוא הפניה.\n\n## 2. המרת טיפוסים (Casting) – פרימיטיביים\n**Casting = המרה מסוג אחד לסוג אחר.**\n\n### 2.1 המרה אוטומטית (implicit) – מקטן לגדול\n```java\nint j = 10;        // 32 ביט, שלם\ndouble d = 6.2;    // 64 ביט, ממשי\nd = j;             // ✓ מותר – אוטומטי\n```\n**למה מותר:** הסוג בצד **שמאל גדול יותר** (64 ביט). כל ערך של `int` נכנס בו **בלי לאבד מידע**, ולכן הקומפיילר עושה את ההמרה לבד.\n\n### 2.2 המרה מפורשת (explicit) – מגדול לקטן\n```java\nd = 40.3;\nj = d;         // ✗ שגיאת קומפילציה – אפשר לאבד מידע\nj = (int) d;   // ✓ מפורש: j = 40 (השבר נחתך)\n```\n- **בלי ה-cast:** הקומפיילר **מסרב** (\"possible lossy conversion\"), ולא נוצר קובץ ה-`.class`.\n- **עם ה-cast:** אתה אומר לקומפיילר \"אני יודע שאני עלול לאבד מידע\". השבר `.3` נחתך.\n\n### 2.3 מלכודת: חילוק של שלמים\n```java\nint x = 5, y = 4;\ndouble d = x / y;           // 1.0  ✗ – החילוק נעשה בשלמים לפני ההשמה\ndouble d = (double) x / y;  // 1.25 ✓ – מספיק להמיר אחד מהם\n```\n**ההסבר:** `x / y` מחושב **קודם**, ושני הצדדים `int`, ולכן זה חילוק שלמים: `1`. רק אחר כך התוצאה הופכת ל-`1.0`. אם ממירים **לפחות אחד** מהם ל-`double`, החילוק כולו נעשה בדיוק של `double`.\n\n### 2.4 עוד מקרה (מהדוגמה של המכוניות)\n```java\ncar1.engine = 1.6;          // ✗ – engine הוא float, ו-1.6 הוא double כברירת מחדל\ncar1.engine = (float) 1.6;  // ✓\n```\nמספר עם נקודה עשרונית הוא `double` כברירת מחדל ב-Java (64 ביט), ו-`float` הוא 32 ביט, ולכן צריך המרה מפורשת. (אפשר גם לכתוב `1.6f`.)\n\n## 3. תורשה – הצצה ראשונה\n**שלוש התכונות של כל שפה מונחית עצמים:**\n1. **כימוס** (Encapsulation)\n2. **תורשה** (Inheritance)\n3. **רב-צורתיות** (Polymorphism) – בהמשך הקורס.\n\n**תורשה במילים:**\n- מחלקה חדשה יכולה **לרשת** ממחלקה קיימת את כל התכונות (משתנים) וההתנהגויות (מתודות), עם המילה השמורה **`extends`**.\n- כותבים רק את מה ש**חדש**.\n\n```java\nclass Car    { String license; void turn(int angle) {...} }\nclass Toyota extends Car { void accelerate(...) {...} }   // יש לה גם license ו-turn\nclass Yaris  extends Toyota { ... }\nclass BMW    extends Car { ... }\n```\n**ההיררכיה:**\n- `Car` למעלה.\n- מתחתיו `Toyota` ו-`BMW`.\n- מתחת ל-`Toyota` – `Yaris`.\n\n**כל מחלקה היא גם סוג (type) של משתנה.**\n\n## 4. המרת טיפוסים – הפניות (לאורך ההיררכיה)\n**אותו כלל כמו בפרימיטיביים:** \"גבוה בהיררכיה\" = \"גדול\".\n\n```java\nCar car = new Car();\nToyota toyo = new Toyota();\n\ncar = toyo;              // ✓ implicit – Car גבוה יותר: \"טויוטה היא סוג של מכונית\"\nCar car2 = new Toyota(); // ✓ משתנה מסוג Car יכול להצביע לאובייקט Toyota\n\ntoyo = car2;             // ✗ שגיאת קומפילציה – Toyota נמוכה יותר מ-Car\ntoyo = (Toyota) car2;    // ✓ explicit\n```\n![המרה בין הפניות על הלוח](slide:21)\n\n> 🔜 המרצה אמר שיש עוד \"ניואנס\" – בדיקה שצריך לעשות לפני המרה מפורשת כזאת (הבדיקה היא `instanceof`, סעיף 7). נרחיב כשנגיע לתורשה ולרב-צורתיות.\n\n## 5. השוואת אובייקטים: `==`\n- **על פרימיטיביים:** `==` ו-`!=` משווים **ערכים**.\n- **על הפניות:** הם בודקים אם **שני הצדדים מצביעים לאותו אובייקט**, כלומר אם הכתובת שווה. הם **לא** משווים את התוכן.\n\n```java\nString str1 = \"Hello\";\nString str2 = str1;            // אותה כתובת\nSystem.out.println(str1 == str2);   // true\n\nstr2 = new String(str1);       // new = אובייקט חדש, אותו תוכן\nSystem.out.println(str1 == str2);   // false!\n```\n![השוואת אובייקטים](slide:28)\n\n**הכלל:** `==` בין הפניות ייתן `true` **רק** אם שתיהן מצביעות **בדיוק לאותו אובייקט**.\n\n> 💡 **כדי להשוות תוכן של מחרוזות** משתמשים ב-`str1.equals(str2)` (הכרנו ב-API של String בהרצאה הקודמת).\n\n## 6. איזה סוג אובייקט זה? `getClass()` (רפלקציה)\n- **לכל אובייקט** ב-Java יש מתודה `getClass()`, גם לאובייקטים של מחלקות שלא כתבנו. היא מחזירה אובייקט מסוג **`Class`** (עם C גדולה).\n- המתודות של `Class` \"מספרות\" מה יש באובייקט:\n  - `getName()` – שם המחלקה.\n  - `getMethods()` – מערך של `Method` עם כל המתודות **הציבוריות** (`public`), כולל אלה שהאובייקט ירש מ-`Object`. מייבאים מ-`java.lang.reflect`.\n- היכולת הזאת נקראת **רפלקציה (Reflection)**, והיא קורית **בזמן ריצה**.\n\n**למה זה שימושי:**\n- עובדים עם מחלקות שכתבו אחרים, או שכתבת לפני שנים ולא זוכר.\n- **אשכול שרתים (cluster):** כמה מחשבים, כל אחד מריץ JVM. מעבירים אובייקטים מ-JVM ל-JVM כדי לחלק עומס (בנק, הרבה לקוחות). ה-JVM שמקבל אובייקט לא בהכרח יודע מה הוא, ו\"מתבונן\" בו כדי לדעת מה להפעיל.\n\n**הדוגמה מהשיעור:**\n```java\nclass Employee {}\nclass VicePresident extends Employee {\n    public void test1() {}\n    public void test2() {}\n}\n// ב-main:\nEmployee emp; VicePresident vp = new VicePresident();\nemp = vp;                                    // implicit casting\nClass cl = emp.getClass();\nSystem.out.println(\"Type of emp is: \" + cl); // class VicePresident  ← הסוג האמיתי של האובייקט!\nMethod[] m = cl.getMethods();\nfor (int i = 0; i < m.length; i++)\n    System.out.println(\"Employee has behavior: \" + m[i].getName());\n```\n![getClass ו-getMethods](slide:44)\n\n**מה למדנו מהדוגמה:**\n- `getClass()` מחזיר את הסוג של **האובייקט** (`VicePresident`), לא את הסוג של **המשתנה** (`Employee`).\n- בהרצה הראשונה `test1` ו-`test2` **לא** הופיעו, כי לא היו `public` (`getMethods` מחזיר רק ציבוריות). אחרי שהוסיף `public` הן הופיעו.\n\n> ℹ️ רפלקציה לא תילמד לעומק בקורס – \"טוב לדעת שזה קיים\".\n\n## 7. האופרטור `instanceof`\nבודק אם **האובייקט** שמשתנה מצביע אליו הוא מסוג מסוים:\n```java\nif (emp instanceof VicePresident)\n    System.out.println(\"Employee is Vice President\");\nelse\n    System.out.println(\"Employee is not\");\n```\n**בדוגמה:** הודפס `is Vice President`, כי `emp` מצביע לאובייקט שנבנה כ-`new VicePresident()`.\n\n## 8. תרגול מלא: אפליקציה עם שתי מחלקות (J7_cars)\n**הרעיון של המרצה:**\n- ב-Java **לא** קופצים ל-`main` לכתוב קוד ברצף כמו ב-C.\n- **קודם מתארים** מה זו מכונית: תכונות, ואז התנהגויות.\n- **מחלקים למתודות קטנות.** זה לא מגדיל את הזיכרון ולא מאט, וזה הופך את הקוד לברור – \"לא פחות חשוב מקוד שרץ נכון\".\n\n### המחלקה `Car` (בחבילה `cars`)\n```java\npublic class Car {\n    String license;                         // מופע (instance)\n    public float engine;                    // מופע – נפח מנוע, למשל 1.6\n    public String color;\n    int speed, temperature;\n    static String msg;                      // סטטי – משותף לכל המכוניות\n\n    public void drive(int sp) {\n        speed = sp;\n        if (speed >= 100) temperature = 120; else temperature = 60;   // נסיעה מהירה מחממת את המנוע\n    }\n    public boolean checkEngine() { return temperature <= 150; }      // false = המנוע לא בסדר\n    public static void sendMessage(String m) { msg = m; }            // \"סדרן המוניות\" – הודעה לכולם\n    public String getMsg() { return msg; }                           // מתודת מופע שקוראת משתנה סטטי – מותר\n    public String getLicense() { return license; }\n    public void setLicense(String s) { license = s; }\n}\n```\n\n**משתני מופע לעומת משתנה סטטי:**\n- **משתני מופע:** לא בתוך מתודה (לכן לא מקומיים), ובלי `static`. הם נוצרים **רק** כשבונים אובייקט ב-`new Car()`, וכל מכונית מקבלת עותק משלה.\n- **`static msg`:** עותק **אחד** בזיכרון, משותף לכל המכוניות. המרצה המשיל אותו לסדרנית של חברת מוניות: היא כותבת הודעה אחת, וכל המוניות רואות אותה מיד.\n\n**מתי מתודה סטטית:**\n- **`sendMessage` סטטית:** היא עובדת רק על המשתנה המשותף, ולא על מכונית מסוימת.\n- **`checkEngine` לא סטטית:** היא בודקת את המנוע של מכונית **מסוימת**.\n- **`getMsg` לא סטטית:** הוא השאיר אותה כמתודת מופע בכוונה, כדי להראות שמתודת מופע יכולה לגשת למשתנה סטטי.\n\n> ⚠️ המרצה נימק את `static` בכך שמתודה רגילה \"משוכפלת בזיכרון לכל אובייקט\" (אלף מכוניות = אלף עותקים). **בפועל ב-Java הקוד של מתודה נשמר פעם אחת בלבד**, גם למתודות מופע. מה שמשוכפל לכל אובייקט הוא **משתני המופע**. הסיבה האמיתית להגדיר `static`: המתודה לא שייכת לאובייקט מסוים, ולכן קוראים לה דרך שם המחלקה (`Car.sendMessage(...)`) בלי צורך באובייקט.\n\n### כלל הגישה (לזכור בעל פה!)\n| מתודה | יכולה לגשת ל... |\n|---|---|\n| **סטטית** (כמו `main`) | איברים **סטטיים בלבד** |\n| **מופע** | איברים **סטטיים וגם** איברי מופע |\n\n**לכן:**\n- כשקראו ל-`init()` מתוך `main` בלי `static`, NetBeans נתן: **`non-static method init() cannot be referenced from a static context`**.\n- **התיקון:** גם `init`, `run` ו-`reportProgress` סטטיות.\n- **גם המשתנים** `car1` ו-`car2` (ואחר כך המערך `cars`) הוגדרו `static`, כי מתודה סטטית צריכה לכתוב אליהם.\n\n### המחלקה `Main`\n```java\npublic class Main {\n    final static int NUMB_CARS = 2;          // קבוע: final static, שם באותיות גדולות\n    static Car[] cars;\n\n    public static void main(String[] args) { init(); run(); reportProgress(); }\n\n    static void init() {\n        cars = new Car[NUMB_CARS];           // קודם בונים את המערך...\n        for (int i = 0; i < NUMB_CARS; i++) cars[i] = new Car();   // ...ואז כל אובייקט\n        cars[0].setLicense(\"XYZ 123\");  cars[1].setLicense(\"ABC 999\");\n        cars[0].engine = (float) 1.6;   cars[1].engine = (float) 2;\n        cars[0].color = \"RED\";          cars[1].color = \"BLUE\";\n    }\n    static void run() {\n        cars[0].drive(45);\n        if (cars[1].checkEngine()) cars[1].drive(90);\n        Car.sendMessage(\"Attention all cars!\");   // מתודה סטטית – דרך שם המחלקה\n    }\n    static void reportProgress() {\n        for (int i = 0; i < NUMB_CARS; i++)\n            System.out.println(\"Car: \" + cars[i].getLicense() + \" received message: \" + cars[i].getMsg());\n    }\n}\n```\n**הפלט:**\n```\nCar: XYZ 123 received message: Attention all cars!\nCar: ABC 999 received message: Attention all cars!\n```\n![הפלט של J7_cars](slide:85)\n\n**מה לקחת מהדוגמה:**\n\n**קבועים ומערכים:**\n- **`final`** = אי אפשר לשנות את הערך אחרי שנקבע. **קבוע** = `final static` + שם באותיות גדולות.\n- **מערך של אובייקטים:** `new Car[2]` בונה רק את **המערך** (שתי הפניות ריקות). כל מכונית צריך לבנות בנפרד ב-`new Car()`.\n\n**קריאה למתודות:**\n- **מתודה סטטית** קוראים דרך **שם המחלקה**: `Car.sendMessage(...)`. אפשר גם דרך הפניה לאובייקט, אבל זה פחות ברור.\n- **ההוכחה שהמשתנה משותף:** שתי מכוניות שונות (לוחיות שונות) מדפיסות **אותה** הודעה.\n\n**גישה ישירה מול מתודות:**\n- מתודה שתפקידה לתת גישה למשתנה (`setLicense`/`getLicense`) מאפשרת להשאיר את המשתנה **לא** `public`.\n- `engine` ו-`color` שונו ישירות רק לשם התרגול – \"בדרך כלל לא עושים את זה\".\n- את מילות הגישה (`public` וכו') נלמד בהרצאה נפרדת. בינתיים שמים `public`.\n\n**חבילות ושגיאות:**\n- `Main` לא הכיר את `Car` כי הוא בחבילה אחרת (`cars`). NetBeans הוסיף `import cars.Car;`. **חבילה** = תיקייה, ונלמד עליה ב-J10.\n- **שגיאת קומפילציה** מצביעה על הקובץ ומספר השורה (`Main.java:61: cannot find symbol` – חסר `s` ב-`cars`). בהמשך נלמד גם על **שגיאות זמן ריצה** (runtime exceptions), שקורות גם אחרי קומפילציה תקינה.\n\n## 9. J8: מחלקות שימושיות שכבר קיימות\n**הרעיון:** להשתמש במה שכבר קיים ב-API.\n\n### `Math`\nאוסף מתודות **סטטיות** (קוראים ישירות: `Math.abs(x)`):\n\n| מתודה | מה היא עושה |\n|---|---|\n| `Math.random()` | מספר אקראי בין 0 ל-1 |\n| `Math.abs` | ערך מוחלט |\n| `Math.max` | הגדול מבין שניים |\n| `Math.ceil` | עיגול כלפי מעלה |\n| פונקציות טריגונומטריות | `sin`, `cos` וכו' |\n\nהמרצה: \"כדאי לעשות היכרות עם ה-API כמה שיותר, כדי להתחיל לעבוד על הפרויקט\".\n\n### `String`\n- **הרבה דרכים ליצור מחרוזת** (בנאים – constructors):\n  - ממערך של `char`.\n  - ממערך של בתים.\n  - מחלק של מערך: מנקודה מסוימת ועד נקודה מסוימת (offset).\n- **מתודות שימושיות:**\n  - `compareTo` – סדר מילוני (לקסיקוגרפי), שימושי למיון מחרוזות.\n  - `concat` – שרשור.\n- **`String` אינה ניתנת לשינוי** אחרי שנבנתה.\n\n### `StringBuffer`\nמחרוזת **שניתן לשנות** (mutable):\n- `append` – מוסיף בסוף.\n- `delete(start, end)` – מוחק קטע מהאמצע.\n\n### מחלקות עוטפות (Wrapper classes)\n- לכל טיפוס פרימיטיבי יש מחלקה ש\"עוטפת\" אותו באובייקט: `Boolean`, `Integer`, `Double`...\n- **למה צריך אותן:**\n  1. **מבני נתונים עובדים על אובייקטים:** למשל `Vector` (כמו מערך שאפשר להגדיל) – `v.add(...)` מקבל אובייקט.\n  2. **מתודות סטטיות שימושיות:** למשל `Integer.parseInt(\"123\")` ממיר מחרוזת למספר.\n\n```java\nVector v = new Vector();\nInteger a1 = new Integer(10);\nv.add(a1);\n```\n\n> ⚠️ המרצה אמר \"אי אפשר לעשות `add` לערך פרימיטיבי\". **מאז Java 5 יש \"אריזה אוטומטית\" (autoboxing):** `v.add(10)` עובד, והקומפיילר עוטף לבד ב-`Integer`. הרעיון נכון (המבנה מחזיק אובייקטים), רק שהעטיפה קורית אוטומטית. (וגם `new Integer(10)` מסומן היום כמיושן; כותבים `Integer.valueOf(10)`.)\n\n### `Object` – ראש ההיררכיה\n- **כל** מחלקה ב-Java יורשת בסוף מ-`Object`, למשל `Integer` ⇐ `Number` ⇐ `Object`.\n- לכן **לכל** אובייקט יש `getClass()` ו-**`toString()`**.\n- כשמדפיסים אובייקט, Java קוראת ל-`toString()` שלו.\n\n> ⚠️ בהקלטה המרצה אמר פעם \"get-string\" – הכוונה ל-**`toString()`**.\n\n## 10. בשבוע הבא\n- מחלקת `System`.\n- **Properties**, עם דוגמה.",
+ "summary_md": "## 🎯 המסר של השיעור\nהמרה מקטן לגדול אוטומטית, מגדול לקטן רק עם `(type)`. זה נכון גם לאובייקטים: \"גבוה בהיררכיה\" = גדול. `==` על אובייקטים בודק **כתובת**, לא תוכן. ומתודה סטטית רואה רק איברים סטטיים.\n\n## 📌 חייבים לזכור\n- **פרימיטיביים:**\n  - `double d = intVar;` ✓\n  - `int j = doubleVar;` ✗ ⇐ `(int) doubleVar` חותך את השבר.\n- **חילוק שלמים:** `5/4` = `1`. `(double)5/4` = `1.25`.\n- **`float`:** `float f = 1.6;` ✗ ⇐ `(float)1.6` או `1.6f`.\n- **הפניות:**\n  - `Car c = new Toyota();` ✓\n  - `Toyota t = c;` ✗ ⇐ `(Toyota) c`\n- **השוואה:**\n  - `==` בין הפניות = **אותו אובייקט**.\n  - `new String(s)` = אובייקט חדש ⇐ `==` נותן `false`.\n  - תוכן משווים עם `equals`.\n- **בזמן ריצה:**\n  - `obj.getClass()` = הסוג **האמיתי** של האובייקט.\n  - `getMethods()` = המתודות ה-`public` (רפלקציה).\n  - `obj instanceof X` = האם האובייקט מסוג `X`.\n- **כלל הגישה:**\n  - סטטי ⇐ רק סטטי.\n  - מופע ⇐ גם וגם.\n  - (\"non-static method cannot be referenced from a static context\")\n- **איברים סטטיים:**\n  - משתנה סטטי = עותק אחד לכל האובייקטים.\n  - מתודה סטטית קוראים דרך שם המחלקה.\n  - קבוע = `final static` באותיות גדולות.\n- **מערך אובייקטים:** `new Car[n]` ואז `new Car()` לכל איבר.\n- **J8:**\n  - `Math` (סטטיות).\n  - `String` (לא משתנה) / `StringBuffer` (משתנה: `append`, `delete`).\n  - מחלקות עוטפות (`Integer.parseInt`).\n  - `Object` בראש – `toString`, `getClass`.\n\n## ⚠️ טעויות נפוצות\n- לחשוב ש-`double d = 5/4;` נותן 1.25.\n- להשוות מחרוזות ב-`==`.\n- לקרוא למתודת מופע מתוך `main` בלי אובייקט.\n- לשכוח לבנות כל אובייקט במערך אחרי `new Car[n]` (אחרת – הפניה ריקה).",
+ "topics": [
+  "המרת טיפוסים",
+  "השוואת אובייקטים",
+  "getClass ו-instanceof",
+  "איברים סטטיים",
+  "מערך אובייקטים",
+  "String ו-StringBuffer",
+  "מחלקות עוטפות",
+  "Object"
+ ],
+ "glossary": [],
+ "course_facts": [],
+ "syllabus_covered": [],
+ "exam_type": "mcq",
+ "grade_weights": [],
+ "homework": [],
+ "exercises": [
+  {
+   "title": "מה מודפס? חילוק שלמים והמרה",
+   "question_md": "```java\nint x = 5, y = 4;\ndouble d1 = x / y;\ndouble d2 = (double) x / y;\ndouble d3 = (double) (x / y);\nSystem.out.println(d1 + \" \" + d2 + \" \" + d3);\n```\nמה הפלט?\n\n**א.** `1.25 1.25 1.25`\n\n**ב.** `1.0 1.25 1.25`\n\n**ג.** `1.0 1.25 1.0`\n\n**ד.** `1 1.25 1`\n\n✍️ *לבחור תשובה, לכתוב במחברת את הדרך – ורק אחר כך לבדוק.*",
+   "solution_md": "### התשובה: **ג** ✅\n\n### 📘 מה צריך לדעת קודם\n\n- ביטוי מחושב **לפני** ההשמה. אם שני הצדדים של `/` הם `int` – חילוק **שלמים** (השבר נזרק).\n- `(double)` חל על מה שמיד אחריו: `(double) x` ממיר רק את `x`; `(double)(x / y)` ממיר את **התוצאה** של חילוק השלמים.\n- `double` מודפס תמיד עם נקודה: `1.0`.\n\n### ✍️ הדרך המלאה (כמו במחברת)\n\n**1.** `d1`: `x / y` = `5 / 4` בשלמים = `1` ⇐ נשמר ב-double ⇐ `1.0`.\n\n**2.** `d2`: `(double) x` = `5.0`, ואז `5.0 / 4` = חילוק ממשי ⇐ `1.25`.\n\n**3.** `d3`: קודם הסוגריים: `x / y` = `1` (שלמים), ואז ההמרה ⇐ `1.0`.\n\n**הפלט:** `1.0 1.25 1.0`.\n\n### ❌ למה לא האחרות\n\n- **א** – רק d2 עושה חילוק ממשי; ב-d1 וב-d3 החילוק נעשה בשלמים.\n- **ב** – ב-d3 ההמרה מגיעה **אחרי** שהחילוק כבר חתך את השבר.\n- **ד** – משתנה double מודפס עם נקודה עשרונית – `1.0`, לא `1`.\n\n💡 **הרעיון:** חשוב **מתי** קורית ההמרה: לפני החילוק (נשמר השבר) או אחריו (השבר כבר אבד).",
+   "topic": "המרת טיפוסים",
+   "exam_style": true,
+   "uncertain": false
+  },
+  {
+   "title": "איזו שורה לא מתקמפלת?",
+   "question_md": "```java\nclass Car {}\nclass Toyota extends Car {}\n...\nCar car = new Car();          // (1)\nToyota toyo = new Toyota();   // (2)\ncar = toyo;                   // (3)\nCar car2 = new Toyota();      // (4)\ntoyo = car2;                  // (5)\n```\nאיזו שורה גורמת לשגיאת קומפילציה?\n\n**א.** שורה (5)\n\n**ב.** שורה (3)\n\n**ג.** שורה (4)\n\n**ד.** כל השורות תקינות\n\n✍️ *לבחור תשובה, לכתוב במחברת את הדרך – ורק אחר כך לבדוק.*",
+   "solution_md": "### התשובה: **א** ✅\n\n### 📘 מה צריך לדעת קודם\n\n- כמו בפרימיטיביים: מותר **אוטומטית** להעביר מ\"קטן\" ל\"גדול\".\n- בהיררכיית מחלקות: **גבוה = גדול**. `Car` גבוה מ-`Toyota` (טויוטה היא סוג של מכונית).\n- הקומפיילר מסתכל על **סוג המשתנה**, לא על האובייקט שהוא מצביע אליו בפועל.\n\n### ✍️ הדרך המלאה (כמו במחברת)\n\n**1.** שורות (1), (2) – בונים אובייקט מהסוג של המשתנה ✓.\n\n**2.** שורה (3): `Car ← Toyota` – מנמוך לגבוה ⇐ implicit ✓.\n\n**3.** שורה (4): משתנה `Car` מצביע לאובייקט `Toyota` ✓ (אותו כלל).\n\n**4.** שורה (5): `Toyota ← Car` – מגבוה לנמוך. הסוג של `car2` הוא `Car`, והקומפיילר לא \"יודע\" שבפועל יש שם טויוטה ⇐ **שגיאה**.\n\n**התיקון:** `toyo = (Toyota) car2;` – המרה מפורשת.\n\n### ❌ למה לא האחרות\n\n- **ב** – Car גבוה מ-Toyota – זו המרה אוטומטית תקינה.\n- **ג** – משתנה מסוג Car יכול להצביע לאובייקט Toyota.\n- **ד** – שורה (5) דורשת `(Toyota)` מפורש.\n\n💡 **הרעיון:** הקומפיילר בודק את **סוג המשתנה**: מטה בהיררכיה ⇐ צריך cast מפורש.",
+   "topic": "המרת טיפוסים",
+   "exam_style": true,
+   "uncertain": false
+  },
+  {
+   "title": "== על מחרוזות",
+   "question_md": "```java\nString s1 = \"Hello\";\nString s2 = s1;\nString s3 = new String(s1);\nSystem.out.println((s1 == s2) + \" \" + (s1 == s3) + \" \" + s1.equals(s3));\n```\nמה הפלט?\n\n**א.** `true true true`\n\n**ב.** `false false true`\n\n**ג.** `true false false`\n\n**ד.** `true false true`\n\n✍️ *לבחור תשובה, לכתוב במחברת את הדרך – ורק אחר כך לבדוק.*",
+   "solution_md": "### התשובה: **ד** ✅\n\n### 📘 מה צריך לדעת קודם\n\n- `==` בין הפניות בודק **אותה כתובת** (אותו אובייקט), לא תוכן.\n- `new` יוצר **תמיד** אובייקט חדש בכתובת חדשה.\n- `equals` של String משווה **תוכן** (תו אחר תו).\n\n### ✍️ הדרך המלאה (כמו במחברת)\n\n**1.** `s2 = s1` – מעתיקים את **הכתובת** ⇐ שניהם מצביעים לאותו אובייקט ⇐ `s1 == s2` הוא `true`.\n\n**2.** `s3 = new String(s1)` – אובייקט **חדש** עם אותו תוכן ⇐ כתובת אחרת ⇐ `s1 == s3` הוא `false`.\n\n**3.** `s1.equals(s3)` – התוכן זהה (\"Hello\") ⇐ `true`.\n\n**הפלט:** `true false true`.\n\n### ❌ למה לא האחרות\n\n- **א** – s3 נבנה ב-new – אובייקט אחר, ולכן == נותן false.\n- **ב** – s2 מקבל את אותה כתובת כמו s1 – == נותן true.\n- **ג** – equals משווה תוכן, והתוכן זהה.\n\n💡 **הרעיון:** `==` = אותו אובייקט; `equals` = אותו תוכן.",
+   "topic": "השוואת אובייקטים",
+   "exam_style": true,
+   "uncertain": false
+  },
+  {
+   "title": "getClass ו-instanceof",
+   "question_md": "```java\nclass Car {}\nclass Toyota extends Car {}\n...\nCar c = new Toyota();\nSystem.out.println((c instanceof Toyota) + \" \" + (c instanceof Car) + \" \"\n                   + c.getClass().getSimpleName());\n```\nמה הפלט?\n\n**א.** `false true Car`\n\n**ב.** `true true Toyota`\n\n**ג.** `true false Toyota`\n\n**ד.** `false true Toyota`\n\n✍️ *לבחור תשובה, לכתוב במחברת את הדרך – ורק אחר כך לבדוק.*",
+   "solution_md": "### התשובה: **ב** ✅\n\n### 📘 מה צריך לדעת קודם\n\n- `instanceof` ו-`getClass()` בודקים את **האובייקט** בזמן ריצה – לא את סוג המשתנה.\n- אובייקט של מחלקה יורשת הוא **גם** מסוג המחלקה שמעליה (טויוטה **היא** מכונית).\n\n### ✍️ הדרך המלאה (כמו במחברת)\n\n**1.** `c` מצביע לאובייקט שנבנה ב-`new Toyota()`.\n\n**2.** `c instanceof Toyota` – האובייקט הוא טויוטה ⇐ `true`.\n\n**3.** `c instanceof Car` – טויוטה יורשת מ-Car, ולכן היא גם Car ⇐ `true`.\n\n**4.** `c.getClass()` – המחלקה **האמיתית** של האובייקט ⇐ `Toyota` (כמו בדוגמה מהשיעור: `emp` מסוג Employee הדפיס `VicePresident`).\n\n**הפלט:** `true true Toyota`.\n\n### ❌ למה לא האחרות\n\n- **א** – getClass ו-instanceof לא מסתכלים על סוג המשתנה (Car) אלא על האובייקט.\n- **ג** – אובייקט Toyota הוא גם Car – instanceof Car נותן true.\n- **ד** – האובייקט נבנה כ-Toyota – instanceof Toyota נותן true.\n\n💡 **הרעיון:** בזמן ריצה Java יודעת מה **האובייקט** באמת – גם אם המשתנה מסוג כללי יותר.",
+   "topic": "getClass ו-instanceof",
+   "exam_style": true,
+   "uncertain": false
+  },
+  {
+   "title": "משתנה סטטי משותף",
+   "question_md": "```java\nclass Car {\n    static String msg;\n    String lic;\n    Car(String l) { lic = l; }\n    static void send(String m) { msg = m; }\n    String get() { return lic + \":\" + msg; }\n}\n...\nCar c1 = new Car(\"A\");\nCar c2 = new Car(\"B\");\nCar.send(\"go\");\nc2.msg = \"stop\";\nSystem.out.println(c1.get() + \" \" + c2.get());\n```\nמה הפלט? (`Car(String l)` הוא \"בנאי\" – מתודה שרצה כשבונים את האובייקט; נלמד עליו בהמשך.)\n\n**א.** `A:go B:stop`\n\n**ב.** `A:stop B:stop`\n\n**ג.** `A:go B:go`\n\n**ד.** `A:null B:stop`\n\n✍️ *לבחור תשובה, לכתוב במחברת את הדרך – ורק אחר כך לבדוק.*",
+   "solution_md": "### התשובה: **ב** ✅\n\n### 📘 מה צריך לדעת קודם\n\n- משתנה **סטטי** קיים **פעם אחת** בזיכרון ומשותף לכל האובייקטים (כמו ההודעה של הסדרנית).\n- אפשר לגשת אליו דרך שם המחלקה או דרך כל הפניה – זה תמיד **אותו** משתנה.\n- `lic` הוא משתנה מופע – לכל מכונית עותק משלה.\n\n### ✍️ הדרך המלאה (כמו במחברת)\n\n**1.** `c1.lic = \"A\"`, `c2.lic = \"B\"` – לכל אחת משלה.\n\n**2.** `Car.send(\"go\")` ⇐ המשתנה המשותף `msg = \"go\"`.\n\n**3.** `c2.msg = \"stop\"` – זה **אותו** `msg` (אין עותק נפרד ל-c2) ⇐ `msg = \"stop\"`.\n\n**4.** `c1.get()` ⇐ `\"A:stop\"`; `c2.get()` ⇐ `\"B:stop\"`.\n\n**הפלט:** `A:stop B:stop`.\n\n### ❌ למה לא האחרות\n\n- **א** – c2.msg לא יוצר עותק פרטי – הוא דורס את המשתנה המשותף, ולכן גם c1 רואה stop.\n- **ג** – השינוי האחרון ל-msg היה stop, והוא משותף לשתיהן.\n- **ד** – msg קיבל ערך לפני ההדפסה (go ואז stop).\n\n💡 **הרעיון:** סטטי = עותק אחד לכולם: שינוי דרך אובייקט אחד נראה בכולם.",
+   "topic": "איברים סטטיים",
+   "exam_style": true,
+   "uncertain": false
+  },
+  {
+   "title": "StringBuffer מול String",
+   "question_md": "```java\nStringBuffer sb = new StringBuffer(\"Java\");\nsb.append(\"Fun\");\nsb.delete(1, 3);\nString s = \"Java\";\ns.concat(\"Fun\");\nSystem.out.println(sb + \" \" + s);\n```\nמה הפלט? (`delete(start, end)` מוחק מהאינדקס `start` ועד לפני `end`.)\n\n**א.** `JavaFun JavaFun`\n\n**ב.** `JaFun JavaFun`\n\n**ג.** `Jun Java`\n\n**ד.** `JaFun Java`\n\n✍️ *לבחור תשובה, לכתוב במחברת את הדרך – ורק אחר כך לבדוק.*",
+   "solution_md": "### התשובה: **ד** ✅\n\n### 📘 מה צריך לדעת קודם\n\n- **StringBuffer** ניתן לשינוי: `append` ו-`delete` משנים את האובייקט עצמו.\n- **String** לא ניתנת לשינוי: `concat` **מחזירה מחרוזת חדשה** ולא משנה את `s`. אם לא שומרים את התוצאה – היא הולכת לאיבוד.\n- אינדקסים מתחילים מ-0.\n\n### ✍️ הדרך המלאה (כמו במחברת)\n\n**1.** `sb = \"Java\"` ⇐ `append(\"Fun\")` ⇐ `\"JavaFun\"`.\n\n**2.** `delete(1, 3)` מוחק את האינדקסים 1 ו-2: `J[a][v]aFun` ⇐ נשאר `\"JaFun\"`.\n\n**3.** `s.concat(\"Fun\")` מחזירה `\"JavaFun\"` חדשה, אבל לא שמרנו אותה ⇐ `s` נשארת `\"Java\"`.\n\n**הפלט:** `JaFun Java`.\n\n### ❌ למה לא האחרות\n\n- **א** – s לא השתנתה – concat מחזירה מחרוזת חדשה ולא שמרנו אותה; וגם ה-delete מחק תווים מ-sb.\n- **ב** – ה-StringBuffer נכון, אבל s לא השתנתה.\n- **ג** – delete(1,3) מוחק את a ו-v (אינדקסים 1-2), לא שלושה תווים.\n\n💡 **הרעיון:** StringBuffer משתנה במקום; String לעולם לא – מתודות שלה מחזירות מחרוזת **חדשה**.",
+   "topic": "String ו-StringBuffer",
+   "exam_style": true,
+   "uncertain": false
+  }
+ ],
+ "questions": [
+  {
+   "question": "למה `double d = j;` (כש-j הוא int) עובר קומפילציה בלי cast?",
+   "options": [
+    "כי double גדול יותר ויכול להכיל כל ערך int בלי לאבד מידע",
+    "כי Java תמיד ממירה לבד בכל כיוון",
+    "כי int ו-double הם אותו סוג",
+    "כי j מאותחל לאפס"
+   ],
+   "correct": 0,
+   "explanation": "המרה מקטן לגדול היא implicit – אין סכנה לאבד מידע.",
+   "topic": "המרת טיפוסים",
+   "difficulty": 1
+  },
+  {
+   "question": "מה בעצם אומר המתכנת לקומפיילר כשהוא כותב `(int) d`?",
+   "options": [
+    "\"אני יודע שאני עלול לאבד מידע (את השבר), ואני לוקח אחריות\"",
+    "\"תעגל את d למספר השלם הקרוב\"",
+    "\"תבדוק בזמן ריצה שאין שבר\"",
+    "\"תשנה את הסוג של d ל-int לתמיד\""
+   ],
+   "correct": 0,
+   "explanation": "cast מפורש = הסכמה לאבד דיוק; השבר נחתך (לא מעוגל), ו-d עצמו לא משתנה.",
+   "topic": "המרת טיפוסים",
+   "difficulty": 1
+  },
+  {
+   "question": "למה `Car c = new Toyota();` תקין, אבל `Toyota t = c;` לא?",
+   "options": [
+    "Car גבוה יותר בהיררכיה; מעבר מגבוה לנמוך דורש cast מפורש",
+    "כי c ריק",
+    "כי Toyota לא יורשת מ-Car",
+    "כי אסור שני משתנים לאותו אובייקט"
+   ],
+   "correct": 0,
+   "explanation": "כמו בפרימיטיביים: מטה בהיררכיה = מגדול לקטן ⇐ `(Toyota) c`.",
+   "topic": "המרת טיפוסים",
+   "difficulty": 1
+  },
+  {
+   "question": "מה בודק `==` כששני הצדדים הם הפניות לאובייקטים?",
+   "options": [
+    "אם שניהם מצביעים לאותו אובייקט בזיכרון",
+    "אם התוכן של האובייקטים זהה",
+    "אם שני האובייקטים מאותה מחלקה",
+    "אם האובייקטים לא ריקים"
+   ],
+   "correct": 0,
+   "explanation": "השוואת כתובות; לתוכן משתמשים ב-equals.",
+   "topic": "השוואת אובייקטים",
+   "difficulty": 1
+  },
+  {
+   "question": "משתנה מסוג Employee מצביע לאובייקט שנבנה ב-`new VicePresident()`. מה יחזיר `getClass()`?",
+   "options": [
+    "VicePresident – הסוג האמיתי של האובייקט",
+    "Employee – הסוג של המשתנה",
+    "Object",
+    "Class"
+   ],
+   "correct": 0,
+   "explanation": "getClass מסתכל על האובייקט בזמן ריצה, כמו בדוגמה מהשיעור.",
+   "topic": "getClass ו-instanceof",
+   "difficulty": 1
+  },
+  {
+   "question": "למה נקבל \"non-static method init() cannot be referenced from a static context\" כשקוראים ל-init() מתוך main?",
+   "options": [
+    "main סטטית, ומתודה סטטית יכולה לגשת רק לאיברים סטטיים",
+    "כי init לא מחזירה ערך",
+    "כי צריך לקרוא ל-init לפני main",
+    "כי init מוגדרת אחרי main בקובץ"
+   ],
+   "correct": 0,
+   "explanation": "סטטי ⇐ רק סטטי; מופע ⇐ גם וגם.",
+   "topic": "איברים סטטיים",
+   "difficulty": 1
+  },
+  {
+   "question": "למה המרצה הגדיר את `sendMessage` כסטטית?",
+   "options": [
+    "היא עובדת רק על המשתנה המשותף msg ולא על מכונית מסוימת",
+    "כי היא מחזירה ערך",
+    "כי רק מתודות סטטיות יכולות לקבל String",
+    "כי סטטי רץ מהר יותר"
+   ],
+   "correct": 0,
+   "explanation": "מתודה שלא שייכת לאובייקט מסוים – קוראים לה דרך המחלקה: `Car.sendMessage(...)`.",
+   "topic": "איברים סטטיים",
+   "difficulty": 1
+  },
+  {
+   "question": "אחרי `cars = new Car[2];` – מה יש במערך?",
+   "options": [
+    "שתי הפניות ריקות; כל מכונית צריך עוד לבנות ב-new Car()",
+    "שתי מכוניות מוכנות",
+    "שני אפסים",
+    "מכונית אחת"
+   ],
+   "correct": 0,
+   "explanation": "בניית מערך של אובייקטים לא בונה את האובייקטים עצמם.",
+   "topic": "מערך אובייקטים",
+   "difficulty": 1
+  },
+  {
+   "question": "מה ההבדל בין String ל-StringBuffer?",
+   "options": [
+    "StringBuffer ניתן לשינוי (append, delete); String לא משתנה אחרי שנבנתה",
+    "אין הבדל",
+    "String ניתנת לשינוי ו-StringBuffer לא",
+    "StringBuffer מחזיק רק מספרים"
+   ],
+   "correct": 0,
+   "explanation": "String אינה ניתנת לשינוי; StringBuffer הוא mutable.",
+   "topic": "String ו-StringBuffer",
+   "difficulty": 1
+  },
+  {
+   "question": "למה יש לכל אובייקט ב-Java את toString() ו-getClass()?",
+   "options": [
+    "כי כל מחלקה יורשת בסוף מ-Object, שמגדירה אותן",
+    "כי צריך לכתוב אותן בכל מחלקה",
+    "כי הן מתודות של String",
+    "רק לאובייקטים של מחלקות עוטפות יש אותן"
+   ],
+   "correct": 0,
+   "explanation": "Object בראש ההיררכיה; כל מחלקה יורשת ממנה.",
+   "topic": "Object",
+   "difficulty": 1
+  }
+ ],
+ "verification": {
+  "fixes": [
+   "נכתב על ידי Claude מהתמלול ומצילומי המסך (Gemini היה עמוס ובלי מכסה). הקוד של J7_cars הועתק מצילומי NetBeans.",
+   "המרצה אמר שמתודת מופע משוכפלת בזיכרון לכל אובייקט – תוקן: קוד של מתודה נשמר פעם אחת; משוכפלים רק משתני המופע.",
+   "המרצה אמר שאי אפשר להוסיף ערך פרימיטיבי ל-Vector – הוסף: מאז Java 5 יש autoboxing (v.add(10) עובד).",
+   "המרצה אמר 'get-string' – הכוונה ל-toString(). המרצה אמר 5/4=1.2 ותיקן ל-1.25.",
+   "הפלט של כל שאלה אמריקאית חושב ידנית; כשיש JDK, check() מריץ את התוכניות ומשווה."
+  ],
+  "uncertain": [
+   "גוף המתודה drive (הטמפרטורה 120 מעל מהירות 100) ו-checkEngine (גבול 150) לפי מה שנאמר בהקלטה – הערכים המדויקים לא נראו בצילום."
+  ]
+ }
+}
