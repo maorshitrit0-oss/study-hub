@@ -1015,6 +1015,13 @@ moves one-line code into a ```java / ```c block, one statement per line, case bo
 applied to all existing questions (publish inspect=quiz-code, title=apply; Java 8, micro 5 - other courses 0) and to
 every new quiz when it is saved (hub, questions insert).
 
+- 21/11 evening: Gemini out of quota + overloaded again (waves lecture 5, 3 h, failed after 55 min). Claude wrote
+  waves lecture 5 (chapters/fixes/waves_l5.py: evanescent wave, RLGC, telegrapher, Gamma, SWR, Z_in, stubs, quarter-wave;
+  open-exam exercises) and Java lecture 5 (chapters/fixes/java_l5.py: casting, ==, getClass/instanceof, static, J8;
+  MCQ outputs verified with javac). Publish input `chapter` must be `chapters/<file>.json`. Dropped the Gemini
+  "-latest" aliases from WORK_MODELS (they answer 404). Still waiting: 4 practices (linear x2, digital, Java) being
+  transcribed by the queue; Gemini retries them after the 10:30 reset, or Claude writes them.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
