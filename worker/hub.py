@@ -726,6 +726,21 @@ def cmd_quiz_add(match, kind, number, path):
     questions). JSON list of {question, options, correct, explanation, topic, difficulty}; a question already there
     (same text) is skipped, so running it again adds nothing."""
     sb = db()
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if data and isinstance(data[0], dict) and "lesson_id" in data[0]:  # [{lesson_id, questions}] - several lessons at once
+        for item in data:            # (21/11/2026: lectures in parts share kind+number, so by id)
+            les = sb.table("lessons").select("id, user_id, course_id, title").eq("id", item["lesson_id"]).execute().data
+            if not les:
+                continue
+            have = {q["question"] for q in sb.table("questions").select("question").eq("lesson_id", les[0]["id"]).execute().data}
+            rows = [{"user_id": les[0]["user_id"], "course_id": les[0]["course_id"], "lesson_id": les[0]["id"],
+                     "topic": q.get("topic"), "question": q["question"], "options": q["options"], "correct": q["correct"],
+                     "explanation": q.get("explanation"), "difficulty": q.get("difficulty", 1)}
+                    for q in item["questions"] if q["question"] not in have]
+            if rows:
+                sb.table("questions").insert(rows).execute()
+            print(f"::notice title=Quiz::{(les[0].get('title') or '')[:40]}: +{len(rows)}", flush=True)
+        return
     course = find_course(sb, match)
     les = sb.table("lessons").select("id, user_id").eq("course_id", course["id"]).eq("kind", kind).eq("number", int(number)).execute().data
     if not les:
@@ -734,7 +749,7 @@ def cmd_quiz_add(match, kind, number, path):
     have = {q["question"] for q in sb.table("questions").select("question").eq("lesson_id", les[0]["id"]).execute().data}
     rows = [{"user_id": les[0]["user_id"], "course_id": course["id"], "lesson_id": les[0]["id"], "topic": q.get("topic"),
              "question": q["question"], "options": q["options"], "correct": q["correct"], "explanation": q.get("explanation"),
-             "difficulty": q.get("difficulty", 2)} for q in json.loads(Path(path).read_text(encoding="utf-8")) if q["question"] not in have]
+             "difficulty": q.get("difficulty", 2)} for q in data if q["question"] not in have]
     if rows:
         sb.table("questions").insert(rows).execute()
     print(f"::notice title=Quiz::{course['name']} {kind} {number}: +{len(rows)} questions ({len(have) + len(rows)} in all)", flush=True)
