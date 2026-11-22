@@ -151,7 +151,7 @@ def retry_studio(sb):
     except Exception:  # noqa: BLE001
         return
     # Only items that stopped on the quota (requested by him or for him); a video waits for the natural Gemini voice.
-    rows = [r for r in rows if names.get(r["course_id"])]
+    rows = [r for r in rows if names.get(r["course_id"]) and r["kind"] == "video"]  # podcasts dropped 22/11/2026
     # not when the same lessons already have a ready one of that kind from the current engine (made after it failed, or
     # after ENGINE_SINCE: the subtitled, synced video he approved 08/11/2026) - a duplicate would waste the voice quota
     redo = [r for r in rows if "נוסחאות שנחתכו" in (r.get("error") or "")]  # studio-redo: made again on purpose
@@ -308,6 +308,20 @@ def run():
             if gemini_down:  # overloaded now: don't spend the run retrying the next lessons - wait and try again
                 why = "busy"
                 break
+    # full coverage / completions (coverage.py, 22/11/2026): only when no lesson of his is waiting, one at a time
+    if why == "empty" and not waiting_lesson:
+        try:
+            import coverage
+            coverage.thursday_alert(sb)
+            while time.time() - start < BUDGET_SEC and coverage.step(sb):
+                done.append("coverage")
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Coverage::{author.friendly_error(e)[:300]}", flush=True)
+            if is_quota(e):
+                block_quota(sb)
+                why = "quota"
+            elif author._is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "עמוסים", "INTERNAL"):
+                why = "busy"
     print(f"::notice title=Queue::{len(done)} done: {'; '.join(done)[:3000] or '-'}", flush=True)
     return why
 

@@ -447,7 +447,7 @@ def run(only=None):
         except Exception as e:  # noqa: BLE001
             print(f"::warning title=Exercises assign {course['name']}::{str(e)[:300]}", flush=True)
         try:
-            reformat(sb, course, start + BUDGET_SEC)
+            pass  # reformat pass frozen 22/11/2026 (rewrote exercises he had solved); reformat(sb, course, start + BUDGET_SEC)
         except Exception as e:  # noqa: BLE001
             print(f"::warning title=Exercises reformat {course['name']}::{str(e)[:300]}", flush=True)
             if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota", "המכסה"):

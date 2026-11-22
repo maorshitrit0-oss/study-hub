@@ -63,6 +63,7 @@ jobs:
           [[ -z "$LESSON_ID" || "$LESSON_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad lesson id"; exit 1; }
           python codelines.py $LESSON_ID
       - name: board snapshots written out in words (Java first)
+        if: false   # frozen 22/11/2026: new chapters (coverage.py) write the boards themselves
         working-directory: worker
         continue-on-error: true
         env:
@@ -77,6 +78,7 @@ jobs:
           [[ -z "$LESSON_ID" || "$LESSON_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::bad lesson id"; exit 1; }
           python boards.py $LESSON_ID
       - working-directory: worker
+        if: false   # frozen 22/11/2026: the restructuring pass rewrote chapters (risk of losing content)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}

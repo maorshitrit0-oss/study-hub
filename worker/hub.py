@@ -353,7 +353,7 @@ AUTO_STUDIO = re.compile(r"גלים ומערכות|VLSI|אקראיים|תקשו�
 # 09/11/2026: every lecture of all his courses (and every self-study / random-signals session) gets a podcast AND a video.
 # 08/11/2026 evening: "הסרטון האחרון שיצרת יצא פגז, ככה אני רוצה מהיום והלאה לכל הרצאה" - the explainer video (subtitles,
 # synced narration) for every new lecture. Podcasts stay manual (he did not ask for them again).
-AUTO_KINDS = ("video", "podcast")
+AUTO_KINDS = ("video",)  # podcasts dropped (his choice 22/11/2026: he watches the videos)
 
 
 WAIT_MSG = "ממתין למכסה של קול Gemini - ייווצר לבד כשתתפנה"
@@ -1352,6 +1352,26 @@ def cmd_merge_repair():
         print(f"::notice title=Merge repair::{into['title'][:50]} <- {head[:40]}: snapshots renumbered", flush=True)
 
 
+
+def cmd_drop_lesson(lesson_id):
+    """Removes one duplicate lesson (his approval, e.g. Java "lecture 6" = practice 6 again, 22/11/2026): its questions,
+    exercises and the lesson row. Only a lesson whose title / transcript duplicate another lesson of the course."""
+    sb = db()
+    l = sb.table("lessons").select("id, course_id, title, transcript").eq("id", lesson_id).execute().data
+    if not l:
+        print("::warning title=Drop::no such lesson", flush=True)
+        return
+    l = l[0]
+    twins = [x for x in sb.table("lessons").select("id, transcript").eq("course_id", l["course_id"]).neq("id", l["id"]).execute().data
+             if (x.get("transcript") or "")[:3000] == (l.get("transcript") or "")[:3000] and x.get("transcript")]
+    if not twins:
+        print("::warning title=Drop::not a duplicate - kept", flush=True)
+        return
+    for t in ("questions", "exercises"):
+        sb.table(t).delete().eq("lesson_id", l["id"]).execute()
+    sb.table("lessons").delete().eq("id", l["id"]).execute()
+    print(f"::notice title=Drop::{l['title'][:60]} removed (duplicate of {twins[0]['id'][:8]})", flush=True)
+
 def cmd_reorder(match, path):
     """Renumbers lessons so that practice N follows lecture N (his request 11/11/2026). JSON list, run in order:
     {"from": "practice 2", "to": "other 2", "title": "..."} moves a lesson (refused if the target exists);
@@ -1537,6 +1557,7 @@ if __name__ == "__main__":
     p = sub.add_parser("process"); p.add_argument("lesson_id"); p.add_argument("--no-author", action="store_true")
     sub.add_parser("queued")
     sub.add_parser("merge-repair")
+    sub.add_parser("drop-lesson").add_argument("lesson_id")
     p = sub.add_parser("fetch"); p.add_argument("lesson_id"); p.add_argument("out_dir")
     p = sub.add_parser("publish"); p.add_argument("lesson_id"); p.add_argument("chapter_json")
     p = sub.add_parser("add"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
@@ -1585,6 +1606,8 @@ if __name__ == "__main__":
     a = ap.parse_args()
     if a.cmd == "process":
         cmd_process(a.lesson_id, not a.no_author)
+    elif a.cmd == "drop-lesson":
+        cmd_drop_lesson(a.lesson_id)
     elif a.cmd == "merge-repair":
         cmd_merge_repair()
     elif a.cmd == "queued":

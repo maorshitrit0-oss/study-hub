@@ -83,6 +83,9 @@ jobs:
           if [ "$INSPECT" = "weekset-drop" ]; then python weekset.py drop "$COURSE" "$NUMBER" "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "sync-undo" ]; then python hub.py sync-undo "${TITLE%%|*}" "${TITLE##*|}"; exit $?; fi
           if [ "$INSPECT" = "merge-repair" ]; then python hub.py merge-repair; exit $?; fi
+          if [ "$INSPECT" = "coverage-list" ]; then python coverage.py --list; exit $?; fi
+          if [ "$INSPECT" = "coverage-step" ]; then python coverage.py; exit $?; fi
+          if [ "$INSPECT" = "drop-lesson" ]; then python hub.py drop-lesson "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "patch" ]; then python boards.py patch "../$CHAPTER"; exit $?; fi
           if [ "$INSPECT" = "boardfix" ]; then python boards.py fix "../$CHAPTER"; exit $?; fi
           if [ "$INSPECT" = "done-report" ]; then python hub.py done-report; exit $?; fi
