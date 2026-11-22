@@ -1043,6 +1043,12 @@ every new quiz when it is saved (hub, questions insert).
 
 ## NEXT TASK (approved 22/11/2026) - do it in a NEW session, cheaply; he must stay under 52% of his weekly Claude limit until Friday
 Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-written chapters, no image montages.
+0. FIRST (approved 22/11): FREEZE new features; trim to the core. KEEP videos (they help him a lot). REMOVE podcasts/audio.
+   Stop: weekly-list rebuilds that replace exercises, chapter/exercise reformat passes. Per-lesson self-check (coverage vs
+   transcript, not cut, board blocks) with automatic retry; notify him only when he must act. Gemini work is spread over
+   days by his timetable and deadlines (never everything in one day). "Stable" = one full week (to Fri 28/11) with no
+   intervention from him. He stays in THIS chat (no new sessions): keep instructions here in HANDOFF, read it, don't
+   reload big transcripts/images.
 1. author.py prompt: full coverage (every topic in order, definitions/derivations/examples/exam hints, no shortening);
    write long lectures in ~40-min transcript parts and join; pick DISTINCT snapshots automatically (image diff, see
    scratchpad distinct.py idea: grayscale 160x90 mean diff > 6) and use all of them; board block = only that snapshot;
