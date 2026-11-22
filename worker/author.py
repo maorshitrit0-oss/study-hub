@@ -381,7 +381,38 @@ def _generate_json(parts, system, schema, thinking="MEDIUM"):
     text = (resp.text or "").strip()
     if text.startswith("```"):
         text = text.strip("`").removeprefix("json").strip()
-    return json.loads(fix_latex_escapes(text))
+    return clean_tree(json.loads(fix_latex_escapes(text)))
+
+
+
+_CTRL = {"\t": "t", "\x08": "b", "\x0c": "f", "\r": "r"}
+_NL_CMD = r"(?=abla|eq\b|u\b|u[_ }$\\^,]|ot\b|orm|i\b|eg\b|ewline|eq[_ ])"
+
+
+def clean_latex(s):
+    r"""After JSON decoding (his screenshots 22/11/2026: "textsin theta", "\\\theta_r" in red on many lessons): a LaTeX
+    command whose backslash turned into a control character (\t -> TAB, \b, \f, \r, \n) or got doubled / tripled is put
+    back as one backslash + its letter. Code blocks are left alone."""
+    if not isinstance(s, str) or not s:
+        return s
+    parts = re.split(r"(```.*?```)", s, flags=re.S)
+    for i in range(0, len(parts), 2):
+        x = parts[i]
+        x = re.sub(r"\\*([\t\x08\x0c\r])(?=[A-Za-z])", lambda m: "\\" + _CTRL[m.group(1)], x)
+        x = re.sub(r"\\+\n" + _NL_CMD, r"\\n", x)
+        x = re.sub(r"\\{2,}(?=[A-Za-z])", r"\\", x)
+        parts[i] = x
+    return "".join(parts)
+
+
+def clean_tree(v):
+    if isinstance(v, str):
+        return clean_latex(v)
+    if isinstance(v, list):
+        return [clean_tree(x) for x in v]
+    if isinstance(v, dict):
+        return {k: clean_tree(x) for k, x in v.items()}
+    return v
 
 
 def fix_latex_escapes(text):

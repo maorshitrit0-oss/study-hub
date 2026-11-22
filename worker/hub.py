@@ -1374,6 +1374,27 @@ def cmd_drop_lesson(lesson_id):
     sb.table("lessons").delete().eq("id", l["id"]).execute()
     print(f"::notice title=Drop::{l['title'][:60]} removed{(' (duplicate of ' + twins[0]['id'][:8] + ')') if twins else ''}", flush=True)
 
+
+def cmd_latex_repair():
+    """Every chapter, summary, exercise and quiz question: broken LaTeX escapes fixed in place (author.clean_latex;
+    his screenshots 22/11/2026). Only rows that change are written."""
+    sb = db()
+    plan = {"lessons": ("chapter_md", "summary_md"), "exercises": ("question_md", "solution_md"),
+            "questions": ("question", "explanation", "options")}
+    for table, cols in plan.items():
+        fixed, start = 0, 0
+        while True:
+            rows = sb.table(table).select("id, " + ", ".join(cols)).order("id").range(start, start + 499).execute().data
+            for r in rows:
+                upd = {c: author.clean_tree(r[c]) for c in cols if r.get(c) and author.clean_tree(r[c]) != r[c]}
+                if upd:
+                    sb.table(table).update(upd).eq("id", r["id"]).execute()
+                    fixed += 1
+            if len(rows) < 500:
+                break
+            start += 500
+        print(f"::notice title=LaTeX::{table}: {fixed} rows fixed", flush=True)
+
 def cmd_reorder(match, path):
     """Renumbers lessons so that practice N follows lecture N (his request 11/11/2026). JSON list, run in order:
     {"from": "practice 2", "to": "other 2", "title": "..."} moves a lesson (refused if the target exists);
@@ -1559,6 +1580,7 @@ if __name__ == "__main__":
     p = sub.add_parser("process"); p.add_argument("lesson_id"); p.add_argument("--no-author", action="store_true")
     sub.add_parser("queued")
     sub.add_parser("merge-repair")
+    sub.add_parser("latex-repair")
     sub.add_parser("drop-lesson").add_argument("lesson_id")
     p = sub.add_parser("fetch"); p.add_argument("lesson_id"); p.add_argument("out_dir")
     p = sub.add_parser("publish"); p.add_argument("lesson_id"); p.add_argument("chapter_json")
@@ -1610,6 +1632,8 @@ if __name__ == "__main__":
         cmd_process(a.lesson_id, not a.no_author)
     elif a.cmd == "drop-lesson":
         cmd_drop_lesson(a.lesson_id)
+    elif a.cmd == "latex-repair":
+        cmd_latex_repair()
     elif a.cmd == "merge-repair":
         cmd_merge_repair()
     elif a.cmd == "queued":
