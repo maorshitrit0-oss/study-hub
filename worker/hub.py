@@ -1357,6 +1357,8 @@ def cmd_drop_lesson(lesson_id):
     """Removes one duplicate lesson (his approval, e.g. Java "lecture 6" = practice 6 again, 22/11/2026): its questions,
     exercises and the lesson row. Only a lesson whose title / transcript duplicate another lesson of the course."""
     sb = db()
+    force = lesson_id.endswith("!")  # he confirmed this one by name (22/11/2026: Java "lecture 6")
+    lesson_id = lesson_id.rstrip("!")
     l = sb.table("lessons").select("id, course_id, title, transcript").eq("id", lesson_id).execute().data
     if not l:
         print("::warning title=Drop::no such lesson", flush=True)
@@ -1364,13 +1366,13 @@ def cmd_drop_lesson(lesson_id):
     l = l[0]
     twins = [x for x in sb.table("lessons").select("id, transcript").eq("course_id", l["course_id"]).neq("id", l["id"]).execute().data
              if (x.get("transcript") or "")[:3000] == (l.get("transcript") or "")[:3000] and x.get("transcript")]
-    if not twins:
+    if not twins and not force:
         print("::warning title=Drop::not a duplicate - kept", flush=True)
         return
     for t in ("questions", "exercises"):
         sb.table(t).delete().eq("lesson_id", l["id"]).execute()
     sb.table("lessons").delete().eq("id", l["id"]).execute()
-    print(f"::notice title=Drop::{l['title'][:60]} removed (duplicate of {twins[0]['id'][:8]})", flush=True)
+    print(f"::notice title=Drop::{l['title'][:60]} removed{(' (duplicate of ' + twins[0]['id'][:8] + ')') if twins else ''}", flush=True)
 
 def cmd_reorder(match, path):
     """Renumbers lessons so that practice N follows lecture N (his request 11/11/2026). JSON list, run in order:
