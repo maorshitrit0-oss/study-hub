@@ -1,0 +1,7 @@
+import fs from 'fs';
+import {unified} from 'unified';import remarkParse from 'remark-parse';import remarkGfm from 'remark-gfm';import remarkMath from 'remark-math';import remarkBreaks from 'remark-breaks';import remarkRehype from 'remark-rehype';import rehypeKatex from 'rehype-katex';
+const proc=unified().use(remarkParse).use(remarkGfm).use(remarkMath).use(remarkBreaks).use(remarkRehype).use(rehypeKatex,{throwOnError:false,strict:'ignore'});
+const CMD=/\\(frac|theta|bar|int|sqrt|begin|end|left|right|text|sum|hat|vec|times|cdot|omega|alpha|beta|gamma|lambda|sigma|mu|epsilon|eta|Delta|delta|approx|le|ge|infty|partial|nabla|mathrm|min|max)\b/g;
+const d=JSON.parse(fs.readFileSync(process.argv[2])); const rows=[];
+for(const c of d) for(const l of c.lessons) for(const f of ['chapter_md','summary_md']){ const md=l[f]; if(!md) continue; const tree=proc.runSync(proc.parse(md)); let txt=''; const walk=(x)=>{ if(x.type==='element'){ const k=(x.properties&&x.properties.className)||[]; if(k.includes('katex')) return; if(x.tagName==='code'||x.tagName==='pre') return;} if(x.type==='text') txt+=x.value+' '; (x.children||[]).forEach(walk); }; walk(tree); const m=txt.match(CMD)||[]; if(m.length) rows.push([m.length,c.course.slice(0,12),l.kind,l.number,f,(txt.match(/.{0,60}\\(frac|theta|text|mu|gamma|left|cdot)\b.{0,60}/g)||[]).slice(0,3).join(" ### ")]); }
+rows.sort((a,b)=>b[0]-a[0]); for(const r of rows.slice(0,25)) console.log(r.join(' | '));

@@ -406,9 +406,60 @@ def clean_latex(s):
         x = re.sub(r"\\\((.+?)\\\)", r"$\1$", x)
         x = re.sub(r"\\\[(.+?)\\\]", r"\n$$\n\1\n$$\n", x, flags=re.S)
         x = "\n".join(_table_math(l) for l in x.split("\n"))
-        x = _fences(x)
+        x = normalize_math(x)
         parts[i] = x
     return "".join(parts)
+
+
+def normalize_math(md):
+    r"""Gemini mixes $$x$, $x$$, $$x$$ inside sentences and formulas alone on a line (waves L5 completions, 22/11/2026).
+    Line by line: real multi-line blocks ($$ / \begin...\end) are kept as fences; inside a sentence every formula is
+    inline $x$; a line that is only one formula becomes a display block on its own lines."""
+    out, fence = [], False
+    for line in re.split(r"\n", md):
+        s = line.strip()
+        if fence:
+            if s == "$$" or s.endswith("$") or re.search(r"\$[\s.,:;|]*$", s):
+                body = re.sub(r"\$+[\s.,:;|]*$", "", s).rstrip()
+                if body:
+                    out.append(re.sub(r"(?<!\\)\\\s*$", r"\\\\", body) if not re.search(r"\\end\{", body) else body)
+                out.append("$$")
+                fence = False
+            else:
+                out.append(re.sub(r"(?<!\\)\\\s*$", r"\\\\", line))
+            continue
+        lead0 = re.match(r"^(\s*(?:[-*]\s+|\d+\.\s+|>\s*)?)", line).group(1)
+        s0 = line[len(lead0):].strip()
+        if s0 == "$$" or (s0.startswith("$$") and s0.count("$") == 2) or re.match(r"^\$+\\begin\{", s0):
+            if lead0.strip():
+                out.append(lead0.rstrip())  # "- $$" : the bullet, then the block
+            out.append("$$")
+            body = s0.lstrip("$").strip()
+            if body:
+                out.append(body)
+            fence = True
+            continue
+        if "$" not in s or s.startswith("```"):
+            out.append(line)
+            continue
+        lead = re.match(r"^(\s*(?:[-*]\s+|\d+\.\s+|>\s*)?)", line).group(1)
+        rest = line[len(lead):]
+        r = re.sub(r"\${2,}", "$", rest)
+        n = len(re.findall(r"(?<!\\)\$", r))
+        only = re.fullmatch(r"\s*\$([^$]+)\$[\s.,:;]*", r)
+        if only and not re.search(r"[\u0590-\u05FF]", only.group(1)) and not lead.strip() and not rest.lstrip().startswith("|"):
+            out += ["$$", only.group(1).strip(), "$$"]
+            continue
+        if n % 2:
+            if r.lstrip().startswith("$") and not re.search(r"[\u0590-\u05FF]", r):
+                out += ([lead.rstrip()] if lead.strip() else []) + ["$$", r.replace("$", "").strip(), "$$"]
+                continue
+            k = r.rfind("$")
+            r = r[:k] + r[k + 1:]
+        out.append(lead + r)
+    if fence:
+        out.append("$$")
+    return "\n".join(out)
 
 
 def _table_math(line):
