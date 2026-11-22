@@ -79,6 +79,7 @@ def save(sb, st):
     sb.storage.from_(BUCKET).upload(STATE, json.dumps(st).encode(), {"content-type": "application/json", "upsert": "true"})
 
 
+INTRO = "> 📌 חומר מהשיעורים שכבר קראת, שהיה חסר בפרקים שלהם. לקרוא לפני השיעור הזה."
 SEC = re.compile(r"^### מתוך (.+?): מה שלא היה בפרק שקראת$", re.M)
 
 
@@ -97,6 +98,9 @@ def dedupe(md):
             seen.add(m.group(1))
         keep.append(p)
     out = "".join(keep)
+    if out.count(INTRO) > 1:  # each insertion used to add the note again (his screenshot 22/11/2026)
+        first = out.index(INTRO) + len(INTRO)
+        out = out[:first] + re.sub(r"\n*" + re.escape(INTRO) + r"\n*", "\n\n", out[first:])
     if not out.rstrip().endswith("<!-- /השלמות -->"):
         out = out.rstrip() + "\n<!-- /השלמות -->"
     return out + "\n\n" + rest
@@ -282,7 +286,7 @@ def step(sb):
             md = ""  # already there (a second run of the same lesson)
         if md:
             sec = f"### מתוך {name}: מה שלא היה בפרק שקראת\n\n{md}"
-            inner = top[len(HEAD):-len("\n<!-- /השלמות -->")].strip() if top else ""
+            inner = top[len(HEAD):-len("\n<!-- /השלמות -->")].replace(INTRO, "").strip() if top else ""
             top = f"{HEAD}\n\n> 📌 חומר מהשיעורים שכבר קראת, שהיה חסר בפרקים שלהם. לקרוא לפני השיעור הזה.\n\n" \
                   f"{(inner + chr(10) * 2) if inner else ''}{sec}\n<!-- /השלמות -->"
             sb.table("lessons").update({"chapter_md": top + "\n\n" + rest}).eq("id", t["id"]).execute()
