@@ -209,9 +209,32 @@ def fix(path):
         print(f"::notice title=Boardfix::{l['kind']} {l['number']} ({lid[:8]}): {done_n} blocks corrected", flush=True)
 
 
+def patch(path):
+    """Replaces a cut / broken part of a chapter: JSON [{lesson_id, start, end, md}] - the text from the first `start`
+    up to (not including) the next `end` becomes md (his screenshot 22/11/2026: a chapter that stopped mid-word).
+    The chapter before is kept as chapter_before_patch.md."""
+    import json
+    sb = db()
+    for f in json.loads(open(path, encoding="utf-8").read()):
+        l = sb.table("lessons").select("id, user_id, chapter_md").eq("id", f["lesson_id"]).execute().data[0]
+        md = l["chapter_md"] or ""
+        i = md.find(f["start"])
+        j = md.find(f["end"], i + 1) if i >= 0 else -1
+        if i < 0 or j < 0:
+            print(f"::warning title=Patch::{f['lesson_id'][:8]}: markers not found", flush=True)
+            continue
+        sb.storage.from_(BUCKET).upload(f"{l['user_id']}/lessons/{l['id']}/chapter_before_patch.md", md.encode("utf-8"),
+                                        {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+        md = md[:i] + f["md"].strip() + "\n\n" + md[j:]
+        sb.table("lessons").update({"chapter_md": md}).eq("id", l["id"]).execute()
+        print(f"::notice title=Patch::{f['lesson_id'][:8]}: {j - i} chars replaced by {len(f['md'])}", flush=True)
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 2 and sys.argv[1] == "dump":
         dump(sys.argv[2])
+    elif len(sys.argv) > 2 and sys.argv[1] == "patch":
+        patch(sys.argv[2])
     elif len(sys.argv) > 2 and sys.argv[1] == "fix":
         fix(sys.argv[2])
     else:

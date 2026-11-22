@@ -473,6 +473,11 @@ def author_with_gemini(course, lesson, transcript, slides, previous_topics, log=
     if is_flat(draft.get("chapter_md")):  # all on one line (Java practice 2, 04/11/2026): write it again
         log("הפרק יצא בלי שורות וכותרות - כותב שוב...")
         draft = validate(_generate_json(sources, system, schema, "MEDIUM"))
+    if is_cut(draft.get("chapter_md") or draft.get("summary_md")):  # stopped mid-word (waves P4 "מערכות מכ", 22/11/2026)
+        log("הפרק נקטע באמצע - כותב שוב...")
+        again = validate(_generate_json(sources, system, schema, "MEDIUM"))
+        if not is_cut(again.get("chapter_md") or again.get("summary_md")):
+            draft = again
     log("בודק את התקציר ופותר מחדש כל תרגיל..." if short else "בודק את הפרק והשאלון מול ההקלטה, השקפים והידע המקצועי...")
     return verify_with_gemini(sources, draft, log, short)
 
@@ -540,6 +545,16 @@ VERIFY_EXERCISES = """
 8. צילומי לוח: ודא שכל ![...](slide:N) מראה בדיוק את הנושא של הטקסט שלידו; צילום של נושא אחר - הזז למקום הנכון או הסר."""
 
 
+def is_cut(md):
+    """A chapter whose last line stops mid-sentence (the model ran out before finishing): ends with a letter, no
+    punctuation, no closing math / code / table / image."""
+    lines = [x.strip() for x in (md or "").strip().splitlines() if x.strip() and not x.strip().startswith("![")]
+    if not lines:
+        return False
+    last = re.sub(r"[-–—\s]+$", "", lines[-1])
+    return len(md) > 300 and not re.search(r"[.!?:;)\]}$`*|>\"'״׳]$", last)
+
+
 def is_flat(md):
     """A chapter squashed onto a few lines: headings, lists and quotes all run together on the page."""
     md = md or ""
@@ -564,7 +579,7 @@ def verify_with_gemini(sources, draft, log=print, short=False):
     # The check re-emits the whole chapter; sometimes squashed onto a few lines or cut short. Then the draft's
     # chapter stays (its quiz/exercise fixes are still taken).
     before, after = draft.get("chapter_md") or "", checked.get("chapter_md") or ""
-    if before and not is_flat(before) and (is_flat(after) or len(after) < 0.7 * len(before)):
+    if before and not is_flat(before) and (is_flat(after) or is_cut(after) or len(after) < 0.7 * len(before)):
         checked["chapter_md"] = before
         log("הבדיקה קיצרה או מחצה את הפרק - נשמר הפרק המקורי")
     v = checked.get("verification") or {}
