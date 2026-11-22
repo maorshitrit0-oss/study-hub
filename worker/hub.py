@@ -1272,8 +1272,12 @@ def cmd_outline(out_dir):
     courses = sb.table("courses").select("id, name").eq("archived", False).execute().data
     out = []
     for c in courses:
-        rows = (sb.table("lessons").select("id, kind, number, title, status, topics, chapter_md, summary_md, progress, created_at, read_at")
+        rows = (sb.table("lessons").select("id, kind, number, title, status, topics, chapter_md, summary_md, progress, created_at, read_at, slide_count, transcript")
                 .eq("course_id", c["id"]).order("created_at").execute().data)
+        for r in rows:  # how much of the lesson reached the chapter (his question 22/11/2026): sizes only, not the transcript
+            tr = r.pop("transcript") or ""
+            r["transcript_chars"] = len(tr)
+            r["transcript_snapshots"] = tr.count("===== שקף")
         out.append({"course": c["name"], "id": c["id"], "lessons": rows})
     Path(out_dir).mkdir(parents=True, exist_ok=True)
     (Path(out_dir) / "outline.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
