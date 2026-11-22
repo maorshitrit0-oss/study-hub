@@ -401,9 +401,36 @@ def clean_latex(s):
         x = re.sub(r"\\*([\t\x08\x0c\r])(?=[A-Za-z])", lambda m: "\\" + _CTRL[m.group(1)], x)
         x = re.sub(r"\\+\n" + _NL_CMD, r"\\n", x)
         x = re.sub(r"\\{2,}(?=[A-Za-z])", r"\\", x)
-        x = re.sub(r"\$\$(.+?)\$\$", _display, x, flags=re.S)
+        x = _fences(x)
         parts[i] = x
     return "".join(parts)
+
+
+def _fences(x):
+    """Display formulas over several lines (his screenshots 22/11/2026: whole paragraphs in red): the page only closes
+    a $$ block on a line of its own, and \\\\ line breaks inside it must keep both backslashes. Line by line, no pairing
+    guesses: a line that opens ($$ + text, odd count) or closes (text + $$) a block is split, and inside a block a line
+    ending in a single backslash gets the second one back."""
+    out, inside = [], False
+    for line in x.split("\n"):
+        s = line.strip()
+        odd = s.count("$$") % 2 == 1
+        if not inside and odd and s.startswith("$$") and s != "$$":
+            out += ["$$", s[2:]]
+            inside = True
+            continue
+        if inside and odd and s.endswith("$$") and s != "$$":
+            out += [re.sub(r"(?<!\\)\\$", r"\\\\", s[:-2].rstrip()), "$$"]
+            inside = False
+            continue
+        if s == "$$":
+            inside = not inside
+            out.append(line)
+            continue
+        if inside:
+            line = re.sub(r"(?<!\\)\\\s*$", r"\\\\", line)
+        out.append(line)
+    return "\n".join(out)
 
 
 def _display(m):
