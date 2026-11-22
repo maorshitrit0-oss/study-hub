@@ -1022,6 +1022,18 @@ every new quiz when it is saved (hub, questions insert).
   "-latest" aliases from WORK_MODELS (they answer 404). Still waiting: 4 practices (linear x2, digital, Java) being
   transcribed by the queue; Gemini retries them after the 10:30 reset, or Claude writes them.
 
+- 22/11 board-text check (his screenshot: "what is written as the board is not what is on the board"): Claude compared all
+  323 "📝 מה כתוב בלוח" blocks with their snapshots (fetch.yml `boards` -> boards.py dump; fixes via publish
+  inspect=boardfix, chapters/boardfix-2211.json; the chapter before is kept as chapter_before_boardfix.md). 169 changed:
+  blocks describing another snapshot (off-by-one in Java L1, merged parts), lines not on the board (Gemini filled in from
+  the transcript), broken $/tables/Arabic letters; dense random-signals whiteboards relabelled "📝 עיקרי הלוח (בתמצית)".
+  ROOT BUG fixed: merging parts (cmd_reorder merge / auto-merge of practice N) kept the part's slide:N references while the
+  joined lesson's snapshots are different -> carry_slides copies them (N -> count+N); merge-repair fixed digital P5, Java
+  P2, linear P2. 18 blocks of micro "web" lessons + VLSI have no snapshot file at all (not checked). author.SLIDES_RULE:
+  the block describes ONLY the snapshot after it.
+- Open: Java f6e454ca "lecture 6" (created 18:08 21/11) is the TA's תרגול 5 again (same code as practice 6 86de22c3) -
+  looks like a duplicate of his upload; digital practice 6 (CMOS VTC) belongs to lecture 5's week. Ask before removing.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
