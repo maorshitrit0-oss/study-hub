@@ -167,6 +167,18 @@ def order_key(l):
     return (l.get("number") or 0, l["kind"] != "lecture", l["created_at"])
 
 
+def study_day(sb, course_id):
+    """Days until the course's next class INCLUDING today (he studies today's course today: waves on Sunday 22/11)."""
+    from datetime import timedelta
+    from zoneinfo import ZoneInfo
+    now = datetime.now(ZoneInfo("Asia/Jerusalem"))
+    days = {s["weekday"] for s in sb.table("schedule_slots").select("weekday").eq("course_id", course_id).execute().data}
+    for k in range(0, 8):
+        if ((now + timedelta(days=k)).weekday() + 1) % 7 in days:
+            return k
+    return 99
+
+
 def todo(sb, st):
     """(lesson, course, target) in the order he needs them; target None = rewrite the lesson itself."""
     courses = {c["id"]: c for c in sb.table("courses").select("id, name").eq("archived", False).execute().data}
@@ -177,7 +189,7 @@ def todo(sb, st):
         if eligible(l):
             by.setdefault(l["course_id"], []).append(l)
     out = []
-    for cid in sorted(by, key=lambda c: hub.next_class(sb, c)):
+    for cid in sorted(by, key=lambda c: study_day(sb, c)):
         ls = sorted(by[cid], key=order_key)
         # completions go to the first unread lesson AFTER the furthest week he has read (waves: read up to lecture 4,
         # in the middle of practice 4 -> they open lecture 5, as he asked)
