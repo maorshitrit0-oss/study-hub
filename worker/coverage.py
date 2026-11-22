@@ -217,7 +217,7 @@ def study_day(sb, course_id):
     from zoneinfo import ZoneInfo
     now = datetime.now(ZoneInfo("Asia/Jerusalem"))
     days = {s["weekday"] for s in sb.table("schedule_slots").select("weekday").eq("course_id", course_id).execute().data}
-    for k in range(0, 8):
+    for k in range(1 if now.hour >= 18 else 0, 8):  # evening: today's class is over, tomorrow's course first
         if ((now + timedelta(days=k)).weekday() + 1) % 7 in days:
             return k
     return 99
@@ -440,4 +440,6 @@ if __name__ == "__main__":
         for l, c, t in todo(s, load(s)):
             print(c["name"][:20], l["kind"], l["number"], "read" if l.get("read_at") else "unread", "->", (t or {}).get("title", "rewrite")[:30])
     else:
-        step(s)
+        for _ in range(int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 1):
+            if not step(s):
+                break
