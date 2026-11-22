@@ -1295,6 +1295,59 @@ def cmd_prepend(match, kind, number, path):
         print(f"::notice title=Note::{kind} {number}: added", flush=True)
 
 
+
+SLIDE_REF = re.compile(r"(!\[[^\]]*\]\(slide:)(\d+)\)")
+
+
+def carry_slides(sb, src, into, md):
+    """A merged part's chapter points at ITS OWN snapshots (slide:N); the lesson it joins has other ones under the same
+    numbers (his remark 22/11/2026: the board text and the picture did not match). Its snapshots are copied after the
+    joining lesson's ones (N -> count + N) and the references follow."""
+    used = sorted({int(m.group(2)) for m in SLIDE_REF.finditer(md)})
+    if not used:
+        return md
+    store = sb.storage.from_(BUCKET)
+    base = into.get("slide_count") or 0
+    for n in used:
+        try:
+            store.copy(f"{src['user_id']}/lessons/{src['id']}/slide_{n:03d}.webp",
+                       f"{into['user_id']}/lessons/{into['id']}/slide_{base + n:03d}.webp")
+        except Exception as e:  # noqa: BLE001 - a snapshot already gone: its reference shows nothing either way
+            print(f"::warning title=Merge slides::{src['id'][:8]} slide {n}: {str(e)[:120]}", flush=True)
+    into["slide_count"] = base + max(used)
+    sb.table("lessons").update({"slide_count": into["slide_count"]}).eq("id", into["id"]).execute()
+    return SLIDE_REF.sub(lambda m: f"{m.group(1)}{base + int(m.group(2))})", md)
+
+
+def cmd_merge_repair():
+    """Lessons merged before carry_slides existed: each merged part's section in the joined chapter still points at
+    the part's own snapshot numbers. Copies them over and renumbers that section (once: a marker file per part)."""
+    sb = db()
+    parts = sb.table("lessons").select("id, user_id, course_id, title, chapter_md, slide_count").like("title", "📦 (שולב ב%") \
+        .execute().data
+    for src in parts:
+        store = sb.storage.from_(BUCKET)
+        mark = f"{src['user_id']}/lessons/{src['id']}/slides_carried"
+        if any(f.get("name") == "slides_carried" for f in store.list(f"{src['user_id']}/lessons/{src['id']}", {"limit": 1000})):
+            continue
+        head = re.sub(r"^.*?·\s*", "", re.sub(r"^📦 \(שולב ב.*?\) ", "", src["title"]))
+        tag = f"---\n\n# {head}\n\n"
+        rows = sb.table("lessons").select("id, user_id, title, chapter_md, slide_count").eq("course_id", src["course_id"]) \
+            .neq("id", src["id"]).execute().data
+        into = next((r for r in rows if tag in (r.get("chapter_md") or "")), None)
+        if not into:
+            print(f"::warning title=Merge repair::{src['title'][:60]}: joined lesson not found", flush=True)
+            continue
+        md = into["chapter_md"]
+        i = md.index(tag) + len(tag)
+        j = md.find("\n---\n\n# ", i)
+        j = len(md) if j < 0 else j
+        part = carry_slides(sb, src, into, md[i:j])
+        sb.table("lessons").update({"chapter_md": md[:i] + part + md[j:]}).eq("id", into["id"]).execute()
+        store.upload(mark, b"1", {"content-type": "text/plain", "upsert": "true"})
+        print(f"::notice title=Merge repair::{into['title'][:50]} <- {head[:40]}: snapshots renumbered", flush=True)
+
+
 def cmd_reorder(match, path):
     """Renumbers lessons so that practice N follows lecture N (his request 11/11/2026). JSON list, run in order:
     {"from": "practice 2", "to": "other 2", "title": "..."} moves a lesson (refused if the target exists);
@@ -1310,12 +1363,12 @@ def cmd_reorder(match, path):
 
     for op in json.loads(Path(path).read_text(encoding="utf-8")):
         if op.get("merge"):  # {"merge": [id, id], "into": id, "title": "..."} - parts become ONE lesson (21/11/2026)
-            into = sb.table("lessons").select("id, title, chapter_md, summary_md").eq("id", op["into"]).single().execute().data
+            into = sb.table("lessons").select("id, user_id, title, chapter_md, summary_md, slide_count").eq("id", op["into"]).single().execute().data
             md, summ = [into["chapter_md"] or ""], [into.get("summary_md") or ""]
             for sid in op["merge"]:
-                src = sb.table("lessons").select("id, title, chapter_md, summary_md").eq("id", sid).single().execute().data
+                src = sb.table("lessons").select("id, user_id, title, chapter_md, summary_md, slide_count").eq("id", sid).single().execute().data
                 head = re.sub(r"^.*?·\s*", "", src["title"] or "")
-                md.append(f"---\n\n# {head}\n\n{src['chapter_md'] or ''}")
+                md.append(f"---\n\n# {head}\n\n{carry_slides(sb, src, into, src['chapter_md'] or '')}")
                 if src.get("summary_md"):
                     summ.append(f"---\n\n### {head}\n\n{src['summary_md']}")
                 sb.table("exercises").update({"lesson_id": into["id"]}).eq("lesson_id", sid).execute()
@@ -1479,6 +1532,7 @@ if __name__ == "__main__":
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("process"); p.add_argument("lesson_id"); p.add_argument("--no-author", action="store_true")
     sub.add_parser("queued")
+    sub.add_parser("merge-repair")
     p = sub.add_parser("fetch"); p.add_argument("lesson_id"); p.add_argument("out_dir")
     p = sub.add_parser("publish"); p.add_argument("lesson_id"); p.add_argument("chapter_json")
     p = sub.add_parser("add"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
@@ -1527,6 +1581,8 @@ if __name__ == "__main__":
     a = ap.parse_args()
     if a.cmd == "process":
         cmd_process(a.lesson_id, not a.no_author)
+    elif a.cmd == "merge-repair":
+        cmd_merge_repair()
     elif a.cmd == "queued":
         cmd_queued()
     elif a.cmd == "fetch":

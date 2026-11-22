@@ -134,7 +134,12 @@ def blocks(md):
         seg = md[prev:m.start()]
         i = seg.rfind("מה כתוב בלוח")
         if i >= 0:
-            start = prev + (seg.rfind("\n", 0, i) + 1)
+            ls = seg.rfind("\n", 0, i) + 1
+            lead = re.sub(r"[*#\s📝]|^\d+\.", "", seg[ls:i])
+            if lead:  # the label sits after other text on its line (e.g. "... **📝 מה כתוב בלוח:**"): keep that text
+                j = seg.rfind("**", ls, i)
+                ls = j if j >= 0 and not re.sub(r"[\s📝]", "", seg[j + 2:i]) else i
+            start = prev + ls
             out.append((int(m.group(1)), start, m.start(), md[start:m.start()]))
         prev = m.end()
     return out
@@ -189,6 +194,11 @@ def fix(path):
                 continue
             n, s, e, _ = hit[0]
             new = f"**{LABEL}:**\n\n{f['md'].strip()}\n\n" if f["md"].strip() else ""
+            if s > 0 and md[s - 1] != "\n":  # mid-line label: the block starts on its own paragraph
+                new = "\n\n" + new if new else "\n\n"
+            if f.get("drop_img"):  # the snapshot shows nothing (a black screen, only a face): it goes too
+                im = IMG.match(md, e)
+                e = im.end() if im else e
             md = md[:s] + new + md[e:]
             done_n += 1
         sb.table("lessons").update({"chapter_md": md}).eq("id", lid).execute()
