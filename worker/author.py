@@ -401,8 +401,19 @@ def clean_latex(s):
         x = re.sub(r"\\*([\t\x08\x0c\r])(?=[A-Za-z])", lambda m: "\\" + _CTRL[m.group(1)], x)
         x = re.sub(r"\\+\n" + _NL_CMD, r"\\n", x)
         x = re.sub(r"\\{2,}(?=[A-Za-z])", r"\\", x)
+        x = re.sub(r"\$\$(.+?)\$\$", _display, x, flags=re.S)
         parts[i] = x
     return "".join(parts)
+
+
+def _display(m):
+    """A display formula over several lines (aligned / cases): $$ on lines of their own, and a line break that lost one
+    of its two backslashes (\\ + newline) gets it back - otherwise the whole block shows as red source text."""
+    body = m.group(1)
+    if "\n" not in body.strip():
+        return m.group(0)
+    body = re.sub(r"(?<!\\)\\[ \t]*\n", r"\\\\\n", body)
+    return "\n$$\n" + body.strip() + "\n$$\n"
 
 
 def clean_tree(v):
