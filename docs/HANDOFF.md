@@ -1041,6 +1041,24 @@ every new quiz when it is saved (hub, questions insert).
   rewrites the thin chapters in full (every topic in order, every distinct board), weeks he already studied first.
   7 chapters are cut mid-sentence (micro L3 + site weeks 2/4/7/9, lab 1) - waiting for his choice.
 
+## NEXT TASK (approved 22/11/2026) - do it in a NEW session, cheaply; he must stay under 52% of his weekly Claude limit until Friday
+Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-written chapters, no image montages.
+1. author.py prompt: full coverage (every topic in order, definitions/derivations/examples/exam hints, no shortening);
+   write long lectures in ~40-min transcript parts and join; pick DISTINCT snapshots automatically (image diff, see
+   scratchpad distinct.py idea: grayscale 160x90 mean diff > 6) and use all of them; board block = only that snapshot;
+   re-ask if chapter < ~15% of transcript or is_cut().
+2. queue job "completions", priority by his timetable (next study day first), new uploads must be ready by Friday:
+   - unread lesson with thin chapter (<15% of transcript, list in outline transcript_chars) -> rewrite fully (backup old,
+     keep exercise done marks);
+   - read lesson -> Gemini writes ONLY what is missing vs transcript (+questions/exercises) -> section
+     "🔁 השלמות מהשבועות הקודמים" at the top of the NEXT UNREAD lesson of that course.
+   - cut chapters (micro L3 + site wk 2/4/7/9, lab 1, VLSI L10) rewritten.
+   Waves first: practice 4 (b22231ed) done by him except exercises; completions of L2-L4 + P3 go before lecture 5 (7d82bca1).
+3. Thursday check -> push notification for anything due Friday not ready.
+4. Delete duplicate Java "lecture 6" f6e454ca (= practice 6 86de22c3) - he approved.
+GitHub Actions: repo is public = unlimited; his "2,000 minutes used" mail is about private repos, harmless.
+Gemini: 3 keys only help if in SEPARATE Google projects (asked him). His Gemini "Plus" student plan gives no API quota.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
