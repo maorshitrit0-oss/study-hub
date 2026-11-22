@@ -60,15 +60,54 @@ SCHEMA = {"type": "object", "properties": {
     "required": ["md"]}
 
 
+_CACHE = {}
+
+
 def load(sb):
-    try:
-        return json.loads(sb.storage.from_(BUCKET).download(STATE).decode())
-    except Exception:  # noqa: BLE001
-        return {"done": {}}
+    """The state, read once per process: storage downloads can be served stale (22/11/2026 the first run read an old
+    copy between steps and wrote lecture 3's completions twice)."""
+    if "st" not in _CACHE:
+        try:
+            _CACHE["st"] = json.loads(sb.storage.from_(BUCKET).download(STATE).decode())
+        except Exception:  # noqa: BLE001
+            _CACHE["st"] = {"done": {}}
+    return _CACHE["st"]
 
 
 def save(sb, st):
+    _CACHE["st"] = st
     sb.storage.from_(BUCKET).upload(STATE, json.dumps(st).encode(), {"content-type": "application/json", "upsert": "true"})
+
+
+SEC = re.compile(r"^### מתוך (.+?): מה שלא היה בפרק שקראת$", re.M)
+
+
+def dedupe(md):
+    """Keeps the first completions section per source lesson in the block at the top."""
+    top, rest = split_head(md)
+    if not top:
+        return md
+    pieces = re.split(r"(?=^### מתוך .+?: מה שלא היה בפרק שקראת$)", top, flags=re.M)
+    seen, keep = set(), []
+    for p in pieces:
+        m = SEC.match(p)
+        if m:
+            if m.group(1) in seen:
+                continue
+            seen.add(m.group(1))
+        keep.append(p)
+    out = "".join(keep)
+    if not out.rstrip().endswith("<!-- /השלמות -->"):
+        out = out.rstrip() + "\n<!-- /השלמות -->"
+    return out + "\n\n" + rest
+
+
+def dedupe_all(sb):
+    for l in sb.table("lessons").select("id, chapter_md").like("chapter_md", HEAD + "%").execute().data:
+        new = dedupe(l["chapter_md"])
+        if new != l["chapter_md"]:
+            sb.table("lessons").update({"chapter_md": new}).eq("id", l["id"]).execute()
+            print(f"::notice title=Coverage::{l['id'][:8]}: duplicate completions removed ({len(l['chapter_md'])} -> {len(new)})", flush=True)
 
 
 def body_of(md):
@@ -239,6 +278,8 @@ def step(sb):
         t = sb.table("lessons").select("id, user_id, chapter_md").eq("id", target["id"]).execute().data[0]
         top, rest = split_head(t.get("chapter_md") or "")
         name = f"{'הרצאה' if l['kind'] == 'lecture' else 'תרגול'} {l.get('number') or ''}"
+        if md and f"### מתוך {name}: מה שלא היה בפרק שקראת" in top:
+            md = ""  # already there (a second run of the same lesson)
         if md:
             sec = f"### מתוך {name}: מה שלא היה בפרק שקראת\n\n{md}"
             inner = top[len(HEAD):-len("\n<!-- /השלמות -->")].strip() if top else ""
@@ -276,7 +317,9 @@ def thursday_alert(sb):
 if __name__ == "__main__":
     import sys
     s = hub.db()
-    if "--list" in sys.argv:
+    if "--dedupe" in sys.argv:
+        dedupe_all(s)
+    elif "--list" in sys.argv:
         for l, c, t in todo(s, load(s)):
             print(c["name"][:20], l["kind"], l["number"], "read" if l.get("read_at") else "unread", "->", (t or {}).get("title", "rewrite")[:30])
     else:
