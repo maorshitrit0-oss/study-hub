@@ -401,9 +401,20 @@ def clean_latex(s):
         x = re.sub(r"\\*([\t\x08\x0c\r])(?=[A-Za-z])", lambda m: "\\" + _CTRL[m.group(1)], x)
         x = re.sub(r"\\+\n" + _NL_CMD, r"\\n", x)
         x = re.sub(r"\\{2,}(?=[A-Za-z])", r"\\", x)
+        x = x.replace("\\text{#", "\\text{\\#")
+        x = re.sub(r"\\\((.+?)\\\)", r"$\1$", x)
+        x = re.sub(r"\\\[(.+?)\\\]", r"\n$$\n\1\n$$\n", x, flags=re.S)
+        x = "\n".join(_table_math(l) for l in x.split("\n"))
         x = _fences(x)
         parts[i] = x
     return "".join(parts)
+
+
+def _table_math(line):
+    """In a table row a | inside a formula (\\right|, |x|) splits the cell and breaks the formula: \\vert instead."""
+    if not line.lstrip().startswith("|") or "$" not in line:
+        return line
+    return re.sub(r"(\$\$?)([^$]+?)\1", lambda m: m.group(1) + re.sub(r"(?<!\\)\|", r"\\vert ", m.group(2)) + m.group(1), line)
 
 
 def _fences(x):
@@ -414,6 +425,17 @@ def _fences(x):
     out, inside = [], False
     for line in x.split("\n"):
         s = line.strip()
+        if not inside and s.startswith("$$") and s.endswith("$$") and len(s) > 4 and s.count("$$") == 2:
+            out += ["$$", s[2:-2].strip(), "$$"]  # "$$x$$" alone on a line opens a block the page never closes
+            continue
+        if inside and s.endswith("$") and not s.endswith("$$") and not s.endswith("\\$"):
+            out += [s[:-1].rstrip(), "$$"]  # a block closed with a single $
+            inside = False
+            continue
+        if inside and re.search(r"[^$]\$[.,:;]$", s):
+            out += [s[:-2].rstrip(), "$$", s[-1]]
+            inside = False
+            continue
         odd = s.count("$$") % 2 == 1
         if not inside and odd and s.startswith("$$") and s != "$$":
             out += ["$$", s[2:]]
