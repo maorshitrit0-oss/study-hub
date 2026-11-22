@@ -17,10 +17,12 @@ export function partOf(l: Pick<Lesson, "title">) {
 }
 
 /** The order he studies them: lecture N (part 1, part 2 ...), then practice N; sessions by their number. */
+const KIND_RANK = (l: Lesson) => (l.kind === "lecture" ? 0 : l.kind === "practice" ? 1 : 2);
+
 export function byMeeting(a: Lesson, b: Lesson) {
   return Number(isSession(a)) - Number(isSession(b))
     || (a.number ?? 999) - (b.number ?? 999)
-    || (a.kind === b.kind ? 0 : a.kind === "lecture" ? -1 : 1)
+    || KIND_RANK(a) - KIND_RANK(b)
     || partOf(a) - partOf(b)
     || a.created_at.localeCompare(b.created_at);
 }

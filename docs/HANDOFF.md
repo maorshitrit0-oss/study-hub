@@ -1059,6 +1059,13 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    - read lesson -> Gemini writes ONLY what is missing vs transcript (+questions/exercises) -> section
      "🔁 השלמות מהשבועות הקודמים" at the top of the NEXT UNREAD lesson of that course.
    - cut chapters (micro L3 + site wk 2/4/7/9, lab 1, VLSI L10) rewritten.
+   CHANGED 22/11 evening (his request: "כל השלמה משלה עם שאלון אמריקאי משלה ותרגילים משלה, לא הכל ביחד"):
+   every completion is now its OWN lesson (kind other, title "🔁 השלמה להרצאה N[ – חלק א/ב]", number = target-1, so the
+   site lists it right before the target; parts cut at ## headings over ~9000 chars). coverage.step() first runs
+   explode_all() (old top-of-chapter blocks -> separate lessons, backup chapter_before_split.md; old block questions stay
+   on the target), then drill(): 5-6 questions + 2-3 exercises per completion lesson, from a hand-written
+   chapters/drills/*.json (course+title match) or else Gemini (exercises marked uncertain). State: coverage.json "drill".
+   Comm completion 1 drill written by Claude; the rest by Gemini. Comm 4A: dB+dBm correction (⚠️) added.
    Waves first: practice 4 (b22231ed) done by him except exercises; completions of L2-L4 + P3 go before lecture 5 (7d82bca1).
 3. Thursday check -> push notification for anything due Friday not ready.
 4. Delete duplicate Java "lecture 6" f6e454ca (= practice 6 86de22c3) - he approved.

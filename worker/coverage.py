@@ -15,6 +15,7 @@ import io
 import json
 import re
 from datetime import datetime
+from pathlib import Path
 
 import author
 import hub
@@ -253,6 +254,9 @@ def step(sb):
     """One lesson. Returns True if something was done (raises on Gemini quota / overload - the caller stops)."""
     st = load(sb)
     st.setdefault("done", {})
+    explode_all(sb)
+    if drill(sb, st):
+        return True
     jobs = todo(sb, st)
     if not jobs:
         return False
@@ -279,21 +283,128 @@ def step(sb):
             print(f"::notice title=Coverage::{course['name']} {l['kind']} {l['number']}: rewritten in full ({len(md)} chars)", flush=True)
     else:
         md, qs = write(sb, l, course, chapter=body_of(l.get("chapter_md") or ""))
-        t = sb.table("lessons").select("id, user_id, chapter_md").eq("id", target["id"]).execute().data[0]
-        top, rest = split_head(t.get("chapter_md") or "")
+        t = sb.table("lessons").select("id, user_id, number, title").eq("id", target["id"]).execute().data[0]
         name = f"{'הרצאה' if l['kind'] == 'lecture' else 'תרגול'} {l.get('number') or ''}"
-        if md and f"### מתוך {name}: מה שלא היה בפרק שקראת" in top:
-            md = ""  # already there (a second run of the same lesson)
         if md:
-            sec = f"### מתוך {name}: מה שלא היה בפרק שקראת\n\n{md}"
-            inner = top[len(HEAD):-len("\n<!-- /השלמות -->")].replace(INTRO, "").strip() if top else ""
-            top = f"{HEAD}\n\n> 📌 חומר מהשיעורים שכבר קראת, שהיה חסר בפרקים שלהם. לקרוא לפני השיעור הזה.\n\n" \
-                  f"{(inner + chr(10) * 2) if inner else ''}{sec}\n<!-- /השלמות -->"
-            sb.table("lessons").update({"chapter_md": top + "\n\n" + rest}).eq("id", t["id"]).execute()
-            add_questions(sb, t, course, qs)
+            make_units(sb, t, course, name, md)  # each completion is its own short lesson (his request 22/11/2026)
         st["done"][l["id"]] = "completion"
         print(f"::notice title=Coverage::{course['name']} {name} -> completions in {target.get('title', '')[:30]} ({len(md)} chars)", flush=True)
     save(sb, st)
+    return True
+
+
+# --- completions as separate short lessons, each with its own quiz and exercises (his request 22/11/2026: "כל השלמה
+# משלה עם שאלון אמריקאי משלה ותרגילים משלה, לא הכל ביחד") ---
+UNIT = "🔁 השלמה ל{name}"
+SPLIT_AT = 9000          # a longer completion is cut into parts (at ## / ### headings)
+HEB = "אבגדהוזחט"
+DRILLS = Path(__file__).resolve().parent.parent / "chapters" / "drills"   # quizzes written by hand (Claude)
+
+
+def chunks(md):
+    """Parts of up to ~SPLIT_AT chars, cut only before a ## heading (a solved exercise stays with its solution)."""
+    secs = re.split(r"(?m)^(?=## )", md.strip())
+    out, cur = [], ""
+    for s in secs:
+        if cur and len(cur) + len(s) > SPLIT_AT and len(cur) > SPLIT_AT / 3:
+            out.append(cur.strip())
+            cur = ""
+        cur += s
+    if cur.strip():
+        out.append(cur.strip())
+    return out
+
+
+def make_units(sb, target, course, name, md):
+    """New lessons (kind other) placed right before `target` in the course list. Existing titles are kept."""
+    ps = chunks(md)
+    tname = f"{target.get('title') or ''}".strip() or "השיעור הבא"
+    for k, p in enumerate(ps):
+        title = UNIT.format(name=name) + (f" – חלק {HEB[k]}" if len(ps) > 1 else "")
+        if sb.table("lessons").select("id").eq("course_id", course["id"]).eq("title", title).execute().data:
+            continue
+        note = f"> 📌 חומר מ{name} שהיה חסר בפרק שלו (שכבר קראת). לקרוא לפני {tname}. בסוף: שאלון ותרגילים על החלק הזה בלבד.\n\n"
+        sb.table("lessons").insert({"user_id": target["user_id"], "course_id": course["id"], "kind": "other",
+                                    "number": max((target.get("number") or 1) - 1, 0), "title": title,
+                                    "status": "ready", "author": "gemini", "chapter_md": note + p}).execute()
+        print(f"::notice title=Coverage::{course['name'][:20]}: {title} ({len(p)} chars)", flush=True)
+
+
+SECTION = re.compile(r"(?m)^### מתוך (.+?): מה שלא היה בפרק שקראת\s*$")
+
+
+def explode(sb, lesson, course):
+    """A completions block on top of a chapter (the old layout) -> separate lessons; the chapter keeps only its own."""
+    top, rest = split_head(lesson.get("chapter_md") or "")
+    if not top:
+        return False
+    sb.storage.from_(BUCKET).upload(f"{lesson['user_id']}/lessons/{lesson['id']}/chapter_before_split.md",
+                                    lesson["chapter_md"].encode(), {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+    inner = top[len(HEAD):-len("\n<!-- /השלמות -->")].replace(INTRO, "")
+    bits = SECTION.split(inner)
+    for name, md in zip(bits[1::2], bits[2::2]):
+        if md.strip():
+            make_units(sb, lesson, course, name.strip(), md)
+    sb.table("lessons").update({"chapter_md": rest}).eq("id", lesson["id"]).execute()
+    return True
+
+
+def explode_all(sb):
+    courses = {c["id"]: c for c in sb.table("courses").select("id, name").execute().data}
+    for l in sb.table("lessons").select("id, user_id, course_id, number, title, chapter_md").like("chapter_md", HEAD + "%").execute().data:
+        if l["course_id"] in courses and explode(sb, l, courses[l["course_id"]]):
+            print(f"::notice title=Coverage::{courses[l['course_id']]['name'][:20]} {l.get('title') or ''}: completions moved to separate lessons", flush=True)
+
+
+DRILL = """לפניך פרק קצר (השלמה) שסטודנט להנדסת חשמל לומד לקראת מבחן. כתוב עליו בלבד, בעברית, נוסחאות ב-LaTeX ($...$ בשורה,
+$$...$$ בשורה נפרדת):
+- questions: 5-6 שאלות אמריקאיות (הבנה + חישוב קצר) שמכסות את כל הנושאים בפרק, 4 תשובות, correct = אינדקס הנכונה,
+  explanation קצר שמסביר למה.
+- exercises: 2-3 תרגילים לתרגול בסגנון מבחן, שונים מהדוגמאות הפתורות בפרק (מספרים אחרים), עם פתרון מלא צעד אחרי צעד.
+אל תמציא חומר שלא בפרק. פתור כל שאלה ותרגיל מחדש לפני שאתה כותב את התשובה."""
+
+DRILL_SCHEMA = {"type": "object", "properties": {
+    "questions": SCHEMA["properties"]["questions"],
+    "exercises": {"type": "array", "items": {"type": "object", "properties": {
+        "title": {"type": "string"}, "question_md": {"type": "string"}, "solution_md": {"type": "string"},
+        "topic": {"type": "string"}}, "required": ["question_md", "solution_md"]}}},
+    "required": ["questions", "exercises"]}
+
+
+def put_drill(sb, l, qs, exs, uncertain):
+    qs = [q for q in qs if len(q.get("options") or []) >= 2 and 0 <= q.get("correct", -1) < len(q["options"])]
+    add_questions(sb, l, {"id": l["course_id"]}, qs)
+    if exs:
+        sb.table("exercises").insert([{"user_id": l["user_id"], "course_id": l["course_id"], "lesson_id": l["id"],
+                                       "source": "lesson", "ord": i, "title": x.get("title"), "question_md": x["question_md"],
+                                       "solution_md": x.get("solution_md") or "", "topic": x.get("topic"),
+                                       "uncertain": uncertain} for i, x in enumerate(exs)]).execute()
+
+
+def drill(sb, st):
+    """One completion lesson without its quiz/exercises: a hand-written file in chapters/drills, else Gemini."""
+    st.setdefault("drill", {})
+    courses = {c["id"]: c for c in sb.table("courses").select("id, name").eq("archived", False).execute().data}
+    rows = [l for l in sb.table("lessons").select("id, user_id, course_id, title, chapter_md, created_at").eq("kind", "other")
+            .like("title", "🔁 השלמה%").execute().data if l["course_id"] in courses and l["id"] not in st["drill"]]
+    if not rows:
+        return False
+    rows.sort(key=lambda l: (study_day(sb, l["course_id"]), l["created_at"]))
+    l = rows[0]
+    hand = None
+    for f in sorted(DRILLS.glob("*.json")) if DRILLS.exists() else []:
+        d = json.loads(f.read_text(encoding="utf-8"))
+        if d["title"] == l["title"] and d["course"] in courses[l["course_id"]]["name"]:
+            hand = d
+    if hand:
+        put_drill(sb, l, hand["questions"], hand["exercises"], False)
+    else:
+        from google.genai import types
+        out = author._generate_json([types.Part.from_text(text=body_of(l["chapter_md"]))], DRILL, DRILL_SCHEMA, "MEDIUM")
+        put_drill(sb, l, out.get("questions") or [], out.get("exercises") or [], True)
+    st["drill"][l["id"]] = "hand" if hand else "gemini"
+    save(sb, st)
+    print(f"::notice title=Coverage::{courses[l['course_id']]['name'][:20]} {l['title']}: quiz + exercises ({'hand' if hand else 'gemini'})", flush=True)
     return True
 
 
@@ -321,7 +432,9 @@ def thursday_alert(sb):
 if __name__ == "__main__":
     import sys
     s = hub.db()
-    if "--dedupe" in sys.argv:
+    if "--explode" in sys.argv:
+        explode_all(s)
+    elif "--dedupe" in sys.argv:
         dedupe_all(s)
     elif "--list" in sys.argv:
         for l, c, t in todo(s, load(s)):

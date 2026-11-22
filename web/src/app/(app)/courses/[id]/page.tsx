@@ -17,7 +17,7 @@ import { isPast } from "@/lib/format";
 import { forProjection, needed, pending, sameCode, totals, type GradeRow } from "@/lib/gradeGoal";
 import { LEVEL_LABEL, LEVEL_TONE, weeklyPlan } from "@/lib/plan";
 import { mergedFacts } from "@/lib/facts";
-import { DAYS, EXAM_LABEL, KIND_LABEL, SLOT_LABEL, hhmm, type Slot, lessonName, isSession, type Course, type Deadline, type Lesson } from "@/lib/types";
+import { DAYS, EXAM_LABEL, KIND_LABEL, SLOT_LABEL, hhmm, type Slot, lessonName, isSession, isCompletion, type Course, type Deadline, type Lesson } from "@/lib/types";
 
 const STATUS: Record<Lesson["status"], [string, string]> = {
   queued: ["בתור", "text-muted"],
@@ -38,9 +38,11 @@ function partOf(l: Lesson) {
  * In the order he studies them (04/11/2026): lecture N (part 1, part 2...) and then practice N - lecture, practice,
  * lecture, practice. Without a number they go last, by upload time.
  */
+const KIND_RANK = (l: Lesson) => (l.kind === "lecture" ? 0 : l.kind === "practice" ? 1 : 2);
+
 function byMeeting(a: Lesson, b: Lesson) {
   return (a.number ?? 999) - (b.number ?? 999)
-    || (a.kind === b.kind ? 0 : a.kind === "lecture" ? -1 : 1)
+    || KIND_RANK(a) - KIND_RANK(b)
     || partOf(a) - partOf(b)
     || a.created_at.localeCompare(b.created_at);
 }
@@ -57,8 +59,8 @@ function groupLessons(ls: Lesson[], isLab: boolean): [string, Lesson[]][] {
   if (isLab) return [["", ls]];
   const groups: [string, Lesson[]][] = [
     ["📅 מפגשים", ls.filter(isSession).sort((a, b) => (a.number ?? 99) - (b.number ?? 99))],
-    ["הרצאות ותרגולים", ls.filter((l) => (l.kind === "lecture" || l.kind === "practice") && !isSiteLesson(l) && !isSession(l)).sort(byMeeting)],
-    ["חומר נוסף", ls.filter((l) => l.kind !== "lecture" && l.kind !== "practice" && !isSiteLesson(l))],
+    ["הרצאות ותרגולים", ls.filter((l) => (l.kind === "lecture" || l.kind === "practice" || isCompletion(l)) && !isSiteLesson(l) && !isSession(l)).sort(byMeeting)],
+    ["חומר נוסף", ls.filter((l) => l.kind !== "lecture" && l.kind !== "practice" && !isCompletion(l) && !isSiteLesson(l))],
     // Last year's material from the lecturer's site: reference and backup, after this year's own lessons.
     ["📼 חומר משנה שעברה (מאתר המרצה)", ls.filter(isSiteLesson).sort((a, b) => (a.number ?? 99) - (b.number ?? 99))],
   ];
