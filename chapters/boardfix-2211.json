@@ -1,0 +1,911 @@
+[
+ {
+  "lesson_id": "05797202-dc24-41eb-be3b-6f4cfe1dfb2d",
+  "n": 16,
+  "md": "**platform independent** (בלתי תלוי בפלטפורמה)\n\n- **platform** (פלטפורמה) ← שילוב חומרת מחשב (מעבד): Intel, AMD, ARM – יחד עם מערכת הפעלה: Windows, Mac OS, Linux, Android\n- **independent** ← בלתי-תלוי"
+ },
+ {
+  "lesson_id": "05797202-dc24-41eb-be3b-6f4cfe1dfb2d",
+  "n": 49,
+  "md": "**השוואה בין תהליך הבנייה של קוד ב-C לבין Java**\n\n| C | Java |\n|---|---|\n| `myProg.c` (קובץ הקוד) | `myProg.java` – מכיל קוד בשפת Java |\n| ↓ **Assembler**: תוכנה שמתרגמת C לשפת Assembly | ↓ בחלון Terminal (בלינוקס) / CMD (בווינדוס) מפעילים את הקומפיילר: `javac myProg.java` (compiler) |\n| `myProg.asm` | `myProg.class` – קובץ שמכיל קוד ב-**ByteCode**; כל JVM בכל פלטפורמה יכול לקרוא ולהבין את הקובץ (מתורגמן) |\n| ↓ `myProg` – קובץ בינארי (קוד מכונה) | |\n\nמתחת לעמודת C: אם המתכנת רוצה ליצור קוד שירוץ בפלטפורמה אחרת (של הלקוח) – **cross compiling**."
+ },
+ {
+  "lesson_id": "05797202-dc24-41eb-be3b-6f4cfe1dfb2d",
+  "n": 44,
+  "md": "- פקודת הקומפילציה בלינוקס: `gcc myProg.c`\n- ↓ `myProg.asm` – תוכנה שמתרגמת את C לשפת **Assembly**\n- ↓ `myProg` – קובץ בינארי"
+ },
+ {
+  "lesson_id": "05797202-dc24-41eb-be3b-6f4cfe1dfb2d",
+  "n": 55,
+  "md": "| מערכת הפעלה + JVM | JVM על Windows | JVM על Android | JVM על Linux |\n|---|---|---|---|\n| **המעבד (CPU)** | AMD | ARM | Intel |\n\nלכל שילוב של מעבד ומערכת הפעלה יש JVM משלו (השורה העליונה מסומנת \"מערכת הפעלה\")."
+ },
+ {
+  "lesson_id": "05797202-dc24-41eb-be3b-6f4cfe1dfb2d",
+  "n": 68,
+  "md": "**JDK** = **J**ava **D**evelopment **K**it (ערכת פיתוח)\n\nבעת התקנת ה-JDK מותקן גם ה-JRE."
+ },
+ {
+  "lesson_id": "05797202-dc24-41eb-be3b-6f4cfe1dfb2d",
+  "n": 77,
+  "md": "**תהליך ההרצה:**\n\n- ה-JVM מתרגם בזמן הריצה את ה-ByteCode לשפת מכונה של המעבד הספציפי של הפלטפורמה.\n- (הקורס מבנה מחשבים מלמד על מושג) של שפת מכונה: `opcode | operand | Address` (למשל `1011000 | ... | ...`).\n- תהליך המתורגמן של ה-interpreter יכול להיות כבד מבחינת זמן ביצוע, לכן לאורך השנים היו שיפורים באינטרפרטר שמתרגמים לשפת מכונה."
+ },
+ {
+  "lesson_id": "05797202-dc24-41eb-be3b-6f4cfe1dfb2d",
+  "n": 80,
+  "md": "(המשך הלוח הקודם, ובסופו:)\n\n- למשל, לחברת **Oracle** יש JVM שנקרא **HotSpot**, שמתרגם את כל ה-`.class` ברגע שנדרש להרצה, ושומר את התרגום (שפת מכונה) למקרה שה-`.class` נדרש להרצה מחדש."
+ },
+ {
+  "lesson_id": "52ad1bf6-0e10-4a1b-87a3-d8539641e964",
+  "n": 2,
+  "md": "- **מכפלה סקלרית:** $\\vec a\\cdot\\vec b=a_xb_x+a_yb_y+a_zb_z=|\\vec a||\\vec b|\\cos\\varphi$\n- **מכפלה וקטורית:** $\\vec a\\times\\vec b=\\begin{vmatrix}\\hat x&\\hat y&\\hat z\\\\a_x&a_y&a_z\\\\b_x&b_y&b_z\\end{vmatrix}$\n- **גודל מכפלה וקטורית:** $|\\vec a\\times\\vec b|=|\\vec a||\\vec b|\\sin\\varphi$\n\n**תרגיל:** $\\vec A=(1,2,-3),\\quad\\vec B=(0,-4,1),\\quad\\vec C=(5,0,-2)$\n\n**1. הזווית $\\varphi$ בין $\\vec A$ ל-$\\vec B$:**\n\n$$\\vec A\\cdot\\vec B=(1)(0)+(2)(-4)+(-3)(1)=0-8-3=-11$$\n\n$$|\\vec A|=\\sqrt{1^2+2^2+(-3)^2}=\\sqrt{14}$$"
+ },
+ {
+  "lesson_id": "52ad1bf6-0e10-4a1b-87a3-d8539641e964",
+  "n": 26,
+  "md": "**סיכום תנאי השפה במעבר בין שני תווכים (תווך 1 ותווך 2)**, כאשר $\\hat n$ הוא וקטור היחידה הניצב למשטח, מתווך 2 לתווך 1:\n\n| סוג השדה | הרכיב הניצב למשטח (Normal) | הרכיב המשיקי למשטח (Tangential) |\n|---|---|---|\n| **שדה חשמלי** $\\vec E$ | קפיצה ברכיב הניצב שווה לצפיפות המטען המשטחית $\\sigma$: $\\hat n\\cdot(\\vec D_1-\\vec D_2)=\\sigma_f$; או בוואקום: $E_{1n}-E_{2n}=\\frac{\\sigma}{\\varepsilon_0}$ | הרכיב המשיקי תמיד רציף: $\\hat n\\times(\\vec E_1-\\vec E_2)=0$; או פשוט: $E_{1t}=E_{2t}$ |\n| **שדה מגנטי** $\\vec B$ | הרכיב הניצב תמיד רציף (אין מונופולים מגנטיים): $\\hat n\\cdot(\\vec B_1-\\vec B_2)=0$ | קפיצה ברכיב המשיקי שווה לצפיפות הזרם המשטחית $\\vec K$: $\\hat n\\times(\\vec H_1-\\vec H_2)=\\vec K_f$ |"
+ },
+ {
+  "lesson_id": "52ad1bf6-0e10-4a1b-87a3-d8539641e964",
+  "n": 61,
+  "md": "$$\\nabla\\times\\vec E=-\\frac{\\partial\\vec B}{\\partial t}-\\vec M$$\n\n**מעבר מתמטי:** נבצע אינטגרל משטחי $\\int_S(\\dots)\\cdot d\\vec s$ על שני האגפים, על פני משטח $S$ הפתוח התחום על ידי עקומה סגורה $C$. נפעיל את **משפט סטוקס** על אגף שמאל כדי להמיר אותו לאינטגרל קווי, ונוציא את הנגזרת לפי הזמן מחוץ לאינטגרל באגף ימין.\n\n**צורה אינטגרלית:**\n\n$$\\oint_C\\vec E\\cdot d\\vec l=-\\frac{\\partial}{\\partial t}\\int_S\\vec B\\cdot d\\vec s-\\int_S\\vec M\\cdot d\\vec s$$\n\n**הסבר פיזיקלי:** תופעת ההשראה האלקטרומגנטית. שינוי בזמן של שטף מגנטי (אגף ימין) משרה כוח אלקטרו-מניע / מתח, הבא לידי ביטוי כשדה חשמלי לא-משמר לאורך מסלול סגור במרחב (אגף שמאל). האיבר $\\vec M$ נוסף מטעמי סימטריה ונוחות חישובית בהנדסה.\n\n**2. חוק אמפר-מקסוול (Ampere-Maxwell Law)**\n\n**צורה דיפרנציאלית:**\n\n$$\\nabla\\times\\vec H=\\frac{\\partial\\vec D}{\\partial t}+\\vec J$$\n\n**מעבר מתמטי:** נבצע אינטגרל משטחי $\\int_S(\\dots)\\cdot d\\vec s$ על שני האגפים. נפעיל את משפט סטוקס על אגף שמאל כדי להמיר אותו לאינטגרל קווי על העקומה הסגורה $C$ התוחמת את המשטח."
+ },
+ {
+  "lesson_id": "52ad1bf6-0e10-4a1b-87a3-d8539641e964",
+  "n": 36,
+  "md": "$$-\\nabla^2\\tilde{\\vec E}=\\omega^2\\mu\\varepsilon\\tilde{\\vec E}$$\n\n**התוצאה הסופית:** נעביר אגפים ונקבל את משוואת הגלים ההרמונית, הידועה כ**משוואת הלמהולץ**:\n\n$$\\nabla^2\\tilde{\\vec E}+\\omega^2\\mu\\varepsilon\\tilde{\\vec E}=0$$\n\n**תרגיל כיתה: גזירת שדות ומקורות** – נתונים: (ממשיך בשקף הבא)"
+ },
+ {
+  "lesson_id": "7920ffcc-af19-4c1a-aaf8-3b7f005f0424",
+  "n": 3,
+  "md": "- `RoniPo@ariel.ac.il` – רוני פוליאקוב\n- **דיברגנץ:** $\\nabla\\cdot A=\\frac{\\partial A_x}{\\partial x}+\\frac{\\partial A_y}{\\partial y}+\\frac{\\partial A_z}{\\partial z}$ (על הלוח נכתב $\\Delta$ במקום $\\nabla$)"
+ },
+ {
+  "lesson_id": "7920ffcc-af19-4c1a-aaf8-3b7f005f0424",
+  "n": 4,
+  "md": "**curl / רוטור:**\n\n$$\\nabla\\times A=\\begin{vmatrix}\\hat x&\\hat y&\\hat z\\\\\\partial/\\partial x&\\partial/\\partial y&\\partial/\\partial z\\\\A_x&A_y&A_z\\end{vmatrix}$$\n\n(על הלוח נכתב $\\Delta$ במקום $\\nabla$.)"
+ },
+ {
+  "lesson_id": "7920ffcc-af19-4c1a-aaf8-3b7f005f0424",
+  "n": 13,
+  "md": "1. $\\vec D=6\\hat x-2y\\hat y+2z\\hat z$\n2. $\\vec H=4x\\hat x+10y\\hat y-25z\\hat z$\n\n- $\\sigma=0$, $\\rho_v=0$ (בצד: אין מוליכות, אין מטען)\n- $\\mu=10^{-5}\\,\\text{H/m}$, $\\varepsilon=4\\cdot10^{-9}\\,\\text{F/m}$\n- למעלה מתחיל: $\\nabla\\times\\vec E=\\dots$"
+ },
+ {
+  "lesson_id": "7920ffcc-af19-4c1a-aaf8-3b7f005f0424",
+  "n": 40,
+  "md": "$$3\\pi E_0\\sin(3\\pi z)\\int\\cos(\\omega t)\\,dt=-B\\qquad\\Big|\\quad +E_0\\cos(\\omega t)\\,3\\pi\\sin(3\\pi z)\\,\\hat y=+\\frac{\\partial B}{\\partial t}$$\n\n$$B=\\frac{3\\pi E_0\\sin(3\\pi z)\\sin(\\omega t)}{\\omega}$$\n\n$$B=\\frac{H}{\\mu_0}\\;\\Rightarrow\\;\\mu_0B=H\\qquad\\Rightarrow\\qquad H=\\frac{3\\pi E_0\\sin(3\\pi z)\\sin(\\omega t)}{\\omega\\mu}$$\n\n> ⚠️ על הלוח נכתב $B=H/\\mu_0$. הקשר הנכון הוא $B=\\mu_0H$, ולכן $H=B/\\mu_0$ – וזה מה שיצא בפועל בביטוי של $H$ (מחולק ב-$\\mu$)."
+ },
+ {
+  "lesson_id": "c8449637-fb4c-42e8-b334-b2c01444b0e0",
+  "n": 12,
+  "md": "- **שם הקורס:** מעגלים ליניאריים – 4331810\n- **מרצה:** פרופ' גדי גולן\n- **ידע קודם:** אותות ומערכות, התקני מוליכים למחצה\n- **הנחיות:** הרצאה ותרגול; בחינות: מועד א', ב', ג'\n\n**תוכנית הקורס:**\n- טרנזיסטור דו-צומתי (BJT): אופיינים, ממתח, יציבות, ניתוח לאות קטן, פרמטרי H, מודל Π.\n- טרנזיסטור תוצא שדה (FET): אופייני MOSFET ו-JFET, ממתח, ניתוח לאות קטן.\n- מעגלי טרנזיסטור: תצורות מגברים, היענות לתדר, עיוותים, מגברים רבי דרגות, משוב.\n- מגברי שרת: מגבר הפרש, יישומים.\n- מתנדים: משוב חיובי, תנאי תהודה, תצורות בסיסיות.\n- מגברי הספק: סיווג, מגברים מסוג A בצימוד ישיר ובצימוד שנאי, מגברים מסוג B, דחף-סף (Push-Pull), משלימים (Complementary), נצילות, יציבות תרמית וקירור.\n- ספקים: יישור, סינון, ייצוב, ויסות ובקרה.\n- משוב שלילי.\n\n**מקורות ספרותיים:**\n- ספר לימוד: A. S. Sedra, K. C. Smith, \"Microelectronic Circuits\", Oxford University Press (2003).\n- ספרי עזר: R. Smith, \"Electronics: Circuits Devices and Systems\", Wiley (1992); J. Millman, C. C. Halkias, \"Integrated Electronics\", McGraw Hill (1972).\n\n**דרישות מהסטודנטים:** עבודות בית – 10%, בחינה סופית – 90%."
+ },
+ {
+  "lesson_id": "c8449637-fb4c-42e8-b334-b2c01444b0e0",
+  "n": 53,
+  "md": "**מקורות ועומסים – מושג יחסי**\n\n**Two Port Networks – רשתות זוגיים** (רשת עם שני שערים, ① ו-②; בכל שער מקור מתח: $V_1$, $V_2$, והזרמים $I_1$, $I_2$ נכנסים לרשת):\n\n$$I_1=y_{11}V_1+y_{12}V_2$$\n\n$$I_2=y_{21}V_1+y_{22}V_2$$\n\n(a)"
+ },
+ {
+  "lesson_id": "c8449637-fb4c-42e8-b334-b2c01444b0e0",
+  "n": 64,
+  "md": "**תרגיל**\n\nבתרשים לפניך נתונים הפרמטרים של מודל π של הטרנזיסטור. מצא את ערכי ה-h-parameters שלו.\n\nנתוני המודל: $r_x=100\\,\\Omega$, $r_\\mu=10\\,\\text{M}\\Omega$, $r_\\pi=2.5\\,\\text{k}\\Omega$, $r_o=100\\,\\text{k}\\Omega$, $g_m=40\\,\\text{mA/V}$ (צמתים B, B', C, E).\n\n**פתרון:** נסתכל בהגדרת ה-h-parameters והדרך למצוא כל אחד מהפרמטרים.\n\n$$h_{11}=\\left.\\frac{V_1}{I_1}\\right|_{V_2=0}$$\n\n$V_2=0$ – משמעות הדבר קצר במוצא. הביטוי מתאר: מהי התנגדות הכניסה כאשר יש קצר במוצא? נקבל כי:\n\n$$h_{11}=h_{ie}=r_x+(r_\\pi\\parallel r_\\mu)=0.1+(2.5\\parallel10^4)\\cong2.6\\,\\text{k}\\Omega$$"
+ },
+ {
+  "lesson_id": "c8449637-fb4c-42e8-b334-b2c01444b0e0",
+  "n": 66,
+  "md": "$$h_{22}=\\left.\\frac{I_2}{V_2}\\right|_{I_1=0}$$\n\nהביטוי מתאר את המוליכות כאשר בכניסה יש נתק – מהו היחס זרם למתח? נקבל כי:\n\n$$h_{22}=h_{oe}=g_mr_\\pi/(r_\\pi+r_\\mu)+1/r_o\\cong\\beta/r_\\mu+1/r_o=1/100+1/100=2\\cdot10^{-5}\\,\\text{mho}$$\n\nניתן למצוא את פרמטרי הטרנזיסטור מתוך מדידת h-parameters. באופן כללי, אם נעביר אגפים נוכל לחשב בכיוון ההפוך, כלומר את הפרמטרים של הטרנזיסטור מתוך ה-h-parameters הנמדדים במעבדה, כדלקמן:\n\n$$g_m=\\frac{I_C}{V_T},\\quad r_\\pi=h_{fe}/g_m,\\quad r_x=h_{ie}-r_\\pi,\\quad r_\\mu=r_\\pi/h_{re},\\quad r_o=(h_{oe}-h_{fe}/r_\\mu)^{-1}$$\n\n> ⚠️ בשקף כתוב \"mmho\"; היחידות של $1/100+1/100$ (ב-kΩ) הן $2\\cdot10^{-2}$ mS = $2\\cdot10^{-5}$ mho."
+ },
+ {
+  "lesson_id": "c8449637-fb4c-42e8-b334-b2c01444b0e0",
+  "n": 75,
+  "md": "**1.5.4 הקשרים בין ארבעת מודלי המגבר** – כל אחד מארבעת המודלים יכול לתאר כל מגבר. **Table 1.1 – ארבעת סוגי המגברים:**\n\n| סוג | פרמטר ההגבר | אופיין אידיאלי |\n|---|---|---|\n| מגבר מתח (Voltage) | $A_{vo}=\\left.\\frac{v_o}{v_i}\\right|_{i_o=0}$ (V/V) | $R_i=\\infty$, $R_o=0$ |\n| מגבר זרם (Current) | $A_{is}=\\left.\\frac{i_o}{i_i}\\right|_{v_o=0}$ (A/A) | $R_i=0$, $R_o=\\infty$ |\n| מגבר מוליכות (Transconductance) | $G_m=\\left.\\frac{i_o}{v_i}\\right|_{v_o=0}$ (A/V) | $R_i=\\infty$, $R_o=\\infty$ |\n| מגבר התנגדות (Transresistance) | $R_m=\\left.\\frac{v_o}{i_i}\\right|_{i_o=0}$ (V/A) | $R_i=0$, $R_o=0$ |"
+ },
+ {
+  "lesson_id": "17694202-72b9-4691-a98b-584bf00ba567",
+  "n": 3,
+  "md": "(ליד המעגל: $V_{in}$ ← נגד $10\\text{k}$ ← מגבר ראשון עם משוב $30\\text{k}$; נגד $40\\text{k}$ ← מגבר שני עם משוב $40\\text{k}$; ומשוב כללי $20\\text{k}$ מהמוצא לכניסה. במבואות ה-(−): $0V$.)\n\n$$\\frac{V_{in}}{10\\text{k}}=-\\frac{V_x}{30\\text{k}}$$\n\n$$\\frac{V_x-0}{40\\text{k}}=\\frac{0-V_{out}}{40\\text{k}}$$\n\n$$\\frac{V_{in}}{10\\text{k}}=\\frac{V_{out}}{30\\text{k}}$$"
+ },
+ {
+  "lesson_id": "17694202-72b9-4691-a98b-584bf00ba567",
+  "n": 14,
+  "md": "$C=1\\,\\mu\\text{F},\\quad R_2=50\\,\\text{k}\\Omega,\\quad R_1=20\\,\\text{k}\\Omega$ (משוב: $R_2$ במקביל לקבל, $Z_C=\\frac{1}{j\\omega C}$)\n\n$$\\frac{V_{in}-0}{R_1}=\\frac{0-V_{out}}{R_2\\parallel Z_C}\\;\\Rightarrow\\;\\frac{V_{out}}{V_{in}}=-\\frac{R_2}{R_1}\\cdot\\frac{1}{j\\omega R_2C+1}$$\n\n$$|H(j\\omega)|=\\frac{1}{\\sqrt{(R_2\\omega C)^2+1^2}}=\\frac{1}{\\sqrt2}\\;\\Rightarrow\\;R_2\\omega C=1\\;\\Rightarrow\\;50\\text{k}\\cdot2\\pi f\\cdot1\\mu\\text{F}=1$$"
+ },
+ {
+  "lesson_id": "17694202-72b9-4691-a98b-584bf00ba567",
+  "n": 28,
+  "md": "מגבר מהפך: $V_{in}$ ← $R_1$ ← מבוא (−), משוב $R_2$, מבוא (+) לאדמה.\n\n$$V_{out}=A\\,(V_+-V_-)\\;\\Rightarrow\\;V_{out}=-V_{(-)}\\cdot A$$\n\n$$\\frac{V_{in}}{R_1}=-\\frac{V_{out}}{R_2}\\;\\Rightarrow\\;\\frac{V_{out}}{V_{in}}=-\\frac{R_2}{R_1}=-20$$"
+ },
+ {
+  "lesson_id": "33ea919e-68d9-4f22-9e29-be25a3711eae",
+  "n": 35,
+  "md": "**עוצמת המשדר $P_t=10\\,W$, הנחתה בערוץ 40dB. מה ההספק במקלט ב-dBm (mW)?**\n\n- $\\text{dB}+30=\\text{dBm}$\n- $-40=10\\log_{10}(x)\\;\\Rightarrow\\;x=10^{-4}$\n- $P_r=P_t\\cdot10^{-4}=10\\cdot10^{-4}=1\\,\\text{mW}$\n- $P_r=0\\,\\text{dBm}=-30\\,\\text{dB}$ (כי $10\\log_{10}\\frac{P}{P}=0$)\n- $\\text{dBm}=10\\log_{10}\\left(\\frac{P}{1\\,\\text{mW}}\\right)$\n- $10\\log_{10}(P)-10\\log_{10}(1\\text{m})=10\\log_{10}(P)-30$"
+ },
+ {
+  "lesson_id": "538b73cd-166e-42fe-abd4-b922727db03b",
+  "n": 2,
+  "md": "- $10\\log_{10}(100\\text{m})=-10\\,\\text{dB}$; $\\;10\\log_{10}\\left(\\frac{100\\text{m}}{1\\text{m}}\\right)=20\\,\\text{dBm}$\n- $FSPL_{(\\text{dB})}=P_t+G_t+G_r-P_r$\n- $-80\\,\\text{dBm}=\\underbrace{-10\\,\\text{dB}}_{P_t}+\\underbrace{2}_{G_t}+\\underbrace{2}_{G_r}-FSPL$ (המרצה באמצע הכתיבה)"
+ },
+ {
+  "lesson_id": "538b73cd-166e-42fe-abd4-b922727db03b",
+  "n": 4,
+  "md": "- $10\\log_{10}(100\\text{m})=-10\\,\\text{dB}$; $\\;10\\log_{10}\\left(\\frac{100\\text{m}}{1\\text{m}}\\right)=20\\,\\text{dBm}$\n- $\\boxed{\\text{dB}+30\\Leftrightarrow\\text{dBm}}$\n- $FSPL_{(\\text{dB})}=P_t+G_t+G_r-P_r$ – ניסיון ראשון עם המספרים: $-10\\,\\text{dB},\\;2\\,\\text{dB},\\;2\\,\\text{dB},\\;-(-80\\,\\text{dBm})$ ⇐ \"74dBm\" (ערבוב של dB ו-dBm)\n- $-80\\,\\text{dBm}=\\underbrace{-10\\,\\text{dB}}_{P_t}+\\underbrace{2}_{G_t}+\\underbrace{2}_{G_r}-FSPL$\n- ממירים את $-80$ dBm ל-dB: $-110\\,\\text{dB}=\\underbrace{-10\\,\\text{dB}+4}_{-6}-FSPL$\n- $\\boxed{104\\,\\text{dB}=FSPL}$\n- $P_r=P_t+G_t+G_r-FSPL_{\\text{dB}}$"
+ },
+ {
+  "lesson_id": "538b73cd-166e-42fe-abd4-b922727db03b",
+  "n": 12,
+  "md": "**מה יהיה המרחק המקסימלי ($d_{\\max}$)? (2)** $\\;f_2=5.8\\,\\text{GHz}$\n\n$$FSPL_{\\text{dB}}=20\\log_{10}(d)+20\\log_{10}(f)+20\\log_{10}\\left(\\frac{4\\pi}{c}\\right)$$\n\n$$104\\,\\text{dB}=D_{\\text{dB}}+20\\log_{10}(5.8\\cdot10^9)+20\\log_{10}\\left(\\frac{4\\pi}{c}\\right)$$\n\n$$\\Rightarrow\\;d\\approx651\\,\\text{m}$$"
+ },
+ {
+  "lesson_id": "538b73cd-166e-42fe-abd4-b922727db03b",
+  "n": 27,
+  "md": "- $A\\cos(2\\pi f_0t+\\theta)$\n- $e^{jA}=\\cos(A)+j\\sin(A)$ (אוילר)\n- $\\text{Re}\\{\\underbrace{Ae^{j\\theta}}_{\\tilde A}\\,e^{j2\\pi f_0t}\\}$, כאשר $e^{j2\\pi f_0t}e^{j\\theta}=e^{j(2\\pi f_0t+\\theta)}$"
+ },
+ {
+  "lesson_id": "538b73cd-166e-42fe-abd4-b922727db03b",
+  "n": 44,
+  "md": "**על הלוח:** שרטוט של אות עם רעש (גל ומתחתיו קווים צפופים), ושרטוט של אופיין מסנן – קו שטוח ואז ירידה.\n\n**על המסך (השקף \"תמסורת הספק וזווית\"):**\n- $|H(f)|^2=\\dfrac{1}{1+(2\\pi\\tau_cf)^2}$\n- $FWHM=\\dfrac{1}{2\\pi\\tau_c}$ – רוחב סרט בחצי הגובה (Full width half maximum)\n- $B=\\dfrac{\\int|H(f)|^2df}{H^2(0)}=\\dfrac{1}{4\\tau_c}$ – רוחב סרט שקול רעש (Noise equivalent bandwidth)\n- הזזת המופע: $\\angle H(f)=-\\arctan(2\\pi\\tau_cf)$"
+ },
+ {
+  "lesson_id": "538b73cd-166e-42fe-abd4-b922727db03b",
+  "n": 47,
+  "md": "**על הלוח:** שרטוט אופיין של מסנן מעביר נמוכים (קו שטוח שיורד), עם הסימון $-3\\,\\text{dB}$ ו-$\\frac{1}{\\sqrt2}$ בצד.\n\n**על המסך:** אותו שקף \"תמסורת הספק וזווית\" – $|H(f)|^2=\\frac{1}{1+(2\\pi\\tau_cf)^2}$, $FWHM=\\frac{1}{2\\pi\\tau_c}$, $B=\\frac{1}{4\\tau_c}$, $\\angle H(f)=-\\arctan(2\\pi\\tau_cf)$."
+ },
+ {
+  "lesson_id": "538b73cd-166e-42fe-abd4-b922727db03b",
+  "n": 52,
+  "md": "- $R=100\\,\\Omega,\\quad L=10\\,\\text{mH},\\quad$ מסנן RL (LPF)\n- 3dB – רוחב סרט של חצי הספק\n- $\\tau_c=\\frac{R}{L}=0.1\\,\\text{m}\\qquad|H(f=f_c)|=\\frac{1}{\\sqrt2}\\;\\Rightarrow\\;|\\cdot|^2=\\frac12$\n- $f_c=\\dfrac{1}{2\\pi\\tau_c}$\n\n> ⚠️ על הלוח נכתב $\\tau_c=R/L$. קבוע הזמן של מעגל RL הוא $\\tau=L/R=\\frac{10\\,\\text{mH}}{100\\,\\Omega}=0.1\\,\\text{ms}$ – וזה המספר שנכתב."
+ },
+ {
+  "lesson_id": "b62c2181-553e-499f-81da-f15bfbed70a2",
+  "n": 5,
+  "md": "**רעש תרמי:** רעש אקראי הנוצר מתנועת אלקטרונים במוליך.\n\n$$V_{n(\\text{RMS})}^2=4K_BTR_sB,\\qquad K_B=1.38054\\times10^{-23}$$\n\n(בצד שמאל נשאר השרטוט של האות והרעש לאורך ציר התדר, עם $\\text{SNR}=\\frac{P_s}{P_n}$.)"
+ },
+ {
+  "lesson_id": "b62c2181-553e-499f-81da-f15bfbed70a2",
+  "n": 15,
+  "md": "**ספרת רחש (Noise Figure):** מדד המתאר את מידת ההידרדרות של יחס אות לרעש כאשר האות עובר דרך רכיב / מערכת.\n\n$$f=\\frac{SNR_{in}}{SNR_{out}}$$\n\nשרטוט: קופסה, משמאל $SNR_{in}$ ומימין $SNR_{out}$."
+ },
+ {
+  "lesson_id": "b62c2181-553e-499f-81da-f15bfbed70a2",
+  "n": 18,
+  "md": "- **מגבר:** $P_{in}$ ← משולש עם $G$, $f$ ← $P_{out}=G\\cdot P_{in}$\n- **מנחת:** $x(t)$ ← קופסה $L$ ← $y(t)$\n\n(מימין נשארה הגדרת ספרת הרחש: $f=\\frac{SNR_{in}}{SNR_{out}}$.)"
+ },
+ {
+  "lesson_id": "065c0788-34c0-4684-9100-68dd3554d229",
+  "n": 11,
+  "md": "הקוד של `EX1` – קליטת מספר טבעי (חוזרים עד שמתקבל מספר חיובי). בצילום רואים את השורות 4–18:\n\n```java\npackage ex1;\nimport java.util.Scanner;\n\npublic class EX1 {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in); // keyboard input\n\n        // Read max; repeat until a positive integer is entered\n        int max;\n        do {\n            System.out.print(\"Enter a natural number (max): \");\n            max = in.nextInt();\n            if (max <= 0) {\n```\n(המשך הקוד לא נראה בצילום. בחלון הפלט למטה – הרצה של תרגיל אחר: `Enter natural number F: 6`, `Enter natural number T: 9`, `No numbers up to 6 divisible by 9.`)"
+ },
+ {
+  "lesson_id": "065c0788-34c0-4684-9100-68dd3554d229",
+  "n": 37,
+  "md": "הקוד של `EX6` (שורות 18–32 בצילום):\n\n```java\nSystem.out.println(\"Enter integers, 0 to finish:\");\n\n// Infinite loop, exited with break when 0 is entered\nwhile (true) {\n    int num = in.nextInt();\n    if (num == 0) {\n        break; // 0 is only a stop sign, not part of the data\n    }\n\n    count++;\n\n    // Positive vs negative\n    if (num > 0) {\n        posSum += num;\n```\n(המשך הקוד לא נראה בצילום. בחלון הפלט: `Negative numbers are ignored.`, `0`, `Average: 27.0` – מהרצה של EX5.)"
+ },
+ {
+  "lesson_id": "065c0788-34c0-4684-9100-68dd3554d229",
+  "n": 45,
+  "md": "**תרגול 4 – תכנות מונחה עצמים ושפת JAVA** (דף התרגיל):\n\n1. כתוב מחלקה `Dog` אשר מאפיינת אובייקט מסוג כלב. ל-`Dog` יהיו המאפיינים הבאים:\n   1. שם\n   2. צבע\n   3. גובה (int)\n   4. משקל (Double)\n   5. כמות כלבים שנוצרו (סטטי)\n\n   ל-`Dog` יהיו המתודות הבאות:\n   1. לקבוע שם\n   2. לקבוע צבע\n   3. לקבוע גובה ומשקל\n   4. לנבוח (הדפסה של Bark)\n   5. להדפיס את נתוני הכלב\n   6. להדפיס כמה כלבים נוצרו (סטטי)\n\n   לאחר מכן במחלקה אחרת הנקראת `Field`, במתודה `Main` תיצור מספר כלבים שונים, והשתמש במתודות השונות של האובייקטים.\n2. כתוב מחלקה בשם `circle` אשר תאפיין מעגל. למעגל יהיו את המאפיינים והמתודות הבאות: (ההמשך לא נראה בצילום)"
+ },
+ {
+  "lesson_id": "0c0967d4-93f0-4072-99f6-d78ac7bf31f1",
+  "n": 13,
+  "md": "`RoniPo@ariel.ac.il` – רוני פוליאקוב\n\n$\\hat{y}$\n$\\hat{z}$\nכיוון התקדמות\n$\\tilde{\\vec{E}} = E_0 e^{-j \\beta z} \\hat{y} \\quad f = 1\\text{ MHz}$\n$\\epsilon = 8\\epsilon_0, \\quad \\epsilon_r = 8$\n$\\mu = \\mu_0, \\quad \\mu_r = 1$\n$\\sigma = 40\\left[\\frac{\\text{S}}{\\text{m}}\\right]$\n$\\frac{\\sigma}{\\omega \\epsilon} = \\frac{40}{2\\pi \\times 10^6 \\cdot 8\\epsilon_0} = 89{,}875 \\gg 1$ , מוליך טוב (Good Conductor)\n\n(על הלוח נכתב 89.875 – הנקודה מפרידה אלפים: היחס הוא כ-90,000, הרבה יותר מ-1.)"
+ },
+ {
+  "lesson_id": "0c0967d4-93f0-4072-99f6-d78ac7bf31f1",
+  "n": 16,
+  "md": "`RoniPo@ariel.ac.il` – רוני פוליאקוב\n\n$\\hat{y}$\n$\\hat{z}$\nכיוון התקדמות\n$\\tilde{\\vec{E}} = E_0 e^{-j \\beta z} \\hat{y} \\quad f = 1\\text{ MHz}$\n$\\epsilon = 8\\epsilon_0, \\quad \\epsilon_r = 8$\n$\\mu = \\mu_0, \\quad \\mu_r = 1$\n$\\sigma = 40\\left[\\frac{\\text{S}}{\\text{m}}\\right]$\n$\\frac{\\sigma}{\\omega \\epsilon} = \\frac{40}{2\\pi \\times 10^6 \\cdot 8\\epsilon_0} = 89{,}875 \\gg 1$ , מוליך טוב (Good Conductor)\n$\\alpha = \\beta = \\sqrt{\\pi f \\mu_0 \\mu_r \\sigma} = 12.56\\left[\\frac{1}{\\text{m}}\\right]$\n\n(על הלוח נכתב 89.875 – הנקודה מפרידה אלפים: היחס הוא כ-90,000, הרבה יותר מ-1.)"
+ },
+ {
+  "lesson_id": "0c0967d4-93f0-4072-99f6-d78ac7bf31f1",
+  "n": 17,
+  "md": "`RoniPo@ariel.ac.il` – רוני פוליאקוב\n\n$\\hat{y}$\n$\\hat{z}$\nכיוון התקדמות\n$\\tilde{\\vec{E}} = E_0 e^{-j \\beta z} \\hat{y} \\quad f = 1\\text{ MHz}$\n$\\epsilon = 8\\epsilon_0, \\quad \\epsilon_r = 8$\n$\\mu = \\mu_0, \\quad \\mu_r = 1$\n$\\sigma = 40\\left[\\frac{\\text{S}}{\\text{m}}\\right]$\n$\\frac{\\sigma}{\\omega \\epsilon} = \\frac{40}{2\\pi \\times 10^6 \\cdot 8\\epsilon_0} = 89{,}875 \\gg 1$ , מוליך טוב (Good Conductor)\n$\\alpha = \\beta = \\sqrt{\\pi f \\mu_0 \\mu_r \\sigma} = 12.56\\left[\\frac{1}{\\text{m}}\\right]$\n$\\delta = \\frac{1}{\\alpha} = 0.079[\\text{m}]$\n\n(על הלוח נכתב 89.875 – הנקודה מפרידה אלפים: היחס הוא כ-90,000, הרבה יותר מ-1.)"
+ },
+ {
+  "lesson_id": "0c0967d4-93f0-4072-99f6-d78ac7bf31f1",
+  "n": 20,
+  "md": "`RoniPo@ariel.ac.il` – רוני פוליאקוב\n\n$\\hat{y}$\n$\\hat{z}$\nכיוון התקדמות\n$\\tilde{\\vec{E}} = E_0 e^{-j \\beta z} \\hat{y} \\quad f = 1\\text{ MHz}$\n$\\epsilon = 8\\epsilon_0, \\quad \\epsilon_r = 8$\n$\\mu = \\mu_0, \\quad \\mu_r = 1$\n$\\sigma = 40\\left[\\frac{\\text{S}}{\\text{m}}\\right]$\n$\\frac{\\sigma}{\\omega \\epsilon} = \\frac{40}{2\\pi \\times 10^6 \\cdot 8\\epsilon_0} = 89{,}875 \\gg 1$ , מוליך טוב (Good Conductor)\n$\\alpha = \\beta = \\sqrt{\\pi f \\mu_0 \\mu_r \\sigma} = 12.56\\left[\\frac{1}{\\text{m}}\\right]$\n$\\delta = \\frac{1}{\\alpha} = 0.079[\\text{m}]$\n$\\eta = (1+j)\\sqrt{\\frac{\\omega \\mu}{2\\sigma}} = (1+j)\\,0.314\\,\\Omega$\n\n(על הלוח נכתב 89.875 – הנקודה מפרידה אלפים: היחס הוא כ-90,000, הרבה יותר מ-1.)"
+ },
+ {
+  "lesson_id": "0c0967d4-93f0-4072-99f6-d78ac7bf31f1",
+  "n": 40,
+  "md": "`RoniPo@ariel.ac.il` – רוני פוליאקוב. משמאל: שרטוט גל מתקדם בכיוון $\\hat z$ (צירים $x,y,z$), עם הרכיבים $E_x$, $E_y$.\n\n**קיטוב לינארי:** $\\Delta\\varphi=0,\\;180^\\circ\\,(\\pi)$, $\\quad\\phi=\\arctan\\left[\\frac{E_y}{E_x}\\right]$\n\n**קיטוב מעגלי:** $\\Delta\\varphi=\\pm\\frac{\\pi}{2}$, $\\;E_x=E_y$"
+ },
+ {
+  "lesson_id": "0c0967d4-93f0-4072-99f6-d78ac7bf31f1",
+  "n": 44,
+  "md": "`RoniPo@ariel.ac.il` – רוני פוליאקוב. משמאל: שרטוט גל מתקדם בכיוון $\\hat z$ (צירים $x,y,z$), עם הרכיבים $E_x$, $E_y$.\n\n**קיטוב לינארי:** $\\Delta\\varphi=0,\\;180^\\circ\\,(\\pi)$, $\\quad\\phi=\\arctan\\left[\\frac{E_y}{E_x}\\right]$\n\n**קיטוב מעגלי:** $\\Delta\\varphi=\\pm\\frac{\\pi}{2}$, $\\;E_x=E_y$\n- חיובי ($+\\frac{\\pi}{2}$) ⇐ נגד כיוון השעון (CCW)\n- שלילי ($-\\frac{\\pi}{2}$) ⇐ עם כיוון השעון (CW)\n- שרטוט: מעגל עם חץ סיבוב"
+ },
+ {
+  "lesson_id": "0c0967d4-93f0-4072-99f6-d78ac7bf31f1",
+  "n": 48,
+  "md": "`RoniPo@ariel.ac.il` – רוני פוליאקוב. משמאל: שרטוט גל מתקדם בכיוון $\\hat z$ (צירים $x,y,z$), עם הרכיבים $E_x$, $E_y$.\n\n**קיטוב לינארי:** $\\Delta\\varphi=0,\\;180^\\circ\\,(\\pi)$, $\\quad\\phi=\\arctan\\left[\\frac{E_y}{E_x}\\right]$\n\n**קיטוב מעגלי:** $\\Delta\\varphi=\\pm\\frac{\\pi}{2}$, $\\;E_x=E_y$\n- חיובי ($+\\frac{\\pi}{2}$) ⇐ נגד כיוון השעון (CCW)\n- שלילי ($-\\frac{\\pi}{2}$) ⇐ עם כיוון השעון (CW)\n- שרטוט: מעגל עם חץ סיבוב\n\n**קיטוב אליפטי:** $\\tan(2\\theta)=\\dfrac{2E_{0x}E_{0y}\\cos(\\Delta\\varphi)}{E_{0x}^2-E_{0y}^2}$"
+ },
+ {
+  "lesson_id": "5168046a-adf8-4d92-beed-3a0c30f8f7d0",
+  "n": 15,
+  "md": "**Bitmask Concept: Memory-Efficient Dog Data** – נתוני הכלב בבית אחד (8 ביטים):\n\n| ביט | 7 | 6–2 | 1 | 0 |\n|---|---|---|---|---|\n| שדה | Sex (1 bit): 1=F, 0=M | Age (5 bits): ערך 0–31 | Happy (1 bit): 1=Yes, 0=No | Hungry (1 bit): 1=Yes, 0=No |\n\n**Set Happy to Yes (1)** – OR עם המסכה:\n\n| | |\n|---|---|\n| Current State | `0 0 1 0 1 0 0 0 1` |\n| OR with Mask (Happy Mask) | `0 0 0 0 0 0 0 1 0` |\n| New State (Result) | `0 0 1 0 1 1 0 1 1` |\n\n**Get Happy State** – AND עם המסכה:\n\n| | |\n|---|---|\n| Current State | `0 0 1 0 1 0 1 1` |\n| AND with Mask (Happy Mask) | `0 0 0 0 0 0 1 0` |\n| Isolated Bit (Result) | `0 0 0 0 0 0 1 0` ⇐ אם 1 (True): Happy is Yes! |\n\n> ⚠️ בתמונה (שנוצרה ב-AI) בדוגמה השמאלית יש 9 משבצות, והתוצאה לא יוצאת מ-OR. הדוגמה הנכונה ב-8 ביטים: `00101001` OR `00000010` = `00101011` – רק ביט 1 נדלק."
+ },
+ {
+  "lesson_id": "9465d4d1-4ba0-40f3-9d02-8f3dfa5cb56b",
+  "n": 4,
+  "md": "**1.1. Signals – אותות** (מתמר פיזיקלי ← מעבד אות (מגבר) ← אות חשמלי)\n\n- **signal** – contains information – אות\n  - e.g. voice of radio announcer reading the news\n- **process** – an operation which allows an observer to understand this information from a signal – מעבד את המידע מהאות\n- **transducer** – device which converts signal from non-electrical to electrical form – מתמר מבוא / מתמר מוצא\n  - e.g. microphone (sound to electrical) – למשל מיקרופון"
+ },
+ {
+  "lesson_id": "9465d4d1-4ba0-40f3-9d02-8f3dfa5cb56b",
+  "n": 26,
+  "md": "**על המסך: Amplifier Types – צורות מגברים** – ארבעה מעגלים שקולים:\n\n| מגבר | כניסה | מקור תלוי במוצא |\n|---|---|---|\n| **voltage amplifier – מתח-מתח** (מגבר מתח) | $v_i$ על $R_i$ | $A_{vo}v_i$ בטור עם $R_o$ |\n| **current amplifier – זרם-זרם** (מגבר זרם) | $i_i$ דרך $R_i$ | $A_{is}i_i$ במקביל ל-$R_o$ |\n| **transconductance amp. – זרם-מתח** (מגבר מוליכות) | $v_i$ על $R_i$ | $G_mv_i$ במקביל ל-$R_o$ |\n| **transresistance amp. – מתח-זרם** (מגבר התנגדות) | $i_i$ דרך $R_i$ | $R_mi_i$ בטור עם $R_o$ |\n\n**על הלוח (משמאל):** $R_s=\\frac{V_{oc}}{I_{sc}}$ – התנגדות פנימית, ושרטוט מקור זרם $i_s$ עם $R_s$."
+ },
+ {
+  "lesson_id": "9465d4d1-4ba0-40f3-9d02-8f3dfa5cb56b",
+  "n": 75,
+  "md": "**על המסך: 1.5.2. Cascaded Amplifiers – מגברים בקסקדה – שרשור מגברים**\n- In real life, an amplifier is not ideal and will not have infinite input impedance or zero output impedance.\n- **Cascading** of amplifiers, however, may be used to emphasize desirable characteristics:\n  - First amplifier – high $R_i$, medium $R_o$ – צימוד מבוא\n  - Last amplifier – medium $R_i$, low $R_o$ – צימוד מוצא\n  - Aggregate – high $R_i$, low $R_o$\n- שרטוט: שלושה מגברים בשרשרת – צימוד מבוא, הגבר, צימוד מוצא.\n\n**על הלוח (משמאל):** $V_O=10-10^{-11}e^{40V_I}$, ושרטוט האופיין היורד (10V ← 5V ← 0.3V, שיפוע $-200$)."
+ },
+ {
+  "lesson_id": "684fd42b-997f-4280-9eec-42d631f3ab76",
+  "n": 7,
+  "md": "$$SR=\\left|\\frac{dv_o}{dt}\\right|_{max}=600\\,\\frac{\\text{mV}}{\\mu\\text{s}}$$\n\n$$G=1+\\frac{R_2}{R_1}=2\\qquad V_{out}=2A\\sin(2\\pi ft)$$\n\n**שרטוט (1):** מגבר לא-מהפך – המקור $v_{in}=A\\sin(2\\pi ft)$ מחובר למבוא (+); מבוא (−) מחובר דרך נגד לאדמה ודרך נגד משוב למוצא; במוצא $V_{out}$ נגד עומס $R$ לאדמה."
+ },
+ {
+  "lesson_id": "684fd42b-997f-4280-9eec-42d631f3ab76",
+  "n": 39,
+  "md": "**בצד השמאלי של הלוח:**\n\n$$I=\\frac{5}{2\\text{k}+R_x}\\qquad V_{out}=\\left(\\frac{5}{2\\text{k}+R_x}\\right)\\cdots$$\n\n**על המעגל** (מייצב 7805 + מגבר שרת, $2\\,\\text{k}\\Omega$ ופוטנציומטר $10\\,\\text{k}\\Omega$ המחולק ל-$R_x$, $R_y$): 5V בין רגליים 2 ו-3 של המייצב; $V_x$ ברגל 3 ובמבוא המגבר; במוצא $V_x+5V$; ליד הפוטנציומטר: $5+V_x-V_y$."
+ },
+ {
+  "lesson_id": "cf5b622c-911e-467b-a32c-db27947cddbe",
+  "n": 3,
+  "md": "**על הלוח:** $-80\\,\\text{dBm}=\\dots$, $\\;20\\,\\text{dBm}\\dots$ (המרצה מתחיל לכתוב).\n\n**על המסך – דוגמא 5: התמרת Fourier של דופק (Pulse):**\n\n$$x(t)=\\text{rect}\\left(\\frac tT\\right),\\qquad\\int_{-\\infty}^{\\infty}|x(t)|dt=\\int_{-T/2}^{T/2}1\\,dt=T<\\infty$$\n\n$$X(f)=\\int_{-T/2}^{T/2}e^{-j2\\pi ft}dt=\\frac{1}{\\pi f}\\cdot\\frac{e^{j\\pi fT}-e^{-j\\pi fT}}{2j}=\\frac{\\sin(\\pi fT)}{\\pi f}=T\\,\\frac{\\sin(\\pi fT)}{\\pi fT}=T\\,\\text{sinc}(fT)$$"
+ },
+ {
+  "lesson_id": "cf5b622c-911e-467b-a32c-db27947cddbe",
+  "n": 10,
+  "md": "**על הלוח:**\n\n$$x(t)=4\\cos\\left(2\\pi f_0t+\\frac{\\pi}{3}\\right)\\qquad P_x=\\frac12|\\hat A|^2$$\n\n(ומתחת מתחיל: $\\frac12\\dots$)\n\n**על המסך:** אותה \"דוגמא 5: התמרת Fourier של דופק\" – $x(t)=\\text{rect}(t/T)$ ⇐ $X(f)=T\\,\\text{sinc}(fT)$."
+ },
+ {
+  "lesson_id": "cf5b622c-911e-467b-a32c-db27947cddbe",
+  "n": 20,
+  "md": "**על המסך: Power Spectral Density (PSD) – צפיפות הספק ליחידת תדר**\n\n$$P_x=\\frac{E_x}{T}=\\frac1T\\|x_T(t)\\|^2=\\frac1T\\int_{-\\infty}^{\\infty}x_T^2(t)\\,dt=\\frac1T\\int_{-\\infty}^{\\infty}|X_T(f)|^2df=\\int_{-\\infty}^{\\infty}\\underbrace{\\frac1T|X_T(f)|^2}_{S_x(f)}df$$\n\n$$S_x(f)=\\frac1T|X_T(f)|^2$$\n\n(בראש השקף נראית סוף השורה של משפט פרסבל: $=\\int|x_T(t)|^2dt=\\dots=\\frac12\\int|X_T(f)|^2df$.)"
+ },
+ {
+  "lesson_id": "cf5b622c-911e-467b-a32c-db27947cddbe",
+  "n": 35,
+  "md": "**על המסך: מעגלי R-L ו-R-C**\n- מעגל R-L: $L$ בטור, $R$ במקביל למוצא – $\\tau_c=\\frac{L}{R}$\n- מעגל R-C: $R$ בטור, $C$ במקביל למוצא – $\\tau_c=RC$\n- $H(jf)=\\dfrac{V_{out}(jf)}{V_{in}(jf)}=\\dfrac{1}{1+j2\\pi\\tau_cf}$\n\n**על הלוח:** שרטוטי אופיין של LPF ושל BPF, ואות עם רעש."
+ },
+ {
+  "lesson_id": "cf5b622c-911e-467b-a32c-db27947cddbe",
+  "n": 62,
+  "md": "**על המסך: תגובה למדרגה** – גרף התגובה למדרגה עבור כמה ערכי ריסון: Over damping (עולה לאט בלי חריגה), Critical damping, ותגובה עם תנודות שדועכות (Under damping)."
+ },
+ {
+  "lesson_id": "5c391659-f35a-4950-8b47-25a47d866165",
+  "n": 33,
+  "md": "- $2V\\Rightarrow$ '1' $\\;/\\;$ $0V\\Rightarrow$ '0', $\\quad V_{th}=1V$\n- $P_e=P(n>1)=\\displaystyle\\int_1^{\\infty}\\frac{1}{\\sqrt{2\\pi\\sigma^2}}e^{-\\frac{n^2}{2\\sigma^2}}dn$\n- $Q(x)=\\displaystyle\\int_x^{\\infty}\\frac{1}{\\sqrt{2\\pi}}e^{-\\frac{u^2}{2}}du$\n- הצבה: $\\frac{n}{\\sigma_n}=u,\\quad\\frac{dn}{\\sigma_n}=du$\n- $Q\\left(\\frac{1}{\\sigma_n}\\right)=Q(2)$ ⇐ $2.28\\%$ $(0.0228)$\n\n**על המסך: Signal to Noise Ratio – SNR – יחס אות לרעש:** $x(t)$ + רעש $n(t)$ ← מערכת ← $z(t)$; $\\;SNR_{out}=\\frac{P_{in}}{\\sigma_n^2}=\\frac{P_{in}}{N_0B}$; $\\;P_{in}\\uparrow\\;\\Rightarrow\\;SNR_{out}\\uparrow$"
+ },
+ {
+  "lesson_id": "5c391659-f35a-4950-8b47-25a47d866165",
+  "n": 52,
+  "md": "- שיפור של $6\\,\\text{dB}$ ב-$SNR_{out}$ (המשפט בעברית מתחת לא קריא במלואו)\n- $6\\,\\text{dB}\\rightarrow10^{0.6}\\approx4$\n- $SNR=\\frac{P_s}{N_0B}$, $\\quad B_n=\\frac{\\pi}{2}\\cdot\\frac{f_0}{Q}$\n- $B_{new}=\\frac{B}{4}\\;\\Rightarrow\\;Q_{new}=4Q$\n- בתיבה: $Q=\\dots$ [לא קריא]\n\n**על המסך: הצגת רעש גאוסי מוגבל סרט:** $n(t)=n_I(t)\\cos(2\\pi f_0t)-n_Q(t)\\sin(2\\pi f_0t)=A_n(t)\\cos[2\\pi f_0t+\\theta_n(t)]$, $\\;A_n(t)=\\sqrt{n_I^2(t)+n_Q^2(t)}$"
+ },
+ {
+  "lesson_id": "0833a817-dbad-42cc-bcc9-bde71d9ab0e9",
+  "n": 4,
+  "md": "**הדמיה (סימולציה) של קיטוב מעגלי** – תמונה תלת-ממדית של וקטור השדה שמסתובב לאורך ציר $z$.\n\n**פקדי סימולציה:**\n- סוג הקיטוב: ימני (RHCP) / שמאלי (LHCP)\n- עצור אנימציה\n- זמן ($t$): פס גלילה\n- טיפ: ניתן לגרור בעזרת העכבר כדי לסובב את המרחב, ולהשתמש בגלגלת כדי להתקרב או להתרחק."
+ },
+ {
+  "lesson_id": "0833a817-dbad-42cc-bcc9-bde71d9ab0e9",
+  "n": 2,
+  "md": "**Table 1.1 – סיכום התפשטות גל מישורי בתווכים שונים:**\n\n| גודל | ללא הפסדים ($\\varepsilon''=\\sigma=0$) | הפסדי כללי (General Lossy) | מוליך טוב ($\\varepsilon''\\gg\\varepsilon'$ או $\\sigma\\gg\\omega\\varepsilon'$) |\n|---|---|---|---|\n| קבוע התפשטות מרוכב $\\gamma$ | $\\gamma=j\\omega\\sqrt{\\mu\\varepsilon}$ | $\\gamma=j\\omega\\sqrt{\\mu\\varepsilon'}\\sqrt{1-j\\frac{\\sigma}{\\omega\\varepsilon'}}$ | $\\gamma=(1+j)\\sqrt{\\omega\\mu\\sigma/2}$ |\n| קבוע פאזה $\\beta$ | $\\beta=k=\\omega\\sqrt{\\mu\\varepsilon}$ | $\\beta=\\text{Im}\\{\\gamma\\}$ | $\\beta=\\sqrt{\\omega\\mu\\sigma/2}$ |\n| קבוע ניחות $\\alpha$ | $\\alpha=0$ | $\\alpha=\\text{Re}\\{\\gamma\\}$ | $\\alpha=\\sqrt{\\omega\\mu\\sigma/2}$ |\n| עכבה $\\eta$ | $\\eta=\\sqrt{\\mu/\\varepsilon}=\\omega\\mu/k$ | $\\eta=j\\omega\\mu/\\gamma$ | $\\eta=(1+j)\\sqrt{\\omega\\mu/2\\sigma}$ |\n| עומק חדירה $\\delta_s$ | $\\delta_s=\\infty$ | $\\delta_s=1/\\alpha$ | $\\delta_s=\\sqrt{2/\\omega\\mu\\sigma}$ |\n| אורך גל $\\lambda$ | $2\\pi/\\beta$ | $2\\pi/\\beta$ | $2\\pi/\\beta$ |\n| מהירות פאזה $v_p$ | $\\omega/\\beta$ | $\\omega/\\beta$ | $\\omega/\\beta$ |\n\nמתחת: **פתרונות כלליים לגלים מישוריים (General Plane Wave Solutions)**."
+ },
+ {
+  "lesson_id": "0833a817-dbad-42cc-bcc9-bde71d9ab0e9",
+  "n": 57,
+  "md": "**חישוב הספק נספג במוליך טוב (Power Absorption in Good Conductors)**\n\n**1. הגדרת הבעיה ומערכת הצירים** – בוחנים גל אלקטרומגנטי מישורי הפוגע במשטח של מוליך טוב.\n\nשרטוט: משמאל תווך $\\mu,\\varepsilon$; מימין המוליך ($\\sigma\\gg\\omega\\varepsilon$); משטח סגור $S$ (קו מקווקו) שהחזית שלו $S_0$ על הממשק, עם $\\hat n=\\hat z$; ההספק $P$ נכנס בכיוון $+z$.\n\n- **מישור הממשק:** פני המוליך במישור $xy$ (כלומר ב-$z=0$); המוליך ממלא את $z>0$.\n- **כיוון התקדמות:** הגל חודר אל תוך המוליך ⇐ בכיוון $+\\hat z$.\n- **כיוון השדות:** בגל מישורי (TEM) השדות ניצבים לכיוון ההתקדמות ולכן שוכנים במישור $xy$."
+ },
+ {
+  "lesson_id": "0833a817-dbad-42cc-bcc9-bde71d9ab0e9",
+  "n": 74,
+  "md": "שרטוט: גל פוגע $\\vec E_i$ ומוחזר $\\vec E_r$ בתווך הראשון ($\\varepsilon_0,\\mu_0$), וגל עובר $\\vec E_t$ בתווך השני ($\\varepsilon,\\mu,\\sigma$, מוצלל).\n\n- **הגל הפוגע:** מתקדם בכיוון $z$ החיובי.\n- **השדה החשמלי:** מקוטב לאורך ציר $x$.\n- **התווך הראשון ($z<0$):** ריק (או אוויר) עם $\\varepsilon_0,\\mu_0$ ועכבה אופיינית $\\eta_0$.\n- **התווך השני ($z>0$):** תווך כללי והפסדי עם $\\varepsilon,\\mu,\\sigma$ ועכבה אופיינית $\\eta$."
+ },
+ {
+  "lesson_id": "7bea9f3b-de2f-467b-88af-a2d4008d4c72",
+  "n": 21,
+  "md": "**על הלוח:** יצירת מופע (object instance) של מערך מסוג `int` בגודל 5 איברים. אפשר גם לכתוב:\n\n```java\nint[] ages = {10, 11, 21, 22, 13}; // 5 איברים\n```\n\n**על המסך:** Java Application Receive Command-line Arguments – בהפעלת אפליקציה, מערכת הריצה מעבירה את הארגומנטים משורת הפקודה ל-`main` במערך של מחרוזות: `public static void main(String[] args)`; כל מחרוזת במערך היא ארגומנט אחד. ובשקף הבא: `args[]` array – למשל `java Sort 5 4 3 2 1`."
+ },
+ {
+  "lesson_id": "7bea9f3b-de2f-467b-88af-a2d4008d4c72",
+  "n": 56,
+  "md": "**על הלוח:**\n- **Encapsulation:** מאפשר להסתיר את המימוש של ה-class מהמשתמש בו.\n- **Inheritance**\n- **Polymorphism:** לקבוע את ההתנהגות של אובייקט בזמן ריצה (ולא רק בזמן ההידור).\n\n**על המסך – Classes and Objects:**\n- **Class** – can be thought of as a template, a prototype or a blueprint of an object (תבנית או מתכון); is the fundamental structure in object-oriented programming (מושג יסודי).\n- **Two types of class members:** Fields (properties, variables) – specify the data types defined by the class; Methods (behavior) – specify the operations."
+ },
+ {
+  "lesson_id": "7bea9f3b-de2f-467b-88af-a2d4008d4c72",
+  "n": 81,
+  "md": "**על הלוח:** כל member של class (משתנה או method) הוא אחד משני סוגים:\n1. **instance**\n2. **static**\n\nו-member שהוא static – אינו שייך ל-instance מסוים (משותף).\n\n**על המסך (מוסתר חלקית): Two Types of methods** – Instance (non-static) methods: should be called after an object is created; more common than static. Static methods: should be called in the form `ClassName.method`."
+ },
+ {
+  "lesson_id": "1a5aadcd-1880-46c9-92c2-6960c46ecae2",
+  "n": 5,
+  "md": "**על המסך: דיאגרמת GPIO matrix / IO MUX מתוך ה-Technical Reference של ESP32-S3:**\n- משמאל: 175 peripheral inputs / 184 peripheral outputs, ובוררים (MUX) עם `GPIO_FUNCy_IN_SEL`, `GPIO_FUNCy_IN_INV_SEL`, `GPIO_FUNCx_OUT_SEL`, `GPIO_FUNCx_OUT_INV_SEL`.\n- באמצע: הבורר `MCU_SEL` עם האפשרויות `0 (FUNC)`, `1 (GPIO)`, `2 (FUNC)`.\n- מימין: `GPIO SYNC` ו-`GPIO Filter`, והפין (Pin X supplied by VDD3P3_CPU / VDD3P3_RTC) עם `MUX_SEL`.\n- למטה: GPIO and IO MUX power domain / RTC power domain."
+ },
+ {
+  "lesson_id": "1a5aadcd-1880-46c9-92c2-6960c46ecae2",
+  "n": 34,
+  "md": "**על המסך – GPIO Configuration Registers** (הכתובות יחסיות לכתובת הבסיס של GPIO בטבלה 4.3-3):\n\n| Name | Description | Address | Access |\n|---|---|---|---|\n| `GPIO_BT_SELECT_REG` | GPIO bit select register | `0x0000` | R/W |\n| `GPIO_OUT_REG` | GPIO0 ~ 31 output register | `0x0004` | R/W |\n| `GPIO_OUT_W1TS_REG` | GPIO0 ~ 31 output bit set register | `0x0008` | WO |\n| `GPIO_OUT_W1TC_REG` | GPIO0 ~ 31 output bit clear register | `0x000C` | WO |\n| `GPIO_OUT1_REG` | GPIO32 ~ 48 output register | `0x0010` | R/W |\n| `GPIO_OUT1_W1TS_REG` | GPIO32 ~ 48 output bit set register | `0x0014` | WO |\n| `GPIO_OUT1_W1TC_REG` | GPIO32 ~ 48 output bit clear register | `0x0018` | WO |\n| `GPIO_SDIO_SELECT_REG` | GPIO SDIO selection register | `0x001C` | R/W |\n| `GPIO_ENABLE_REG` | GPIO0 ~ 31 output enable register | `0x0020` | R/W |\n| `GPIO_ENABLE_W1TS_REG` | GPIO0 ~ 31 output enable bit set register | `0x0024` | WO |\n| `GPIO_ENABLE_W1TC_REG` | GPIO0 ~ 31 output enable bit clear register | `0x0028` | WO |\n| `GPIO_ENABLE1_REG` | GPIO32 ~ 48 output enable register | `0x002C` | R/W |\n\n(השורה המסומנת: `0x000C`.)"
+ },
+ {
+  "lesson_id": "01f5e43c-a0e6-4874-a150-02b71bf39042",
+  "n": 19,
+  "md": "**Figure 1.19 (a) – small-signal circuit model for a bipolar junction transistor (BJT):**\n- הדקים: **B** – base (בסיס), **C** – collector (קולט), **E** – emitter (פולט).\n- בין B ל-E: **input resistance** $r_\\pi$, שעליה המתח $v_{be}$.\n- בין C ל-E: מקור זרם תלוי $g_mv_{be}$ (**short-circuit conductance** $g_m$), במקביל ל-**output resistance** $r_o$."
+ },
+ {
+  "lesson_id": "01f5e43c-a0e6-4874-a150-02b71bf39042",
+  "n": 42,
+  "md": "**ניתוח מגבר מהפך בהנחה של $A=\\infty$** – ניתוח המעגל בתרשים עצמו; המספרים מתארים את סדר צעדי החישוב:\n\n1. $0\\,V$ במבוא (+)\n2. $v_1=0$ במבוא (−) – **אדמה וירטואלית (Virtual ground)**\n3. $i_1=\\frac{v_I}{R_1}$\n4. $0$ – אין זרם לתוך המגבר\n5. $i_2=i_1=\\frac{v_I}{R_1}$\n6. $v_O=0-\\frac{v_I}{R_1}R_2=-\\frac{R_2}{R_1}v_I$\n\n**נוסחת ההגבר למגבר מהפך עבור $A=\\infty$:** $\\boxed{G\\equiv\\frac{v_o}{v_i}=-\\frac{R_2}{R_1}}$ $\\quad$ **התנגדות הכניסה:** $\\boxed{R_{in}\\equiv\\frac{v_i}{i_i}=R_1}$"
+ },
+ {
+  "lesson_id": "01f5e43c-a0e6-4874-a150-02b71bf39042",
+  "n": 63,
+  "md": "**Figure 2.25:** The Miller integrator with a large resistance $R_F$ connected in parallel with $C$ in order to provide negative feedback and hence finite gain at dc.\n\nשרטוט: $v_I(t)$ ← נגד $R$ ← מבוא (−); במשוב $C$ במקביל ל-$R_F$; מבוא (+) לאדמה; מוצא $v_O(t)$."
+ },
+ {
+  "lesson_id": "01f5e43c-a0e6-4874-a150-02b71bf39042",
+  "n": 68,
+  "md": "**5.3. The Op-Amp Differentiator**\n\n- **transient description (dc):** $v_{Out}(t)=-R_FC_1\\dfrac{dv_{In}(t)}{dt}$\n- **steady-state description (ac):** $\\dfrac{V_{Out}(s)}{V_{In}(s)}=-sR_FC_1$\n\nשרטוט: $v_I(t)$ ← קבל $C$ ← מבוא (−) (0V); נגד משוב $R$; הזרם $i$ עובר דרך הקבל ואז דרך הנגד. **Figure 2.27:** A differentiator."
+ },
+ {
+  "lesson_id": "01f5e43c-a0e6-4874-a150-02b71bf39042",
+  "n": 74,
+  "md": "**המסכם הממושקל – משוקלל**\n\n- המגבר המסכם ופיתוח הנוסחה שלו מתואר באיור משמאל: $v_1,\\dots,v_n$ דרך $R_1,\\dots,R_n$ למבוא (−) (0V), משוב $R_f$.\n- הנוסחה מתקבלת מיידית לפי עיקרון הסופרפוזיציה:\n\n$$v_O=-\\left(\\frac{R_f}{R_1}v_1+\\frac{R_f}{R_2}v_2+\\dots+\\frac{R_f}{R_n}v_n\\right)$$\n\n- התרשים למטה מראה כיצד ניתן לבנות מגבר מסכם עם סימני סיכום שונים (לא רק −, אלא גם +) – שני מגברים בשרשור:\n\n$$v_O=v_1\\left(\\frac{R_a}{R_1}\\right)\\left(\\frac{R_c}{R_b}\\right)+v_2\\left(\\frac{R_a}{R_2}\\right)\\left(\\frac{R_c}{R_b}\\right)-v_3\\left(\\frac{R_c}{R_3}\\right)-v_4\\left(\\frac{R_c}{R_4}\\right)\\quad(2\\text{-}8)$$"
+ },
+ {
+  "lesson_id": "d2fb7e00-faf1-43be-8258-a565c813499e",
+  "n": 10,
+  "md": "**על המסך: Johnson-Nyquist noise – רעש תרמי**\n- הערך היעיל (RMS) של מתח רעש ברוחב סרט $B$, במוליך בעל התנגדות $R_s$ הנמצא בטמפרטורה $T$, נתון ע\"י:\n\n$$V_{n_{RMS}}^2=4\\cdot k_B\\cdot T\\cdot R_s\\cdot B$$\n\n- קבוע Boltzmann (השורה הבאה בשקף).\n- שרטוט: מקור רעש תרמי בטור עם $R_s$, מחובר לעומס $R_L$, עם הזרם $I_n$.\n\n**על הלוח (משמאל):** שרטוטי האות והרעש מהשיעור."
+ },
+ {
+  "lesson_id": "d2fb7e00-faf1-43be-8258-a565c813499e",
+  "n": 31,
+  "md": "**על המסך: מגבר (AMPLIFIER)**\n- $P_{in},\\;k_BT_0B$ ← מגבר $G,F$ ← $G\\,P_{in},\\;N_{out}=G\\,k_BT_0B+\\Delta N$\n\n$$F=\\frac{SNR_{in}\\big|_{T_0=290K}}{SNR_{out}}=\\frac{P_{in}/k_BT_0B}{G\\,P_{in}/N_{out}}=\\frac{N_{out}}{G\\,k_BT_0B}$$\n\n- הספק הרעש שמוסיף המגבר: $\\Delta N=N_{out}-G\\,k_BT_0B=G(F-1)k_BT_0B$\n\n**על הלוח:** $B=20\\,\\text{MHz}$, $P_{in}=-80\\,\\text{dBm}$ (בערך), LNA, $NF=3\\,\\text{dB}$ (חלק מהכיתוב לא קריא)."
+ },
+ {
+  "lesson_id": "d2fb7e00-faf1-43be-8258-a565c813499e",
+  "n": 60,
+  "md": "**ATTENUATOR (מנחת):** $P_{in},\\;k_BT_0B$ ← קופסה $G=1/L$ ← $P_{in}/L,\\;N_{out}=k_BT_0B$\n\n$$F=\\frac{SNR_{in}\\big|_{T_0=290K}}{SNR_{out}}=\\frac{P_{in}/k_BT_0B}{(P_{in}/L)/k_BT_0B}=L$$\n\n**הספק הרעש שמחולל המנחת:**\n\n$$\\Delta N=N_{out}-\\frac1Lk_BT_0B=\\left(1-\\frac1L\\right)k_BT_0B=\\left(\\frac1L\\right)(L-1)\\,k_BT_0B$$"
+ },
+ {
+  "lesson_id": "75682d61-09d9-4f46-aa0c-3be7b6dedb6f",
+  "n": 45,
+  "md": "**על המסך: שתי מערכות בטור**\n- $P_{in},\\;k_BT_0B$ ← $[G_1,F_1]$ ← $G_1P_{in},\\;F_1G_1k_BT_0B$ ($T_1=F_1G_1T_0$) ← $[G_2,F_2]$ ← $G_2G_1P_{in},\\;N_{out}$\n\n$$N_{out}=G_2(F_1G_1k_BT_0B)+\\Delta N_2=G_2G_1F_1k_BT_0B+G_2(F_2-1)k_BT_0B=G_2[G_1F_1+(F_2-1)]k_BT_0B$$\n\n$$F_{tot}=\\frac{SNR_{in}\\big|_{T_0=290K}}{SNR_{out}}=\\frac{P_{in}/k_BT_0B}{G_2G_1P_{in}/G_2[G_1F_1+(F_2-1)]k_BT_0B}=F_1+\\frac{F_2-1}{G_1}$$"
+ },
+ {
+  "lesson_id": "7f522cff-39ed-412b-b75b-9b73e2b6e5e7",
+  "n": 22,
+  "md": "- מדוע אנחנו צריכים אותות אקראיים ורעש? כדי לקשר את ההסתברות לחשמל.\n- עוברים ממשתנה אקראי (פרמטר מזל) לפונקציה אקראית / תהליך אקראי (פרמטר מזל + פרמטר זמן).\n- תיאור מערכת: כניסת תהליך אקראי $\\rightarrow$ מערכת לא אקראית $\\rightarrow$ מוצא תהליך אקראי.\n- דוגמה למעגל RLC: פונקציית תמסורת במישור התדר $H(\\omega) = \\frac{j\\omega L / (1-\\omega^2 LC)}{R + j\\omega L / (1-\\omega^2 LC)}$.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "7f522cff-39ed-412b-b75b-9b73e2b6e5e7",
+  "n": 43,
+  "md": "- שלשת מרחב ההסתברות: $\\Omega, F, P$.\n- $\\Omega$: מרחב המדגם (למשל קובייה $1-6$, רולטה על היקף מעגל $0-2\\pi$).\n- תכונות $F$: כולל את $\\Omega$, סגור לאיחוד, סגור למשלים, סגור לחיתוך, ואיחוד בר-מניה.\n- תכונות $P$: $0 \\le P(A) \\le 1$, $P(A) + P(A^c) = 1$, $P(\\Omega) = 1$.\n- מאורעות זרים ($A_1 \\cap A_2 = \\emptyset$) $\\Rightarrow$ $P(A_1 \\cup A_2) = P(A_1) + P(A_2)$. מאורעות זרים הם בהכרח תלויים.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "7f522cff-39ed-412b-b75b-9b73e2b6e5e7",
+  "n": 60,
+  "md": "- משתנה אקראי: פונקציה $X(\\omega)$ הממפה $\\Omega \\rightarrow \\mathbb{R}$.\n- פונקציית פילוג (CDF): $F_X(a) = P(X \\le a)$.\n- תכונות CDF: $F(-\\infty) = 0, F(\\infty) = 1$.\n- חישוב הסתברות בתחום: $P(a_1 < X \\le a_2) = F_X(a_2) - F_X(a_1)$.\n- הבחנה בין משתנה בדיד למשתנה רציף.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "7f522cff-39ed-412b-b75b-9b73e2b6e5e7",
+  "n": 75,
+  "md": "- הגדרת PDF: $f_X(a) = \\frac{dF_X(a)}{da}$.\n- תנאי נורמליזציה: $\\int_{-\\infty}^{\\infty} f_X(a) da = 1$.\n- התפלגויות בינארית, בינומית, פואסונית, וגאוסית.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "7f522cff-39ed-412b-b75b-9b73e2b6e5e7",
+  "n": 87,
+  "md": "- חישוב תוחלת בדיד: $E[X] = \\sum a \\cdot P(X=a)$.\n- חישוב תוחלת רציף: $E[X] = \\int_{-\\infty}^{\\infty} \\alpha f_X(\\alpha) d\\alpha$.\n- תכונות תוחלת: $E[c] = c$, לינאריות, מונוטוניות.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "d43e8c12-2c73-4d47-bcb7-50ec6b29b5a6",
+  "n": 7,
+  "md": "- הגדרת תוחלת של פונקציה: $E[g(X)]$\n- עבור בדיד: $\\sum_a g(a)P(X=a)$\n- עבור רציף: $\\int_{-\\infty}^{\\infty} g(\\alpha)f_X(\\alpha)d\\alpha$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "d43e8c12-2c73-4d47-bcb7-50ec6b29b5a6",
+  "n": 19,
+  "md": "- מומנט מסדר $n$: $E[X^n]$\n- פונקציה אופיינית: $\\Phi_X(\\nu) = E[e^{j\\nu X}]$\n- קשר לנגזרות: $\\left. \\frac{d^n \\Phi_X(\\nu)}{d\\nu^n} \\right|_{\\nu=0} = j^n E[X^n]$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "d43e8c12-2c73-4d47-bcb7-50ec6b29b5a6",
+  "n": 30,
+  "md": "- התפלגות אחידה: $f_X(\\alpha) = \\frac{1}{B-A}$ בתחום $[A, B]$\n- התפלגות אקספוננציאלית: $f_X(\\alpha) = \\lambda e^{-\\lambda \\alpha}$\n- תוחלת אקספוננציאלית: $E[X] = \\frac{1}{\\lambda}$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "d43e8c12-2c73-4d47-bcb7-50ec6b29b5a6",
+  "n": 53,
+  "md": "- אי שוויון צ'בישב: $P(|Y - E[Y]| \\ge \\varepsilon) \\le \\frac{Var(Y)}{\\varepsilon^2}$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "d43e8c12-2c73-4d47-bcb7-50ec6b29b5a6",
+  "n": 74,
+  "md": "- משתנים בלתי תלויים $X,Y$: $E[g(X)h(Y)]=E[g(X)]\\,E[h(Y)]$ (עם דוגמה $g(x)=e^{j\\nu x}$)\n- לכן עבור $Z=X+Y$: $\\Phi_Z(\\nu)=\\Phi_X(\\nu)\\,\\Phi_Y(\\nu)$\n- (באדום: הפילוג של סכום משתנים בלתי תלויים ⇐ מכפלת הפונקציות האופייניות)\n- **Covariance** של $X,Y$: $\\text{Cov}(X,Y)=E[(X-E[X])(Y-E[Y])]$; $\\;\\text{Cov}(X,X)=\\text{Var}(X)$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "a9c04bcc-d8dd-43b3-846d-fa512570515e",
+  "n": 10,
+  "md": "- כותרת: הסקת פילוג שולי מתוך פילוג משותף\n- דוגמה לטבלת פילוג משותף של $X$ ו-$Y$\n- נוסחה כללית למשתנה רציף: $$f_X(x) = \\int_{-\\infty}^{\\infty} f_{X,Y}(x,y) \\, dy$$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "a9c04bcc-d8dd-43b3-846d-fa512570515e",
+  "n": 48,
+  "md": "- הגדרת וקטור אקראי $\\underline{W}$\n- מטריצת מומנט שני: $E[\\underline{W} \\underline{W}^T]$\n- מטריצת קווריאנס והאלכסון שלה",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "a9c04bcc-d8dd-43b3-846d-fa512570515e",
+  "n": 60,
+  "md": "- מערכת לינארית: $\\underline{Y} = A\\underline{X} + \\underline{B}$\n- פיתוח תוחלת וקווריאנס",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "ce155476-a720-4f47-8af5-0a7cc43b053a",
+  "n": 4,
+  "md": "$\\Phi_{X}(\\nu) = E\\{e^{j \\nu^T X}\\}$\nפונקציה אופיינית של וקטור אקראי (Characteristic Function)\nכאשר $\\nu$ וקטור בגודל $X$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "ce155476-a720-4f47-8af5-0a7cc43b053a",
+  "n": 18,
+  "md": "- מערכת: $Y = AX$\n- פונקציה אופיינית: $\\Phi_{Y}(\\nu) = E\\{e^{j \\nu^T A X}\\} = \\Phi_{X}(A^T \\nu)$\n- מסקנה לנטרול משתנה: מציבים $0$ ב-$\\nu_i$ המתאים.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "ce155476-a720-4f47-8af5-0a7cc43b053a",
+  "n": 45,
+  "md": "- הגדרת ואג: וקטור $X$ נקרא גאוסי אם לכל וקטור דטרמיניסטי $a$, המשתנה האקראי $a^T X$ מתפלג גאוסית.\n- דוגמה נגדית: $Y = SX$ בהסתברות חצי-חצי, מראה שרכיבים גאוסים אינם מבטיחים וקטור גאוסי.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "ce155476-a720-4f47-8af5-0a7cc43b053a",
+  "n": 70,
+  "md": "- צורת הפונקציה האופיינית של ואג: $\\Phi_{X}(\\nu) = e^{j \\nu^T m - \\frac{1}{2} \\nu^T \\Lambda \\nu}$\n- $m = E\\{X\\}$\n- $\\Lambda = \\text{Cov}(X,X)$\n- מטריצה אלכסונית בוואג גוררת חוסר תלות סטטיסטית (B.T.S).",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "e1684efe-5cb7-4125-a07e-08ada0eb4e9c",
+  "n": 2,
+  "md": "$\\mathbf{W} = \\begin{bmatrix} W_1 \\\\ W_2 \\\\ W_3 \\end{bmatrix}$ - וקטור אקראי גאוסי (Gaussian Random Vector)\n- כל הרכיבים שלו מתפלגים גאוסית (Gaussian)\n- כל קומבינציה לינארית (Linear Combination) של רכיביו מתפלגת גאוסית\n$W_1 \\sim \\mathcal{N}, W_2 \\sim \\mathcal{N}, W_3 \\sim \\mathcal{N}$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "e1684efe-5cb7-4125-a07e-08ada0eb4e9c",
+  "n": 18,
+  "md": "- מטריצה יוניטרית: $\\mathbf{P}^T = \\mathbf{P}^{-1}$\n- קווריאנס אי שלילית מוגדרת: $\\mathbf{a}^T \\mathbf{C} \\mathbf{a} \\ge 0$\n- בניית מטריצה $\\mathbf{D}$ יוניטרית ומלכסנת.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "e1684efe-5cb7-4125-a07e-08ada0eb4e9c",
+  "n": 54,
+  "md": "**3 משתנים אקראיים – תלות מותנית**\nדוגמה: $Z \\in \\{200, 300, 400\\}$\n$N_1 \\sim \\mathcal{N}(0, 1)$\n$N_2 \\sim \\mathcal{N}(0, 1)$\n$X = Z + N_1$\n$Y = Z + N_2$\n$X, Z$ תלויים\n$Y, Z$ תלויים\n$X, Y$ תלויים\n\n$f_X(x) = \\frac{1}{\\sqrt{2\\pi \\sigma^2}} e^{-\\frac{(x-m)^2}{2\\sigma^2}}$\n$X \\sim \\mathcal{N}(m, \\sigma^2)$\nעבור וקטור גאוסי (Gaussian Vector):\n$m \\to m$\n$\\Lambda_{1 \\times 1} = (\\sigma^2)$\n$\\det(\\Lambda) = \\sigma^2$\n$f_X(x) \\to f_{X_1}(x)$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "e1684efe-5cb7-4125-a07e-08ada0eb4e9c",
+  "n": 68,
+  "md": "- משפט ההחלקה: $E[Y] = E_X[E[Y|X]]$\n- תכונות לינאריות של תוחלת מותנית.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "d6f959f0-fe2a-4e9b-8058-e2c0e0c084e2",
+  "n": 10,
+  "md": "$\\mathbb{E}(Y) = \\mathbb{E}(\\mathbb{E}(Y|X))$\n$\\mathbb{E}(g(X) \\cdot h(X,Y)) = \\mathbb{E}_x(g(X) \\cdot \\mathbb{E}(h(X,Y)|X))$\n\nמשערך (Estimator):\n- הצגת פונקציה\n- לקיחת מדד מדידה\n- הפקת תנאי משערך כלשהו\n\n$f_{X|Y}(x|y) = \\frac{f_{X,Y}(x,y)}{f_Y(y)}$\n\n- מקבלים וקטור $X, Y, Z$\n- $Y|Z, X|Z$\n$\\mathbb{E}(X|Y) = \\int_{-\\infty}^{\\infty} x f_{X|Y}(x|y) dx$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "d6f959f0-fe2a-4e9b-8058-e2c0e0c084e2",
+  "n": 28,
+  "md": "קריטריון המקובל: $MSE$ (Mean Squared Error)\n\n$MSE = \\mathbb{E}\\left((X-\\phi(Y))^2\\right)$\n\n$g(\\cdot)$ - שגיאה\n$\\mathbb{E}(g(\\cdot))$ - קריטריון טיב\n\nדוגמאות:\n1. $g(X, \\phi(Y)) = X-\\phi(Y)$\n2. $g(X, \\phi(Y)) = \\delta(X+\\phi(Y))$\n\n$\\phi(Y) = \\text{round}(\\text{mean}(Y \\text{ in } t))$\nשגיאה (error) - הפרש בין המשתנה המקורי למשערך\nריבוע (square) - מנטרל כיוון טעות (חיובי או שלילי)\n$\\phi(\\cdot)$ (mean) - תוחלת - המשערך למעשה ממוצע",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "d6f959f0-fe2a-4e9b-8058-e2c0e0c084e2",
+  "n": 36,
+  "md": "משערך אופטימלי (Optimal Estimator):\n$\\phi_0(Y) = \\mathbb{E}(X|Y)$\n$\\phi_0(Y) = \\mathbb{E}(X|Y)$, כאשר $Y$ ו-$X$\n\nסדר פעולות למציאת משערך אופטימלי:\n1. מקבלים פילוג משותף $f_{X,Y}(x,y)$\n2. מוצאים פילוג שולי של $Y$: $f_Y(y) = \\int_{-\\infty}^{\\infty} f_{X,Y}(x,y) dx$\n3. מוצאים פילוג מותני: $f_{X|Y}(x|y) = \\frac{f_{X,Y}(x,y)}{f_Y(y)}$\n4. מחשבים תוחלת מותנית: $\\mathbb{E}(X|Y) = \\int_{-\\infty}^{\\infty} x f_{X|Y}(x|y) dx$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "d6f959f0-fe2a-4e9b-8058-e2c0e0c084e2",
+  "n": 74,
+  "md": "רוצים לשערך את $X$ מתוך $Y$:\n$\\mathbb{E}(X|Y) = \\mathbb{E}(X) + \\frac{\\text{Cov}(X,Y)}{\\text{Var}(Y)}(Y-\\mathbb{E}(Y))$\n\n$Y = X + N$\n$X \\sim \\mathcal{N}(0, \\text{Var}(X))$\n$N \\sim \\mathcal{N}(0, \\text{Var}(N))$\n\n$\\begin{pmatrix} X \\\\ Y \\end{pmatrix} = \\begin{pmatrix} 1 & 0 \\\\ 1 & 1 \\end{pmatrix} \\begin{pmatrix} X \\\\ N \\end{pmatrix}$\n\nדוגמה 3:\n$\\mathbb{E}(Z|Y) = \\mathbb{E}(Z) = 0$\n$\\mathbb{E}\\left[ \\left( X - \\mathbb{E}(X) - \\frac{\\text{Cov}(X,Y)}{\\text{Var}(Y)}(Y-\\mathbb{E}(Y)) \\right) \\Big| Y \\right] =$\n$= \\mathbb{E}(X|Y) - \\mathbb{E}(X) - \\frac{\\text{Cov}(X,Y)}{\\text{Var}(Y)}(Y-\\mathbb{E}(Y)) = 0$\n$\\mathbb{E}(X|Y) = \\mathbb{E}(X) + \\frac{\\text{Cov}(X,Y)}{\\text{Var}(Y)}(Y-\\mathbb{E}(Y))$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "a2a74884-5f6b-4778-b53d-b99eef463c51",
+  "n": 2,
+  "md": "שיערוך:\nידוע: $f_{X,Y}(x,y)$ (פונקציית צפיפות משותפת - joint probability density function)\n$\\underline{Y} \\rightarrow [\\phi(\\underline{Y})] \\rightarrow \\hat{X}$\n[$\\phi(\\underline{Y})$] - משערך (estimator)\n$\\underline{Y}$ - מקור המידע, וקטור המדידות (measurement vector)\n$\\hat{X}$ - אומדן (estimate)",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "a2a74884-5f6b-4778-b53d-b99eef463c51",
+  "n": 29,
+  "md": "הוכחת אופטימליות תוחלת מותנית:\nמזמן (given): $\\text{MSE} \\rightarrow \\min$\nמשערך כללי (general estimator): $\\phi(Y)$\n$\\mathbb{E}\\left((X - \\phi(Y))^2\\right) = \\mathbb{E}\\left(\\left(X - \\phi_0(Y) + \\phi_0(Y) - \\phi(Y)\\right)^2\\right)$\n$= \\mathbb{E}\\left((X - \\phi_0(Y))^2\\right) + \\mathbb{E}\\left((\\phi_0(Y) - \\phi(Y))^2\\right) + 2\\mathbb{E}\\left((X - \\phi_0(Y))(\\phi_0(Y) - \\phi(Y))\\right)$\n$\\ge \\mathbb{E}\\left((X - \\phi_0(Y))^2\\right)$\nתוחלת ה-MSE של המשערך לא שלילי ($\\ge 0$)",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "a2a74884-5f6b-4778-b53d-b99eef463c51",
+  "n": 36,
+  "md": "דוגמה 2:\nמדידה בודדת (single measurement):\n$Y=1 : X = 1,2,3$\n$Y=0 : X = 4,5,6$\nנבנה משערך אופטימלי (optimal estimator):\n$\\hat{X}_0(Y) = \\mathbb{E}[X|Y]$\nנחשב קודם הסתברויות מותנות (conditional probabilities):\nטבלה:\n$X \\backslash Y$ | $1$ | $0$\n$1$ | | \n$2$ | | \n$3$ | | \n$4$ | | \n$5$ | | \n$6$ | |",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "a2a74884-5f6b-4778-b53d-b99eef463c51",
+  "n": 60,
+  "md": "משערך לינארי אופטימלי (LMMSE):\nננסח: $\\hat{X}_L = aY + b$\nמשערך לינארי אופטימלי ימצא את ה-$a,b$ הטובים ביותר ברמת MSE המינימלי.\nנציב $\\hat{X}$ במקום $\\hat{X}_0$ או כל פונקציה אחרת במודל שלנו ונגזור.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "a2a74884-5f6b-4778-b53d-b99eef463c51",
+  "n": 67,
+  "md": "**טבלת השוואה (בבנייה על הלוח):**\n\n| | משערך אופטימלי $\\hat X_0=E(X|Y)$ | משערך לינארי אופטימלי $\\hat X=E(X)+\\frac{\\text{Cov}(X,Y)}{\\text{Var}(Y)}(Y-E(Y))$ |\n|---|---|---|\n| מה צריך לדעת? | $f_{X|Y}$ | $E(X)$, $E(Y)$, $\\text{Cov}(X,Y)$, $\\text{Var}(Y)$ |\n| כמה המשערך אופטימלי? | אופטימלי מבין כל הפונקציות של $Y$ | אופטימלי מבין המשערכים הלינאריים |\n\n**משמאל – גזירת המשערך הלינארי:** $\\hat X=aY+b$; $\\;\\frac{\\partial MSE}{\\partial b}=0\\Rightarrow b^*=E(X)-aE(Y)$; $\\;\\frac{\\partial MSE}{\\partial a}=-2\\text{Cov}(X,Y)+2a\\text{Var}(Y)=0\\Rightarrow a^*=\\frac{\\text{Cov}(X,Y)}{\\text{Var}(Y)}$.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "e7f1762f-e8d9-4864-a8f3-1bc6f1aeb7a4",
+  "n": 4,
+  "md": "- כותרת: שערוך לינארי אופטימלי (מקרה וקטור)\n- נוסחת השערוך: $\\hat{X}_{linear} = E(X) + Cov(X,Y) Cov(Y,Y)^{-1} (Y - E(Y))$\n- פיתוח עבור סכום: $\\hat{X}_{linear} = \\sum_{i=1}^n a_i y_i$\n- תנאי האופטימליות: גזירת ה-MSE לפי $a_i$ והשוואה לאפס.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "e7f1762f-e8d9-4864-a8f3-1bc6f1aeb7a4",
+  "n": 18,
+  "md": "- חישובי קווריאנס ווריאנס עבור מדידות $y_1, y_2$\n- מציאת מטריצת הקווריאנס ההופכית (Inverse Matrix)\n- השוואת ביצועים (MSE) בין אינטואיציה פשוטה (ממוצע) לבין המשערך האופטימלי.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "e7f1762f-e8d9-4864-a8f3-1bc6f1aeb7a4",
+  "n": 86,
+  "md": "- הוכחת האורתוגונליות עבור משערך לינארי ומשערך אופטימלי כללי.\n- איור גיאומטרי: מישור המדידות, הנקודה $X$, ההטלה $\\hat{X}$, ושגיאת השערוך הניצבת.\n- נוסחה: מכפלה פנימית מוגדרת כתוחלת, ולכן הניצבות היא $E((X - \\hat{X})Y) = 0$.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "838d4785-f662-45bf-9028-383c027429c7",
+  "n": 8,
+  "md": "**סיכום שערוך (מימין):** $Y\\rightarrow[\\phi(Y)]\\rightarrow\\hat X$, $\\;MSE=E((X-\\phi(Y))^2)$\n- משערך אופטימלי: $\\phi_0(Y)=E(X|Y)=\\hat X_0$\n- משערך לינארי אופטימלי: $\\hat X^*=E(X)+\\frac{\\text{Cov}(X,Y)}{\\text{Var}(Y)}(Y-E(Y))$\n- עיקרון האורתוגונליות: $E((X-\\hat X^*)Y)=0$\n\n**משמאל – תהליך אקראי:** משתנה אקראי ← וקטור אקראי ← תהליך אקראי; דוגמה: $X(t)=A\\cos(t)$ ($A$ אקראי).",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "838d4785-f662-45bf-9028-383c027429c7",
+  "n": 18,
+  "md": "**הגדרה (מימין):**\n- תהליך אקראי בזמן בדיד: סדרה של משתנים אקראיים $X(n)$.\n- תהליך אקראי בזמן רציף: פונקציה אקראית של הזמן בקטע $[T_1,T_2]$.\n- דוגמאות: $X(t)=A+tB$ ($A,B$ אקראיים); $X(t)=A\\sin(2\\pi ft+\\theta)$.\n\n**משמאל – חוק ההסתברות של תהליך:** דוגמה בזמן בדיד – הסדרה $0,1,0,1$ בהסתברות $\\left(\\frac12\\right)^4$; חוק ההסתברות מוגדר ע\"י הפילוגים המשותפים $F(a_1,\\dots,a_n)$ לכל $n$ ולכל בחירת זמנים.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "838d4785-f662-45bf-9028-383c027429c7",
+  "n": 28,
+  "md": "- טבלת מומנטים: תוחלת $\\mu_X(t) = E[X(t)]$, אוטוקורלציה $R_X(t_1, t_2) = E[X(t_1)X(t_2)]$, קווריאנס $K_X(t_1, t_2) = R_X - \\mu_X(t_1)\\mu_X(t_2)$.\n- תכונות אוטוקורלציה: סימטריה, אי-שליליות בנקודות זהות, ומטריצת מומנט שני חיובית-מוגדרת (Non-negative definite).",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "838d4785-f662-45bf-9028-383c027429c7",
+  "n": 79,
+  "md": "- תהליך IID (Independent and Identically Distributed): בלתי תלויים ושווים פילוג.\n- הילוך אקראי (Random Walk): $Y(n) = \\sum_{i=1}^{n} X_i$.\n- תוצאת אוטוקורלציה להילוך אקראי: $R_Y(n_1, n_2) = \\sigma_X^2 \\min(n_1, n_2) + \\mu_X^2 n_1 n_2$.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "838d4785-f662-45bf-9028-383c027429c7",
+  "n": 89,
+  "md": "- תהליך אקראי גאוסי: כל סט דגימות מקיים וקטור אקראי גאוסי (Gaussian Random Vector).\n- תהליך מניה $N(t)$: פונקציית מדרגות עולה בצעדים בדידים של 1.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "8ad61651-a8e8-4397-9e41-9f072981e447",
+  "n": 2,
+  "md": "תהליכים אקראיים\n\nבדיד / רציף\n\nוקטור אינסופי של משתנים אקראיים\n\n$E(X) \\leftrightarrow \\mu_X(n) = E(X(n))$ או $E(X(t))$\n$E(X^2) \\leftrightarrow R_X(n_1, n_2)$ או $R_X(t_1, t_2)$\n$K_X(n_1, n_2)$ או $K_X(t_1, t_2)$\nקו-וריאנס (Covariance)",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "8ad61651-a8e8-4397-9e41-9f072981e447",
+  "n": 21,
+  "md": "**דוגמה (משמאל):** לקוחות מגיעים לסניף דואר בקצב $\\lambda=3$ לקוחות בדקה:\n\n$$P(N(1)=2)=\\frac{(3\\cdot1)^2}{2!}e^{-3\\cdot1}=0.224$$\n\n**באמצע – תהליך פואסון:** $P(N(T)=k)=\\frac{(\\lambda T)^k}{k!}e^{-\\lambda T}$, $\\;N(T)\\sim\\text{Poiss}(\\lambda T)$, $\\;E(N(T))=\\lambda T$, $\\;\\text{Var}(N(T))=\\lambda T$, $\\;E(N^2(T))=(\\lambda T)^2+\\lambda T$\n\n**מימין – גזירה מהבינומי:** $\\Delta t\\to0$, $n\\to\\infty$: $\\;P=\\binom nk p^k(1-p)^{n-k}$ עם $p=\\frac{\\lambda T}{n}$ ⇐ $\\frac{n!}{(n-k)!\\,n^k}\\cdot\\frac{(\\lambda T)^k}{k!}\\left(1-\\frac{\\lambda T}{n}\\right)^n\\left(1-\\frac{\\lambda T}{n}\\right)^{-k}$ ⇐ שואף לפואסון.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "8ad61651-a8e8-4397-9e41-9f072981e447",
+  "n": 39,
+  "md": "$R_N(t_1, t_2) = \\lambda \\min(t_1, t_2) + \\lambda^2 t_1 t_2$\n$K_N(t_1, t_2) = R_N(t_1, t_2) - \\mu_N(t_1)\\mu_N(t_2) = \\lambda \\min(t_1, t_2)$\n\nסטציונריות (SSS)\nהגדרה: תהליך אקראי בזמן בדיד אם ההתפלגות...",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "8ad61651-a8e8-4397-9e41-9f072981e447",
+  "n": 72,
+  "md": "**תהליך הטלגרף האקראי** (מבוסס על תהליך פואסון $N(t)$):\n- $P(X(t_1)=1)=P(X_0=1)P(N(t_1)\\text{ even})+P(X_0=-1)P(N(t_1)\\text{ odd})=\\frac12\\cdot\\frac12+\\frac12\\cdot\\frac12=\\frac12$\n- $P(X(t_1)=1,X(t_2)=-1)=\\frac12P(N(t_2-t_1)\\text{ odd})$\n- $P(X(t_1+\\tau)=1,X(t_2+\\tau)=-1,\\dots)=\\frac12P(N(t_2-t_1)\\text{ odd})\\cdots$ – לא תלוי ב-$\\tau$\n- מסקנה (באדום): ההסתברויות תלויות רק בהפרשי הזמנים.\n\n**משמאל:** תהליך סטציונרי במובן הצר (SSS).",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "b3ab484d-f61f-4e86-8102-c66a91066683",
+  "n": 6,
+  "md": "- תהליכים אקראיים\n- בדיד: וקטור אינסופי עם משמעות של זמן\n- רציף: פונקציונלית אקראית של הזמן\n- תהליך IID: $X(n)$ שווי פילוג, כולם בלתי תלויים\n- הילוך שיכור: $Y(n) = \\sum_{i=1}^{n} X_i$\n- תהליך פואסון: תהליך מניה, קפיצות של 1, חוסר תלות בקטעי זמן זרים\n- SSS: ההתפלגות אינה משתנה בזמן\n- WSS: תוחלת קבועה ואוטוקורלציה תלויה בהפרש זמנים $R_x(n_1, n_2) = R_x(n_1-n_2)$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "b3ab484d-f61f-4e86-8102-c66a91066683",
+  "n": 19,
+  "md": "- הוכחת תהליך אקראי גאוסי תחת פעולות דטרמיניסטיות\n- $Y_1(t) = a(t)X(t)$\n- $Y_2(t) = a(t)X(t) + b(t)X(t) + c$\n- הצגת וקטור הדגימות כמכפלה של מטריצה דטרמיניסטית בוקטור גאוסי: $Y = A X$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "b3ab484d-f61f-4e86-8102-c66a91066683",
+  "n": 31,
+  "md": "- 2 תהליכים אקראיים (בזמן רציף)\n- פונקציית פילוג משותפת: $F_{X(t_1), Y(s_1)...}(a_1, b_1...)$\n- סטציונריות משותפת במובן הצר (Joint SSS)\n- קורלציה מצטלבת (Cross-Correlation): $R_{xy}(t_1, t_2) = E\\{X(t_1)Y(t_2)\\}$\n- תנאי JWSS: גם $X$ וגם $Y$ הם WSS, וגם $R_{xy}$ תלויה רק ב-$t_1 - t_2$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "b3ab484d-f61f-4e86-8102-c66a91066683",
+  "n": 47,
+  "md": "- דוגמה: $X(t) = A \\cos(\\omega t), Y(t) = A \\sin(\\omega t)$\n- הוספת פאזה אקראית: $\\theta \\sim U(0, 2\\pi)$\n- חישוב תוחלת ואינטגרציה של קוסינוס על מחזור שלם (מתאפס)\n- שימוש בזהויות טריגונומטריות",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "b3ab484d-f61f-4e86-8102-c66a91066683",
+  "n": 63,
+  "md": "**מימין – מעבר תהליך אקראי במערכת LTI:** $X(t)\\rightarrow[h(t)\\text{ – מערכת LTI}]\\rightarrow Y(t)$\n\n**באמצע – דוגמה:** $X(t)=\\cos(\\omega t+\\theta)$, $Y(t)=\\cos(\\omega t+\\theta)$ עם $\\theta\\sim U(0,2\\pi)$; $E(X(t))=E(\\cos(\\omega t+\\theta))=\\frac{1}{2\\pi}\\int_0^{2\\pi}\\cos(\\omega t+\\theta)d\\theta=0$; כל אחד מהם WSS.\n\n**משמאל – בדיקת JWSS:** $R_{XY}(t_1,t_2)=E(X(t_1)Y(t_2))=\\frac12E(\\cos(\\omega t_1+\\omega t_2+2\\theta)+\\cos(\\omega t_1-\\omega t_2))=\\frac12\\cos(\\omega(t_1-t_2))$ ⇐ $R_{XY}$ תלוי רק בהפרש, ולכן $X,Y$ הם JWSS.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "53d04b6e-cb5f-4f14-afbc-9cdec96623b2",
+  "n": 12,
+  "md": "**מימין – הגדרת צפיפות הספק ספקטרלית (PSD):** $S_X(f)\\triangleq\\mathcal F\\{R_X(\\tau)\\}$, $\\;\\tau=t_1-t_2$; מוגדר רק עבור תהליך WSS.\n\n**באמצע – $X(t)$ WSS דרך מערכת LTI:** $\\mu_Y(t)=\\mu_X\\int h(t)dt$ (קבוע); $\\;R_{YX}(t_1,t_2)=(R_X*h)(t_1-t_2)$; $\\;R_Y(t_1,t_2)=(R_X*h*\\tilde h)(t_1-t_2)$ עם $\\tilde h(t)=h(-t)$ ⇐ $X(t),Y(t)$ הם JWSS.\n\n**משמאל – התמרת פורייה:** $\\hat X(f)=\\int X(t)e^{-j2\\pi ft}dt$, $\\;X(t)=\\int\\hat X(f)e^{j2\\pi ft}df$; תכונות: $\\mathcal F(X(-t))=\\hat X^*(f)$, $\\;\\mathcal F(X(t-t_0))=\\hat X(f)e^{-j2\\pi ft_0}$, $\\;\\mathcal F(X*h)=\\hat X(f)H(f)$.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "53d04b6e-cb5f-4f14-afbc-9cdec96623b2",
+  "n": 18,
+  "md": "- **הספק המוצא הממוצע (משמאל, למעלה):** $E(Y^2(t))=R_Y(t,t)=R_Y(0)=\\int_{-\\infty}^{\\infty}S_Y(f)df$\n- **באמצע:** $X(t)$ WSS ⇐ $Y(t)$ WSS; $\\;R_Y(t_1,t_2)=(R_X*h*\\tilde h)(t_1-t_2)$ ⇐ $S_Y(f)=S_X(f)H(f)H^*(f)=S_X(f)|H(f)|^2$; $\\;S_{YX}(f)=S_X(f)H(f)$\n- **מימין:** הגדרת PSD: $S_X(f)\\triangleq\\mathcal F(R_X(\\tau))$, $\\tau=t_1-t_2$; צפיפות הספק מצטלבת: $S_{XY}(f)=\\mathcal F(R_{XY}(\\tau))$ עבור $X,Y$ שהם JWSS.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "53d04b6e-cb5f-4f14-afbc-9cdec96623b2",
+  "n": 52,
+  "md": "- **מימין – דוגמה:** $X(t)$ (אות רועש) עובר במסנן מעביר נמוכים (LPF) אידיאלי ⇐ $S_Y(f)=S_X(f)\\,|H(f)|^2=\\begin{cases}S_X(f)&|f|\\le f_0\\\\0&\\text{else}\\end{cases}$\n- **באמצע/משמאל – תוחלת שונה מאפס:** $Y(t)=X(t)+C$ עם $E(X(t))=0$ ⇐ $R_Y(t_1,t_2)=R_X(t_1,t_2)+C^2$ ⇐ $S_Y(f)=S_X(f)+C^2\\delta(f)$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "53d04b6e-cb5f-4f14-afbc-9cdec96623b2",
+  "n": 68,
+  "md": "- צפיפות הספק מצטלבת (Cross-PSD):\n$S_{y_1 y_2}(f) = S_x(f) H_2(f) H_1^*(f)$\n- תנאי להיעדר קורלציה מלאה בין הערוצים: אי-חפיפה בתדרים בין $H_1$ ל-$H_2$.\n- FDMA (Frequency-Division Multiple Access) - גישה המבוססת על הפרדה בתדרים.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "53d04b6e-cb5f-4f14-afbc-9cdec96623b2",
+  "n": 85,
+  "md": "- עיקרון האורתוגונליות:\n$E[(X(t) - \\hat{X}(t)) Y(\\eta)] = 0$\n- מסנן וינר האופטימלי במישור התדר:\n$H_{opt}(f) = \\frac{S_{xy}(f)}{S_y(f)}$\n- במקרה הפרטי של רעש אדיטיבי בלתי תלוי ($Y = X + W$):\n$H_{opt}(f) = \\frac{S_x(f)}{S_x(f) + S_w(f)}$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "44bf9a63-cb4b-4934-9982-4f10bf8d0a48",
+  "n": 4,
+  "md": "$S_x(f) = \\mathcal{F}(R_x(\\tau))$ (Power Spectral Density - PSD)\n\nעבור (Wide-Sense Stationary - WSS):\n- תהליך סטציונרי במובן הרחב\n- אוטוקורלציה (Autocorrelation)\n- פונקציית תעבורה (Transfer Function)\n\nשרטוט מערכת LTI:\nכניסה $x(t) \\rightarrow$ [מערכת LTI עם $h(t)$] $\\rightarrow$ מוצא $y(t)$\n$S_y(f) = S_x(f)|H(f)|^2$\n\n$H_{opt}(f) = \\frac{S_{xy}(f)}{S_y(f)}$ (מסנן וינר - Wiener Filter)",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "44bf9a63-cb4b-4934-9982-4f10bf8d0a48",
+  "n": 15,
+  "md": "- דוגמה: $y(t) = x(t) + w(t)$\n- $S_y(f) = S_x(f) + S_w(f)$\n- $H_{opt}(f) = \\frac{S_{xy}(f)}{S_y(f)} = \\frac{S_x(f)}{S_x(f) + S_w(f)}$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "44bf9a63-cb4b-4934-9982-4f10bf8d0a48",
+  "n": 43,
+  "md": "- טבלת השוואה:\n  - מידע רצוי: משתנה אקראי מול תהליך אקראי.\n  - מדידות: משתנה אקראי (או וקטור) מול תהליך אקראי שלם.\n  - מה נדרש למצוא: פונקציית מדידות (כמו תוחלת מותנית) מול מערכת LTI במישור התדר ($H_{opt}(f)$).\n- כלים: מסנן וינר לתהליכים, תוחלת מותנית למשתנים.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "44bf9a63-cb4b-4934-9982-4f10bf8d0a48",
+  "n": 73,
+  "md": "- נתון: $W(t)$ תהליך גאוסי, $E[W(t)] = 0$, $\\text{Cov}(W(s),W(t)) = \\sigma^2 \\min(s,t)$.\n- הגדרת $X(t) = \\alpha(t)W\\left(\\frac{\\beta(t)}{\\alpha(t)}\\right)$.\n- חישוב תוחלת: $E[X(t)] = 0$.\n- חישוב קווריאנס ו-MSE עבור מקרי $t > s$ ו-$t \\leq s$.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "6f51a8a5-58cd-4ebd-b94e-39a7d81fc272",
+  "n": 2,
+  "md": "- שאלת מבחן תשע\"ב שאלה 3 (35%): נתונה סדרת משתנים $X_n \\sim \\mathcal{N}(0, \\sigma^2)$ שהם IID, ותהליך פואסוני $N(t)$ עם קצב $\\lambda$.\n- מוגדר $Y(t) = \\sum_{k=1}^{N(t)} X_k$.\n- סעיף א': סרטט דיאגרמה טיפוסית של התהליכים $X_n$, $N(t)$ ו-$Y(t)$.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "6f51a8a5-58cd-4ebd-b94e-39a7d81fc272",
+  "n": 18,
+  "md": "**סעיף ב' – התוחלת:**\n\n$$E(Y(t))=E\\left(\\sum_{k=1}^{N(t)}X(k)\\right)$$\n\n- לפי **משפט ההחלקה**: $E(X)=E\\big(E(X|Y)\\big)$ (ההתניה על $Y$, והתוחלת החיצונית לפי $Y$)\n\n$$=E\\left(E\\left(\\sum_{k=1}^{N(t)}X(k)\\,\\Big|\\,N(t)\\right)\\right)=E\\left(\\sum_{k=1}^{N(t)}E\\big(X(k)|N(t)\\big)\\right)$$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "6f51a8a5-58cd-4ebd-b94e-39a7d81fc272",
+  "n": 28,
+  "md": "**אוטוקורלציה ($s>t$):**\n\n$$R_Y(s,t)=E(Y(s)Y(t))=E\\left(\\sum_{k=1}^{N(s)}X(k)\\sum_{j=1}^{N(t)}X(j)\\right)=E\\left(E\\left(\\sum_{k=1}^{N(s)}\\sum_{j=1}^{N(t)}X(k)X(j)\\,\\Big|\\,N(s),N(t)\\right)\\right)$$\n\n$$=E\\left(\\sum_{k=1}^{N(s)}\\sum_{j=1}^{N(t)}E\\big(X(k)X(j)\\big)\\right)$$\n\n- $k=j$: $E(X^2(k))=\\sigma^2$\n- $k\\ne j$: $E(X(k))E(X(j))=0$ ($X_n$ הם IID עם תוחלת 0)\n\nמימין: נוסח שאלה 3 (35%) ושרטוט התחלתי של הדגימות $X(n)$.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "6f51a8a5-58cd-4ebd-b94e-39a7d81fc272",
+  "n": 46,
+  "md": "- נוסחת משערך לינארי: $\\hat{Y}_s = E[Y(s)] + \\frac{\\text{Cov}(Y(s),Y(t))}{\\text{Var}(Y(t))}(Y(t) - E[Y(t)])$\n- $\\text{Cov}(Y(s),Y(t)) = \\sigma^2 \\lambda \\min(s,t)$\n- $\\text{Var}(Y(t)) = \\sigma^2 \\lambda t$\n- הצבה: $\\hat{Y}_s = \\frac{\\min(s,t)}{t} Y(t)$",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "2f1100c4-9a31-461a-852c-c0681865f76c",
+  "n": 4,
+  "md": "- נוסחת ה-MSE הכללית ופיצוח המקרים עבור $s < t$ ו-$t < s$.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "2f1100c4-9a31-461a-852c-c0681865f76c",
+  "n": 13,
+  "md": "- הגדרת התוחלת המותנית ופירוק סכומי תהליך הפואסון באמצעות משפט ההחלקה.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "2f1100c4-9a31-461a-852c-c0681865f76c",
+  "n": 38,
+  "md": "- פיתוח הפונקציה האופיינית של $Y(t)$ בעזרת נוסחאות העזר למשתנים פואסוניים ונורמליים.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "2f1100c4-9a31-461a-852c-c0681865f76c",
+  "n": 65,
+  "md": "- הגדרת ערוץ התקשורת $V_n = X_n U_n$, חישובי תוחלת, שונות, פונקציה אופיינית ושגיאה ריבועית ממוצעת.",
+  "label": "📝 עיקרי הלוח (בתמצית – הכיתוב בצילום צפוף)"
+ },
+ {
+  "lesson_id": "cf688882-5ecb-4a06-8776-4210ca200148",
+  "n": 8,
+  "md": "על ידי בידוד הנעלמים מתוך מערכת המשוואות הקודמת, מגיעים לנוסחאות היסודיות הבאות:\n\n**א. מקדם ההחזרה (Reflection Coefficient):**\n\n$$\\Gamma=\\frac{\\eta-\\eta_0}{\\eta+\\eta_0}$$\n\n**ב. מקדם ההעברה (Transmission Coefficient):**\n\n$$T=1+\\Gamma=\\frac{2\\eta}{\\eta+\\eta_0}$$"
+ },
+ {
+  "lesson_id": "cf688882-5ecb-4a06-8776-4210ca200148",
+  "n": 32,
+  "md": "(שהאקספוננטים בכל איברי המשוואה יהיו זהים:)\n\n$$k_1\\sin\\theta_i=k_1\\sin\\theta_r=k_2\\sin\\theta_t$$\n\nמתוך שוויון זה גוזרים את חוקי האופטיקה:\n1. **חוק ההחזרה:** $k_1\\sin\\theta_i=k_1\\sin\\theta_r\\;\\Rightarrow\\;\\theta_i=\\theta_r$\n2. **חוק השבירה (סנל):** $k_1\\sin\\theta_i=k_2\\sin\\theta_t$\n\n**6. חילוץ מקדמי פרנל (Fresnel Coefficients)** – מאחר שאיברי הפאזה זהים, ניתן לצמצם אותם יחד עם האמפליטודה $E_0$..."
+ },
+ {
+  "lesson_id": "cf688882-5ecb-4a06-8776-4210ca200148",
+  "n": 61,
+  "md": "כאשר זווית הפגיעה גדולה מהזווית הקריטית, מתקיים התנאי הבא:\n\n$$\\sin\\theta_i>\\sin\\theta_c\\;\\Longrightarrow\\;\\sin\\theta_i>\\frac{k_2}{k_1}$$\n\nהצבת תנאי זה בחוק סנל מובילה לתוצאה מתמטית שאינה אפשרית גיאומטרית במרחב הממשי (המשפיעה ישירות על שדות הגל המועבר):\n\n$$\\sin\\theta_t=\\frac{k_1}{k_2}\\sin\\theta_i>\\frac{k_1}{k_2}\\cdot\\frac{k_2}{k_1}=1$$\n\nכיוון ש-$\\sin\\theta_t>1$, הביטוי עבור הקוסינוס של זווית המעבר דורש הוצאת שורש למספר שלילי, ולכן הופך למספר מדומה טהור:\n\n$$\\cos\\theta_t=\\pm\\sqrt{1-\\sin^2\\theta_t}=\\pm\\sqrt{(-1)(\\sin^2\\theta_t-1)}=\\pm j\\sqrt{\\sin^2\\theta_t-1}$$"
+ },
+ {
+  "lesson_id": "cf688882-5ecb-4a06-8776-4210ca200148",
+  "n": 70,
+  "md": "**(a)** קו תמסורת – שני מוליכים באורך $\\Delta z$, עם הזרם $i(z,t)$ והמתח $v(z,t)$, לאורך ציר $z$.\n\n**(b)** המודל של קטע הקו $\\Delta z$: בטור $R\\Delta z$ ו-$L\\Delta z$, ובמקביל $G\\Delta z$ ו-$C\\Delta z$; בכניסה $i(z,t)$, $v(z,t)$ ובמוצא $i(z+\\Delta z,t)$, $v(z+\\Delta z,t)$.\n\nמתחת: יישום חוק המתחים של קירכהוף (KVL) על מודל המעגל של המקטע $\\Delta z$ מתקבל הקשר:"
+ },
+ {
+  "lesson_id": "6aec8bd2-7656-454b-b2e8-10a3e4346bb7",
+  "n": 8,
+  "md": "**על המסך: Modulation – אפנון**\n\n$$y(t)=A(t)\\cos[2\\pi f_0t+\\phi(t)]=\\text{Re}\\left\\{\\underbrace{A(t)e^{j\\phi(t)}}_{\\tilde y(t)}e^{j2\\pi f_0t}\\right\\}$$\n\n- $A(t)$ – משרעת (Amplitude)\n- $f_0$ – תדר גל הנושא (Carrier)\n- $\\phi(t)$ – מופע (Phase)\n\n**על הלוח:** $x_m(t)$ – אות המידע."
+ },
+ {
+  "lesson_id": "6aec8bd2-7656-454b-b2e8-10a3e4346bb7",
+  "n": 38,
+  "md": "**על המסך: Homodyne direct conversion – מקלט ישיר**\n\nשרטוט: אנטנה ← מכפל (Product detector) עם $\\cos(2\\pi f_0t+\\theta)$ ← מסנן מעביר נמוכים (LPF) ← מוצא.\n\n1. האות הנקלט: $y_{DSB}(t)=x(t)\\cos(2\\pi f_0t)$\n2. לאחר המכפל: $x(t)\\cos(2\\pi f_0t)\\cos(2\\pi f_0t+\\theta)=\\frac12x(t)\\cos\\theta+\\frac12x(t)\\cos(2\\pi\\,2f_0t+\\theta)$\n3. לאחר המסנן מעביר הנמוכים: $z(t)=\\frac12x(t)\\cos(\\theta)$\n\n(בתחתית: \"גילוי בנוכחות רעש גאוסי לבן\". על הלוח משמאל: $y(t)=x(t)\\cos(2\\pi f_0t)$, $\\cos(2\\pi f_0t+\\theta)$.)"
+ },
+ {
+  "lesson_id": "3e78800b-0aa8-420e-9457-59043d9cf8e4",
+  "n": 10,
+  "md": "**על הלוח:** מתנד – מגבר לא מהפך ($R_F$, $R$) ורשת משוב $\\beta$: $R$ בטור עם $C_2$, ובמקביל ל-$V^+$: $3R$ ו-$C_1$.\n\n- $\\beta=\\frac{V^+}{V_o}$\n- $Z_1=\\dfrac{1}{\\frac{1}{3R}+SC}=\\dfrac{3R}{1+3RSC}$, $\\quad Z_2=R+\\dfrac{1}{SC}=\\dfrac{SRC+1}{SC}$\n- $\\dfrac{0-V^+}{Z_1}=\\dfrac{V^+-V_{out}}{Z_2}$\n- $V^-=\\dfrac{V_oR}{R+R_F}\\;\\Rightarrow\\;\\dfrac{V_o}{V^+}=\\dfrac{R+R_F}{R}=1+\\dfrac{R_F}{R}=A$"
+ },
+ {
+  "lesson_id": "3e78800b-0aa8-420e-9457-59043d9cf8e4",
+  "n": 32,
+  "md": "**על הלוח (מתנד גשר וין):**\n- שרטוט: מגבר עם $R_1$, $R_2$ ו**שתי דיודות במקביל ל-$R_2$** (ייצוב המשרעת), ושרטוט אות שהשיאים שלו נחתכים.\n- $\\beta=\\frac{V^+}{V_o}$, $\\;V^-=V_o\\frac{R_1}{R_1+R_2}$, $\\;\\frac{V_o}{V^-}=1+\\frac{R_2}{R_1}$\n- פיתוח: $I_1=I_3+I_2$, $\\;V^+=V_1\\frac{R}{R+Z_C}\\Rightarrow V_1=V^+\\frac{R+Z_C}{R}=V^+\\frac{1+RSC}{RSC}$, $\\;\\frac{V_o-V_1}{R}=\\frac{V^+}{R}+\\frac{V_1}{Z_C}$ ...\n- $\\beta=\\dfrac{j\\omega RC}{1-\\omega^2R^2C^2+3j\\omega RC}$ ⇐ $1-(\\omega RC)^2=0$ ⇐ $f_0=\\dfrac{1}{2\\pi RC}$\n- $\\beta(f_0)=\\frac13$ ⇐ $A=3$ ⇐ $1+\\frac{R_2}{R_1}=3$"
+ },
+ {
+  "lesson_id": "b22231ed-bf5b-4431-84c4-60ace35563f2",
+  "n": 10,
+  "md": "- שרטוט: ממשק אנכי (ציר $x$) וציר $z$; גל פוגע $E_i,H_i,\\theta_i$ מתווך 1 ($\\eta_1,n_1$), מוחזר $E_r,H_r,\\theta_r$ ועובר $E_t,H_t,\\theta_t$ לתווך 2 ($\\eta_2,n_2$).\n- $n=\\sqrt{\\varepsilon_r\\mu_r}$\n- חוק סנל: $n_1\\sin(\\theta_i)=n_2\\sin(\\theta_t)$; $\\;\\theta_i=\\theta_r$ ⇐ $n_1=n_2$ (באותו תווך)\n- **קיטוב ניצב (TE)** – מקדם ההחזרה (בכתיבה, חלקו מוסתר): $\\Gamma_\\perp=\\dfrac{\\eta_2\\cos(\\theta_i)-\\eta_1\\cos(\\theta_t)}{\\eta_2\\cos(\\theta_i)+\\eta_1\\cos(\\theta_t)}$, ומקדם ההעברה מתחתיו."
+ },
+ {
+  "lesson_id": "9369a884-14ce-4fd9-82a3-ad90cbf84abb",
+  "n": 90,
+  "md": "**על המסך: זמן התפשטות (Propagation Delay)** – גרפים של $v_I$ ו-$v_O$ עם רמות 10%, 50%, 90% וזמני $t_r$, $t_f$, $t_{PHL}$, $t_{PLH}$:\n- $t_{PLH}$ is the low-to-high propagation delay;\n- $t_{PHL}$ is the high-to-low propagation delay.\n- $t_P=\\frac12(t_{PLH}+t_{PHL})$ is the inverter propagation delay.\n\n**על הלוח:** $t_{PHL}=1\\,\\text{ns}$, $\\;t_{PLH}=2\\,\\text{ns}$ ⇐ $t_P=1.5\\,\\text{ns}$."
+ },
+ {
+  "lesson_id": "5fa30958-f585-49df-9bf3-26cc75251f82",
+  "n": 5,
+  "md": "**על המסך (שקף 26)** – השוואה בין מגבר לבין שער לוגי:\n- **משמאל – מגבר:** אות הכניסה קטן ביחס למתח ההספק, ועובדים בתחום הליניארי (שיפוע $A_v$ סביב נקודת העבודה $Q$) – אות סינוס קטן בכניסה יוצא מוגבר.\n- **מימין – שער לוגי:** אות הכניסה בסדר גודל של מתח ההספק; היחס בין כניסה ליציאה הוא לא ליניארי – הכניסה קופצת בין \"0\" ל-\"1\" והמוצא בין $V_{OL}$ ל-$V_{OH}$ (עם שולי הרעש $NM_L$, $NM_H$)."
+ },
+ {
+  "lesson_id": "5fa30958-f585-49df-9bf3-26cc75251f82",
+  "n": 16,
+  "md": "**על המסך:** שקף זמן ההתפשטות (Propagation Delay) – $t_{PLH}$, $t_{PHL}$, $\\;t_P=\\frac12(t_{PLH}+t_{PHL})$.\n\n**על הלוח:** שרטוט מהפך – בכניסה $3\\uparrow$, $2\\downarrow$ ובמוצא $4\\uparrow$, $1\\downarrow$ (סדר העליות והירידות), ושרטוט קטן של ההשהיה בין הכניסה למוצא."
+ },
+ {
+  "lesson_id": "5fa30958-f585-49df-9bf3-26cc75251f82",
+  "n": 28,
+  "md": "**על המסך: מתנד טבעת (Ring Oscillator)**\n- נבנה מעגל המכונה Ring Oscillator: מעגל המורכב ממספר **אי-זוגי** של מהפכים ($G_1,G_2,G_3$) – קבל שהמעגל לא יציב ולכן יש תנודות.\n- אם נסתכל על מחזור שלם של הגל, נראה שהוא מורכב מזמני ההשהיה של כל מהפך, $2\\times$ (פעם בעלייה ופעם בירידה).\n- ניתן לחשב את $t_P$ מהמדידה הזו בתנאי שכל המהפכים זהים.\n- מה יהיה זמן המחזור? $\\boxed{T=2\\times(\\#\\text{ of inverters})\\times t_P}$ – בדוגמה (3 מהפכים): $T=6t_P$\n- מה יהיה תדר התנודות? $\\boxed{f=1/T}$\n- זאת שיטה ליצירת שעונים במעגל משולב.\n\n**על הלוח:** שרטוט אות עם עליות וירידות (צורת הגל)."
+ },
+ {
+  "lesson_id": "5fa30958-f585-49df-9bf3-26cc75251f82",
+  "n": 52,
+  "md": "**על המסך: ההספק הסטטי המתפזר במעגל לוגי** – לפניכם 4 מעגלים המשמשים כמהפכים לוגיים (NMOS עם נגד, BJT עם נגד, NMOS עם עומס טרנזיסטור, ו-CMOS):\n- כאשר $v_I\\cong0V=$'0' – $Q_1$ קטוע ולא זורם זרם במעגל, ולכן מתח המוצא יהיה '1': $v_O\\cong V_{DD}$.\n- לעומת זאת כאשר $v_I\\cong V_{DD}=$'1' – $Q_1$ מוליך זרם $I$, ומתח המוצא יהיה '0': $v_O\\cong0V$.\n- במצב זה כאשר זורם זרם $I$ מ-$V_{DD}$ לאדמה, נקבל פיזור הספק: $P_D=V_{DD}\\cdot I$.\n- קיבלנו כי כאשר $v_O=0V$: $P_{Dstatic}=V_{DD}I$, וכאשר $v_O=$'1': $P_{Dstatic}=0W$. נניח סטטיסטית כי מחצית הזמן המוצא '0' ומחצית '1', ולכן: $P_{Dstatic}=\\frac12V_{DD}I$.\n- במעגלי VLSI מקדמים בטכנולוגיית CMOS (כמות השערים – וכמובן הטרנזיסטורים – היא כה גדולה, עד שזרמי הזליגה שמתייחסים להזנה כבר לא זניחים) לפיזור הספק סטטי גבוה מאוד.\n\n**על הלוח:** שרטוטי מהפכים ואות עם השהיה $t_P$."
+ },
+ {
+  "lesson_id": "5fa30958-f585-49df-9bf3-26cc75251f82",
+  "n": 72,
+  "md": "**על המסך: אופיין הדיודה האידיאלית לעומת אופיין הנגד**\n- **אופיין מתח-זרם של דיודה** – הוא אופיין לא ליניארי: $i=0$ for $v<0$ (reverse biased), $i>0$ for $v=0$.\n- **אופיין הנגד** (זרם ליניארי למתח): $I=f(V)=V/R$ ⇐ $Y=a\\cdot x$; $R$ קבוע ולא משתנה בכל תחום העבודה.\n- בגרף: $R=0$ (קו אנכי, Forward bias) ו-$R=\\infty$ (קו אופקי, Reverse bias).\n- הקשר בין מתח וזרם של דיודה אינו קבוע!!! ומשתנה בתחום העבודה.\n\n**על הלוח:** טבלת מהפך – $V_{in}=0\\Rightarrow V_{out}=1$, $\\;V_{in}=1\\Rightarrow V_{out}=0$; ושרטוט עקומת מעבר (5V ← 2.5V ← 0)."
+ },
+ {
+  "lesson_id": "f4b0b5ce-f911-4a01-ad34-0c3750aab0c0",
+  "n": 43,
+  "md": "**על המסך: ניתוח מעגל BJT עם 4 נגדים** – $+15V$, $R_{B1}=100\\,\\text{k}\\Omega$, $R_{B2}$, $R_C=5\\,\\text{k}\\Omega$, $R_E=3\\,\\text{k}\\Omega$:\n- אנו רואים ששני הנגדים $R_{B1}$ ו-$R_{B2}$ מהווים מחלק מתח נגדי. אך יש זרם $I_B$ לתוך צומת זה שהוא הבסיס של הטרנזיסטור. הדרך הפשוטה ביותר לפתור מעגל כזה באופן מדויק הוא ע\"י המרת מעגל הבסיס לפי תבנין.\n- כלומר עלינו לחשב את המתח של מחלק מתח הנגדים ללא עומס (בריקם) – הנקרא $V_{BB}$, ולהוסיף לו בטור נגד השווה להתנגדות השקולה שרואים לתוך המחלק (שני נגדים במקביל) – נקרא בשם $R_{BB}$.\n\n**על הלוח:** שרטוט טרנזיסטור NPN עם הרגליים C, B, E וחץ הזרם $I_C$."
+ },
+ {
+  "lesson_id": "f4b0b5ce-f911-4a01-ad34-0c3750aab0c0",
+  "n": 60,
+  "md": "**על המסך: נוסחאות זרם-מתח של ה-MOSFET**\n- נסמן את המכפלה של המוביליות $\\mu_n$ (ניידות) בקיבול ליחידת שטח $C_{ox}=\\frac{\\varepsilon_{ox}}{t_{ox}}\\,[F/cm^2]$, $\\;\\varepsilon_{ox}=3.45\\times10^{-11}F/m$: מקדם התלוי בתהליך היצור: $k_n'=\\mu_nC_{ox}\\,[A/V^2]$.\n- משוואות הזרם בשני תחומי ההולכה יהיו:\n  - **התחום האומי, הטריודה, \"הליניארי\"** ($v_{DS}<v_{GS}-V_t$): $\\;i_D=k_n'\\left(\\frac WL\\right)\\left[(v_{GS}-V_t)v_{DS}-\\frac12v_{DS}^2\\right]$\n  - **תחום הרוויה** ($v_{DS}\\ge v_{GS}-V_t$): $\\;i_D=\\frac12k_n'\\left(\\frac WL\\right)(v_{GS}-V_t)^2$\n- כאשר $V_t$ הוא מתח הסף – אם $V_{GS}$ קטן ממנו לא יזרום זרם בטרנזיסטור; כמובן שבתחום הקטעון $i_D=0$ כי אין תעלה, וזה נכון כאשר $v_{GS}<V_t$.\n- להזכירכם כי לטרנזיסטור מסוג depletion קיים $V_t<0$ (כלומר ב-$v_{GS}=0$ – מוליך)."
+ },
+ {
+  "lesson_id": "b2bf46df-7492-4616-af2f-3af77178dad0",
+  "n": 4,
+  "md": "- שרטוט טרנזיסטור NPN עם הרגליים B, C, E (ובצד: שרטוט סמל PNP).\n- **פעיל (NPN):** $V_C>V_B$, $\\;V_B>V_E$, $\\;I_C=\\beta I_B$\n- **פעיל (PNP):** $V_E>V_B$, $\\;V_B>V_C$\n- **רוויה:** $V_B>V_C$, ... (בכתיבה)"
+ },
+ {
+  "lesson_id": "26d73deb-84f7-4f53-acaf-c2145545d110",
+  "n": 5,
+  "md": "**קווי תמסורת ללא הפסדים:**\n1. $V_p=\\dfrac{\\omega}{\\beta}=\\dfrac{1}{\\sqrt{LC}}$\n2. $\\Gamma=\\dfrac{Z_1-Z_0}{Z_1+Z_0}$\n3. $T=\\dfrac{2Z_1}{\\dots}$ (בכתיבה)\n\nמימין: שרטוט קו תמסורת (כבל), וקטע קו באורך $\\Delta z$ עם הזרם $I(z,t)$ והמתח $V(z,t)$."
+ },
+ {
+  "lesson_id": "26d73deb-84f7-4f53-acaf-c2145545d110",
+  "n": 18,
+  "md": "**המעגל:** מקור $10V$ עם $R_S=25\\,\\Omega$ ומפסק ← קו עם $Z_0=50\\,\\Omega$ ← עומס $R_L=100\\,\\Omega$.\n\n$$\\Gamma_S=\\frac{R_S-Z_0}{R_S+Z_0}=-\\frac13\\qquad\\Gamma_L=\\frac{R_L-Z_0}{R_L+Z_0}=\\frac13$$\n\nהנחיה (מימין): צריך לצייר דיאגרמת הקפצות עבור לפחות 4 מעברים, ולקבוע את המתח הכולל על העומס.\n\nמשמאל: דיאגרמת הקפצות – ציר הזמן $t$ כלפי מטה, המקום מ-$0,S$ עד $L$."
+ },
+ {
+  "lesson_id": "26d73deb-84f7-4f53-acaf-c2145545d110",
+  "n": 47,
+  "md": "**המעגל:** מקור $S(t)$ עם $R_S=50\\,\\Omega$ ← שלושה קווים בשרשרת: $Z_{01}=50\\,\\Omega$, $\\tau_1=2\\,\\mu s$; $\\;Z_{02}=100\\,\\Omega$, $\\tau_2=2\\,\\mu s$; $\\;Z_{03}=50\\,\\Omega$, $\\tau_3=2\\,\\mu s$ ← עומס $R_L=50\\,\\Omega$.\n\n- סימון $\\Gamma_{xy}$: $x$ – הקו שממנו הגל מגיע, $y$ – הקו שאליו הוא פוגע.\n- $\\Gamma_{1S}=0$, $\\;\\Gamma_{21}=-\\frac13$, $\\;\\Gamma_{12}=\\frac13$, $\\;\\Gamma_{32}=\\frac13$, $\\;\\Gamma_{23}=-\\frac13$, $\\;\\Gamma_{L3}=0$\n- $T=1+\\Gamma$ (בכתיבה)\n\nמשמאל: דיאגרמת הקפצות לשלושת הקטעים, הזמן כלפי מטה."
+ },
+ {
+  "lesson_id": "1bf67d9e-5f25-400c-82e8-af042cf0ac45",
+  "n": 2,
+  "md": "**תרגול 4 – תכנות מונחה עצמים ושפת JAVA** (דף התרגיל):\n\n1. כתוב מחלקה `Dog` אשר מאפיינת אובייקט מסוג כלב. ל-`Dog` יהיו המאפיינים הבאים:\n   1. שם\n   2. צבע\n   3. גובה (int)\n   4. משקל (Double)\n   5. כמות כלבים שנוצרו (סטטי)\n\n   ל-`Dog` יהיו המתודות הבאות:\n   1. לקבוע שם\n   2. לקבוע צבע\n   3. לקבוע גובה ומשקל\n   4. לנבוח (הדפסה של Bark)\n   5. להדפיס את נתוני הכלב\n   6. להדפיס כמה כלבים נוצרו (סטטי)\n\n   לאחר מכן במחלקה אחרת הנקראת `Field`, במתודה `Main` תיצור מספר כלבים שונים, והשתמש במתודות השונות של האובייקטים.\n2. כתוב מחלקה בשם `circle` אשר תאפיין מעגל. למעגל יהיו את המאפיינים והמתודות הבאות: (ההמשך לא נראה בצילום)"
+ },
+ {
+  "lesson_id": "86de22c3-e110-4406-a9dd-0b5d80d45406",
+  "n": 11,
+  "md": "```java\n// ===== Comparing String objects =====\nString s1 = \"JAVA \";\nString s2 = \"JAVA \";\nString s3 = new String(\"JAVA\");\n\nSystem.out.println(\"=== Comparing String objects ===\");\n\nSystem.out.println(\"s1 == s2: \" + (s1 == s2));\n\nSystem.out.println(\"s1 == s3: \" + (s1 == s3));\n\nSystem.out.println(\"s1.equals(s3): \" + s1.equals(s3));\n\nSystem.out.println();\n```\n(שימו לב: ב-`s1` וב-`s2` יש רווח בסוף, וב-`s3` אין.)"
+ },
+ {
+  "lesson_id": "79fa5fb1-b134-4255-81b6-0f11a93bea54",
+  "n": 4,
+  "md": "- שרטוט טרנזיסטור NPN עם הרגליים B, C, E (ובצד: שרטוט סמל PNP).\n- **פעיל (NPN):** $V_C>V_B$, $\\;V_B>V_E$, $\\;I_C=\\beta I_B$\n- **פעיל (PNP):** $V_E>V_B$, $\\;V_B>V_C$\n- **רוויה:** $V_B>V_C$, ... (בכתיבה)"
+ },
+ {
+  "lesson_id": "83c463cb-0095-44a4-b836-27effac89ee4",
+  "n": 2,
+  "md": "שרטוט מעגל משוב: מבוא $V_s$ ← צומת סיכום (Σ) ← $V_{in}$ ← מגבר $A$ ← מוצא $V_{out}$; מהמוצא חוזר ענף דרך $\\beta$, והאות החוזר $V_f$ נכנס לצומת הסיכום."
+ },
+ {
+  "lesson_id": "83c463cb-0095-44a4-b836-27effac89ee4",
+  "n": 11,
+  "md": "שרטוט מעגל מתנד: מגבר שרת עם $R_F$ ו-$R$ (מגבר לא מהפך, מוצא $V_{out}$), ורשת משוב: $R$ בטור עם קבל אל המבוא (+), ובמקביל למבוא: $3R$ וקבל $C$ לאדמה."
+ },
+ {
+  "lesson_id": "83c463cb-0095-44a4-b836-27effac89ee4",
+  "n": 44,
+  "md": "- (המשך החישוב משמאל:) $\\dfrac{(3RSC+1)(RSC+1)}{3RSC}$ ...\n- $\\beta=\\dfrac{j\\omega RC}{1-(\\omega RC)^2+3j\\omega RC}=\\dfrac13$\n- $1-(\\omega RC)^2=0\\;\\Rightarrow\\;f=\\dfrac{1}{2\\pi RC}$\n- $A=3=1+\\dfrac{R_2}{R_1}\\;\\Rightarrow\\;\\dfrac{R_2}{R_1}=2$\n\n**מימין:** מתנד גשר וין – מגבר עם $R_1$, $R_2$ ודיודות במקביל ל-$R_2$; רשת $R$, $C$ למבוא (+); ושרטוטי אות: סינוס, ואות שהשיאים שלו נחתכים."
+ },
+ {
+  "lesson_id": "0ad4586a-d809-4ce4-b28b-e8b169459e1f",
+  "n": 1,
+  "md": "**על המסך: אופיין המעבר (VTC) של מהפך CMOS**, מחולק לאזורים:\n\n| אזור | תחום $v_I$ | $Q_N$ | $Q_P$ |\n|---|---|---|---|\n| A | $0\\le v_I<V_t$ | off | triode region ($V_{OH}=V_{DD}$) |\n| B | עד $V_{IL}$ (Slope $=-1$) | saturation | triode region |\n| C | סביב $V_M=\\frac{V_{DD}}{2}$ (בין $\\frac{V_{DD}}{2}-V_t$ ל-$\\frac{V_{DD}}{2}+V_t$ במוצא) | saturation | saturation |\n| D | מ-$V_{IH}$ (Slope $=-1$) עד $V_{DD}-V_t$ | triode region | saturation |\n| E | $v_I>V_{DD}-V_t$ | triode region ($V_{OL}=0$) | off |"
+ },
+ {
+  "lesson_id": "f6e454ca-8842-4303-a025-9feb40608731",
+  "n": 13,
+  "md": "```java\nString s3 = new String(\"JAVA\");\n\nSystem.out.println(\"=== Comparing String objects ===\");\n\nSystem.out.println(\"s1 == s2: \" + (s1 == s2));\n\nSystem.out.println(\"s1 == s3: \" + (s1 == s3));\n\nSystem.out.println(\"s1.equals(s3): \" + s1.equals(s3));\n\nSystem.out.println();\n\n// ===== Comparing Book objects =====\nBook b1 = new Book(\"JAVA\", \"Alice\", 2024);\nBook b2 = b1; // b2 points to b1\n```"
+ },
+ {
+  "lesson_id": "f6e454ca-8842-4303-a025-9feb40608731",
+  "n": 22,
+  "md": "```java\nfor (Object obj : items) {\n    describeObject(obj);\n    System.out.println(\"----------\");\n}\n}\n\npublic static void describeObject(Object obj) {\n    // Print the name of the class\n    String className = obj.getClass().getName();\n    System.out.println(\"Class name: \" + className);\n\n    // Check type with instanceof\n    if (obj instanceof String) {\n        System.out.println(\"This object is a String.\");\n    }\n\n    if (obj instanceof Book) {\n```\n(ההמשך לא נראה בצילום.)"
+ }
+]
