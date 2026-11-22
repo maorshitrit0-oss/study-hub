@@ -1034,6 +1034,13 @@ every new quiz when it is saved (hub, questions insert).
 - Open: Java f6e454ca "lecture 6" (created 18:08 21/11) is the TA's תרגול 5 again (same code as practice 6 86de22c3) -
   looks like a duplicate of his upload; digital practice 6 (CMOS VTC) belongs to lecture 5's week. Ask before removing.
 
+- 22/11 coverage check (his question "are the chapters too short / 90 snapshots but 4 shown?"): outline now has
+  transcript_chars + transcript_snapshots. Gemini chapters are 3-11% of the transcript (e.g. digital L1/L4 5%, Java L4 4%,
+  waves L2-L4 6-8%, micro L2/L3 3-4%), Claude-written ones 16-24% (linear L1-3, waves L1/L5, Java L5). Snapshots are taken
+  every ~1 min (many repeats of the same board), but 3-4 images for a 3 h lecture is too few. Plan proposed to him: Claude
+  rewrites the thin chapters in full (every topic in order, every distinct board), weeks he already studied first.
+  7 chapters are cut mid-sentence (micro L3 + site weeks 2/4/7/9, lab 1) - waiting for his choice.
+
 ## Open items
 - Syllabus reading: fixed a 400 from Gemini with a plain-JSON fallback (2026-10-22); not yet confirmed with his key.
 - Bug found 2026-10-22: `hub.py` passed `docs=` to `author_with_gemini`, which had lost that parameter in a merge, so
