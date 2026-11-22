@@ -1395,6 +1395,18 @@ def cmd_latex_repair():
             start += 500
         print(f"::notice title=LaTeX::{table}: {fixed} rows fixed", flush=True)
 
+
+def cmd_set_fields(path):
+    """Writes text fields Claude repaired and checked with the site's own renderer (web/fix-math.mjs):
+    JSON [{table, id, field, value}] - lessons chapter/summary only."""
+    sb = db()
+    n = 0
+    for f in json.loads(Path(path).read_text(encoding="utf-8")):
+        if f["table"] == "lessons" and f["field"] in ("chapter_md", "summary_md"):
+            sb.table("lessons").update({f["field"]: f["value"]}).eq("id", f["id"]).execute()
+            n += 1
+    print(f"::notice title=Set fields::{n} written", flush=True)
+
 def cmd_reorder(match, path):
     """Renumbers lessons so that practice N follows lecture N (his request 11/11/2026). JSON list, run in order:
     {"from": "practice 2", "to": "other 2", "title": "..."} moves a lesson (refused if the target exists);
@@ -1581,6 +1593,7 @@ if __name__ == "__main__":
     sub.add_parser("queued")
     sub.add_parser("merge-repair")
     sub.add_parser("latex-repair")
+    sub.add_parser("set-fields").add_argument("path")
     sub.add_parser("drop-lesson").add_argument("lesson_id")
     p = sub.add_parser("fetch"); p.add_argument("lesson_id"); p.add_argument("out_dir")
     p = sub.add_parser("publish"); p.add_argument("lesson_id"); p.add_argument("chapter_json")
@@ -1632,6 +1645,8 @@ if __name__ == "__main__":
         cmd_process(a.lesson_id, not a.no_author)
     elif a.cmd == "drop-lesson":
         cmd_drop_lesson(a.lesson_id)
+    elif a.cmd == "set-fields":
+        cmd_set_fields(a.path)
     elif a.cmd == "latex-repair":
         cmd_latex_repair()
     elif a.cmd == "merge-repair":

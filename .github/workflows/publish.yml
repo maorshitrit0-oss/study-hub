@@ -84,6 +84,7 @@ jobs:
           if [ "$INSPECT" = "sync-undo" ]; then python hub.py sync-undo "${TITLE%%|*}" "${TITLE##*|}"; exit $?; fi
           if [ "$INSPECT" = "merge-repair" ]; then python hub.py merge-repair; exit $?; fi
           if [ "$INSPECT" = "coverage-list" ]; then python coverage.py --list; exit $?; fi
+          if [ "$INSPECT" = "set-fields" ]; then python hub.py set-fields "../$CHAPTER"; exit $?; fi
           if [ "$INSPECT" = "latex-repair" ]; then python hub.py latex-repair; exit $?; fi
           if [ "$INSPECT" = "coverage-dedupe" ]; then python coverage.py --dedupe; exit $?; fi
           if [ "$INSPECT" = "coverage-step" ]; then python coverage.py; exit $?; fi

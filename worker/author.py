@@ -402,6 +402,7 @@ def clean_latex(s):
         x = re.sub(r"\\+\n" + _NL_CMD, r"\\n", x)
         x = re.sub(r"\\{2,}(?=[A-Za-z])", r"\\", x)
         x = x.replace("\\text{#", "\\text{\\#")
+        x = re.sub(r"(\\text\{ \}){3,}", "", x)  # a run of empty \text{ } (Gemini looping, digital L4 22/11/2026)
         x = re.sub(r"\\\((.+?)\\\)", r"$\1$", x)
         x = re.sub(r"\\\[(.+?)\\\]", r"\n$$\n\1\n$$\n", x, flags=re.S)
         x = "\n".join(_table_math(l) for l in x.split("\n"))
@@ -432,7 +433,7 @@ def _fences(x):
             out += [s[:-1].rstrip(), "$$"]  # a block closed with a single $
             inside = False
             continue
-        if inside and re.search(r"[^$]\$[.,:;]$", s):
+        if inside and re.search(r"[^$]\$[.,:;|]$", s):
             out += [s[:-2].rstrip(), "$$", s[-1]]
             inside = False
             continue
