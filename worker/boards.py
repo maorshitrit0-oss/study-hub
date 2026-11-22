@@ -122,5 +122,83 @@ def run(only=None):
                 return
 
 
+# ---- the full check (his remark 22/11/2026: "what is written here and what is really on the board are not the same") ----
+FIX_MARK = "chapter_before_boardfix.md"
+
+
+def blocks(md):
+    """Every "📝 מה כתוב בלוח" block and the snapshot right after it: [(n, start, end, text)]; start..end = the block up to
+    the image line (the label line included)."""
+    out, prev = [], 0
+    for m in IMG.finditer(md):
+        seg = md[prev:m.start()]
+        i = seg.rfind("מה כתוב בלוח")
+        if i >= 0:
+            start = prev + (seg.rfind("\n", 0, i) + 1)
+            out.append((int(m.group(1)), start, m.start(), md[start:m.start()]))
+        prev = m.end()
+    return out
+
+
+def dump(out_dir):
+    """Every block + its snapshot, for Claude to compare one by one -> boards.json + slides/<lesson>_<n>.webp."""
+    from pathlib import Path
+    import json
+    sb = db()
+    courses = {c["id"]: c["name"] for c in sb.table("courses").select("id, name").eq("archived", False).execute().data}
+    out = Path(out_dir)
+    (out / "slides").mkdir(parents=True, exist_ok=True)
+    rows = []
+    for l in sb.table("lessons").select("id, user_id, course_id, kind, number, title, chapter_md").eq("status", "ready") \
+            .order("created_at").execute().data:
+        if l["course_id"] not in courses:
+            continue
+        store = sb.storage.from_(BUCKET)
+        for n, s, e, text in blocks(l.get("chapter_md") or ""):
+            name = f"{l['id'][:8]}_{n:03d}.webp"
+            try:
+                (out / "slides" / name).write_bytes(store.download(f"{l['user_id']}/lessons/{l['id']}/slide_{n:03d}.webp"))
+            except Exception:  # noqa: BLE001
+                name = None
+            rows.append({"lesson_id": l["id"], "course": courses[l["course_id"]], "kind": l["kind"], "number": l["number"],
+                         "title": l["title"], "n": n, "block": text, "img": name})
+    (out / "boards.json").write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"{len(rows)} blocks")
+
+
+def fix(path):
+    """Applies Claude's corrections: JSON [{lesson_id, n, md}] - the block before snapshot n becomes exactly md (what is
+    really on the board); md "" removes the block (the image stays). The chapter before the first fix is kept."""
+    import json
+    sb = db()
+    by = {}
+    for f in json.loads(open(path, encoding="utf-8").read()):
+        by.setdefault(f["lesson_id"], []).append(f)
+    for lid, fixes in by.items():
+        l = sb.table("lessons").select("id, user_id, kind, number, chapter_md").eq("id", lid).execute().data[0]
+        md = l["chapter_md"] or ""
+        prefix = f"{l['user_id']}/lessons/{lid}"
+        store = sb.storage.from_(BUCKET)
+        if not any(x.get("name") == FIX_MARK for x in store.list(prefix, {"limit": 1000})):
+            store.upload(f"{prefix}/{FIX_MARK}", md.encode("utf-8"), {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+        done_n = 0
+        for f in fixes:
+            hit = [b for b in blocks(md) if b[0] == int(f["n"])]
+            if not hit:
+                print(f"::warning title=Boardfix::{lid[:8]} slide {f['n']}: no block found", flush=True)
+                continue
+            n, s, e, _ = hit[0]
+            new = f"**{LABEL}:**\n\n{f['md'].strip()}\n\n" if f["md"].strip() else ""
+            md = md[:s] + new + md[e:]
+            done_n += 1
+        sb.table("lessons").update({"chapter_md": md}).eq("id", lid).execute()
+        print(f"::notice title=Boardfix::{l['kind']} {l['number']} ({lid[:8]}): {done_n} blocks corrected", flush=True)
+
+
 if __name__ == "__main__":
-    run(sys.argv[1] if len(sys.argv) > 1 else None)
+    if len(sys.argv) > 2 and sys.argv[1] == "dump":
+        dump(sys.argv[2])
+    elif len(sys.argv) > 2 and sys.argv[1] == "fix":
+        fix(sys.argv[2])
+    else:
+        run(sys.argv[1] if len(sys.argv) > 1 else None)
