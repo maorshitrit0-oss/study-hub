@@ -9,7 +9,7 @@ permissions:
 on:
   workflow_dispatch:
   schedule:
-    - cron: "17 */2 * * *"   # backup, in case nothing started it
+    - cron: "17 * * * *"   # every hour (23/11/2026: Gemini-only system, he wants tomorrow ready without waiting)
 
 concurrency:
   group: queue

@@ -278,6 +278,8 @@ def step(sb):
     st.setdefault("done", {})
     explode_all(sb)
     fix_slides(sb)
+    if MERGE_APPROVED:
+        merge_units(sb)
     if drill(sb, st):
         return True
     jobs = todo(sb, st)
@@ -328,7 +330,7 @@ def step(sb):
         st.setdefault("v2", {})[l["id"]] = "completion"
         t = sb.table("lessons").select("id, user_id, number, title").eq("id", target["id"]).execute().data[0]
         if md:
-            make_units(sb, t, course, name, md)  # each completion is its own short lesson (his request 22/11/2026)
+            make_units(sb, t, course, name, md, src=l)  # one completion lesson per lecture (23/11/2026)
         st["done"][l["id"]] = "completion"
         print(f"::notice title=Coverage::{course['name']} {name} -> completions in {target.get('title', '')[:30]} ({len(md)} chars)", flush=True)
     save(sb, st)
@@ -357,19 +359,79 @@ def chunks(md):
     return out
 
 
-def make_units(sb, target, course, name, md):
-    """New lessons (kind other) placed right before `target` in the course list. Existing titles are kept."""
-    ps = chunks(md)
+def make_units(sb, target, course, name, md, src=None):
+    """ONE completion lesson per lecture / practice (his request 23/11/2026: "השלמה להרצאה 2 - הכל במכה אחת"), placed
+    right before `target`. More missing material for the same lecture is appended to it (its quiz/exercises follow
+    via drill_more, its video is made again). src = the lesson the material came from (its boards are copied)."""
+    base = re.sub(r" חלק [א-ת]$", "", name.strip())
+    title = UNIT.format(name=base)
     tname = f"{target.get('title') or ''}".strip() or "השיעור הבא"
-    for k, p in enumerate(ps):
-        title = UNIT.format(name=name) + ((f" ({k + 1}/{len(ps)})" if "חלק" in name else f" – חלק {HEB[k]}") if len(ps) > 1 else "")
-        if sb.table("lessons").select("id").eq("course_id", course["id"]).eq("title", title).execute().data:
+    ex = (sb.table("lessons").select("id, user_id, course_id, title, chapter_md, slide_count")
+          .eq("course_id", course["id"]).eq("title", title).execute().data)
+    if ex:
+        keep = ex[0]
+        add = hub.carry_slides(sb, src, keep, md) if src else md
+        sb.table("lessons").update({"chapter_md": (keep["chapter_md"] or "").rstrip() + "\n\n" + add, "read_at": None}) \
+            .eq("id", keep["id"]).execute()
+        st = load(sb)
+        st.setdefault("drill_more", {})[keep["id"]] = add
+        save(sb, st)
+        print(f"::notice title=Coverage::{course['name'][:20]}: {title} += {len(add)} chars", flush=True)
+        return
+    note = f"> 📌 כל מה שהיה חסר בפרקים של {base} (שכבר קראת). לקרוא לפני {tname}. בסוף: שאלון ותרגילים.\n\n"
+    row = sb.table("lessons").insert({"user_id": target["user_id"], "course_id": course["id"], "kind": "other",
+                                      "number": max((target.get("number") or 1) - 1, 0), "title": title, "status": "ready",
+                                      "author": "gemini", "chapter_md": note + md, "slide_count": 0}).execute().data[0]
+    if src:
+        new = hub.carry_slides(sb, src, row, row["chapter_md"])
+        sb.table("lessons").update({"chapter_md": new}).eq("id", row["id"]).execute()
+    print(f"::notice title=Coverage::{course['name'][:20]}: {title} ({len(md)} chars)", flush=True)
+
+
+def unit_base(title):
+    m = UNIT_SRC.match(title or "")
+    return f"{m.group(1)} {m.group(2)}" if m else None
+
+
+def redo_video(sb, l):
+    """The lesson changed: its old / waiting video goes, a new one is queued (made again from the whole lesson)."""
+    sb.table("lesson_media").delete().contains("lesson_ids", [l["id"]]).neq("status", "ready").execute()
+    if not sb.table("lesson_media").select("id").contains("lesson_ids", [l["id"]]).execute().data:
+        queue_video(sb, l)
+
+
+MERGE_APPROVED = False  # removes the emptied rows: waits for his explicit approval (asked 23/11/2026)
+
+
+def merge_units(sb):
+    """Several completion lessons of one lecture (parts, or a second check) -> ONE, kept in their order: text with
+    its boards, quiz questions and exercises move over; the emptied rows are removed."""
+    rows = (sb.table("lessons").select("id, user_id, course_id, title, chapter_md, slide_count, created_at")
+            .eq("kind", "other").like("title", "🔁 השלמה%").order("created_at").execute().data)
+    groups = {}
+    for u in rows:
+        if unit_base(u["title"]):
+            groups.setdefault((u["course_id"], unit_base(u["title"])), []).append(u)
+    st = load(sb)
+    for (cid, base), us in groups.items():
+        if len(us) < 2:
             continue
-        note = f"> 📌 חומר מ{name} שהיה חסר בפרק שלו (שכבר קראת). לקרוא לפני {tname}. בסוף: שאלון ותרגילים על החלק הזה בלבד.\n\n"
-        sb.table("lessons").insert({"user_id": target["user_id"], "course_id": course["id"], "kind": "other",
-                                    "number": max((target.get("number") or 1) - 1, 0), "title": title,
-                                    "status": "ready", "author": "gemini", "chapter_md": note + p}).execute()
-        print(f"::notice title=Coverage::{course['name'][:20]}: {title} ({len(p)} chars)", flush=True)
+        keep, md = us[0], re.sub(r"^> 📌[^\n]*\n+", "", us[0]["chapter_md"] or "")
+        for u in us[1:]:
+            part = re.sub(r"^> 📌[^\n]*\n+", "", hub.carry_slides(sb, u, keep, u["chapter_md"] or ""))
+            md = md.rstrip() + "\n\n" + part
+            for tb in ("questions", "exercises"):
+                sb.table(tb).update({"lesson_id": keep["id"]}).eq("lesson_id", u["id"]).execute()
+            sb.table("lesson_media").delete().contains("lesson_ids", [u["id"]]).execute()
+            sb.table("lessons").delete().eq("id", u["id"]).execute()
+            st.get("drill", {}).pop(u["id"], None)
+        note = f"> 📌 כל מה שהיה חסר בפרקים של {base} (שכבר קראת). בסוף: שאלון ותרגילים.\n\n"
+        sb.table("lessons").update({"chapter_md": note + md, "title": UNIT.format(name=base), "read_at": None}) \
+            .eq("id", keep["id"]).execute()
+        st.setdefault("drill", {})[keep["id"]] = st.get("drill", {}).get(keep["id"]) or "merged"
+        redo_video(sb, keep)
+        print(f"::notice title=Coverage::merged {len(us)} completion lessons of {base} -> one", flush=True)
+    save(sb, st)
 
 
 SECTION = re.compile(r"(?m)^### מתוך (.+?): מה שלא היה בפרק שקראת\s*$")
@@ -429,6 +491,19 @@ def put_drill(sb, l, qs, exs, uncertain):
 def drill(sb, st):
     """One completion lesson without its quiz/exercises: a hand-written file in chapters/drills, else Gemini."""
     st.setdefault("drill", {})
+    more = st.get("drill_more") or {}
+    if more:  # material appended to an existing completion lesson: quiz/exercises for the new part, video again
+        lid, text = next(iter(more.items()))
+        rows = sb.table("lessons").select("id, user_id, course_id, title").eq("id", lid).execute().data
+        if rows:
+            from google.genai import types
+            out = author._generate_json([types.Part.from_text(text=body_of(text))], DRILL, DRILL_SCHEMA, "MEDIUM")
+            put_drill(sb, rows[0], out.get("questions") or [], out.get("exercises") or [], True)
+            redo_video(sb, rows[0])
+            print(f"::notice title=Coverage::{rows[0]['title']}: quiz + exercises for the added part", flush=True)
+        more.pop(lid, None)
+        save(sb, st)
+        return True
     courses = {c["id"]: c for c in sb.table("courses").select("id, name").eq("archived", False).execute().data}
     if not st.get("videos_backfilled"):
         for u in sb.table("lessons").select("id, user_id, course_id").eq("kind", "other").like("title", "🔁 השלמה%").execute().data:
