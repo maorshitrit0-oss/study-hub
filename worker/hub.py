@@ -1459,6 +1459,29 @@ def cmd_drills_dump(match, out_dir):
     (Path(out_dir) / "drills.json").write_text(json.dumps(ls, ensure_ascii=False), encoding="utf-8")
 
 
+def cmd_export(out_dir):
+    """One Markdown file per course with every ready chapter in study order (lectures, practices, completions) - for a
+    Claude Project he uses to ask about exercises (23/11/2026). Board images become their description (no picture)."""
+    sb = db()
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    rank = {"lecture": 0, "practice": 1, "other": 2, "lab": 3, "web": 4}
+    for c in sb.table("courses").select("id, name").eq("archived", False).execute().data:
+        ls = [l for l in sb.table("lessons").select("kind, number, title, chapter_md, created_at").eq("course_id", c["id"])
+              .eq("status", "ready").execute().data if (l.get("chapter_md") or "").strip() and not (l.get("title") or "").startswith("📦")]
+        if not ls:
+            continue
+        ls.sort(key=lambda l: (l.get("number") or 99, rank.get(l["kind"], 9), l["created_at"]))
+        name = {"lecture": "הרצאה", "practice": "תרגול", "lab": "מעבדה"}
+        parts = [f"# {c['name']} - כל חומר הלימוד\n"]
+        for l in ls:
+            head = l["title"] if l["kind"] in ("other", "web") else f"{name.get(l['kind'], '')} {l.get('number') or ''} {l.get('title') or ''}"
+            md = re.sub(r"!\[([^\]]*)\]\(slide:\d+\)", r"[תמונה מהלוח: \1]", l["chapter_md"])
+            parts.append(f"\n\n# {head.strip()}\n\n{md}")
+        safe = re.sub(r"[^\w\u0590-\u05FF -]", "", c["name"]).strip()[:60] or c["id"][:8]
+        (out / f"{safe}.md").write_text("".join(parts), encoding="utf-8")
+
+
 def cmd_set_fields(path):
     """Writes text fields Claude repaired and checked with the site's own renderer (web/fix-math.mjs):
     JSON [{table, id, field, value}] - lessons chapter/summary, questions text/options/explanation, exercises text."""
@@ -1698,6 +1721,7 @@ if __name__ == "__main__":
     p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
     p = sub.add_parser("outline"); p.add_argument("out_dir")
+    p = sub.add_parser("export"); p.add_argument("out_dir")
     p = sub.add_parser("media-clean"); p.add_argument("--shrink", type=int, default=0)
     p = sub.add_parser("drills-dump"); p.add_argument("match"); p.add_argument("out_dir")
     p = sub.add_parser("course-check"); p.add_argument("course")
@@ -1809,6 +1833,8 @@ if __name__ == "__main__":
         cmd_weeksets_dump(a.out_dir)
     elif a.cmd == "course-check":
         cmd_course_check(a.course)
+    elif a.cmd == "export":
+        cmd_export(a.out_dir)
     elif a.cmd == "media-clean":
         import mediastore
         mediastore.clean(db())

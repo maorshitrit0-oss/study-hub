@@ -38,6 +38,7 @@ jobs:
           elif [ "$LESSON_ID" = "media" ]; then python hub.py media-get /tmp/lesson
           elif [[ "$LESSON_ID" =~ ^drive:([-_A-Za-z0-9,]+)$ ]]; then python hub.py drivefiles "${BASH_REMATCH[1]}" /tmp/lesson
           elif [[ "$LESSON_ID" =~ ^entry:([^:]+):([0-9]+)$ ]]; then python hub.py entry-dump "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" /tmp/lesson
+          elif [ "$LESSON_ID" = "export" ]; then python hub.py export /tmp/lesson
           elif [[ "$LESSON_ID" =~ ^drills:(.+)$ ]]; then python hub.py drills-dump "${BASH_REMATCH[1]}" /tmp/lesson
           elif [[ "$LESSON_ID" =~ ^files:([^:]+):(.+)$ ]]; then python hub.py materials "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" /tmp/lesson
           else
