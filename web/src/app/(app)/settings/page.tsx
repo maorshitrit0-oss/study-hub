@@ -1,16 +1,15 @@
 import BackLink from "@/components/BackLink";
 import { requireUser } from "@/lib/supabase/server";
-import SyncMoodle from "@/components/SyncMoodle";
 import PushToggle from "@/components/PushToggle";
 import TwoFactor from "@/components/TwoFactor";
 import { UsagePanel, type Snapshot } from "@/components/Usage";
-import { saveSettings, setReservist } from "../actions";
+import { setReservist } from "../actions";
 import { signOut } from "@/app/login/actions";
 
 export default async function Settings() {
   const { sb, userId } = await requireUser();
   const [{ data: s }, { data: user }, { data: usage }] = await Promise.all([
-    sb.from("settings").select("moodle_ics_url, is_reservist").eq("user_id", userId).maybeSingle(),
+    sb.from("settings").select("is_reservist").eq("user_id", userId).maybeSingle(),
     sb.auth.getUser(),
     sb.from("usage_snapshot").select("data").eq("id", 1).maybeSingle(),
   ]);
@@ -49,21 +48,6 @@ export default async function Settings() {
         <PushToggle />
       </section>
 
-      <section className="card space-y-3">
-        <h2 className="font-semibold">סנכרון עם המודל</h2>
-        <ol className="text-sm text-muted list-decimal ps-5 space-y-1">
-          <li>במודל: לוח שנה ← ייצוא לוח שנה (Export calendar)</li>
-          <li>בוחרים &quot;כל האירועים&quot; ו&quot;60 הימים הקרובים&quot; ← &quot;קבלת כתובת לוח השנה&quot;</li>
-          <li>מעתיקים את הכתובת ומדביקים כאן</li>
-        </ol>
-        <form action={saveSettings} className="space-y-2">
-          <input className="input" name="moodle_ics_url" dir="ltr" defaultValue={s?.moodle_ics_url ?? ""}
-            placeholder="https://moodle.ariel.ac.il/calendar/export_execute.php?..." />
-          <button className="btn w-full">שמירה</button>
-        </form>
-        <SyncMoodle />
-        <p className="text-xs text-muted">משימות שמשויכות לקורס לפי השם שלו במודל. כדאי לתת לקורסים כאן אותו שם כמו במודל.</p>
-      </section>
 
       <section className="card space-y-3">
         <h2 className="font-semibold">התקנה באייפון</h2>

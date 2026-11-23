@@ -6,7 +6,6 @@ import { requireUser } from "@/lib/supabase/server";
 import { dispatchExercises, dispatchNotify, dispatchSite, dispatchStudio } from "@/lib/github";
 import { loadCancelled, saveCancelled } from "@/lib/cancelled";
 import { startLesson } from "@/lib/queue";
-import { parseIcs } from "@/lib/ics";
 import { isoFromNow, israelLocalToIso } from "@/lib/format";
 import { extractSyllabus, looksLikeSyllabus } from "@/lib/syllabus";
 import { DRIVE_PREFIX, cleanTitle, driveId, materialBlob } from "@/lib/files";
@@ -565,51 +564,14 @@ export async function deleteDeadline(id: string) {
   redirect(data?.kind === "exam" ? "/exams" : "/deadlines");
 }
 
-// ---------- settings / Moodle sync ----------
-
-export async function saveSettings(f: FormData) {
-  const { sb, userId } = await requireUser();
-  await sb.from("settings").upsert({ user_id: userId, moodle_ics_url: str(f, "moodle_ics_url"), updated_at: new Date().toISOString() });
-  revalidatePath("/settings");
-}
+// ---------- settings ----------
+// 23/11/2026: the Moodle calendar sync was removed at his request (it caused him problems).
 
 export async function setReservist(on: boolean) {
   const { sb, userId } = await requireUser();
   await sb.from("settings").upsert({ user_id: userId, is_reservist: on, updated_at: new Date().toISOString() });
   revalidatePath("/settings");
   revalidatePath("/courses", "layout");
-}
-
-export async function syncMoodle(): Promise<string> {
-  const { sb, userId } = await requireUser();
-  const { data: s } = await sb.from("settings").select("moodle_ics_url").eq("user_id", userId).maybeSingle();
-  if (!s?.moodle_ics_url) return "לא הוגדר קישור ללוח השנה של המודל (בהגדרות)";
-  const res = await fetch(s.moodle_ics_url, { cache: "no-store" });
-  if (!res.ok) return `המודל החזיר שגיאה ${res.status}`;
-  const events = parseIcs(await res.text()).filter((e) => e.start.getTime() > Date.now() - 7 * 864e5);
-
-  const { data: courses } = await sb.from("courses").select("id, name").eq("archived", false);
-  const rows = events.map((e) => {
-    const text = `${e.categories} ${e.summary}`;
-    const course = courses?.find((c) => text.includes(c.name));
-    const kind = /מבחן|בחינה|exam/i.test(text) ? "exam" : /בוחן|quiz/i.test(text) ? "quiz" : /דוח|report/i.test(text) ? "lab_report" : "assignment";
-    return {
-      user_id: userId,
-      external_uid: e.uid,
-      title: e.summary,
-      kind,
-      course_id: course?.id ?? null,
-      due_at: e.start.toISOString(),
-      notes: e.categories || null,
-    };
-  });
-  if (rows.length) {
-    const { error } = await sb.from("deadlines").upsert(rows, { onConflict: "user_id,external_uid", ignoreDuplicates: false });
-    if (error) return error.message;
-  }
-  revalidatePath("/deadlines");
-  revalidatePath("/");
-  return `סונכרנו ${rows.length} אירועים מהמודל`;
 }
 
 // ---------- push notifications ----------

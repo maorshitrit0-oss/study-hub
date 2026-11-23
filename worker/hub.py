@@ -1722,6 +1722,7 @@ if __name__ == "__main__":
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
     p = sub.add_parser("outline"); p.add_argument("out_dir")
     p = sub.add_parser("export"); p.add_argument("out_dir")
+    p = sub.add_parser("drop-moodle")
     p = sub.add_parser("media-clean"); p.add_argument("--shrink", type=int, default=0)
     p = sub.add_parser("drills-dump"); p.add_argument("match"); p.add_argument("out_dir")
     p = sub.add_parser("course-check"); p.add_argument("course")
@@ -1833,6 +1834,9 @@ if __name__ == "__main__":
         cmd_weeksets_dump(a.out_dir)
     elif a.cmd == "course-check":
         cmd_course_check(a.course)
+    elif a.cmd == "drop-moodle":  # 23/11/2026: the saved Moodle calendar link is erased (the sync was removed)
+        r = db().table("settings").update({"moodle_ics_url": None}).not_.is_("moodle_ics_url", "null").execute().data
+        print(f"::notice title=Moodle::{len(r)} saved link(s) erased", flush=True)
     elif a.cmd == "export":
         cmd_export(a.out_dir)
     elif a.cmd == "media-clean":
