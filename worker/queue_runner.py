@@ -165,7 +165,12 @@ def retry_studio(sb):
     except Exception:  # noqa: BLE001
         stale = []
     # what is missing comes before what is only made again (a lecture with no video > a nicer video of an old one)
-    rows = sorted(stale + rows, key=lambda r: r in redo)
+    try:  # tomorrow's course first (his request 23/11/2026: everything for the next study day, then the rest)
+        import coverage
+        day = {cid: coverage.study_day(sb, cid) for cid in {r["course_id"] for r in stale + rows}}
+    except Exception:  # noqa: BLE001
+        day = {}
+    rows = sorted(stale + rows, key=lambda r: (r in redo, day.get(r["course_id"], 99), r["created_at"]))
     picks = [r for r in rows if any(w in (r.get("error") or "") for w in ("מכסה", "עמוסים"))]
     # 20/11/2026: he uploads a whole batch of lectures today - the video remakes wait until tomorrow morning, so all of
     # Gemini's quota goes to his lessons
@@ -322,6 +327,11 @@ def run():
                 why = "quota"
             elif author._is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "עמוסים", "INTERNAL"):
                 why = "busy"
+    try:
+        import coverage
+        coverage.ready_alert(sb)
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning title=Ready alert::{str(e)[:300]}", flush=True)
     print(f"::notice title=Queue::{len(done)} done: {'; '.join(done)[:3000] or '-'}", flush=True)
     return why
 

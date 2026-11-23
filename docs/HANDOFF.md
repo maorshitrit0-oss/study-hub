@@ -1066,6 +1066,12 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    on the target), then drill(): 5-6 questions + 2-3 exercises per completion lesson, from a hand-written
    chapters/drills/*.json (course+title match) or else Gemini (exercises marked uncertain). State: coverage.json "drill".
    Comm completion 1 drill written by Claude; the rest by Gemini. Comm 4A: dB+dBm correction (⚠️) added.
+   23/11 his working rhythm: he uploads each day's recordings that evening; the system prepares TOMORROW's course(s)
+   (schedule_slots) first and pushes "✅ מוכן למחר: <course>" once everything is ready (lessons processed, completions,
+   quizzes/exercises, videos of completion lessons + lectures of the last 8 days), or at 21:00 "⚠️ עוד לא הכל מוכן"
+   with what is missing (coverage.ready_alert, called at the end of every queue run). Completion lessons get the boards
+   of their source lesson copied (fix_slides) and a video each (queue_video -> retry_studio, tomorrow's course first).
+   He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.
    Waves first: practice 4 (b22231ed) done by him except exercises; completions of L2-L4 + P3 go before lecture 5 (7d82bca1).
 3. Thursday check -> push notification for anything due Friday not ready.
 4. Delete duplicate Java "lecture 6" f6e454ca (= practice 6 86de22c3) - he approved.

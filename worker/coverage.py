@@ -255,6 +255,7 @@ def step(sb):
     st = load(sb)
     st.setdefault("done", {})
     explode_all(sb)
+    fix_slides(sb)
     if drill(sb, st):
         return True
     jobs = todo(sb, st)
@@ -388,6 +389,12 @@ def drill(sb, st):
     """One completion lesson without its quiz/exercises: a hand-written file in chapters/drills, else Gemini."""
     st.setdefault("drill", {})
     courses = {c["id"]: c for c in sb.table("courses").select("id, name").eq("archived", False).execute().data}
+    if not st.get("videos_backfilled"):
+        for u in sb.table("lessons").select("id, user_id, course_id").eq("kind", "other").like("title", "🔁 השלמה%").execute().data:
+            if u["id"] in st["drill"]:
+                queue_video(sb, u)
+        st["videos_backfilled"] = True
+        save(sb, st)
     rows = [l for l in sb.table("lessons").select("id, user_id, course_id, title, chapter_md, created_at").eq("kind", "other")
             .like("title", "🔁 השלמה%").execute().data if l["course_id"] in courses and l["id"] not in st["drill"]]
     if not rows:
@@ -407,8 +414,108 @@ def drill(sb, st):
         put_drill(sb, l, out.get("questions") or [], out.get("exercises") or [], True)
     st["drill"][l["id"]] = "hand" if hand else "gemini"
     save(sb, st)
+    queue_video(sb, l)
     print(f"::notice title=Coverage::{courses[l['course_id']]['name'][:20]} {l['title']}: quiz + exercises ({'hand' if hand else 'gemini'})", flush=True)
     return True
+
+
+UNIT_SRC = re.compile(r"🔁 השלמה ל(הרצאה|תרגול) (\d+)")
+
+
+def source_of(sb, unit):
+    """The lesson a completion came from (its snapshots slide:N are that lesson's)."""
+    m = UNIT_SRC.match(unit.get("title") or "")
+    if not m:
+        return None
+    rows = (sb.table("lessons").select("id, user_id, kind, number, title, status, transcript, slide_count")
+            .eq("course_id", unit["course_id"]).eq("kind", "lecture" if m.group(1) == "הרצאה" else "practice")
+            .eq("number", int(m.group(2))).execute().data)
+    rows = [r for r in rows if eligible(r)]
+    return max(rows, key=lambda r: r.get("slide_count") or 0) if rows else None
+
+
+def fix_slides(sb):
+    """A completion lesson shows the boards of the lesson it came from: they are copied to it once (slide_count 0 ->
+    the copies; the references are renumbered). Without this the site showed nothing, or another lesson's board."""
+    for u in (sb.table("lessons").select("id, user_id, course_id, title, chapter_md, slide_count").eq("kind", "other")
+              .like("title", "🔁 השלמה%").eq("slide_count", 0).execute().data):
+        md = u.get("chapter_md") or ""
+        if not hub.SLIDE_REF.search(md):
+            continue
+        src = source_of(sb, u)
+        if not src:
+            continue
+        new = hub.carry_slides(sb, src, u, md)
+        sb.table("lessons").update({"chapter_md": new}).eq("id", u["id"]).execute()
+        print(f"::notice title=Coverage::{u['title']}: boards copied from {src['kind']} {src['number']}", flush=True)
+
+
+def queue_video(sb, l):
+    """A video per completion lesson (his request 23/11/2026), made by retry_studio as the voice quota allows."""
+    if sb.table("lesson_media").select("id").eq("kind", "video").contains("lesson_ids", [l["id"]]).execute().data:
+        return
+    sb.table("lesson_media").insert({"user_id": l["user_id"], "course_id": l["course_id"], "kind": "video",
+                                     "lesson_ids": [l["id"]], "status": "error", "error": hub.WAIT_MSG}).execute()
+
+
+def tomorrow_courses(sb):
+    from datetime import timedelta
+    from zoneinfo import ZoneInfo
+    now = datetime.now(ZoneInfo("Asia/Jerusalem"))
+    wd = ((now + timedelta(days=1)).weekday() + 1) % 7
+    ids = {s["course_id"] for s in sb.table("schedule_slots").select("course_id, weekday").eq("weekday", wd).execute().data}
+    return now, [c for c in sb.table("courses").select("id, name, user_id").eq("archived", False).execute().data if c["id"] in ids]
+
+
+def missing_for(sb, course, st):
+    """What is not ready yet in this course: lessons in work, completions waiting, quizzes, videos."""
+    from datetime import timedelta, timezone
+    ls = sb.table("lessons").select("id, kind, title, status, transcript, created_at").eq("course_id", course["id"]).execute().data
+    out = []
+    busy = [l for l in ls if l["status"] in ("queued", "processing", "transcribed", "error")]
+    if busy:
+        out.append(f"{len(busy)} שיעורים בעיבוד")
+    cov = [j for j in todo(sb, {"done": st.get("done", {})}) if j[1]["id"] == course["id"]]
+    if cov:
+        out.append(f"{len(cov)} השלמות בכתיבה")
+    units = [l for l in ls if l["kind"] == "other" and (l.get("title") or "").startswith("🔁 השלמה")]
+    nodrill = [u for u in units if u["id"] not in st.get("drill", {})]
+    if nodrill:
+        out.append(f"{len(nodrill)} שאלונים ותרגילים")
+    week = (datetime.now(timezone.utc) - timedelta(days=8)).isoformat()
+    want = units + [l for l in ls if l["kind"] == "lecture" and l["status"] == "ready" and l["created_at"] >= week
+                    and hub.AUTO_STUDIO.search(course["name"] or "")
+                    and not (l.get("transcript") or "").startswith(hub.course_site.SITE_NOTE)]
+    if want:
+        ready = {i for m in sb.table("lesson_media").select("lesson_ids").eq("kind", "video").eq("status", "ready")
+                 .eq("course_id", course["id"]).execute().data for i in (m.get("lesson_ids") or [])}
+        novid = [l for l in want if l["id"] not in ready]
+        if novid:
+            out.append(f"{len(novid)} סרטונים")
+    return out
+
+
+def ready_alert(sb):
+    """One push per course for tomorrow's classes (his request 23/11/2026): "✅ מוכן ללמידה" as soon as everything is
+    ready, or at 21:00 what is still missing."""
+    import notify
+    now, courses = tomorrow_courses(sb)
+    st = load(sb)
+    sent = st.setdefault("ready", {})
+    day = now.date().isoformat()
+    for c in courses:
+        if sent.get(c["id"]) == day:
+            continue
+        miss = missing_for(sb, c, st)
+        if not miss:
+            notify.send(sb, c["user_id"], f"✅ מוכן למחר: {c['name']}", "קריאה, השלמות, שאלונים, תרגילים וסרטונים - הכל מוכן")
+        elif now.hour >= 21:
+            notify.send(sb, c["user_id"], f"⚠️ עוד לא הכל מוכן למחר: {c['name']}", "חסר: " + ", ".join(miss))
+        else:
+            continue
+        sent[c["id"]] = day
+        save(sb, st)
+        print(f"::notice title=Ready alert::{c['name']}: {'ready' if not miss else ', '.join(miss)}", flush=True)
 
 
 def thursday_alert(sb):
