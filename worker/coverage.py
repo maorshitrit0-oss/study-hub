@@ -735,22 +735,34 @@ def trim(sb, unit):
     out = author._generate_json([types.Part.from_text(text="(1)\n" + known[:150000]),
                                  types.Part.from_text(text="(2) פרק ההשלמה:\n" + (unit["chapter_md"] or ""))], TRIM, TRIM_SCHEMA, "MEDIUM")
     md = (out.get("md") or "").strip()
+    old = unit["chapter_md"] or ""
+    removed = out.get("removed") or []
+    # guards (23/11/2026, comm completion 3: 10.7k -> 0.8k with nothing listed, and \\cos broken into \\\\( ):
     if md and author.is_cut(md):
         return None
-    return md, out.get("removed") or []
+    if md.count("\\\\(") > old.count("\\\\(") or len(re.findall(r"\\(?:cos|sin|frac|sqrt)", md)) > len(re.findall(r"\\(?:cos|sin|frac|sqrt)", old)):
+        return None
+    if len(md) < 0.5 * len(old) and len(removed) < 2:
+        return None
+    return md, removed
 
 
-def trim_course(sb, name):
+def trim_course(sb, name, only=""):
     ids = [c["id"] for c in sb.table("courses").select("id, name").execute().data if name in (c["name"] or "")]
     for u in (sb.table("lessons").select("id, user_id, course_id, title, chapter_md").in_("course_id", ids).eq("kind", "other")
               .like("title", "🔁 השלמה%").execute().data):
+        if only and not any(u["title"] == f"🔁 השלמה ל{x.strip()}" for x in only.split(",")):
+            continue
         res = trim(sb, u)
         if res is None:
             print(f"::warning title=Trim::{u['title']}: no usable answer - kept as is", flush=True)
             continue
         md, removed = res
-        sb.storage.from_(BUCKET).upload(f"{u['user_id']}/lessons/{u['id']}/chapter_before_trim.md", (u["chapter_md"] or "").encode(),
-                                        {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+        try:  # the FIRST version is kept (a second trim must not overwrite the original)
+            sb.storage.from_(BUCKET).upload(f"{u['user_id']}/lessons/{u['id']}/chapter_before_trim.md", (u["chapter_md"] or "").encode(),
+                                            {"content-type": "text/markdown; charset=utf-8", "upsert": "false"})
+        except Exception:  # noqa: BLE001 - already there
+            pass
         if not md:
             md = "> 📌 כל מה שהיה בהשלמה הזו כבר נמצא בפרקים שקראת ובתרגילים שפתרת - אין מה ללמוד כאן."
         sb.table("lessons").update({"chapter_md": author.normalize_math(md)}).eq("id", u["id"]).execute()
@@ -782,7 +794,8 @@ if __name__ == "__main__":
     import sys
     s = hub.db()
     if "--trim" in sys.argv:  # completions without what he already read / solved (23/11/2026)
-        trim_course(s, sys.argv[sys.argv.index("--trim") + 1])
+        arg = sys.argv[sys.argv.index("--trim") + 1]  # "<course>" or "<course>|הרצאה 2,הרצאה 3"
+        trim_course(s, *arg.split("|", 1))
     elif "--focus" in sys.argv:  # --focus "<part of a course name>" | --focus "" (all)
         st = load(s)
         st["focus"] = sys.argv[sys.argv.index("--focus") + 1] or None
