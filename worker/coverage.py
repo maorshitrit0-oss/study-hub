@@ -23,7 +23,7 @@ import hub
 BUCKET = "study"
 STATE = "system/coverage.json"           # {"done": {lesson_id: "rewrite"|"completion"|"skip"}, "alert": day}
 PART_SEC = 40 * 60
-THIN = 0.15                              # chapter shorter than 15% of the transcript = thin
+THIN = 0.30                              # chapter shorter than 15% of the transcript = thin
 HEAD = "## 🔁 השלמות מהשבועות הקודמים"
 BACKUP = "chapter_before_coverage.md"
 TS = re.compile(r"^\[(\d\d):(\d\d):(\d\d)\]", re.M)
@@ -240,7 +240,9 @@ def todo(sb, st):
         top_read = max([x.get("number") or 0 for x in ls if x.get("read_at")] or [0])
         nxt = next((x for x in ls if not x.get("read_at") and (x.get("number") or 0) > top_read), None)
         for l in ls:
-            if st["done"].get(l["id"]) or not thin(l):
+            # v2 (23/11/2026): threshold 15% -> 30% (full chapters are 40-60%), and the two halves of one lecture no
+            # longer share a completion title (one of them was dropped). Every thin lesson is checked once more.
+            if st.setdefault("v2", {}).get(l["id"]) or not thin(l):
                 continue
             if not l.get("read_at"):
                 out.append((l, courses[cid], None))
@@ -266,6 +268,7 @@ def step(sb):
     if target is None:
         top, _ = split_head(l.get("chapter_md") or "")
         md, qs = write(sb, l, course)
+        st.setdefault("v2", {})[l["id"]] = "rewrite"
         if len(md) < 0.6 * THIN * len(l["transcript"]):
             print(f"::warning title=Coverage::{l['title'][:40]}: rewrite came out short ({len(md)}) - kept the old chapter", flush=True)
             st["done"][l["id"]] = "short"
@@ -283,9 +286,15 @@ def step(sb):
             st["done"][l["id"]] = "rewrite"
             print(f"::notice title=Coverage::{course['name']} {l['kind']} {l['number']}: rewritten in full ({len(md)} chars)", flush=True)
     else:
-        md, qs = write(sb, l, course, chapter=body_of(l.get("chapter_md") or ""))
+        base = f"{'הרצאה' if l['kind'] == 'lecture' else 'תרגול'} {l.get('number') or ''}"
+        part = re.search(r"חלק [א-ת]", l.get("title") or "")
+        name = base + (f" {part.group()}" if part else "")
+        # what earlier completions of this lecture already gave him counts as read: only what is still missing
+        have = [u["chapter_md"] or "" for u in sb.table("lessons").select("title, chapter_md").eq("course_id", l["course_id"])
+                .eq("kind", "other").like("title", f"🔁 השלמה ל{base}%").execute().data]
+        md, qs = write(sb, l, course, chapter="\n\n".join([body_of(l.get("chapter_md") or "")] + have))
+        st.setdefault("v2", {})[l["id"]] = "completion"
         t = sb.table("lessons").select("id, user_id, number, title").eq("id", target["id"]).execute().data[0]
-        name = f"{'הרצאה' if l['kind'] == 'lecture' else 'תרגול'} {l.get('number') or ''}"
         if md:
             make_units(sb, t, course, name, md)  # each completion is its own short lesson (his request 22/11/2026)
         st["done"][l["id"]] = "completion"
@@ -321,7 +330,7 @@ def make_units(sb, target, course, name, md):
     ps = chunks(md)
     tname = f"{target.get('title') or ''}".strip() or "השיעור הבא"
     for k, p in enumerate(ps):
-        title = UNIT.format(name=name) + (f" – חלק {HEB[k]}" if len(ps) > 1 else "")
+        title = UNIT.format(name=name) + ((f" ({k + 1}/{len(ps)})" if "חלק" in name else f" – חלק {HEB[k]}") if len(ps) > 1 else "")
         if sb.table("lessons").select("id").eq("course_id", course["id"]).eq("title", title).execute().data:
             continue
         note = f"> 📌 חומר מ{name} שהיה חסר בפרק שלו (שכבר קראת). לקרוא לפני {tname}. בסוף: שאלון ותרגילים על החלק הזה בלבד.\n\n"
@@ -419,7 +428,7 @@ def drill(sb, st):
     return True
 
 
-UNIT_SRC = re.compile(r"🔁 השלמה ל(הרצאה|תרגול) (\d+)")
+UNIT_SRC = re.compile(r"🔁 השלמה ל(הרצאה|תרגול) (\d+)( חלק [א-ת])?")
 
 
 def source_of(sb, unit):
@@ -431,6 +440,8 @@ def source_of(sb, unit):
             .eq("course_id", unit["course_id"]).eq("kind", "lecture" if m.group(1) == "הרצאה" else "practice")
             .eq("number", int(m.group(2))).execute().data)
     rows = [r for r in rows if eligible(r)]
+    if m.group(3):  # "הרצאה 3 חלק א": that half only
+        rows = [r for r in rows if m.group(3).strip() in (r.get("title") or "")] or rows
     return max(rows, key=lambda r: r.get("slide_count") or 0) if rows else None
 
 

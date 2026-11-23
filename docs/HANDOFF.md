@@ -1071,6 +1071,10 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    quizzes/exercises, videos of completion lessons + lectures of the last 8 days), or at 21:00 "⚠️ עוד לא הכל מוכן"
    with what is missing (coverage.ready_alert, called at the end of every queue run). Completion lessons get the boards
    of their source lesson copied (fix_slides) and a video each (queue_video -> retry_studio, tomorrow's course first).
+   v2 23/11: THIN 15% -> 30% (full chapters measure 40-60% of the transcript); the halves of a lecture ("חלק א/ב")
+   shared one completion title, so one half's completion was dropped (comm lecture 3). Every thin lesson is checked
+   once more (state "v2"); a read one gets only what is missing vs its chapter AND the existing completion lessons of
+   that lecture; new completion titles carry the half ("🔁 השלמה להרצאה 3 חלק א").
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.
