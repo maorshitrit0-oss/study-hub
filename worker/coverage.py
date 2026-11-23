@@ -41,6 +41,10 @@ RULES = """כללים מחייבים:
 - אסור להשמיט שום פרט, גם אם נראה שולי: מספרים, יחידות, הנחות ותנאים, כל שלב בפתרון, כל תרגיל (גם תרגיל שניתן
   לבית או "לנסות לבד" - עם הנתונים המלאים), כל החלטה או הודעה של המרצה (מבחן, שיעורי בית, מה חשוב, מה לא ייבחן).
 - מה שלא ברור בהקלטה - לכתוב שהוא לא ברור ([לא ברור בהקלטה]), לא לדלג עליו ולא לנחש.
+- אחרי ההסבר של כל נושא: שורה **🏠 בחיי היום-יום:** עם דוגמה מוחשית למה הדבר הזה עושה או איפה פוגשים אותו.
+- בלי שאלות של סטודנטים ובלי שיחות צד - רק החומר עצמו (אם תשובת המרצה לשאלה הוסיפה חומר - החומר נכנס).
+- התמלול אוטומטי: מילה ששובשה (מונח, שם, יחידה) - כתוב אותה נכון לפי ההקשר.
+- תמונות: רק צילומים שמוסיפים לחומר; לא שני צילומים של אותו דבר.
 - אל תמציא תוכן שלא נלמד. טעות של המרצה - שורה > ⚠️ עם התיקון.
 - questions: 2-4 שאלות אמריקאיות של הבנה (לא חישוב) על החלק הזה, 4 תשובות, correct = אינדקס התשובה הנכונה."""
 
@@ -400,7 +404,7 @@ def redo_video(sb, l):
         queue_video(sb, l)
 
 
-MERGE_APPROVED = False  # removes the emptied rows: waits for his explicit approval (asked 23/11/2026)
+MERGE_APPROVED = True  # he approved 23/11/2026 ("יש לך אישור... תעשה מה שאתה רוצה עם זה")
 
 
 def merge_units(sb):
@@ -460,12 +464,26 @@ def explode_all(sb):
             print(f"::notice title=Coverage::{courses[l['course_id']]['name'][:20]} {l.get('title') or ''}: completions moved to separate lessons", flush=True)
 
 
-DRILL = """לפניך פרק קצר (השלמה) שסטודנט להנדסת חשמל לומד לקראת מבחן. כתוב עליו בלבד, בעברית, נוסחאות ב-LaTeX ($...$ בשורה,
+DRILL = """לפניך פרק (השלמה) שסטודנט להנדסת חשמל לומד לקראת מבחן. כתוב עליו בלבד, בעברית, נוסחאות ב-LaTeX ($...$ בשורה,
 $$...$$ בשורה נפרדת):
-- questions: 5-6 שאלות אמריקאיות (הבנה + חישוב קצר) שמכסות את כל הנושאים בפרק, 4 תשובות, correct = אינדקס הנכונה,
-  explanation קצר שמסביר למה.
-- exercises: 2-3 תרגילים לתרגול בסגנון מבחן, שונים מהדוגמאות הפתורות בפרק (מספרים אחרים), עם פתרון מלא צעד אחרי צעד.
+- questions: 5-6 שאלות אמריקאיות של הבנה בלבד (מילוליות, הגיון, "מה קורה אם", "למה") שמכסות את כל הנושאים בפרק,
+  4 תשובות, correct = אינדקס הנכונה, explanation קצר שמסביר למה. בלי שאלות חישוב; אם בכל זאת צריך מספר - הנוסחה
+  כתובה בשאלה עצמה.
+- exercises: 2-3 תרגילים לתרגול בסגנון המבחן של הקורס ({exam}), שונים מהדוגמאות הפתורות בפרק (מספרים אחרים), עם
+  פתרון מלא צעד אחרי צעד. מבחן אמריקאי - התרגיל הוא שאלה אמריקאית ברמת מבחן (4 אפשרויות בגוף השאלה, הנכונה
+  בפתרון); מבחן פתוח - שאלה פתוחה עם סעיפים.
 אל תמציא חומר שלא בפרק. פתור כל שאלה ותרגיל מחדש לפני שאתה כותב את התשובה."""
+
+EXAM = {"mcq": "אמריקאי", "open": "שאלות פתוחות", "mixed": "משולב: אמריקאי ופתוח"}
+
+
+def drill_prompt(sb, course_id):
+    try:
+        e = sb.table("courses").select("exam_type").eq("id", course_id).execute().data[0].get("exam_type")
+    except Exception:  # noqa: BLE001
+        e = None
+    return DRILL.replace("{exam}", EXAM.get(e or "", "שאלות פתוחות"))
+
 
 DRILL_SCHEMA = {"type": "object", "properties": {
     "questions": SCHEMA["properties"]["questions"],
@@ -497,7 +515,7 @@ def drill(sb, st):
         rows = sb.table("lessons").select("id, user_id, course_id, title").eq("id", lid).execute().data
         if rows:
             from google.genai import types
-            out = author._generate_json([types.Part.from_text(text=body_of(text))], DRILL, DRILL_SCHEMA, "MEDIUM")
+            out = author._generate_json([types.Part.from_text(text=body_of(text))], drill_prompt(sb, rows[0]["course_id"]), DRILL_SCHEMA, "MEDIUM")
             put_drill(sb, rows[0], out.get("questions") or [], out.get("exercises") or [], True)
             redo_video(sb, rows[0])
             print(f"::notice title=Coverage::{rows[0]['title']}: quiz + exercises for the added part", flush=True)
@@ -526,7 +544,7 @@ def drill(sb, st):
         put_drill(sb, l, hand["questions"], hand["exercises"], False)
     else:
         from google.genai import types
-        out = author._generate_json([types.Part.from_text(text=body_of(l["chapter_md"]))], DRILL, DRILL_SCHEMA, "MEDIUM")
+        out = author._generate_json([types.Part.from_text(text=body_of(l["chapter_md"]))], drill_prompt(sb, l["course_id"]), DRILL_SCHEMA, "MEDIUM")
         put_drill(sb, l, out.get("questions") or [], out.get("exercises") or [], True)
     st["drill"][l["id"]] = "hand" if hand else "gemini"
     save(sb, st)
