@@ -378,7 +378,7 @@ def make_units(sb, target, course, name, md, src=None):
     """ONE completion lesson per lecture / practice (his request 23/11/2026: "השלמה להרצאה 2 - הכל במכה אחת"), placed
     right before `target`. More missing material for the same lecture is appended to it (its quiz/exercises follow
     via drill_more, its video is made again). src = the lesson the material came from (its boards are copied)."""
-    base = re.sub(r" חלק [א-ת]$", "", name.strip())
+    base = re.sub(r"^תרגול", "הרצאה", re.sub(r" חלק [א-ת]$", "", name.strip()))  # practice N -> the week's completion
     title = UNIT.format(name=base)
     tname = f"{target.get('title') or ''}".strip() or "השיעור הבא"
     ex = (sb.table("lessons").select("id, user_id, course_id, title, chapter_md, slide_count")
@@ -404,8 +404,9 @@ def make_units(sb, target, course, name, md, src=None):
 
 
 def unit_base(title):
+    """Lecture N and practice N are one week -> one completion (his rule 23/11/2026)."""
     m = UNIT_SRC.match(title or "")
-    return f"{m.group(1)} {m.group(2)}" if m else None
+    return f"הרצאה {m.group(2)}" if m else None
 
 
 def redo_video(sb, l):
@@ -424,6 +425,9 @@ def video_now(sb, l):
     title = l.get("title") or ""
     if l.get("kind") == "practice" or title.startswith("🔁 השלמה לתרגול"):
         return
+    f = load(sb).get("focus")
+    if f and not any(f in (c["name"] or "") for c in sb.table("courses").select("name").eq("id", l["course_id"]).execute().data):
+        return  # videos only for the course he is on now (comm videos stopped at his request 23/11/2026)
     sb.table("lesson_media").delete().contains("lesson_ids", [l["id"]]).execute()
     row = sb.table("lesson_media").insert({"user_id": l["user_id"], "course_id": l["course_id"], "kind": "video",
                                            "lesson_ids": [l["id"]]}).execute().data[0]
@@ -443,6 +447,7 @@ def merge_units(sb):
     for (cid, base), us in groups.items():
         if len(us) < 2:
             continue
+        us.sort(key=lambda u: (not u["title"].startswith("🔁 השלמה להרצאה"), u["created_at"]))  # the lecture's first
         keep, md = us[0], re.sub(r"^> 📌[^\n]*\n+", "", us[0]["chapter_md"] or "")
         for u in us[1:]:
             part = re.sub(r"^> 📌[^\n]*\n+", "", hub.carry_slides(sb, u, keep, u["chapter_md"] or ""))
@@ -452,7 +457,7 @@ def merge_units(sb):
             sb.table("lesson_media").delete().contains("lesson_ids", [u["id"]]).execute()
             sb.table("lessons").delete().eq("id", u["id"]).execute()
             st.get("drill", {}).pop(u["id"], None)
-        note = f"> 📌 כל מה שהיה חסר בפרקים של {base} (שכבר קראת). בסוף: שאלון ותרגילים.\n\n"
+        note = f"> 📌 כל מה שהיה חסר בפרקים של {base} ושל התרגול שלה (שכבר קראת). בסוף: שאלון ותרגילים.\n\n"
         sb.table("lessons").update({"chapter_md": note + md, "title": UNIT.format(name=base), "read_at": None}) \
             .eq("id", keep["id"]).execute()
         st.setdefault("drill", {})[keep["id"]] = st.get("drill", {}).get(keep["id"]) or "merged"
@@ -498,6 +503,22 @@ $$...$$ בשורה נפרדת):
 אל תמציא חומר שלא בפרק. פתור כל שאלה ותרגיל מחדש לפני שאתה כותב את התשובה."""
 
 EXAM = {"mcq": "אמריקאי", "open": "שאלות פתוחות", "mixed": "משולב: אמריקאי ופתוח"}
+
+
+def solved(sb, course_id):
+    """Exercises he marked done in this course (his rule: every new exercise is checked against them)."""
+    rows = sb.table("exercises").select("question_md").eq("course_id", course_id).not_.is_("done_at", "null").execute().data
+    return "\n\n---\n".join(x["question_md"] for x in rows)[:60000]
+
+
+def drill_parts(sb, l, text):
+    from google.genai import types
+    done = solved(sb, l["course_id"])
+    p = [types.Part.from_text(text=body_of(text))]
+    if done:
+        p.append(types.Part.from_text(text="=== תרגילים שהסטודנט כבר פתר - אל תכתוב תרגיל זהה או דומה להם (אותו מבנה ואותה שאלה עם "
+                                           "מספרים אחרים), ואל תשאל שאלה שהתשובה עליה היא אחד מהם ===\n" + done))
+    return p
 
 
 def drill_prompt(sb, course_id):
@@ -569,7 +590,7 @@ def drill(sb, st):
         rows = sb.table("lessons").select("id, user_id, course_id, title").eq("id", lid).execute().data
         if rows:
             from google.genai import types
-            out = author._generate_json([types.Part.from_text(text=body_of(text))], drill_prompt(sb, rows[0]["course_id"]), DRILL_SCHEMA, "MEDIUM")
+            out = author._generate_json(drill_parts(sb, rows[0], text), drill_prompt(sb, rows[0]["course_id"]), DRILL_SCHEMA, "MEDIUM")
             put_drill(sb, rows[0], out.get("questions") or [], out.get("exercises") or [], True)
             video_now(sb, dict(rows[0], kind="other"))
             print(f"::notice title=Coverage::{rows[0]['title']}: quiz + exercises for the added part", flush=True)
@@ -599,7 +620,7 @@ def drill(sb, st):
         put_drill(sb, l, hand["questions"], hand["exercises"], False)
     else:
         from google.genai import types
-        out = author._generate_json([types.Part.from_text(text=body_of(l["chapter_md"]))], drill_prompt(sb, l["course_id"]), DRILL_SCHEMA, "MEDIUM")
+        out = author._generate_json(drill_parts(sb, l, l["chapter_md"] or ""), drill_prompt(sb, l["course_id"]), DRILL_SCHEMA, "MEDIUM")
         put_drill(sb, l, out.get("questions") or [], out.get("exercises") or [], True)
     st["drill"][l["id"]] = "hand" if hand else "gemini"
     save(sb, st)
@@ -780,10 +801,67 @@ def redrill(sb, u):
         if q["id"] not in answered:
             sb.table("questions").delete().eq("id", q["id"]).execute()
     sb.table("exercises").delete().eq("lesson_id", u["id"]).is_("done_at", "null").execute()
-    out = author._generate_json([types.Part.from_text(text=body_of(u["chapter_md"] or ""))], drill_prompt(sb, u["course_id"]), DRILL_SCHEMA, "MEDIUM")
+    out = author._generate_json(drill_parts(sb, u, u["chapter_md"] or ""), drill_prompt(sb, u["course_id"]), DRILL_SCHEMA, "MEDIUM")
     put_drill(sb, u, out.get("questions") or [], out.get("exercises") or [], True)
     print(f"::notice title=Redrill::{u['title']}: {len(out.get('questions') or [])} questions, {len(out.get('exercises') or [])} exercises "
           f"(kept {len(answered)} answered)", flush=True)
+
+
+PRUNE = """לפניך פרק השלמה ורשימת שאלות אמריקאיות (id: שאלה). החזר ב-off את ה-id של כל שאלה שהנושא שלה לא מופיע בפרק
+ההשלמה (התשובה עליה לא נלמדת מהפרק הזה). שאלה על נושא שכן מופיע בפרק - לא להחזיר."""
+PRUNE_SCHEMA = {"type": "object", "properties": {"off": {"type": "array", "items": {"type": "string"}}}, "required": ["off"]}
+
+
+def prune_questions(sb, u):
+    """Questions (also answered ones - he approved 23/11/2026) that are not about what the completion holds now go."""
+    from google.genai import types
+    qs = sb.table("questions").select("id, question").eq("lesson_id", u["id"]).execute().data
+    if not qs:
+        return
+    out = author._generate_json([types.Part.from_text(text=body_of(u["chapter_md"] or "")),
+                                 types.Part.from_text(text="\n".join(f"{q['id']}: {q['question']}" for q in qs))], PRUNE, PRUNE_SCHEMA, "LOW")
+    off = [i for i in out.get("off") or [] if i in {q["id"] for q in qs}]
+    if len(off) >= len(qs):  # never empty the whole quiz on one answer
+        return
+    for i in off:
+        sb.table("questions").delete().eq("id", i).execute()
+    print(f"::notice title=Prune::{u['title']}: {len(off)} questions not about this completion removed", flush=True)
+
+
+def fix_course(sb, name, tries=4):
+    """His rules for a course's completions (23/11/2026): one completion per week; each trimmed to what he has not
+    read/solved (tried again until a trim passes the guards); a new quiz + exercises on what is left, never repeating a
+    solved exercise; questions not about the completion removed."""
+    merge_units(sb)
+    ids = [c["id"] for c in sb.table("courses").select("id, name").execute().data if name in (c["name"] or "")]
+    st = load(sb)
+    done = st.setdefault("trimmed", {})
+    for u in (sb.table("lessons").select("id, user_id, course_id, title, chapter_md").in_("course_id", ids).eq("kind", "other")
+              .like("title", "🔁 השלמה%").execute().data):
+        if done.get(u["id"]) != len(u["chapter_md"] or ""):
+            res = None
+            for k in range(tries):
+                res = trim(sb, u)
+                if res is not None:
+                    break
+                print(f"::notice title=Trim::{u['title']}: attempt {k + 1} failed the guards - again", flush=True)
+            if res is None:
+                print(f"::warning title=Trim::{u['title']}: {tries} attempts failed - kept as is", flush=True)
+            else:
+                md = res[0] or "> 📌 כל מה שהיה בהשלמה הזו כבר נמצא בפרקים שקראת ובתרגילים שפתרת - אין מה ללמוד כאן."
+                try:
+                    sb.storage.from_(BUCKET).upload(f"{u['user_id']}/lessons/{u['id']}/chapter_before_trim.md", (u["chapter_md"] or "").encode(),
+                                                    {"content-type": "text/markdown; charset=utf-8", "upsert": "false"})
+                except Exception:  # noqa: BLE001
+                    pass
+                md = author.normalize_math(md)
+                sb.table("lessons").update({"chapter_md": md}).eq("id", u["id"]).execute()
+                print(f"::notice title=Trim::{u['title']}: {len(u['chapter_md'] or '')} -> {len(md)}; removed: {'; '.join(res[1])[:300]}", flush=True)
+                u["chapter_md"] = md
+            done[u["id"]] = len(u["chapter_md"] or "")
+            save(sb, st)
+        redrill(sb, u)
+        prune_questions(sb, u)
 
 
 def thursday_alert(sb):
@@ -810,7 +888,9 @@ def thursday_alert(sb):
 if __name__ == "__main__":
     import sys
     s = hub.db()
-    if "--redrill" in sys.argv:  # "<course>|הרצאה 1,הרצאה 2"
+    if "--fix-course" in sys.argv:
+        fix_course(s, sys.argv[sys.argv.index("--fix-course") + 1])
+    elif "--redrill" in sys.argv:  # "<course>|הרצאה 1,הרצאה 2"
         name, only = sys.argv[sys.argv.index("--redrill") + 1].split("|", 1)
         ids = [c["id"] for c in s.table("courses").select("id, name").execute().data if name in (c["name"] or "")]
         for u in s.table("lessons").select("id, user_id, course_id, title, chapter_md").in_("course_id", ids).like("title", "🔁 השלמה%").execute().data:

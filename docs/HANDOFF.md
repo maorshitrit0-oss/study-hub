@@ -1090,6 +1090,11 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    Quizzes: wrap_math() wraps LaTeX Gemini wrote without $.
    23/11: completions are trimmed (inspect=coverage-trim title=<course>) - Gemini removes from each "🔁 השלמה" what is
    already in the lessons he marked read and the exercises he marked done; backup chapter_before_trim.md. Comm first.
+   FIXED RULES for completions (his words 23/11: "זה דברים שהם קבועים"): ONE completion per week (lecture N +
+   practice N -> "🔁 השלמה להרצאה N"); trimmed to what he has not read/solved, retried until a trim passes the guards;
+   quiz/exercises only about what the completion holds, never repeating an exercise he marked done (drill_parts sends
+   the solved ones); questions not about it removed even if answered (prune_questions). `inspect=coverage-fix
+   title=<course>` does all of it (fix_course). Videos only for the focused course.
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.
