@@ -297,7 +297,10 @@ def step(sb):
     jobs = st.get("pending") or []
     if jobs:
         j = jobs[0]
-        if j.get("rewrite"):
+        if j.get("fix"):  # completions: one per week, trimmed, quiz/exercises redone
+            fix_course(sb, j["course"])
+            j.pop("fix")
+        elif j.get("rewrite"):
             rewrite_lesson(sb, j["rewrite"])
             j.pop("rewrite")
         else:
@@ -1002,7 +1005,11 @@ if __name__ == "__main__":
     s = hub.db()
     if "--pending" in sys.argv:  # '{"course": "...", "weeks": [4,5], "rewrite": "<lesson id>"}' -> done by the queue
         st = load(s)
-        st.setdefault("pending", []).append(json.loads(sys.argv[sys.argv.index("--pending") + 1]))
+        job = json.loads(sys.argv[sys.argv.index("--pending") + 1])
+        if job.pop("first", False):  # the course he studies next goes first
+            st.setdefault("pending", []).insert(0, job)
+        else:
+            st.setdefault("pending", []).append(job)
         save(s, st)
         print(f"::notice title=Pending::{st['pending']}", flush=True)
     elif "--rewrite" in sys.argv:
