@@ -1072,6 +1072,29 @@ def pending_for_next_day(sb):
     return True
 
 
+def trim_quiz(sb, name, keep=15):
+    """Without Gemini (plan B, 23/11/2026): a lecture keeps the quiz written with its chapter (the first batch) plus
+    whatever he answered, up to `keep`; the questions piled up by rewrites / audits go. A practice keeps only answered
+    ones (no quiz on practices). Gemini's requiz replaces this later when it can."""
+    c = [x for x in sb.table("courses").select("id, name").execute().data if name in (x["name"] or "")][0]
+    for l in sb.table("lessons").select("id, kind, number, title").eq("course_id", c["id"]).in_("kind", ["lecture", "practice"]).execute().data:
+        qs = sb.table("questions").select("id, created_at").eq("lesson_id", l["id"]).order("created_at").execute().data
+        if not qs:
+            continue
+        ans = {a["question_id"] for a in sb.table("attempts").select("question_id").in_("question_id", [q["id"] for q in qs]).execute().data}
+        if l["kind"] == "practice":
+            drop = [q for q in qs if q["id"] not in ans]
+        else:
+            first = qs[0]["created_at"][:16]  # the chapter's own quiz was inserted in one go
+            stay = [q for q in qs if q["id"] in ans] + [q for q in qs if q["created_at"][:16] == first and q["id"] not in ans]
+            stay = stay[:max(keep, len(ans))]
+            ids = {q["id"] for q in stay}
+            drop = [q for q in qs if q["id"] not in ids]
+        for q in drop:
+            sb.table("questions").delete().eq("id", q["id"]).execute()
+        print(f"::notice title=Quiz B::{l['kind']} {l.get('number')} {(l.get('title') or '')[:20]}: {len(qs)} -> {len(qs) - len(drop)}", flush=True)
+
+
 def thursday_alert(sb):
     """Thursday evening: anything he needs by Friday that is not ready -> one push."""
     from zoneinfo import ZoneInfo
@@ -1096,7 +1119,9 @@ def thursday_alert(sb):
 if __name__ == "__main__":
     import sys
     s = hub.db()
-    if "--pending" in sys.argv:  # '{"course": "...", "weeks": [4,5], "rewrite": "<lesson id>"}' -> done by the queue
+    if "--trim-quiz" in sys.argv:
+        trim_quiz(s, sys.argv[sys.argv.index("--trim-quiz") + 1])
+    elif "--pending" in sys.argv:  # '{"course": "...", "weeks": [4,5], "rewrite": "<lesson id>"}' -> done by the queue
         st = load(s)
         job = json.loads(sys.argv[sys.argv.index("--pending") + 1])
         if job.pop("first", False):  # the course he studies next goes first
