@@ -298,6 +298,7 @@ def step(sb):
                          {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
             sb.table("lessons").update({"chapter_md": new}).eq("id", l["id"]).execute()
             add_questions(sb, l, course, qs)
+            video_now(sb, l)
         st.setdefault("audited", {})[l["id"]] = len(new) - len(l.get("chapter_md") or "")
         print(f"::notice title=Audit::{course['name'][:20]} {l['kind']} {l.get('number')} {(l.get('title') or '')[:20]}: "
               f"+{len(new) - len(l.get('chapter_md') or '')} chars", flush=True)
@@ -321,6 +322,7 @@ def step(sb):
                 pass
             sb.table("lessons").update(upd).eq("id", l["id"]).execute()
             add_questions(sb, l, course, qs)
+            video_now(sb, l)
             st["done"][l["id"]] = "rewrite"
             print(f"::notice title=Coverage::{course['name']} {l['kind']} {l['number']}: rewritten in full ({len(md)} chars)", flush=True)
     else:
@@ -407,6 +409,18 @@ def redo_video(sb, l):
 MERGE_APPROVED = True  # he approved 23/11/2026 ("יש לך אישור... תעשה מה שאתה רוצה עם זה")
 
 
+def video_now(sb, l):
+    """His order (23/11/2026): each lesson's video is made right after its text, lesson by lesson - not in a batch at
+    the end. Practices (and their completions) get no video. An older video of the lesson is replaced."""
+    title = l.get("title") or ""
+    if l.get("kind") == "practice" or title.startswith("🔁 השלמה לתרגול"):
+        return
+    sb.table("lesson_media").delete().contains("lesson_ids", [l["id"]]).execute()
+    row = sb.table("lesson_media").insert({"user_id": l["user_id"], "course_id": l["course_id"], "kind": "video",
+                                           "lesson_ids": [l["id"]]}).execute().data[0]
+    print(f"::notice title=Video::{title[:40] or l['id'][:8]}: {hub.course_site.dispatch_inputs('media.yml', {'media_id': row['id']})}", flush=True)
+
+
 def merge_units(sb):
     """Several completion lessons of one lecture (parts, or a second check) -> ONE, kept in their order: text with
     its boards, quiz questions and exercises move over; the emptied rows are removed."""
@@ -433,7 +447,7 @@ def merge_units(sb):
         sb.table("lessons").update({"chapter_md": note + md, "title": UNIT.format(name=base), "read_at": None}) \
             .eq("id", keep["id"]).execute()
         st.setdefault("drill", {})[keep["id"]] = st.get("drill", {}).get(keep["id"]) or "merged"
-        redo_video(sb, keep)
+        video_now(sb, dict(keep, kind="other"))
         print(f"::notice title=Coverage::merged {len(us)} completion lessons of {base} -> one", flush=True)
     save(sb, st)
 
@@ -517,7 +531,7 @@ def drill(sb, st):
             from google.genai import types
             out = author._generate_json([types.Part.from_text(text=body_of(text))], drill_prompt(sb, rows[0]["course_id"]), DRILL_SCHEMA, "MEDIUM")
             put_drill(sb, rows[0], out.get("questions") or [], out.get("exercises") or [], True)
-            redo_video(sb, rows[0])
+            video_now(sb, dict(rows[0], kind="other"))
             print(f"::notice title=Coverage::{rows[0]['title']}: quiz + exercises for the added part", flush=True)
         more.pop(lid, None)
         save(sb, st)
@@ -548,7 +562,7 @@ def drill(sb, st):
         put_drill(sb, l, out.get("questions") or [], out.get("exercises") or [], True)
     st["drill"][l["id"]] = "hand" if hand else "gemini"
     save(sb, st)
-    queue_video(sb, l)
+    video_now(sb, dict(l, kind="other"))
     print(f"::notice title=Coverage::{courses[l['course_id']]['name'][:20]} {l['title']}: quiz + exercises ({'hand' if hand else 'gemini'})", flush=True)
     return True
 
