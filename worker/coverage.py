@@ -766,7 +766,24 @@ def trim_course(sb, name, only=""):
         if not md:
             md = "> 📌 כל מה שהיה בהשלמה הזו כבר נמצא בפרקים שקראת ובתרגילים שפתרת - אין מה ללמוד כאן."
         sb.table("lessons").update({"chapter_md": author.normalize_math(md)}).eq("id", u["id"]).execute()
+        redrill(sb, dict(u, chapter_md=md))  # the quiz follows the trimmed text (obvious - his remark 23/11/2026)
         print(f"::notice title=Trim::{u['title']}: {len(u['chapter_md'] or '')} -> {len(md)} chars; removed: {'; '.join(removed)[:400]}", flush=True)
+
+
+def redrill(sb, u):
+    """A completion that changed (trimmed): a new quiz and new exercises on what is in it now. Old questions he never
+    answered and old exercises he never marked done go; answered / done ones stay (his history)."""
+    from google.genai import types
+    qs = sb.table("questions").select("id").eq("lesson_id", u["id"]).execute().data
+    answered = {a["question_id"] for a in sb.table("attempts").select("question_id").in_("question_id", [q["id"] for q in qs]).execute().data} if qs else set()
+    for q in qs:
+        if q["id"] not in answered:
+            sb.table("questions").delete().eq("id", q["id"]).execute()
+    sb.table("exercises").delete().eq("lesson_id", u["id"]).is_("done_at", "null").execute()
+    out = author._generate_json([types.Part.from_text(text=body_of(u["chapter_md"] or ""))], drill_prompt(sb, u["course_id"]), DRILL_SCHEMA, "MEDIUM")
+    put_drill(sb, u, out.get("questions") or [], out.get("exercises") or [], True)
+    print(f"::notice title=Redrill::{u['title']}: {len(out.get('questions') or [])} questions, {len(out.get('exercises') or [])} exercises "
+          f"(kept {len(answered)} answered)", flush=True)
 
 
 def thursday_alert(sb):
@@ -793,7 +810,13 @@ def thursday_alert(sb):
 if __name__ == "__main__":
     import sys
     s = hub.db()
-    if "--trim" in sys.argv:  # completions without what he already read / solved (23/11/2026)
+    if "--redrill" in sys.argv:  # "<course>|הרצאה 1,הרצאה 2"
+        name, only = sys.argv[sys.argv.index("--redrill") + 1].split("|", 1)
+        ids = [c["id"] for c in s.table("courses").select("id, name").execute().data if name in (c["name"] or "")]
+        for u in s.table("lessons").select("id, user_id, course_id, title, chapter_md").in_("course_id", ids).like("title", "🔁 השלמה%").execute().data:
+            if any(u["title"] == f"🔁 השלמה ל{x.strip()}" for x in only.split(",")):
+                redrill(s, u)
+    elif "--trim" in sys.argv:  # completions without what he already read / solved (23/11/2026)
         arg = sys.argv[sys.argv.index("--trim") + 1]  # "<course>" or "<course>|הרצאה 2,הרצאה 3"
         trim_course(s, *arg.split("|", 1))
     elif "--focus" in sys.argv:  # --focus "<part of a course name>" | --focus "" (all)
