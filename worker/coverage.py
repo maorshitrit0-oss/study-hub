@@ -38,6 +38,9 @@ RULES = """כללים מחייבים:
   ![תיאור קצר](slide:N). מיד לפניו שורה **📝 מה כתוב בלוח:** ומתחתיה רק מה שבאמת רואים בצילום הזה (לא מהתמלול, לא
   משקף אחר), מסודר: טבלה / רשימה / LaTeX / קוד. מה שלא קריא - [לא קריא]. צילום בלי תוכן (רק פנים / מסך ריק) - לא להכניס.
   לוח רחב וצפוף שאי אפשר להעתיק מילה במילה - **📝 עיקרי הלוח (בתמצית):** במקום.
+- אסור להשמיט שום פרט, גם אם נראה שולי: מספרים, יחידות, הנחות ותנאים, כל שלב בפתרון, כל תרגיל (גם תרגיל שניתן
+  לבית או "לנסות לבד" - עם הנתונים המלאים), כל החלטה או הודעה של המרצה (מבחן, שיעורי בית, מה חשוב, מה לא ייבחן).
+- מה שלא ברור בהקלטה - לכתוב שהוא לא ברור ([לא ברור בהקלטה]), לא לדלג עליו ולא לנחש.
 - אל תמציא תוכן שלא נלמד. טעות של המרצה - שורה > ⚠️ עם התיקון.
 - questions: 2-4 שאלות אמריקאיות של הבנה (לא חישוב) על החלק הזה, 4 תשובות, correct = אינדקס התשובה הנכונה."""
 
@@ -196,6 +199,23 @@ def split_head(md):
     return "", md
 
 
+AUDIT_HEAD = "## 🧩 פרטים שהבדיקה מול ההקלטה הוסיפה"
+VERIFY_SPLIT = "\n---\n### ✅ בדיקת עובדות"
+
+
+def audit(sb, lesson, course, chapter_md):
+    """His rule 23/11/2026: no detail of a lecture / practice may be missing. Every part of the recording is compared
+    with the finished chapter (the MISSING prompt) and whatever is missing is added to the SAME chapter, before he
+    reads it. Returns (chapter, questions)."""
+    md, qs = write(sb, lesson, course, chapter=body_of(chapter_md))
+    if len(md.strip()) < 200:
+        return chapter_md, []  # nothing missing: no extra questions either
+    body, _, ver = chapter_md.partition(VERIFY_SPLIT)
+    add = (f"\n\n{AUDIT_HEAD}\n\n> 📌 מה שנאמר או נכתב בשיעור ולא נכנס לפרק למעלה. זה חלק מהחומר - ללמוד גם אותו.\n\n"
+           + author.normalize_math(md))
+    return body.rstrip() + add + (VERIFY_SPLIT + ver if ver else ""), qs
+
+
 def thin(l):
     tr, ch = l.get("transcript") or "", body_of(split_head(l.get("chapter_md") or "")[1])
     return len(tr) > 10000 and (len(ch) < THIN * len(tr) or author.is_cut(ch))
@@ -242,13 +262,13 @@ def todo(sb, st):
         for l in ls:
             # v2 (23/11/2026): threshold 15% -> 30% (full chapters are 40-60%), and the two halves of one lecture no
             # longer share a completion title (one of them was dropped). Every thin lesson is checked once more.
-            if st.setdefault("v2", {}).get(l["id"]) or not thin(l):
-                continue
-            if not l.get("read_at"):
-                out.append((l, courses[cid], None))
-            else:
-                if nxt:  # nothing unread after it yet: waits for his next upload
+            if not st.setdefault("v2", {}).get(l["id"]) and thin(l):
+                if not l.get("read_at"):
+                    out.append((l, courses[cid], None))
+                elif nxt:  # nothing unread after it yet: waits for his next upload
                     out.append((l, courses[cid], nxt))
+            elif not l.get("read_at") and not st.setdefault("audited", {}).get(l["id"]) and len(l.get("transcript") or "") > 10000:
+                out.append((l, courses[cid], "audit"))  # every unread lesson: compared with its recording (23/11/2026)
     return out
 
 
@@ -265,6 +285,18 @@ def step(sb):
         return False
     l, course, target = jobs[0]
     store = sb.storage.from_(BUCKET)
+    if target == "audit":
+        new, qs = audit(sb, l, course, l.get("chapter_md") or "")
+        if new != (l.get("chapter_md") or ""):
+            store.upload(f"{l['user_id']}/lessons/{l['id']}/chapter_before_audit.md", (l.get("chapter_md") or "").encode(),
+                         {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+            sb.table("lessons").update({"chapter_md": new}).eq("id", l["id"]).execute()
+            add_questions(sb, l, course, qs)
+        st.setdefault("audited", {})[l["id"]] = len(new) - len(l.get("chapter_md") or "")
+        print(f"::notice title=Audit::{course['name'][:20]} {l['kind']} {l.get('number')} {(l.get('title') or '')[:20]}: "
+              f"+{len(new) - len(l.get('chapter_md') or '')} chars", flush=True)
+        save(sb, st)
+        return True
     if target is None:
         top, _ = split_head(l.get("chapter_md") or "")
         md, qs = write(sb, l, course)

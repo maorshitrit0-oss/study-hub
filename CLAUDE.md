@@ -32,6 +32,13 @@ This needs `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` in the environment (cloud e
 
 Do not invent content that is not in the lecture; flag lecturer mistakes with `> ⚠️`.
 
+**His rule (23/11/2026), for every course and every lecture, practice and exercise: no detail may be missing.**
+Every definition, number, unit, assumption, solution step, exercise (also ones given as homework / "try alone", with
+full data) and every decision or announcement of the lecturer goes into the chapter; what cannot be heard is written
+as unclear, never skipped. The pipeline enforces it: full chapters for all courses (author.summary_mode is off), a thin
+chapter is rewritten part by part, and every chapter is compared with each part of its recording (coverage.audit)
+before it is marked ready.
+
 ## Checks
 
 - Web: `cd web && npx eslint src && npx next build` (needs `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` set to any value to build).

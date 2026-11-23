@@ -1075,6 +1075,11 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    shared one completion title, so one half's completion was dropped (comm lecture 3). Every thin lesson is checked
    once more (state "v2"); a read one gets only what is missing vs its chapter AND the existing completion lessons of
    that lecture; new completion titles carry the half ("🔁 השלמה להרצאה 3 חלק א").
+   RULE 23/11 "אל תחסיר ממני שום פרט" (all courses, lectures, practices, exercises): author.summary_mode() now always
+   False (it was summary+exercises for every course but Java - the root cause of the 10-18% chapters);
+   hub.complete_chapter() = full_from_start() + coverage.audit() (each 40-min part vs the chapter, missing details
+   appended under "## 🧩 פרטים שהבדיקה מול ההקלטה הוסיפה", backup chapter_before_audit.md) before "ready"; the coverage
+   queue also audits every unread lesson once (state "audited"). RULES in coverage.py forbid skipping anything.
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.

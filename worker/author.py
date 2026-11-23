@@ -559,9 +559,9 @@ FULL_COURSES = re.compile(r"ג'אווה|ג׳אווה|java", re.I)
 def summary_mode(lesson, mode="auto", course=None):
     """Lectures and practices get summary + exercises unless he asked for the full chapter (or the course is always
     full: FULL_COURSES); labs and site material keep the full chapter (the entry quiz and last year's material read it)."""
-    if course and FULL_COURSES.search(course.get("name") or ""):
-        return False
-    return mode != "full" and lesson["kind"] in ("lecture", "practice")
+    # 23/11/2026, his rule for every course: "אל תחסיר ממני שום פרט" - every lecture and practice is the FULL chapter
+    # (the summary mode was the reason chapters came out at 10-18% of the recording and needed completions).
+    return False
 
 
 # A session of his 12-week VLSI program (web/src/lib/vlsiProgram.ts): there is no recording - the lesson is written

@@ -495,7 +495,7 @@ def full_from_start(job, chapter_md, short, by):
     If Gemini fails here the first chapter stays and the coverage queue rewrites it later (he has not read it yet)."""
     import coverage
     les = dict(job.lesson, chapter_md=chapter_md, status="ready")
-    if short or by == "claude" or not coverage.eligible(les) or not coverage.thin(les):
+    if by == "claude" or not coverage.eligible(les) or not coverage.thin(les):
         return chapter_md
     try:
         job.sb.table("lessons").update({"progress": "הפרק יצא קצר - נכתב מחדש במלואו"}).eq("id", les["id"]).execute()
@@ -508,6 +508,29 @@ def full_from_start(job, chapter_md, short, by):
     coverage.add_questions(job.sb, les, job.course, qs)
     print(f"::notice title=Full chapter::{les.get('title') or les['id'][:8]}: thin ({len(chapter_md)}) -> full ({len(md)})", flush=True)
     return md
+
+
+def complete_chapter(job, chapter_md, short, by):
+    """His rule 23/11/2026 - "אל תחסיר ממני שום פרט": (1) a thin chapter is rewritten in full, (2) every chapter is
+    compared with each part of its recording and what is missing is added to it - all before it is marked ready.
+    If Gemini fails here, the coverage queue does (2) later, still before he reads the lesson."""
+    import coverage
+    chapter_md = full_from_start(job, chapter_md, short, by)
+    les = dict(job.lesson, chapter_md=chapter_md, status="ready")
+    if by == "claude" or not coverage.eligible(les) or len(les.get("transcript") or "") <= 10000:
+        return chapter_md
+    try:
+        job.sb.table("lessons").update({"progress": "בודק את הפרק מול ההקלטה - שלא יחסר אף פרט"}).eq("id", les["id"]).execute()
+        new, qs = coverage.audit(job.sb, les, job.course, chapter_md)
+        coverage.add_questions(job.sb, les, job.course, qs)
+        st = coverage.load(job.sb)
+        st.setdefault("audited", {})[les["id"]] = len(new) - len(chapter_md)
+        coverage.save(job.sb, st)
+        print(f"::notice title=Audit::{les.get('title') or les['id'][:8]}: +{len(new) - len(chapter_md)} chars", flush=True)
+        return new
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning title=Audit::{str(e)[:200]} - the coverage queue checks it later", flush=True)
+        return chapter_md
 
 
 def save_chapter(job, ch, by):
@@ -537,7 +560,7 @@ def save_chapter(job, ch, by):
     save_course_facts(job, ch)
     save_glossary(job, ch)
     chapter_md = ch["chapter_md"] + (author.verification_md(ch) if ch.get("verification") else "")
-    chapter_md = full_from_start(job, chapter_md, short, by)
+    chapter_md = complete_chapter(job, chapter_md, short, by)
     count = f"{len(ch['exercises'])} תרגילים" if short else f"{len(ch['questions'])} שאלות"
     fields = dict(chapter_md=chapter_md, topics=ch["topics"], status="ready",
                   syllabus_covered=[i for i in ch.get("syllabus_covered") or [] if isinstance(i, int)],
