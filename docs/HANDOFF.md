@@ -1105,6 +1105,8 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    study -> waves -> comm, starting Tue 24/11. One course in focus (text, repairs, quizzes, videos); at 20:00 Israel
    the next one even if not done, and at once if nothing is missing (plan_focus, state "plan"). Its pending repairs run
    before anything else in the queue (pending_for_next_day).
+   Progress pushes: after each repair job on the focus course (progress_push) and when the plan moves on (✅ ready /
+   ⏭️ time's up with what is left).
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.

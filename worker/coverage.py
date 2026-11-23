@@ -999,18 +999,43 @@ def plan_focus(sb):
     nxt = since.replace(hour=20, minute=0, second=0, microsecond=0)
     if nxt <= since:
         nxt += timedelta(days=1)
-    moved = False
+    moved, left = False, []
+    cur = [x for x in sb.table("courses").select("id, name, user_id").execute().data if PLAN[p["i"]] in (x["name"] or "")]
     if now >= nxt:  # 20:00 passed since this course started
+        left = missing_for(sb, cur[0], st) if cur else []
         p["i"], p["since"], moved = (p["i"] + 1) % len(PLAN), now.isoformat(), True
-    else:
-        c = [x for x in sb.table("courses").select("id, name, user_id").execute().data if PLAN[p["i"]] in (x["name"] or "")]
-        if c and not missing_for(sb, c[0], st):  # all done early: the next one now
-            p["i"], p["since"], moved = (p["i"] + 1) % len(PLAN), now.isoformat(), True
+    elif cur and not missing_for(sb, cur[0], st):  # all done early: the next one now
+        p["i"], p["since"], moved = (p["i"] + 1) % len(PLAN), now.isoformat(), True
     st["focus"] = PLAN[p["i"]]
     save(sb, st)
     if moved:
         print(f"::notice title=Plan::now working on {st['focus']}", flush=True)
+        try:  # he wants to hear where things stand (23/11/2026)
+            import notify
+            done_name = cur[0]["name"] if cur else PLAN[(p["i"] - 1) % len(PLAN)]
+            nxt_name = next((x["name"] for x in sb.table("courses").select("name").execute().data if st["focus"] in (x["name"] or "")), st["focus"])
+            if left:
+                title, body = f"⏭️ {done_name}: הזמן נגמר (20:00)", f"נשאר: {', '.join(left)} - ימשיך כשיגיע תורו שוב. עכשיו: {nxt_name}"
+            else:
+                title, body = f"✅ {done_name}: מוכן", f"השלמות, שאלונים, תרגילים וסרטונים. עכשיו עובד על: {nxt_name}"
+            if cur:
+                notify.send(sb, cur[0]["user_id"], title, body)
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Plan push::{str(e)[:150]}", flush=True)
     return st["focus"]
+
+
+def progress_push(sb, what):
+    """A short push after each piece of work on the focus course (his request 23/11/2026: keep me posted)."""
+    try:
+        import notify
+        st = load(sb)
+        c = [x for x in sb.table("courses").select("id, name, user_id").execute().data if (st.get("focus") or "~") in (x["name"] or "")]
+        if c:
+            left = missing_for(sb, c[0], st)
+            notify.send(sb, c[0]["user_id"], f"🔧 {c[0]['name']}: {what}", ("נשאר: " + ", ".join(left)) if left else "זה האחרון - הקורס מוכן")
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning title=Progress push::{str(e)[:150]}", flush=True)
 
 
 def _mine(st, j):
@@ -1033,13 +1058,17 @@ def pending_for_next_day(sb):
     if j.get("fix"):
         fix_course(sb, j["course"])
         j.pop("fix")
+        what = "ההשלמות קוצרו וקיבלו שאלון ותרגילים חדשים"
     elif j.get("rewrite"):
         rewrite_lesson(sb, j["rewrite"])
         j.pop("rewrite")
+        what = "פרק קצר נכתב מחדש"
     else:
         refresh_weeks(sb, j["course"], j["weeks"])
         st["pending"].remove(j)
+        what = f"שאלונים ותרגילים של שבועות {', '.join(map(str, j['weeks']))} סודרו"
     save(sb, st)
+    progress_push(sb, what)
     return True
 
 
