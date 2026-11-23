@@ -372,6 +372,9 @@ DRILL_SCHEMA = {"type": "object", "properties": {
 
 
 def put_drill(sb, l, qs, exs, uncertain):
+    for x in exs:  # Gemini sometimes writes "\\n" as text (comm completion 3, 23/11/2026); \\nu / \\neq are kept
+        for f in ("question_md", "solution_md"):
+            x[f] = re.sub(r"\\n(?![a-zA-Z])", "\n", x.get(f) or "")
     qs = [q for q in qs if len(q.get("options") or []) >= 2 and 0 <= q.get("correct", -1) < len(q["options"])]
     add_questions(sb, l, {"id": l["course_id"]}, qs)
     if exs:
