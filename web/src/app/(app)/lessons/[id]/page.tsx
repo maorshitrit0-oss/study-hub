@@ -45,7 +45,6 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
   const where: Record<string, string> = await sb.storage.from("study").download(`${userId}/materials/${lesson.course_id}/exercise_where.json`)
     .then(async ({ data }) => (data ? JSON.parse(await data.text()) : {})).catch(() => ({}));
   const exercises = (exRows ?? []).map((x) => ({ ...x, where: where[x.id] || undefined }));
-  const summary = (lesson as Lesson & { summary_md?: string | null }).summary_md ?? null;
   // A self-study session is written as one full chapter (with the project task among its exercises).
   const self = (lesson.transcript ?? "").startsWith("<!-- vlsi-session -->");
   // 23/11/2026: the summary is no longer shown, so a lesson written as a summary shows it as its chapter.
