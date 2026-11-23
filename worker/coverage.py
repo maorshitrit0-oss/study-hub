@@ -797,8 +797,11 @@ if __name__ == "__main__":
         print(f"::notice title=Videos dropped::{name}: {len(rows)} waiting videos removed", flush=True)
     elif "--restore" in sys.argv:  # a lesson's chapter from before the coverage rewrite (when that one was longer)
         lid = sys.argv[sys.argv.index("--restore") + 1]
+        name = BACKUP
+        if ":" in lid:  # "<id>:<backup file>" (e.g. chapter_before_trim.md)
+            lid, name = lid.split(":", 1)
         l = s.table("lessons").select("id, user_id, chapter_md").eq("id", lid).execute().data[0]
-        old = s.storage.from_(BUCKET).download(f"{l['user_id']}/lessons/{lid}/{BACKUP}").decode()
+        old = s.storage.from_(BUCKET).download(f"{l['user_id']}/lessons/{lid}/{name}").decode()
         if len(old) > len(l["chapter_md"] or ""):
             s.storage.from_(BUCKET).upload(f"{l['user_id']}/lessons/{lid}/chapter_rewrite_shorter.md", (l["chapter_md"] or "").encode(),
                                            {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
