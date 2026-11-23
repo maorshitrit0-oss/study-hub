@@ -509,7 +509,34 @@ DRILL_SCHEMA = {"type": "object", "properties": {
     "required": ["questions", "exercises"]}
 
 
+HEB = re.compile(r"[\u0590-\u05FF]")
+MATHRUN = re.compile(r"[A-Za-z0-9\\{}_^()\[\]=+\-*/.,:;|<>!' ]+")
+
+
+def wrap_math(s):
+    """Gemini sometimes writes LaTeX without $ (comm quizzes 23/11/2026: raw \\frac on the page). Each run of
+    non-Hebrew text that holds a LaTeX command or = becomes $...$; text that already has $ is left alone."""
+    if not s or "$" in s or "\\" not in s:
+        return s
+
+    def one(m):
+        run = m.group(0)
+        core = run.strip(" .,:;")
+        if core.startswith("-") and not core[1:2].isdigit():  # "ב-\\alpha": the hyphen belongs to the Hebrew word
+            core = core[1:].lstrip()
+        if not core or not re.search(r"\\[a-zA-Z]|[=^_]", core) or core.count("{") != core.count("}"):
+            return run
+        i = run.index(core)
+        return f"{run[:i]}${core}${run[i + len(core):]}"
+    return "\n".join(MATHRUN.sub(one, line) if not line.lstrip().startswith("```") else line for line in s.split("\n"))
+
+
 def put_drill(sb, l, qs, exs, uncertain):
+    for q in qs:
+        q["question"], q["explanation"] = wrap_math(q.get("question") or ""), wrap_math(q.get("explanation") or "")
+        q["options"] = [wrap_math(o) for o in q.get("options") or []]
+    for x in exs:
+        x["question_md"], x["solution_md"] = wrap_math(x.get("question_md") or ""), wrap_math(x.get("solution_md") or "")
     for x in exs:  # Gemini sometimes writes "\\n" as text (comm completion 3, 23/11/2026); \\nu / \\neq are kept
         for f in ("question_md", "solution_md"):
             x[f] = re.sub(r"\\n(?![a-zA-Z])", "\n", x.get(f) or "")
