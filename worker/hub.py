@@ -576,6 +576,12 @@ def save_chapter(job, ch, by):
         if n:
             fields["number"] = n
             print(f"::notice title=Practice number::matched to lecture {n}", flush=True)
+            try:  # tell him where it went (his request 23/11/2026)
+                import notify
+                notify.send(job.sb, job.lesson["user_id"], f"📌 {job.course['name']}: התרגול שהעלית = תרגול {n}",
+                            f"הנושאים: {', '.join(ch.get('topics') or [])[:120]}", f"/lessons/{job.lesson['id']}")
+            except Exception:  # noqa: BLE001
+                pass
     try:
         job.update(**fields)
     except Exception:  # noqa: BLE001 - database without the syllabus_covered / summary_md column yet
