@@ -869,6 +869,101 @@ def fix_course(sb, name, tries=4):
         prune_questions(sb, u)
 
 
+QUIZ = """לפניך פרק קריאה של שיעור. כתוב עליו שאלון אמריקאי לחזרה: 10-12 שאלות הבנה בלבד (מילוליות, הגיון, "מה קורה
+אם", "למה"), שמכסות את כל הנושאים בפרק לפי הסדר, 4 תשובות באורך ובסגנון דומים, correct = אינדקס הנכונה, explanation
+שמסביר למה הנכונה נכונה ולמה האחרות לא. בלי שאלות חישוב; אם בכל זאת צריך מספר - הנוסחה כתובה בשאלה. נוסחאות ב-$...$.
+עברית בלבד. רק מה שבפרק."""
+QUIZ_SCHEMA = {"type": "object", "properties": {"questions": SCHEMA["properties"]["questions"]}, "required": ["questions"]}
+
+
+def requiz(sb, l):
+    """One quiz per lecture, about what its chapter holds now (comm lecture 4A had 71 questions piled up by rewrites
+    and audits, his remark 23/11/2026). Unanswered questions go; a practice gets no quiz (his rule)."""
+    from google.genai import types
+    qs = sb.table("questions").select("id").eq("lesson_id", l["id"]).execute().data
+    answered = {a["question_id"] for a in sb.table("attempts").select("question_id").in_("question_id", [q["id"] for q in qs]).execute().data} if qs else set()
+    for q in qs:
+        if q["id"] not in answered:
+            sb.table("questions").delete().eq("id", q["id"]).execute()
+    if l["kind"] != "lecture":
+        print(f"::notice title=Quiz::{l['kind']} {l.get('number')} {(l.get('title') or '')[:20]}: no quiz (practice) - {len(qs) - len(answered)} removed", flush=True)
+        return
+    out = author._generate_json([types.Part.from_text(text=body_of(l.get("chapter_md") or ""))], QUIZ, QUIZ_SCHEMA, "MEDIUM")
+    new = [q for q in out.get("questions") or [] if len(q.get("options") or []) >= 2 and 0 <= q.get("correct", -1) < len(q["options"])]
+    for q in new:
+        q["question"], q["explanation"] = wrap_math(q.get("question") or ""), wrap_math(q.get("explanation") or "")
+        q["options"] = [wrap_math(o) for o in q["options"]]
+    add_questions(sb, l, {"id": l["course_id"]}, new)
+    print(f"::notice title=Quiz::lecture {l.get('number')} {(l.get('title') or '')[:20]}: {len(qs)} -> {len(new) + len(answered)} questions", flush=True)
+
+
+def reextract(sb, course, l):
+    """The lesson's exercises read again from its chapter + recording (after a rewrite / audit added material).
+    Exercises he marked done stay; the others are replaced."""
+    import exercises as exmod
+    from google.genai import types
+    kind = f"{'תרגול' if l['kind'] == 'practice' else 'הרצאה'} {l.get('number') or ''}".strip()
+    text = f"=== הפרק ===\n{body_of(l.get('chapter_md') or '')[:80000]}\n\n=== התמלול ===\n{(l.get('transcript') or '')[:120000]}"
+    parts = [types.Part.from_text(text=exmod.LESSON_PROMPT.format(kind=kind, course=course["name"], topics=", ".join(l.get("topics") or []) or "-")),
+             types.Part.from_text(text=text)]
+    found = exmod.gen(parts, None)
+    if not found:
+        print(f"::warning title=Exercises::{kind}: none found - the old ones stay", flush=True)
+        return
+    checked = exmod.gen(parts + [types.Part.from_text(text="=== התרגילים לבדיקה ===\n" + json.dumps(found, ensure_ascii=False))], exmod.CHECK)
+    found = checked if len(checked) >= len(found) else found
+    old = sb.table("exercises").select("id").eq("lesson_id", l["id"]).is_("done_at", "null").execute().data
+    for x in old:
+        sb.table("exercises").delete().eq("id", x["id"]).execute()
+    sb.table("exercises").insert([{"user_id": course["user_id"], "course_id": course["id"], "lesson_id": l["id"], "source": "lesson",
+                                   "ord": i, "title": x.get("title"), "question_md": exmod.tidy(x["question_md"]),
+                                   "solution_md": exmod.tidy(x.get("solution_md") or ""), "topic": x.get("topic"),
+                                   "exam_style": bool(x.get("exam_style")), "uncertain": bool(x.get("uncertain"))}
+                                  for i, x in enumerate(found)]).execute()
+    print(f"::notice title=Exercises::{kind} {(l.get('title') or '')[:20]}: {len(old)} -> {len(found)} exercises", flush=True)
+
+
+def rewrite_lesson(sb, lid, part_sec=1200):
+    """A chapter that stays short (comm lecture 5A: 18% of its recording after a rewrite and an audit) is written
+    again in 20-minute parts - less to cover per answer, so less is skipped - then audited; kept only if longer."""
+    global PART_SEC
+    l = sb.table("lessons").select("id, user_id, course_id, kind, number, title, transcript, chapter_md, slide_count").eq("id", lid).execute().data[0]
+    course = sb.table("courses").select("id, name, user_id").eq("id", l["course_id"]).execute().data[0]
+    old, PART_SEC = PART_SEC, part_sec
+    try:
+        md, _ = write(sb, l, course)
+    finally:
+        PART_SEC = old
+    body = body_of(l.get("chapter_md") or "")
+    if len(md) <= len(body):
+        print(f"::warning title=Rewrite::{(l.get('title') or '')[:30]}: {len(md)} <= {len(body)} - kept", flush=True)
+        return
+    sb.storage.from_(BUCKET).upload(f"{l['user_id']}/lessons/{l['id']}/chapter_before_rewrite20.md", (l.get("chapter_md") or "").encode(),
+                                    {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+    md = author.normalize_math(md)
+    new, _ = audit(sb, dict(l, chapter_md=md), course, md)
+    sb.table("lessons").update({"chapter_md": new}).eq("id", l["id"]).execute()
+    print(f"::notice title=Rewrite::{(l.get('title') or '')[:30]}: {len(body)} -> {len(new)} chars (20-min parts + audit)", flush=True)
+
+
+def refresh_weeks(sb, name, weeks):
+    """Weeks whose lessons changed (rewritten / audited): quiz per lecture, exercises read again, the week's set rebuilt."""
+    import weekset
+    c = [x for x in sb.table("courses").select("id, name, user_id").execute().data if name in (x["name"] or "")][0]
+    for l in (sb.table("lessons").select("id, user_id, course_id, kind, number, title, topics, chapter_md, transcript, read_at")
+              .eq("course_id", c["id"]).in_("number", weeks).in_("kind", ["lecture", "practice"]).execute().data):
+        if (l.get("title") or "").startswith("📦"):
+            continue
+        requiz(sb, l)
+        reextract(sb, c, l)
+    for w in weeks:
+        try:
+            weekset.drop("^" + re.escape(c["name"]) + "$", str(w), ["all"])
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Week set::{w}: {str(e)[:150]}", flush=True)
+    weekset.run("^" + re.escape(c["name"]) + "$", only_missing=True)
+
+
 def thursday_alert(sb):
     """Thursday evening: anything he needs by Friday that is not ready -> one push."""
     from zoneinfo import ZoneInfo
@@ -893,7 +988,12 @@ def thursday_alert(sb):
 if __name__ == "__main__":
     import sys
     s = hub.db()
-    if "--fix-course" in sys.argv:
+    if "--rewrite" in sys.argv:
+        rewrite_lesson(s, sys.argv[sys.argv.index("--rewrite") + 1])
+    elif "--refresh-weeks" in sys.argv:  # "<course>|4,5"
+        name, ws = sys.argv[sys.argv.index("--refresh-weeks") + 1].split("|", 1)
+        refresh_weeks(s, name, [int(x) for x in ws.split(",")])
+    elif "--fix-course" in sys.argv:
         fix_course(s, sys.argv[sys.argv.index("--fix-course") + 1])
     elif "--redrill" in sys.argv:  # "<course>|הרצאה 1,הרצאה 2"
         name, only = sys.argv[sys.argv.index("--redrill") + 1].split("|", 1)

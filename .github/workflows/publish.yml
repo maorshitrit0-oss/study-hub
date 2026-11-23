@@ -88,6 +88,8 @@ jobs:
           if [ "$INSPECT" = "latex-repair" ]; then python hub.py latex-repair; exit $?; fi
           if [ "$INSPECT" = "coverage-dedupe" ]; then python coverage.py --dedupe; exit $?; fi
           if [ "$INSPECT" = "drop-moodle" ]; then python hub.py drop-moodle; exit $?; fi
+          if [ "$INSPECT" = "coverage-rewrite" ]; then python coverage.py --rewrite "$TITLE"; exit $?; fi
+          if [ "$INSPECT" = "refresh-weeks" ]; then python coverage.py --refresh-weeks "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "coverage-fix" ]; then python coverage.py --fix-course "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "coverage-redrill" ]; then python coverage.py --redrill "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "coverage-trim" ]; then python coverage.py --trim "$TITLE"; exit $?; fi
