@@ -152,6 +152,13 @@ def retry_studio(sb):
         return
     # Only items that stopped on the quota (requested by him or for him); a video waits for the natural Gemini voice.
     rows = [r for r in rows if names.get(r["course_id"]) and r["kind"] == "video"]  # podcasts dropped 22/11/2026
+    try:  # one course at a time when he set a focus (23/11/2026)
+        import coverage
+        f = coverage.load(sb).get("focus")
+        if f:
+            rows = [r for r in rows if f in names.get(r["course_id"], "")]
+    except Exception:  # noqa: BLE001
+        pass
     # not when the same lessons already have a ready one of that kind from the current engine (made after it failed, or
     # after ENGINE_SINCE: the subtitled, synced video he approved 08/11/2026) - a duplicate would waste the voice quota
     redo = [r for r in rows if "נוסחאות שנחתכו" in (r.get("error") or "")]  # studio-redo: made again on purpose
@@ -171,6 +178,13 @@ def retry_studio(sb):
     except Exception:  # noqa: BLE001
         day = {}
     rows = sorted(stale + rows, key=lambda r: (r in redo, day.get(r["course_id"], 99), r["created_at"]))
+    try:
+        import coverage
+        f = coverage.load(sb).get("focus")
+        if f:
+            rows = [r for r in rows if f in names.get(r["course_id"], "")]
+    except Exception:  # noqa: BLE001
+        pass
     picks = [r for r in rows if any(w in (r.get("error") or "") for w in ("מכסה", "עמוסים"))]
     # 20/11/2026: he uploads a whole batch of lectures today - the video remakes wait until tomorrow morning, so all of
     # Gemini's quota goes to his lessons

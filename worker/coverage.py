@@ -247,9 +247,16 @@ def study_day(sb, course_id):
     return 99
 
 
+def focused(st, courses):
+    """He decides the order (23/11/2026: "מעגלים ספרתיים ... אני אאשר לך" the next one): with st["focus"] set, only
+    that course is worked on - text, quizzes and videos - until he approves the next."""
+    f = st.get("focus")
+    return {k: c for k, c in courses.items() if f in (c["name"] or "")} if f else courses
+
+
 def todo(sb, st):
     """(lesson, course, target) in the order he needs them; target None = rewrite the lesson itself."""
-    courses = {c["id"]: c for c in sb.table("courses").select("id, name").eq("archived", False).execute().data}
+    courses = focused(st, {c["id"]: c for c in sb.table("courses").select("id, name").eq("archived", False).execute().data})
     rows = (sb.table("lessons").select("id, user_id, course_id, kind, number, title, status, transcript, chapter_md, "
                                        "read_at, created_at").in_("course_id", list(courses)).execute().data)
     by = {}
@@ -553,6 +560,10 @@ def drill(sb, st):
     """One completion lesson without its quiz/exercises: a hand-written file in chapters/drills, else Gemini."""
     st.setdefault("drill", {})
     more = st.get("drill_more") or {}
+    if more and st.get("focus"):  # only the focused course's
+        ok = {c["id"] for c in focused(st, {c["id"]: c for c in sb.table("courses").select("id, name").execute().data}).values()}
+        ids = {l["id"] for l in sb.table("lessons").select("id, course_id").in_("id", list(more)).execute().data if l["course_id"] in ok}
+        more = {k: v for k, v in more.items() if k in ids}
     if more:  # material appended to an existing completion lesson: quiz/exercises for the new part, video again
         lid, text = next(iter(more.items()))
         rows = sb.table("lessons").select("id, user_id, course_id, title").eq("id", lid).execute().data
@@ -562,7 +573,7 @@ def drill(sb, st):
             put_drill(sb, rows[0], out.get("questions") or [], out.get("exercises") or [], True)
             video_now(sb, dict(rows[0], kind="other"))
             print(f"::notice title=Coverage::{rows[0]['title']}: quiz + exercises for the added part", flush=True)
-        more.pop(lid, None)
+        st["drill_more"].pop(lid, None)
         save(sb, st)
         return True
     courses = {c["id"]: c for c in sb.table("courses").select("id, name").eq("archived", False).execute().data}
@@ -572,6 +583,7 @@ def drill(sb, st):
                 queue_video(sb, u)
         st["videos_backfilled"] = True
         save(sb, st)
+    courses = focused(st, courses)
     rows = [l for l in sb.table("lessons").select("id, user_id, course_id, title, chapter_md, created_at").eq("kind", "other")
             .like("title", "🔁 השלמה%").execute().data if l["course_id"] in courses and l["id"] not in st["drill"]]
     if not rows:
@@ -721,7 +733,19 @@ def thursday_alert(sb):
 if __name__ == "__main__":
     import sys
     s = hub.db()
-    if "--restore" in sys.argv:  # a lesson's chapter from before the coverage rewrite (when that one was longer)
+    if "--focus" in sys.argv:  # --focus "<part of a course name>" | --focus "" (all)
+        st = load(s)
+        st["focus"] = sys.argv[sys.argv.index("--focus") + 1] or None
+        save(s, st)
+        print(f"::notice title=Focus::{st['focus'] or 'all courses'}", flush=True)
+    elif "--drop-videos" in sys.argv:  # his request 23/11/2026: waiting / failed videos of a course are dropped
+        name = sys.argv[sys.argv.index("--drop-videos") + 1]
+        ids = [c["id"] for c in s.table("courses").select("id, name").execute().data if name in (c["name"] or "")]
+        rows = s.table("lesson_media").select("id").in_("course_id", ids).neq("status", "ready").execute().data
+        for r in rows:
+            s.table("lesson_media").delete().eq("id", r["id"]).execute()
+        print(f"::notice title=Videos dropped::{name}: {len(rows)} waiting videos removed", flush=True)
+    elif "--restore" in sys.argv:  # a lesson's chapter from before the coverage rewrite (when that one was longer)
         lid = sys.argv[sys.argv.index("--restore") + 1]
         l = s.table("lessons").select("id, user_id, chapter_md").eq("id", lid).execute().data[0]
         old = s.storage.from_(BUCKET).download(f"{l['user_id']}/lessons/{lid}/{BACKUP}").decode()

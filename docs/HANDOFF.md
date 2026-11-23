@@ -1084,6 +1084,10 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    mediastore.SMALL (960x540, 5 fps, crf 29, 40k audio); `publish inspect=media-clean number=N` removes files no
    lesson_media row points at (approved) and re-encodes the N biggest ready videos; the queue cleans daily at 03:00.
    Lesson page: no condensed summary, no quiz on practices. Video right after each lesson's text (video_now).
+   23/11 noon: he sets the course order - coverage state "focus" (publish inspect=coverage-focus title=<name part>,
+   empty = all) limits text, quizzes and videos to one course until he approves the next. Order: comm (done) ->
+   digital -> Java -> micro -> linear -> random signals. Waiting comm videos dropped (inspect=drop-videos) at his request.
+   Quizzes: wrap_math() wraps LaTeX Gemini wrote without $.
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.
