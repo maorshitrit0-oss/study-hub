@@ -32,10 +32,11 @@ export function promoteLongMath(md: string) {
       if (/^\s*(\||>)/.test(line)) return line;
       const ind = " ".repeat((line.match(/^\s*(?:[-*+]|\d+[.)])\s+/)?.[0] ?? "").length);
       return line.replace(/(?<![$\\])\$(?!\$)([^$\n]+?)\$(?!\$)/g, (m, tex: string) =>
-        visual(tex) > LONG ? `\n\n${ind}$$${splitEquation(tex.trim())}$$\n\n${ind}` : m);
+        visual(tex) > LONG ? flowMath(ind, splitEquation(tex.trim())) + ind : m);
     }).join("\n")
       // Display equations already on their own line: split long ones too.
-      .replace(/\$\$([^$]+?)\$\$/g, (_, tex: string) => `$$${splitEquation(tex.trim())}$$`);
+      .replace(/(^|\n)([ \t]*)\$\$([^$]+?)\$\$/g, (_, nl: string, ind: string, tex: string) =>
+        nl + flowMath(ind, splitEquation(tex.trim())).replace(/^\n+/, "").replace(/\n+$/, ""));
   }).join("");
 }
 
@@ -101,7 +102,7 @@ function pairDollars(text: string) {
     const line = text.slice(text.lastIndexOf("\n", open.at) + 1, open.at);
     const ind = " ".repeat((line.match(/^\s*(?:[-*+]|\d+[.)])\s+/)?.[0] ?? "").length);
     const display = open.len === 2 || t.len === 2 || visual(tex) > LONG;
-    out += chunk(pos, open.at) + (display ? `\n\n${ind}$$${cleanTex(tex.trim())}$$\n\n${ind}` : `$${cleanTex(tex.trim())}$`);
+    out += chunk(pos, open.at) + (display ? flowMath(ind, cleanTex(tex.trim())) + ind : `$${cleanTex(tex.trim())}$`);
     afterDisplay = display;
     pos = t.at + t.len;
     open = null;
@@ -109,6 +110,12 @@ function pairDollars(text: string) {
   return (out + chunk(pos, text.length))
     .replace(/\$\$\n\n\s*([.,;:])(?=\s|$)/g, "$$$$\n\n") // the sentence's period after a display formula
     .replace(/\n{3,}/g, "\n\n");
+}
+
+/** A display formula as a block: "$$" alone on the lines before and after. "$$a +\nb$$" written inline broke at the
+ *  line break and showed red (his screenshot 23/11/2026, comm lecture 4A). */
+function flowMath(ind: string, tex: string) {
+  return `\n\n${ind}$$\n${tex.split("\n").map((l) => ind + l.trim()).join("\n")}\n${ind}$$\n\n`;
 }
 
 function displayOnOwnLine(md: string) {
