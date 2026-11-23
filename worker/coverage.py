@@ -293,6 +293,18 @@ def step(sb):
     st.setdefault("done", {})
     explode_all(sb)
     fix_slides(sb)
+    # repairs he asked for that wait for Gemini (23/11/2026): run by the queue, not by Claude
+    jobs = st.get("pending") or []
+    if jobs:
+        j = jobs[0]
+        if j.get("rewrite"):
+            rewrite_lesson(sb, j["rewrite"])
+            j.pop("rewrite")
+        else:
+            refresh_weeks(sb, j["course"], j["weeks"])
+            jobs.pop(0)
+        save(sb, st)
+        return True
     if MERGE_APPROVED:
         merge_units(sb)
     if drill(sb, st):
@@ -988,7 +1000,12 @@ def thursday_alert(sb):
 if __name__ == "__main__":
     import sys
     s = hub.db()
-    if "--rewrite" in sys.argv:
+    if "--pending" in sys.argv:  # '{"course": "...", "weeks": [4,5], "rewrite": "<lesson id>"}' -> done by the queue
+        st = load(s)
+        st.setdefault("pending", []).append(json.loads(sys.argv[sys.argv.index("--pending") + 1]))
+        save(s, st)
+        print(f"::notice title=Pending::{st['pending']}", flush=True)
+    elif "--rewrite" in sys.argv:
         rewrite_lesson(s, sys.argv[sys.argv.index("--rewrite") + 1])
     elif "--refresh-weeks" in sys.argv:  # "<course>|4,5"
         name, ws = sys.argv[sys.argv.index("--refresh-weeks") + 1].split("|", 1)
