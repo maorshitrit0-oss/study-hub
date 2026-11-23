@@ -1482,6 +1482,26 @@ def cmd_export(out_dir):
         (out / f"{safe}.md").write_text("".join(parts), encoding="utf-8")
 
 
+def cmd_course_dump(match, out_dir):
+    """Everything about one course for a check: lessons (+ chapter), questions (answered or not), exercises (week, source,
+    done) -> course.json."""
+    sb = db()
+    c = find_course(sb, match)
+    ls = sb.table("lessons").select("id, kind, number, title, status, chapter_md, read_at, created_at").eq("course_id", c["id"]).execute().data
+    qs = sb.table("questions").select("id, lesson_id, question, options, explanation, created_at, source").eq("course_id", c["id"]).execute().data
+    ids = [q["id"] for q in qs]
+    ans = set()
+    for i in range(0, len(ids), 200):
+        ans |= {a["question_id"] for a in sb.table("attempts").select("question_id").in_("question_id", ids[i:i + 200]).execute().data}
+    for q in qs:
+        q["answered"] = q["id"] in ans
+    ex = sb.table("exercises").select("*").eq("course_id", c["id"]).execute().data
+    mats = sb.table("materials").select("id, title, kind").eq("course_id", c["id"]).execute().data
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    (Path(out_dir) / "course.json").write_text(json.dumps({"course": c, "lessons": ls, "questions": qs, "exercises": ex, "materials": mats},
+                                                          ensure_ascii=False, default=str), encoding="utf-8")
+
+
 def cmd_set_fields(path):
     """Writes text fields Claude repaired and checked with the site's own renderer (web/fix-math.mjs):
     JSON [{table, id, field, value}] - lessons chapter/summary, questions text/options/explanation, exercises text."""
@@ -1723,6 +1743,7 @@ if __name__ == "__main__":
     p = sub.add_parser("outline"); p.add_argument("out_dir")
     p = sub.add_parser("export"); p.add_argument("out_dir")
     p = sub.add_parser("drop-moodle")
+    p = sub.add_parser("course-dump"); p.add_argument("match"); p.add_argument("out_dir")
     p = sub.add_parser("media-clean"); p.add_argument("--shrink", type=int, default=0)
     p = sub.add_parser("drills-dump"); p.add_argument("match"); p.add_argument("out_dir")
     p = sub.add_parser("course-check"); p.add_argument("course")
@@ -1834,6 +1855,8 @@ if __name__ == "__main__":
         cmd_weeksets_dump(a.out_dir)
     elif a.cmd == "course-check":
         cmd_course_check(a.course)
+    elif a.cmd == "course-dump":
+        cmd_course_dump(a.match, a.out_dir)
     elif a.cmd == "drop-moodle":  # 23/11/2026: the saved Moodle calendar link is erased (the sync was removed)
         r = db().table("settings").update({"moodle_ics_url": None}).not_.is_("moodle_ics_url", "null").execute().data
         print(f"::notice title=Moodle::{len(r)} saved link(s) erased", flush=True)
