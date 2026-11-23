@@ -361,6 +361,17 @@ def waiting_work(sb):
     return [r for r, _ in candidates(sb) if r["status"] != "ready"]
 
 
+def repairs_left(sb):
+    """Repairs he asked for (coverage state "pending", 23/11/2026) count as work he waits for: the overnight loop keeps
+    going until they are done, so the next morning's course is ready."""
+    try:
+        import coverage
+        coverage._CACHE.pop("st", None)  # fresh read
+        return bool(coverage.load(sb).get("pending"))
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def loop(hours=5.5):
     """queue.yml: keep working the line inside one job - GitHub's half-hourly schedule fires only every few hours.
     Gemini busy -> wait 10 minutes and try again; quota gone -> sleep until the reset if it is inside this job;
@@ -370,7 +381,7 @@ def loop(hours=5.5):
     end = time.time() + hours * 3600
     while time.time() < end:
         why = run()
-        if why == "empty" and not waiting_work(sb):
+        if why == "empty" and not waiting_work(sb) and not repairs_left(sb):
             print("::notice title=Queue::nothing left that he is waiting for", flush=True)
             return
         if why == "quota":

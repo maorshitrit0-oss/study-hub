@@ -1098,6 +1098,9 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    Moodle: removed completely 23/11 (settings sync, ics parser, saved link erased) - it caused him problems; never
    connect to the university Moodle again.
    Lab 2 ("מעבדה"): nothing automatic - no completions, quizzes, videos or push (his request 23/11; SKIP_COURSES).
+   Repairs waiting for Gemini go to coverage state "pending" (inspect=coverage-pending title=<json>, "first": true
+   puts the next study course ahead); the queue loop keeps running until they are done (repairs_left) and the
+   "ready for tomorrow" push waits for them. 23/11 night: digital (fix + weeks 4-6) then comm (L5A rewrite + weeks 4-5).
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.
