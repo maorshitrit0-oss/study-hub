@@ -293,8 +293,9 @@ def step(sb):
     st.setdefault("done", {})
     explode_all(sb)
     fix_slides(sb)
-    # repairs he asked for that wait for Gemini (23/11/2026): run by the queue, not by Claude
-    jobs = st.get("pending") or []
+    plan_focus(sb)
+    # repairs he asked for that wait for Gemini (23/11/2026): run by the queue - the focus course's only
+    jobs = [j for j in st.get("pending") or [] if _mine(st, j)]
     if jobs:
         j = jobs[0]
         if j.get("fix"):  # completions: one per week, trimmed, quiz/exercises redone
@@ -305,7 +306,7 @@ def step(sb):
             j.pop("rewrite")
         else:
             refresh_weeks(sb, j["course"], j["weeks"])
-            jobs.pop(0)
+            st["pending"].remove(j)
         save(sb, st)
         return True
     if MERGE_APPROVED:
@@ -981,6 +982,42 @@ def refresh_weeks(sb, name, weeks):
     weekset.run("^" + re.escape(c["name"]) + "$", only_missing=True)
 
 
+# His order by days (23/11/2026): one course at a time; at 20:00 the next one, even if not all is done (and at once
+# if it is). Tuesday 24/11 starts with digital circuits.
+PLAN = ["מעגלים ספרתיים", "Java", "מיקרו", "מעגלים לינאריים", "אותות אקראיים", "VLSI", "גלים", "מבוא למערכות תקשורת"]
+PLAN_START = "2026-11-23T20:00:00+02:00"
+
+
+def plan_focus(sb):
+    """Sets st["focus"] by the plan: the course moves on at 20:00 Israel time, or when nothing is left in it."""
+    from datetime import timedelta
+    from zoneinfo import ZoneInfo
+    st = load(sb)
+    now = datetime.now(ZoneInfo("Asia/Jerusalem"))
+    p = st.setdefault("plan", {"i": 0, "since": PLAN_START})
+    since = datetime.fromisoformat(p["since"])
+    nxt = since.replace(hour=20, minute=0, second=0, microsecond=0)
+    if nxt <= since:
+        nxt += timedelta(days=1)
+    moved = False
+    if now >= nxt:  # 20:00 passed since this course started
+        p["i"], p["since"], moved = (p["i"] + 1) % len(PLAN), now.isoformat(), True
+    else:
+        c = [x for x in sb.table("courses").select("id, name, user_id").execute().data if PLAN[p["i"]] in (x["name"] or "")]
+        if c and not missing_for(sb, c[0], st):  # all done early: the next one now
+            p["i"], p["since"], moved = (p["i"] + 1) % len(PLAN), now.isoformat(), True
+    st["focus"] = PLAN[p["i"]]
+    save(sb, st)
+    if moved:
+        print(f"::notice title=Plan::now working on {st['focus']}", flush=True)
+    return st["focus"]
+
+
+def _mine(st, j):
+    f = st.get("focus") or ""
+    return bool(f) and (f in j["course"] or j["course"] in f)
+
+
 def pending_for_next_day(sb):
     """His priority is by days (23/11/2026): repairs for the course he studies next run BEFORE anything else (a new
     upload of a later course waits). Returns True if one was done."""
@@ -988,12 +1025,11 @@ def pending_for_next_day(sb):
     jobs = st.get("pending") or []
     if not jobs:
         return False
-    courses = sb.table("courses").select("id, name").eq("archived", False).execute().data
-    nearest = min((study_day(sb, c["id"]), c["name"]) for c in courses if not SKIP_COURSES.search(c["name"] or ""))
-    j = jobs[0]
-    c = next((c for c in courses if j["course"] in (c["name"] or "")), None)
-    if not c or study_day(sb, c["id"]) > nearest[0]:
+    plan_focus(sb)
+    mine = [j for j in jobs if _mine(st, j)]
+    if not mine:
         return False
+    j = mine[0]
     if j.get("fix"):
         fix_course(sb, j["course"])
         j.pop("fix")
@@ -1002,7 +1038,7 @@ def pending_for_next_day(sb):
         j.pop("rewrite")
     else:
         refresh_weeks(sb, j["course"], j["weeks"])
-        jobs.pop(0)
+        st["pending"].remove(j)
     save(sb, st)
     return True
 
