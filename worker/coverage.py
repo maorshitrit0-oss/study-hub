@@ -709,6 +709,8 @@ def missing_for(sb, course, st):
     cov = [j for j in todo(sb, {"done": st.get("done", {})}) if j[1]["id"] == course["id"]]
     if cov:
         out.append(f"{len(cov)} השלמות בכתיבה")
+    if any(course["name"] and j.get("course") and j["course"] in course["name"] for j in st.get("pending") or []):
+        out.append("תיקוני שאלונים, השלמות ותרגילים")
     units = [l for l in ls if l["kind"] == "other" and (l.get("title") or "").startswith("🔁 השלמה")]
     nodrill = [u for u in units if u["id"] not in st.get("drill", {})]
     if nodrill:
