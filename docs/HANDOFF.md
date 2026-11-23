@@ -1080,6 +1080,10 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    hub.complete_chapter() = full_from_start() + coverage.audit() (each 40-min part vs the chapter, missing details
    appended under "## 🧩 פרטים שהבדיקה מול ההקלטה הוסיפה", backup chapter_before_audit.md) before "ready"; the coverage
    queue also audits every unread lesson once (state "audited"). RULES in coverage.py forbid skipping anything.
+   23/11 media project (study-media) went over its 5 GB monthly download (grace to 23/12/2026): videos now encoded with
+   mediastore.SMALL (960x540, 5 fps, crf 29, 40k audio); `publish inspect=media-clean number=N` removes files no
+   lesson_media row points at (approved) and re-encodes the N biggest ready videos; the queue cleans daily at 03:00.
+   Lesson page: no condensed summary, no quiz on practices. Video right after each lesson's text (video_now).
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.

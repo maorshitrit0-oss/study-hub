@@ -1698,6 +1698,7 @@ if __name__ == "__main__":
     p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
     p = sub.add_parser("outline"); p.add_argument("out_dir")
+    p = sub.add_parser("media-clean"); p.add_argument("--shrink", type=int, default=0)
     p = sub.add_parser("drills-dump"); p.add_argument("match"); p.add_argument("out_dir")
     p = sub.add_parser("course-check"); p.add_argument("course")
     p = sub.add_parser("weeksets-dump"); p.add_argument("out_dir")
@@ -1808,6 +1809,11 @@ if __name__ == "__main__":
         cmd_weeksets_dump(a.out_dir)
     elif a.cmd == "course-check":
         cmd_course_check(a.course)
+    elif a.cmd == "media-clean":
+        import mediastore
+        mediastore.clean(db())
+        if a.shrink:
+            mediastore.shrink(db(), a.shrink)
     elif a.cmd == "drills-dump":
         cmd_drills_dump(a.match, a.out_dir)
     elif a.cmd == "outline":

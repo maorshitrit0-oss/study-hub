@@ -35,6 +35,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          MEDIA_SUPABASE_KEY: ${{ secrets.MEDIA_SUPABASE_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           YT_COOKIES: ${{ secrets.YT_COOKIES }}

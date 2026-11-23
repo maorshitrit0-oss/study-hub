@@ -327,6 +327,12 @@ def run():
                 why = "quota"
             elif author._is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "עמוסים", "INTERNAL"):
                 why = "busy"
+    try:  # old video files left behind by a remake (approved 23/11/2026)
+        import mediastore
+        if mediastore.enabled() and datetime.now(ZoneInfo("Asia/Jerusalem")).hour == 3:
+            mediastore.clean(sb)
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning title=Media clean::{str(e)[:200]}", flush=True)
     try:
         import coverage
         coverage.ready_alert(sb)
