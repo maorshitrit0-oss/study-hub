@@ -48,8 +48,8 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
   const summary = (lesson as Lesson & { summary_md?: string | null }).summary_md ?? null;
   // A self-study session is written as one full chapter (with the project task among its exercises).
   const self = (lesson.transcript ?? "").startsWith("<!-- vlsi-session -->");
-  const summaryText = self ? null : summary;
-  const full = self ? lesson.chapter_md : lesson.chapter_md && lesson.chapter_md !== summary ? lesson.chapter_md : null;
+  // 23/11/2026: the summary is no longer shown, so a lesson written as a summary shows it as its chapter.
+  const full = lesson.chapter_md || null;
   // Self-study: the session's job-interview questions also close the quiz (his request, 06/11/2026), each with its source.
   const interview = self && lesson.number ? VLSI_PROGRAM[lesson.number - 1]?.interview ?? [] : [];
   const project = (exercises ?? []).filter((x) => (x.title ?? "").startsWith("🔧"));
@@ -274,19 +274,13 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
         </Fold>
       )}
 
-      {lesson.status === "ready" && !self && summaryText && (
-        <Fold id={`summary-${id}`} title="📝 סיכום מתומצת - מסקנות השיעור">
-          <Chapter md={summaryText} slideUrls={slideUrls} />
-        </Fold>
-      )}
+      {/* 23/11/2026 his decision: no condensed summary - the full chapter only (the data stays). */}
       {/* Always both (his wish 11/11/2026): no button - the queue writes the missing full chapter by itself. */}
-      {!full && summaryText && lesson.status === "ready" && (
-        <p className="text-sm text-muted text-center">📖 הפרק המלא נכתב אוטומטית ויופיע כאן (בתור, לפי המכסה של Gemini)</p>
-      )}
 
       {/* Lectures and practices: the exercises are solved only in the course's exercises tab, week N = lecture N
           (his way, 11/11/2026) - here only a link to that week. */}
-      {!self && quizFold}
+      {/* 23/11/2026: a practice is the full chapter only - no quiz (the exercises follow it). */}
+      {!self && lesson.kind !== "practice" && quizFold}
       {!self && (exercises ?? []).length > 0 && (lesson.kind === "lecture" || lesson.kind === "practice") && lesson.number ? (
         <Link href={`/courses/${lesson.course_id}/exercises?w=${lesson.number}`} className="card block text-center text-sm font-medium">
           ✍️ התרגילים של השיעור הזה – בעמודת התרגילים, שבוע {lesson.number}
