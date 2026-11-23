@@ -489,6 +489,27 @@ def cmd_retitle(match, kind, number, title):
     print(f"::notice title=Retitle::{kind} {number}: {len(got)} -> {title}", flush=True)
 
 
+def full_from_start(job, chapter_md, short, by):
+    """His rule 23/11/2026: from now on no lesson needs completions - a chapter that came out thin (under 15% of the
+    transcript, or cut) is written again in full, part by part (coverage.write), BEFORE it is marked ready.
+    If Gemini fails here the first chapter stays and the coverage queue rewrites it later (he has not read it yet)."""
+    import coverage
+    les = dict(job.lesson, chapter_md=chapter_md, status="ready")
+    if short or by == "claude" or not coverage.eligible(les) or not coverage.thin(les):
+        return chapter_md
+    try:
+        job.sb.table("lessons").update({"progress": "הפרק יצא קצר - נכתב מחדש במלואו"}).eq("id", les["id"]).execute()
+        md, qs = coverage.write(job.sb, les, job.course)
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning title=Full chapter::{str(e)[:200]} - kept the first chapter, the coverage queue redoes it", flush=True)
+        return chapter_md
+    if len(md) < 0.6 * coverage.THIN * len(les["transcript"]):
+        return chapter_md
+    coverage.add_questions(job.sb, les, job.course, qs)
+    print(f"::notice title=Full chapter::{les.get('title') or les['id'][:8]}: thin ({len(chapter_md)}) -> full ({len(md)})", flush=True)
+    return md
+
+
 def save_chapter(job, ch, by):
     ch = author.validate(ch)
     short = bool(ch.get("exercises")) or (by != "claude" and author.summary_mode(job.lesson, job.mode, job.course))
@@ -516,6 +537,7 @@ def save_chapter(job, ch, by):
     save_course_facts(job, ch)
     save_glossary(job, ch)
     chapter_md = ch["chapter_md"] + (author.verification_md(ch) if ch.get("verification") else "")
+    chapter_md = full_from_start(job, chapter_md, short, by)
     count = f"{len(ch['exercises'])} תרגילים" if short else f"{len(ch['questions'])} שאלות"
     fields = dict(chapter_md=chapter_md, topics=ch["topics"], status="ready",
                   syllabus_covered=[i for i in ch.get("syllabus_covered") or [] if isinstance(i, int)],
