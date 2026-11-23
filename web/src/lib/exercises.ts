@@ -48,6 +48,13 @@ export async function exercisesByWeek(sb: SupabaseClient, courseId?: string, use
     // session "מפגש N" is week N too; a TA notebook waiting for a later lecture ("📦 ...") is in no week yet.
     const title = (l.title ?? "") as string;
     if (title.startsWith("📦")) continue;
+    // A completion ("🔁 השלמה להרצאה N") belongs to week N - not to the calendar week it was written in (it showed as
+    // week 6 with no lecture 6, his remark 23/11/2026).
+    const comp = title.match(/^🔁 השלמה ל(?:הרצאה|תרגול) (\d+)/);
+    if (comp) {
+      lessonWeek.set(l.id, Number(comp[1]));
+      continue;
+    }
     if (l.number && (l.kind === "lecture" || l.kind === "practice" || title.startsWith("מפגש "))) {
       lessonWeek.set(l.id, l.number);
       continue;
