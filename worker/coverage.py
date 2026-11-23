@@ -308,7 +308,9 @@ def step(sb):
         top, _ = split_head(l.get("chapter_md") or "")
         md, qs = write(sb, l, course)
         st.setdefault("v2", {})[l["id"]] = "rewrite"
-        if len(md) < 0.6 * THIN * len(l["transcript"]):
+        old = len(body_of(split_head(l.get("chapter_md") or "")[1]))
+        # never trade a chapter for a shorter one (23/11/2026: comm practice 4, 17k -> 8k); a longer one always wins
+        if len(md) <= old or (len(md) < 0.6 * THIN * len(l["transcript"]) and len(md) < 1.3 * old):
             print(f"::warning title=Coverage::{l['title'][:40]}: rewrite came out short ({len(md)}) - kept the old chapter", flush=True)
             st["done"][l["id"]] = "short"
         else:
@@ -692,7 +694,19 @@ def thursday_alert(sb):
 if __name__ == "__main__":
     import sys
     s = hub.db()
-    if "--explode" in sys.argv:
+    if "--restore" in sys.argv:  # a lesson's chapter from before the coverage rewrite (when that one was longer)
+        lid = sys.argv[sys.argv.index("--restore") + 1]
+        l = s.table("lessons").select("id, user_id, chapter_md").eq("id", lid).execute().data[0]
+        old = s.storage.from_(BUCKET).download(f"{l['user_id']}/lessons/{lid}/{BACKUP}").decode()
+        if len(old) > len(l["chapter_md"] or ""):
+            s.storage.from_(BUCKET).upload(f"{l['user_id']}/lessons/{lid}/chapter_rewrite_shorter.md", (l["chapter_md"] or "").encode(),
+                                           {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+            s.table("lessons").update({"chapter_md": old}).eq("id", lid).execute()
+            st = load(s)
+            st.setdefault("audited", {}).pop(lid, None)
+            save(s, st)
+            print(f"::notice title=Restore::{lid[:8]}: {len(l['chapter_md'] or '')} -> {len(old)} chars (audit again)", flush=True)
+    elif "--explode" in sys.argv:
         explode_all(s)
     elif "--dedupe" in sys.argv:
         dedupe_all(s)
