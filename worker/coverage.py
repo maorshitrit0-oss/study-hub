@@ -709,6 +709,54 @@ def ready_alert(sb):
         print(f"::notice title=Ready alert::{c['name']}: {'ready' if not miss else ', '.join(miss)}", flush=True)
 
 
+TRIM = """לפניך (1) מה שהסטודנט כבר קרא ופתר: הפרקים של השיעורים שסימן כנקראו והתרגילים שסימן כפתורים, ואחריהם (2) פרק
+השלמה שנכתב לו. הוא לא רוצה לקרוא שוב מה שכבר למד (בקשתו 23/11/2026).
+החזר את פרק ההשלמה אחרי שהסרת ממנו כל מה שכבר נמצא ב-(1): נושא, הסבר, הגדרה, נוסחה או דוגמה שכבר מוסברים שם, ותרגיל
+שכבר פתר (גם אם הנתונים מנוסחים אחרת). השאר כל מה שחדש: נושא שלא היה, פרט/נוסחה/מקרה/הערת מבחן שלא הופיעו, תרגיל שלא
+פתר. אל תשכתב ואל תקצר את מה שנשאר - העתק אותו כמו שהוא (כולל ![..](slide:N), נוסחאות, 📝 מה כתוב בלוח). כותרת שכל
+התוכן שלה הוסר - הסר גם אותה. בראש הפרק השאר את שורת ה-📌 אם יש. אם הכל כבר נלמד - md ריק."""
+TRIM_SCHEMA = {"type": "object", "properties": {"md": {"type": "string"}, "removed": {"type": "array", "items": {"type": "string"}}},
+               "required": ["md"]}
+
+
+def trim(sb, unit):
+    """A completion lesson without what he already read (lessons marked read) or solved (exercises marked done)."""
+    from google.genai import types
+    m = UNIT_SRC.match(unit.get("title") or "")
+    if not m:
+        return None
+    kind, n = ("lecture" if m.group(1) == "הרצאה" else "practice"), int(m.group(2))
+    read = [l for l in sb.table("lessons").select("kind, number, title, chapter_md, read_at").eq("course_id", unit["course_id"])
+            .eq("number", n).execute().data if l.get("read_at") and l["kind"] in ("lecture", "practice")]
+    done = [x for x in sb.table("exercises").select("question_md, done_at, lesson_id").eq("course_id", unit["course_id"])
+            .not_.is_("done_at", "null").execute().data]
+    known = "\n\n".join(f"=== {l['kind']} {l['number']} {l.get('title') or ''} ===\n{body_of(l['chapter_md'] or '')}" for l in read)
+    known += "\n\n=== תרגילים שפתר ===\n" + "\n\n".join(x["question_md"] for x in done)[:40000]
+    out = author._generate_json([types.Part.from_text(text="(1)\n" + known[:150000]),
+                                 types.Part.from_text(text="(2) פרק ההשלמה:\n" + (unit["chapter_md"] or ""))], TRIM, TRIM_SCHEMA, "MEDIUM")
+    md = (out.get("md") or "").strip()
+    if md and author.is_cut(md):
+        return None
+    return md, out.get("removed") or []
+
+
+def trim_course(sb, name):
+    ids = [c["id"] for c in sb.table("courses").select("id, name").execute().data if name in (c["name"] or "")]
+    for u in (sb.table("lessons").select("id, user_id, course_id, title, chapter_md").in_("course_id", ids).eq("kind", "other")
+              .like("title", "🔁 השלמה%").execute().data):
+        res = trim(sb, u)
+        if res is None:
+            print(f"::warning title=Trim::{u['title']}: no usable answer - kept as is", flush=True)
+            continue
+        md, removed = res
+        sb.storage.from_(BUCKET).upload(f"{u['user_id']}/lessons/{u['id']}/chapter_before_trim.md", (u["chapter_md"] or "").encode(),
+                                        {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+        if not md:
+            md = "> 📌 כל מה שהיה בהשלמה הזו כבר נמצא בפרקים שקראת ובתרגילים שפתרת - אין מה ללמוד כאן."
+        sb.table("lessons").update({"chapter_md": author.normalize_math(md)}).eq("id", u["id"]).execute()
+        print(f"::notice title=Trim::{u['title']}: {len(u['chapter_md'] or '')} -> {len(md)} chars; removed: {'; '.join(removed)[:400]}", flush=True)
+
+
 def thursday_alert(sb):
     """Thursday evening: anything he needs by Friday that is not ready -> one push."""
     from zoneinfo import ZoneInfo
@@ -733,7 +781,9 @@ def thursday_alert(sb):
 if __name__ == "__main__":
     import sys
     s = hub.db()
-    if "--focus" in sys.argv:  # --focus "<part of a course name>" | --focus "" (all)
+    if "--trim" in sys.argv:  # completions without what he already read / solved (23/11/2026)
+        trim_course(s, sys.argv[sys.argv.index("--trim") + 1])
+    elif "--focus" in sys.argv:  # --focus "<part of a course name>" | --focus "" (all)
         st = load(s)
         st["focus"] = sys.argv[sys.argv.index("--focus") + 1] or None
         save(s, st)

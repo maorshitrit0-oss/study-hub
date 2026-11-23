@@ -87,6 +87,7 @@ jobs:
           if [ "$INSPECT" = "set-fields" ]; then python hub.py set-fields "../$CHAPTER"; exit $?; fi
           if [ "$INSPECT" = "latex-repair" ]; then python hub.py latex-repair; exit $?; fi
           if [ "$INSPECT" = "coverage-dedupe" ]; then python coverage.py --dedupe; exit $?; fi
+          if [ "$INSPECT" = "coverage-trim" ]; then python coverage.py --trim "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "coverage-focus" ]; then python coverage.py --focus "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "drop-videos" ]; then python coverage.py --drop-videos "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "coverage-restore" ]; then python coverage.py --restore "$TITLE"; exit $?; fi
