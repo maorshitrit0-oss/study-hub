@@ -279,6 +279,18 @@ def run():
                     break
         print("::notice title=Queue::Gemini quota used up earlier today - fill-ins wait for the reset", flush=True)
         return "quota"
+    # his priority is by days (23/11/2026): repairs of the course he studies next come before new uploads of others
+    try:
+        import coverage
+        while coverage.pending_for_next_day(sb):
+            pass
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning title=Repairs::{author.friendly_error(e)[:300]}", flush=True)
+        if is_quota(e):
+            block_quota(sb)
+            return "quota"
+        if author._is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "עמוסים", "INTERNAL"):
+            return "busy"
     # a lecture he is waiting for comes before any video (his remark 20/11/2026: "it happened twice" - the video
     # remakes used up Gemini's daily quota and his new lecture failed on it): no studio work while a lesson waits
     waiting_lesson = any(r["status"] != "ready" for r, _ in candidates(sb))

@@ -981,6 +981,32 @@ def refresh_weeks(sb, name, weeks):
     weekset.run("^" + re.escape(c["name"]) + "$", only_missing=True)
 
 
+def pending_for_next_day(sb):
+    """His priority is by days (23/11/2026): repairs for the course he studies next run BEFORE anything else (a new
+    upload of a later course waits). Returns True if one was done."""
+    st = load(sb)
+    jobs = st.get("pending") or []
+    if not jobs:
+        return False
+    courses = sb.table("courses").select("id, name").eq("archived", False).execute().data
+    nearest = min((study_day(sb, c["id"]), c["name"]) for c in courses if not SKIP_COURSES.search(c["name"] or ""))
+    j = jobs[0]
+    c = next((c for c in courses if j["course"] in (c["name"] or "")), None)
+    if not c or study_day(sb, c["id"]) > nearest[0]:
+        return False
+    if j.get("fix"):
+        fix_course(sb, j["course"])
+        j.pop("fix")
+    elif j.get("rewrite"):
+        rewrite_lesson(sb, j["rewrite"])
+        j.pop("rewrite")
+    else:
+        refresh_weeks(sb, j["course"], j["weeks"])
+        jobs.pop(0)
+    save(sb, st)
+    return True
+
+
 def thursday_alert(sb):
     """Thursday evening: anything he needs by Friday that is not ready -> one push."""
     from zoneinfo import ZoneInfo
