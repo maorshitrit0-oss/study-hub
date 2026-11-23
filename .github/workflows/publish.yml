@@ -88,7 +88,7 @@ jobs:
           if [ "$INSPECT" = "latex-repair" ]; then python hub.py latex-repair; exit $?; fi
           if [ "$INSPECT" = "coverage-dedupe" ]; then python coverage.py --dedupe; exit $?; fi
           if [ "$INSPECT" = "coverage-restore" ]; then python coverage.py --restore "$TITLE"; exit $?; fi
-          if [ "$INSPECT" = "media-clean" ]; then python hub.py media-clean --shrink "$NUMBER"; exit $?; fi
+          if [ "$INSPECT" = "media-clean" ]; then sudo apt-get install -y -qq ffmpeg >/dev/null; python hub.py media-clean --shrink "$NUMBER"; exit $?; fi
           if [ "$INSPECT" = "coverage-step" ]; then python coverage.py 6; exit $?; fi
           if [ "$INSPECT" = "drop-lesson" ]; then python hub.py drop-lesson "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "patch" ]; then python boards.py patch "../$CHAPTER"; exit $?; fi
