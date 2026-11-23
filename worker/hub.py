@@ -1410,12 +1410,14 @@ def cmd_drills_dump(match, out_dir):
 
 def cmd_set_fields(path):
     """Writes text fields Claude repaired and checked with the site's own renderer (web/fix-math.mjs):
-    JSON [{table, id, field, value}] - lessons chapter/summary only."""
+    JSON [{table, id, field, value}] - lessons chapter/summary, questions text/options/explanation, exercises text."""
     sb = db()
     n = 0
     for f in json.loads(Path(path).read_text(encoding="utf-8")):
-        if f["table"] == "lessons" and f["field"] in ("chapter_md", "summary_md"):
-            sb.table("lessons").update({f["field"]: f["value"]}).eq("id", f["id"]).execute()
+        ok = {"lessons": ("chapter_md", "summary_md"), "questions": ("question", "options", "explanation"),
+              "exercises": ("question_md", "solution_md")}
+        if f["field"] in ok.get(f["table"], ()):
+            sb.table(f["table"]).update({f["field"]: f["value"]}).eq("id", f["id"]).execute()
             n += 1
     print(f"::notice title=Set fields::{n} written", flush=True)
 
