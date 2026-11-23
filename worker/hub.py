@@ -1396,6 +1396,18 @@ def cmd_latex_repair():
         print(f"::notice title=LaTeX::{table}: {fixed} rows fixed", flush=True)
 
 
+def cmd_drills_dump(match, out_dir):
+    """Completion lessons of a course with their quiz and exercises -> drills.json (for a render check)."""
+    sb = db()
+    course = find_course(sb, match)
+    ls = sb.table("lessons").select("id, title, chapter_md").eq("course_id", course["id"]).like("title", "🔁%").execute().data
+    for l in ls:
+        l["questions"] = sb.table("questions").select("id, question, options, correct, explanation").eq("lesson_id", l["id"]).execute().data
+        l["exercises"] = sb.table("exercises").select("id, question_md, solution_md").eq("lesson_id", l["id"]).execute().data
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    (Path(out_dir) / "drills.json").write_text(json.dumps(ls, ensure_ascii=False), encoding="utf-8")
+
+
 def cmd_set_fields(path):
     """Writes text fields Claude repaired and checked with the site's own renderer (web/fix-math.mjs):
     JSON [{table, id, field, value}] - lessons chapter/summary only."""
@@ -1633,6 +1645,7 @@ if __name__ == "__main__":
     p = sub.add_parser("archive"); p.add_argument("match")
     p = sub.add_parser("summaries"); p.add_argument("out_dir")
     p = sub.add_parser("outline"); p.add_argument("out_dir")
+    p = sub.add_parser("drills-dump"); p.add_argument("match"); p.add_argument("out_dir")
     p = sub.add_parser("course-check"); p.add_argument("course")
     p = sub.add_parser("weeksets-dump"); p.add_argument("out_dir")
     p = sub.add_parser("requeue"); p.add_argument("course"); p.add_argument("kind"); p.add_argument("number")
@@ -1742,6 +1755,8 @@ if __name__ == "__main__":
         cmd_weeksets_dump(a.out_dir)
     elif a.cmd == "course-check":
         cmd_course_check(a.course)
+    elif a.cmd == "drills-dump":
+        cmd_drills_dump(a.match, a.out_dir)
     elif a.cmd == "outline":
         cmd_outline(a.out_dir)
     elif a.cmd == "flat":
