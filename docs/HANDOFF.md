@@ -1095,6 +1095,7 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    quiz/exercises only about what the completion holds, never repeating an exercise he marked done (drill_parts sends
    the solved ones); questions not about it removed even if answered (prune_questions). `inspect=coverage-fix
    title=<course>` does all of it (fix_course). Videos only for the focused course.
+   Lab 2 ("מעבדה"): nothing automatic - no completions, quizzes, videos or push (his request 23/11; SKIP_COURSES).
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.

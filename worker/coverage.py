@@ -247,9 +247,13 @@ def study_day(sb, course_id):
     return 99
 
 
+SKIP_COURSES = re.compile(r"מעבדה")  # his request 23/11/2026: lab 2 gets nothing (no completions, quizzes, videos, alerts)
+
+
 def focused(st, courses):
     """He decides the order (23/11/2026: "מעגלים ספרתיים ... אני אאשר לך" the next one): with st["focus"] set, only
     that course is worked on - text, quizzes and videos - until he approves the next."""
+    courses = {k: c for k, c in courses.items() if not SKIP_COURSES.search(c["name"] or "")}
     f = st.get("focus")
     return {k: c for k, c in courses.items() if f in (c["name"] or "")} if f else courses
 
@@ -423,7 +427,7 @@ def video_now(sb, l):
     """His order (23/11/2026): each lesson's video is made right after its text, lesson by lesson - not in a batch at
     the end. Practices (and their completions) get no video. An older video of the lesson is replaced."""
     title = l.get("title") or ""
-    if l.get("kind") == "practice" or title.startswith("🔁 השלמה לתרגול"):
+    if l.get("kind") in ("practice", "lab") or title.startswith("🔁 השלמה לתרגול"):
         return
     f = load(sb).get("focus")
     if f and not any(f in (c["name"] or "") for c in sb.table("courses").select("name").eq("id", l["course_id"]).execute().data):
@@ -712,6 +716,7 @@ def ready_alert(sb):
     ready, or at 21:00 what is still missing."""
     import notify
     now, courses = tomorrow_courses(sb)
+    courses = [c for c in courses if not SKIP_COURSES.search(c["name"] or "")]
     st = load(sb)
     sent = st.setdefault("ready", {})
     day = now.date().isoformat()

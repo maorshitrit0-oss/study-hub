@@ -349,7 +349,7 @@ def answered(job):
 
 # Courses where every new lecture gets a podcast and a video by itself (his request 08/11/2026: he listens to the
 # podcast and watches the video first, then reads). Gemini TTS - the free quota is shared with the chapters.
-AUTO_STUDIO = re.compile(r"גלים ומערכות|VLSI|אקראיים|תקשורת|לינאר|ליניאר|מיקרו|מעגלים ספרתיים|java|מעבדה", re.I)
+AUTO_STUDIO = re.compile(r"גלים ומערכות|VLSI|אקראיים|תקשורת|לינאר|ליניאר|מיקרו|מעגלים ספרתיים|java", re.I)  # no lab videos (23/11/2026)
 # 09/11/2026: every lecture of all his courses (and every self-study / random-signals session) gets a podcast AND a video.
 # 08/11/2026 evening: "הסרטון האחרון שיצרת יצא פגז, ככה אני רוצה מהיום והלאה לכל הרצאה" - the explainer video (subtitles,
 # synced narration) for every new lecture. Podcasts stay manual (he did not ask for them again).
