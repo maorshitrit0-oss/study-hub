@@ -1499,7 +1499,7 @@ def cmd_course_dump(match, out_dir):
     done) -> course.json."""
     sb = db()
     c = find_course(sb, match)
-    ls = sb.table("lessons").select("id, kind, number, title, status, chapter_md, read_at, created_at").eq("course_id", c["id"]).execute().data
+    ls = sb.table("lessons").select("id, kind, number, title, status, chapter_md, read_at, created_at, source_path, source_url").eq("course_id", c["id"]).execute().data
     qs = sb.table("questions").select("id, lesson_id, question, options, explanation, created_at, source").eq("course_id", c["id"]).execute().data
     ids = [q["id"] for q in qs]
     ans = set()
@@ -1509,8 +1509,12 @@ def cmd_course_dump(match, out_dir):
         q["answered"] = q["id"] in ans
     ex = sb.table("exercises").select("*").eq("course_id", c["id"]).execute().data
     mats = sb.table("materials").select("id, title, kind").eq("course_id", c["id"]).execute().data
+    try:
+        src = sb.storage.from_(BUCKET).list(f"{c['user_id']}/sources/{c['id']}", {"limit": 200})
+    except Exception:  # noqa: BLE001
+        src = []
     Path(out_dir).mkdir(parents=True, exist_ok=True)
-    (Path(out_dir) / "course.json").write_text(json.dumps({"course": c, "lessons": ls, "questions": qs, "exercises": ex, "materials": mats},
+    (Path(out_dir) / "course.json").write_text(json.dumps({"course": c, "lessons": ls, "questions": qs, "exercises": ex, "materials": mats, "sources": src},
                                                           ensure_ascii=False, default=str), encoding="utf-8")
 
 
