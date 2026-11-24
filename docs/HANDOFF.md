@@ -1125,6 +1125,10 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    24/11 BUG "lecture 7 he never uploaded": adopt_uploads turned a recording file whose lesson he had deleted (the TA
    video uploaded twice on 21/11) into a new lecture again. Now a file is adopted once ever (queue state "adopted")
    and never when a file of the same size is already a lesson.
+   24/11 GitHub Models is NOT reachable from the runners: models.github.ai answers a bare "HTTP/2 200 text/plain OK"
+   (worker/ghm_probe.py, inspect=ghm-probe) - something in between, not GitHub. The fallback stays in the code and
+   simply returns None. Pending jobs now also "place" (old 🧩 sections into their topics) and "verify" (multiple-choice
+   answers re-solved; a disagreement gets "⚠️ הפתרון לא אומת"). Zoom link first, uploaded file as fallback.
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.
