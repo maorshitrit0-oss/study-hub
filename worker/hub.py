@@ -527,6 +527,12 @@ def complete_chapter(job, chapter_md, short, by):
         st.setdefault("audited", {})[les["id"]] = len(new) - len(chapter_md)
         coverage.save(job.sb, st, keys=["audited"])
         print(f"::notice title=Audit::{les.get('title') or les['id'][:8]}: +{len(new) - len(chapter_md)} chars", flush=True)
+        # self-check (his rule 24/11/2026: "תבדוק את עצמך"): still under 30% of the recording after the audit ->
+        # written again in 20-minute parts and audited again (kept only if longer)
+        if coverage.thin(dict(les, chapter_md=new)):
+            job.sb.table("lessons").update({"chapter_md": new, "progress": "הפרק עדיין קצר - נכתב שוב בחלקים קטנים"}).eq("id", les["id"]).execute()
+            coverage.rewrite_lesson(job.sb, les["id"])
+            new = job.sb.table("lessons").select("chapter_md").eq("id", les["id"]).execute().data[0]["chapter_md"] or new
         try:  # every board block against its snapshot (his rule 24/11/2026)
             job.sb.table("lessons").update({"chapter_md": new}).eq("id", les["id"]).execute()
             coverage.board_check(job.sb, dict(les, chapter_md=new))
