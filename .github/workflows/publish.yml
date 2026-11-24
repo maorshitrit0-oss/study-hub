@@ -89,16 +89,6 @@ jobs:
           if [ "$INSPECT" = "latex-repair" ]; then python hub.py latex-repair; exit $?; fi
           if [ "$INSPECT" = "coverage-dedupe" ]; then python coverage.py --dedupe; exit $?; fi
           if [ "$INSPECT" = "drop-moodle" ]; then python hub.py drop-moodle; exit $?; fi
-          if [ "$INSPECT" = "ghm-probe" ]; then python -c "
-import os, requests
-h = {'Authorization': 'Bearer ' + os.environ['GITHUB_TOKEN'], 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'}
-b = {'model': 'openai/gpt-4.1-mini', 'messages': [{'role': 'user', 'content': 'say hi in Hebrew'}]}
-for u in ['https://models.github.ai/inference/chat/completions', 'https://models.github.ai/orgs/' + os.environ['GITHUB_REPOSITORY'].split('/')[0] + '/inference/chat/completions']:
-    r = requests.post(u, headers=h, json=b, timeout=120, allow_redirects=False)
-    print('PROBE', u, r.status_code, r.headers.get('location'), r.headers.get('content-type'), repr(r.text[:300]))
-r = requests.get('https://models.github.ai/catalog/models', headers=h, timeout=60, allow_redirects=False)
-print('PROBE catalog', r.status_code, r.headers.get('location'), repr(r.text[:200]))
-"; exit $?; fi
           if [ "$INSPECT" = "ghm-test" ]; then python -c "import author; from google.genai import types; print(author._github_models([types.Part.from_text(text='כתוב משפט אחד בעברית על מהפך CMOS, ונוסחה אחת ב-LaTeX')], 'ענה בעברית', {'type':'object','properties':{'md':{'type':'string'}}}))"; exit $?; fi
           if [ "$INSPECT" = "board-check" ]; then python -c "import coverage, hub; coverage.board_check_course(hub.db(), '$TITLE')"; exit $?; fi
           if [ "$INSPECT" = "trim-quiz" ]; then python coverage.py --trim-quiz "$TITLE"; exit $?; fi
