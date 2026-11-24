@@ -1,19 +1,18 @@
-"""Checks the free backup providers from the runner with a real Hebrew task (quiz with LaTeX, JSON)."""
-import json
+"""Which Gemini-API models still answer today on the free keys (each model has its own free quota)."""
+import os
 
-from google.genai import types
+from google import genai
 
-import author
-
-text = """מהפך CMOS: כאשר הכניסה נמוכה, טרנזיסטור ה-PMOS מוליך וה-NMOS בקיטעון, ולכן המוצא שווה ל-$V_{DD}$.
-מתח המעבר $V_M$ הוא הנקודה שבה $V_{in} = V_{out}$; במהפך סימטרי $V_M = V_{DD}/2$.
-שולי הרעש: $NM_L = V_{IL} - V_{OL}$ ו-$NM_H = V_{OH} - V_{IH}$."""
-schema = {"type": "object", "properties": {"questions": {"type": "array", "items": {"type": "object", "properties": {
-    "question": {"type": "string"}, "options": {"type": "array", "items": {"type": "string"}}, "correct": {"type": "integer"},
-    "explanation": {"type": "string"}}}}}}
-saved = list(author.BACKUPS)
-for one in saved:
-    author.BACKUPS = [one]
-    out = author._backup_json([types.Part.from_text(text=text)],
-                              "כתוב 2 שאלות אמריקאיות של הבנה על הפרק, 4 תשובות, correct = אינדקס, נוסחאות ב-$...$.", schema)
-    print("RESULT", one[2], json.dumps(out, ensure_ascii=False)[:1200] if out else None, flush=True)
+keys = [os.environ.get(k) for k in ("GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3", "GEMINI_API_KEY_4") if os.environ.get(k)]
+c = genai.Client(api_key=keys[0])
+names = [m.name.split("/")[-1] for m in c.models.list() if "generateContent" in (m.supported_actions or [])]
+print("MODELS", ", ".join(names)[:2500], flush=True)
+for m in [n for n in names if any(x in n for x in ("flash", "gemma", "pro"))][:30]:
+    ok = []
+    for i, k in enumerate(keys):
+        try:
+            r = genai.Client(api_key=k).models.generate_content(model=m, contents="כתוב מילה אחת בעברית: שלום")
+            ok.append(f"k{i + 1}:ok")
+        except Exception as e:  # noqa: BLE001
+            ok.append(f"k{i + 1}:" + ("quota" if "429" in str(e) else "busy" if "503" in str(e) else str(e)[:40]))
+    print("TRY", m, " ".join(ok), flush=True)
