@@ -459,7 +459,10 @@ def cmd_import(course_id, url, write=True):
                             [paths[key]], "זה מבחן קודם של המרצה (קובץ מצורף): פתור כל שאלה במלואה, שלב אחרי שלב, כדוגמה פתורה."))
 
     existing = {l["source_url"]: l for l in sb.table("lessons").select("id, source_url, number").eq("course_id", course_id).execute().data}
-    new = [p for p in planned if p[0] not in existing]
+    # 24/11/2026: the anchor "#w<line>" moves whenever the lecturer edits the page, and the same week came back as a new
+    # lesson again and again (micro had 5-6 copies of weeks 2-9): the same page + week number is the same lesson.
+    have = {((s or "").split("#")[0], l.get("number")) for s, l in existing.items() if l.get("number")}
+    new = [p for p in planned if p[0] not in existing and not (week_number(p[1]) and (p[0].split("#")[0], week_number(p[1])) in have)]
     for src, title, *_ in planned:  # week number on lessons imported before numbers were kept (the chapter renames them)
         week = week_number(title)
         if src in existing and week and not existing[src].get("number"):

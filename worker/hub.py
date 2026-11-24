@@ -1434,6 +1434,10 @@ def cmd_merge_repair():
 
 
 def cmd_drop_lesson(lesson_id):
+    if "," in lesson_id:  # several (24/11/2026: duplicates he approved removing in all courses)
+        for one in lesson_id.split(","):
+            cmd_drop_lesson(one.strip())
+        return
     """Removes one duplicate lesson (his approval, e.g. Java "lecture 6" = practice 6 again, 22/11/2026): its questions,
     exercises and the lesson row. Only a lesson whose title / transcript duplicate another lesson of the course."""
     sb = db()
