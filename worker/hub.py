@@ -156,7 +156,19 @@ def cmd_process(lesson_id, do_author=True):
             # YouTube refuses GitHub's servers, but Gemini reads YouTube videos itself (official video input).
             transcript = media.transcribe_youtube(url, log=job.log)
         else:
-            if source is not None:
+            video = None
+            # His order (24/11/2026): he gives both the Zoom link and the file - the link first; only if it cannot be
+            # downloaded, the uploaded file.
+            if source is not None and url and media.is_video(source) and not media.is_drive(url):
+                try:
+                    video, audio, title = media.download(url, work, log=job.log)
+                    job.log("ההקלטה נלקחה מהקישור")
+                except Exception as e:  # noqa: BLE001
+                    job.log(f"הקישור לא עבד ({str(e)[:80]}) - משתמש בקובץ שהועלה")
+                    video = None
+            if video is not None:
+                pass
+            elif source is not None:
                 video = audio = source
                 title = source.stem
                 # a screen recording he played faster (16/11/2026: Zoom blocks downloads, he records at x2): the file
