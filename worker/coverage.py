@@ -383,7 +383,7 @@ def step(sb):
     if jobs:
         j = jobs[0]
         finished, _ = run_job(sb, st, j)
-        if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify", "mathfix")):
+        if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify", "mathfix", "convert")):
             st["pending"].remove(j)
         save(sb, st)
         return True
@@ -594,7 +594,7 @@ $$...$$ בשורה נפרדת):
   4 תשובות, correct = אינדקס הנכונה, explanation קצר שמסביר למה. בלי שאלות חישוב; אם בכל זאת צריך מספר - הנוסחה
   כתובה בשאלה עצמה.
 - exercises: 2-3 תרגילים לתרגול בסגנון המבחן של הקורס ({exam}), שונים מהדוגמאות הפתורות בפרק (מספרים אחרים), עם
-  פתרון מלא צעד אחרי צעד. מבחן אמריקאי - התרגיל הוא שאלה אמריקאית ברמת מבחן שנפתרת בלחיצה: בסוף question_md
+  פתרון מלא צעד אחרי צעד, שמתחיל בשורה "**הנוסחה:**" עם הנוסחה (בלוק $$, בלי הצבה). מבחן אמריקאי - התרגיל הוא שאלה אמריקאית ברמת מבחן שנפתרת בלחיצה: בסוף question_md
   4 אפשרויות, כל אחת בפסקה משלה בדיוק כך: **א.** ... / **ב.** ... / **ג.** ... / **ד.** ...; ה-solution_md מתחיל בשורה
   "התשובה: **X**" (X = האות הנכונה) ואחריה הפתרון המלא צעד אחרי צעד ולמה כל אחת מהאחרות שגויה; מבחן פתוח - שאלה פתוחה
   עם סעיפים.
@@ -1139,7 +1139,7 @@ def pending_for_next_day(sb):
         return False
     j = mine[0]
     finished, what = run_job(sb, st, j)
-    if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify", "mathfix")):
+    if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify", "mathfix", "convert")):
         st["pending"].remove(j)
     save(sb, st)
     progress_push(sb, what)
@@ -1256,6 +1256,10 @@ def run_job(sb, st, j):
         refresh_weeks(sb, j["course"], j["weeks"])
         j.pop("weeks")
         return False, "שאלונים ותרגילים של השבועות סודרו"
+    if j.get("convert"):
+        convert_exercises(sb, j["course"])
+        j.pop("convert")
+        return False, "התרגילים בפורמט המבחן (לחיצים אם המבחן אמריקאי), עם הנוסחה"
     if j.get("mathfix"):
         math_fix(sb, j["course"])
         j.pop("mathfix")
@@ -1398,6 +1402,57 @@ def math_fix(sb, name):
             sb.table("questions").update({"options": new}).eq("id", i).execute()
             fixed += 1
     print(f"::notice title=Math fix::{c['name']}: {sum(1 for e in errs if e)} broken texts, {fixed} fields fixed", flush=True)
+
+
+CONVERT = """לפניך תרגילים מהשיעורים בקורס שהמבחן בו {exam}. כתוב כל תרגיל מחדש בפורמט של המבחן, עם אותם נתונים ואותו נושא:
+- אמריקאי: question_md = השאלה ואחריה 4 אפשרויות, כל אחת בפסקה משלה בדיוק כך: **א.** ... / **ב.** ... / **ג.** ... / **ד.** ...
+  (מסיחים סבירים: טעויות נפוצות). תרגיל עם כמה סעיפים - הסעיף העיקרי כשאלה אחת (או פצל ל-questions נוספות).
+- פתוח: question_md = השאלה עם סעיפים, כמו במבחן.
+solution_md מתחיל (באמריקאי) בשורה "התשובה: **X**", ואחריה תמיד שורה "**הנוסחה:**" ובשורות הבאות הנוסחה/הנוסחאות
+שצריך לשאלה (בלוק $$ ... $$, בלי הצבה ובלי התוצאה), ואחר כך הפתרון המלא צעד אחרי צעד (ובאמריקאי: למה כל אחת מהאחרות שגויה).
+החזר לכל id את question_md ו-solution_md. נוסחאות ב-LaTeX: $...$ בשורה, בלוק $$ בשורה לבד לפני ואחרי. עברית."""
+CONVERT_SCHEMA = {"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object", "properties": {
+    "id": {"type": "string"}, "question_md": {"type": "string"}, "solution_md": {"type": "string"}},
+    "required": ["id", "question_md", "solution_md"]}}}, "required": ["items"]}
+MCQ_SHAPE = re.compile(r"(?m)^\s*(\*\*)?\(?[א][.)]|אפשרויות\s*:?\s*\(?א[.)]")
+
+
+def convert_exercises(sb, name):
+    """His rule 24/11/2026, every course: the exercises after a lecture / practice / completion are in the course's exam
+    format - multiple choice (clickable) when the exam is, open otherwise - and each solution carries its formula
+    ("📐 הנוסחה לשאלה"). Exercises he marked done stay as they are; the original text is kept in a backup field."""
+    from google.genai import types
+    c = [x for x in sb.table("courses").select("id, name, exam_type").execute().data if name in (x["name"] or "")][0]
+    exam = c.get("exam_type") or "open"
+    rows = [x for x in sb.table("exercises").select("id, question_md, solution_md, done_at, source").eq("course_id", c["id"])
+            .eq("source", "lesson").is_("done_at", "null").execute().data]
+    want_mcq = exam == "mcq"
+    todo = [x for x in rows if (want_mcq and not MCQ_SHAPE.search(x["question_md"] or ""))
+            or "הנוסחה" not in (x.get("solution_md") or "")]
+    label = {"mcq": "אמריקאי", "mixed": "משולב (חצי אמריקאי, חצי פתוח)"}.get(exam, "שאלות פתוחות")
+    done = 0
+    for i in range(0, len(todo), 5):
+        chunk = todo[i:i + 5]
+        try:
+            out = author._generate_json([types.Part.from_text(text="\n\n".join(
+                f"=== id: {x['id']} ===\n{x['question_md']}\n--- פתרון ---\n{x.get('solution_md') or ''}" for x in chunk))],
+                CONVERT.replace("{exam}", label), CONVERT_SCHEMA, "MEDIUM")
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Convert::{str(e)[:150]}", flush=True)
+            if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota"):
+                raise
+            continue
+        got = {it["id"]: it for it in out.get("items") or []}
+        for x in chunk:
+            it = got.get(x["id"])
+            if not it or len(it.get("solution_md") or "") < 0.5 * len(x.get("solution_md") or ""):
+                continue
+            if want_mcq and not MCQ_SHAPE.search(it["question_md"]):
+                continue
+            sb.table("exercises").update({"question_md": wrap_math(it["question_md"]), "solution_md": wrap_math(it["solution_md"])}) \
+                .eq("id", x["id"]).execute()
+            done += 1
+    print(f"::notice title=Convert::{c['name']} ({label}): {done} of {len(todo)} exercises in the exam's format, with their formula", flush=True)
 
 
 def thursday_alert(sb):

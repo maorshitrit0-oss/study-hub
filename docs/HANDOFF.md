@@ -1137,6 +1137,10 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    24/11 15:30 his call: the rest of digital waits until Sunday night (ready Mon 30/11 morning); today Java + micro.
    His final week order (24/11): Tue Java+micro, Wed linear+random, Thu VLSI self-study, Fri-Sat waves, Sun comm,
    Mon digital (coverage.SCHEDULE, deadline 23:59 of each day).
+   24/11 exercises in every course follow the exam (pending "convert": lesson exercises not done yet are rewritten
+   as clickable multiple choice when exam_type=mcq, open otherwise, each solution with a "**הנוסחה:**" block for the
+   📐 hint). Duplicates removed with his approval: Java fake lecture 6 + 35 copies of micro site weeks (import-site
+   made a new lesson whenever the lecturer's page anchor moved - fixed: same page + week = same lesson).
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.
