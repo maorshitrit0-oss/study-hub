@@ -382,18 +382,8 @@ def step(sb):
     jobs = [j for j in st.get("pending") or [] if _mine(st, j)]
     if jobs:
         j = jobs[0]
-        if j.get("boards"):  # every board block against its snapshot
-            board_check_course(sb, j["course"])
-            j.pop("boards")
-        elif j.get("fix"):  # completions: one per week, trimmed, quiz/exercises redone
-            fix_course(sb, j["course"])
-            j.pop("fix")
-        elif j.get("rewrite"):
-            rewrite_lesson(sb, j["rewrite"])
-            j.pop("rewrite")
-        else:
-            if j.get("weeks"):
-                refresh_weeks(sb, j["course"], j["weeks"])
+        finished, _ = run_job(sb, st, j)
+        if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify")):
             st["pending"].remove(j)
         save(sb, st)
         return True
@@ -1088,8 +1078,8 @@ PLAN_START = "2026-11-23T20:00:00+02:00"
 # His week (24/11/2026): every completion closed this week; waves ready to study on Sunday, comm on Monday, and from
 # Tuesday 01/12 only new lectures. Each course is worked on until its deadline (or until nothing is left in it);
 # new uploads are processed whenever they come. After the last deadline: no focus (everything by the timetable).
-SCHEDULE = [("מעגלים ספרתיים", "2026-11-24T20:00:00+02:00"), ("Java", "2026-11-25T14:00:00+02:00"),
-            ("מיקרו", "2026-11-25T23:00:00+02:00"), ("מעגלים לינאריים", "2026-11-26T14:00:00+02:00"),
+SCHEDULE = [("מעגלים ספרתיים", "2026-11-24T18:00:00+02:00"), ("Java", "2026-11-24T21:00:00+02:00"),
+            ("מיקרו", "2026-11-24T23:59:00+02:00"), ("מעגלים לינאריים", "2026-11-25T23:00:00+02:00"),
             ("אותות אקראיים", "2026-11-26T23:00:00+02:00"), ("גלים", "2026-11-28T20:00:00+02:00"),
             ("מבוא למערכות תקשורת", "2026-11-29T20:00:00+02:00")]
 
@@ -1145,23 +1135,9 @@ def pending_for_next_day(sb):
     if not mine:
         return False
     j = mine[0]
-    if j.get("boards"):
-        board_check_course(sb, j["course"])
-        j.pop("boards")
-        what = "כל בלוקי 'מה כתוב בלוח' נבדקו מול הצילומים"
-    elif j.get("fix"):
-        fix_course(sb, j["course"])
-        j.pop("fix")
-        what = "ההשלמות קוצרו וקיבלו שאלון ותרגילים חדשים"
-    elif j.get("rewrite"):
-        rewrite_lesson(sb, j["rewrite"])
-        j.pop("rewrite")
-        what = "פרק קצר נכתב מחדש"
-    else:
-        if j.get("weeks"):
-            refresh_weeks(sb, j["course"], j["weeks"])
+    finished, what = run_job(sb, st, j)
+    if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify")):
         st["pending"].remove(j)
-        what = f"שאלונים ותרגילים של שבועות {', '.join(map(str, j['weeks']))} סודרו"
     save(sb, st)
     progress_push(sb, what)
     return True
@@ -1253,6 +1229,70 @@ def board_check_course(sb, name):
         board_check(sb, l)
         done[l["id"]] = 1
         save(sb, st)
+
+
+def run_job(sb, st, j):
+    """One step of a pending repair job; returns (finished, what was done)."""
+    if j.get("boards"):
+        board_check_course(sb, j["course"])
+        j.pop("boards")
+        return False, "כל בלוקי 'מה כתוב בלוח' נבדקו מול הצילומים"
+    if j.get("fix"):
+        fix_course(sb, j["course"])
+        j.pop("fix")
+        return False, "ההשלמות קוצרו וקיבלו שאלון ותרגילים חדשים"
+    if j.get("place"):
+        place_old_audits(sb, j["course"])
+        j.pop("place")
+        return False, "פרטים מההשוואה מול ההקלטה שולבו בתוך הפרקים"
+    if j.get("rewrite"):
+        rewrite_lesson(sb, j["rewrite"])
+        j.pop("rewrite")
+        return False, "פרק קצר נכתב מחדש"
+    if j.get("weeks"):
+        refresh_weeks(sb, j["course"], j["weeks"])
+        j.pop("weeks")
+        return False, "שאלונים ותרגילים של השבועות סודרו"
+    if j.get("verify"):
+        verify_exercises(sb, j["course"])
+        j.pop("verify")
+        return False, "הפתרונות של התרגילים נבדקו בפתרון מחדש"
+    return True, ""
+
+
+VERIFY_EX = """לפניך שאלות אמריקאיות מתרגילים בהנדסת חשמל. פתור כל אחת בעצמך מההתחלה, צעד אחרי צעד, בלי להסתמך על שום
+פתרון, והחזר לכל id את האות של התשובה הנכונה (א/ב/ג/ד). אם אף אפשרות לא נכונה או שהשאלה לא חד-משמעית - letter ריק."""
+VERIFY_SCHEMA = {"type": "object", "properties": {"answers": {"type": "array", "items": {"type": "object", "properties": {
+    "id": {"type": "string"}, "letter": {"type": "string"}}, "required": ["id", "letter"]}}}, "required": ["answers"]}
+ANS = re.compile(r"התשובה(?:\s+הנכונה)?(?:\s+היא)?\s*:?\s*\*\*\s*\(?([אבגד])|התשובה\s+הנכונה(?:\s+היא)?\s*:?\s*\(?([אבגד])['׳]?(?![\u0590-\u05FF])")
+
+
+def verify_exercises(sb, name):
+    """His rule 24/11/2026: an exercise Gemini wrote is checked by solving it again independently. A multiple-choice
+    exercise whose stated answer differs from the second solution is marked uncertain and gets a visible warning."""
+    from google.genai import types
+    c = [x for x in sb.table("courses").select("id, name").execute().data if name in (x["name"] or "")][0]
+    rows = [x for x in sb.table("exercises").select("id, question_md, solution_md, uncertain, done_at").eq("course_id", c["id"])
+            .eq("source", "lesson").execute().data if re.search(r"(?m)^\s*(\*\*)?[א][.)]", x["question_md"] or "")]
+    stated = {}
+    for x in rows:
+        m = ANS.search(author.fix_arabic(x.get("solution_md") or ""))
+        if m:
+            stated[x["id"]] = m.group(1) or m.group(2)
+    rows = [x for x in rows if x["id"] in stated and "⚠️ הפתרון לא אומת" not in (x.get("solution_md") or "")]
+    bad = 0
+    for i in range(0, len(rows), 8):
+        chunk = rows[i:i + 8]
+        out = author._generate_json([types.Part.from_text(text="\n\n".join(f"=== id: {x['id']} ===\n{x['question_md']}" for x in chunk))],
+                                    VERIFY_EX, VERIFY_SCHEMA, "HIGH")
+        got = {a["id"]: (a.get("letter") or "").strip().strip("'׳") for a in out.get("answers") or []}
+        for x in chunk:
+            g = got.get(x["id"])
+            if g and g != stated[x["id"]]:
+                bad += 1
+                note = f"> ⚠️ הפתרון לא אומת: בפתרון מחדש יצאה תשובה {g} ולא {stated[x['id']]}. לבדוק לפני שסומכים עליו.\n\n"
+                sb.table("exercises").update({"uncertain": True, "solution_md": note + (x.get("solution_md") or "")}).eq("id", x["id"]).execute()
+    print(f"::notice title=Verify::{c['name']}: {len(rows)} multiple-choice solutions re-solved, {bad} disagree (marked ⚠️)", flush=True)
 
 
 def thursday_alert(sb):
