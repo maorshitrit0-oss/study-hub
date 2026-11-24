@@ -1134,6 +1134,7 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    better; node + npm ci in queue/publish) is queued for the course after each new chapter; exercises with options
    but no stated answer get "התשובה: **X**" from a re-solve (verify) so they are clickable; inline "אפשרויות: א. ..."
    and up to six options (א-ו) are clickable. Focus = every SCHEDULE course due the same day (digital+Java+micro today).
+   24/11 15:30 his call: the rest of digital waits until Sunday night (ready Mon 30/11 morning); today Java + micro.
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.

@@ -1076,10 +1076,12 @@ PLAN_START = "2026-11-23T20:00:00+02:00"
 # His week (24/11/2026): every completion closed this week; waves ready to study on Sunday, comm on Monday, and from
 # Tuesday 01/12 only new lectures. Each course is worked on until its deadline (or until nothing is left in it);
 # new uploads are processed whenever they come. After the last deadline: no focus (everything by the timetable).
-SCHEDULE = [("מעגלים ספרתיים", "2026-11-24T18:00:00+02:00"), ("Java", "2026-11-24T21:00:00+02:00"),
+SCHEDULE = [("Java", "2026-11-24T23:59:00+02:00"),
             ("מיקרו", "2026-11-24T23:59:00+02:00"), ("מעגלים לינאריים", "2026-11-25T23:00:00+02:00"),
             ("אותות אקראיים", "2026-11-26T23:00:00+02:00"), ("גלים", "2026-11-28T20:00:00+02:00"),
-            ("מבוא למערכות תקשורת", "2026-11-29T20:00:00+02:00")]
+            ("מבוא למערכות תקשורת", "2026-11-29T20:00:00+02:00"),
+            # his call 24/11: the rest of digital (lecture 5 rewrite, weeks 4-6, math fix, checks) once, ready Monday morning
+            ("מעגלים ספרתיים", "2026-11-30T09:00:00+02:00")]
 
 
 def plan_focus(sb):
