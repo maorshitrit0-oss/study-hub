@@ -19,3 +19,13 @@ try:
     print("PROBE catalog", r.status_code, r.headers.get("location"), repr(r.text[:200]), flush=True)
 except Exception as e:  # noqa: BLE001
     print("PROBE catalog ERR", str(e)[:200], flush=True)
+
+import subprocess
+
+for extra in ([], ["-H", "Accept: application/json"]):
+    out = subprocess.run(["curl", "-sS", "-i", "-m", "60", "-X", "POST", "https://models.github.ai/inference/chat/completions",
+                          "-H", "Authorization: Bearer " + os.environ.get("GITHUB_TOKEN", ""), "-H", "Content-Type: application/json",
+                          *extra, "-d", '{"model":"openai/gpt-4.1-mini","messages":[{"role":"user","content":"say hi"}]}'],
+                         capture_output=True, text=True)
+    print("CURL", repr((out.stdout or out.stderr)[:700]), flush=True)
+print("TOKEN kind", os.environ.get("GITHUB_TOKEN", "")[:4], len(os.environ.get("GITHUB_TOKEN", "")), flush=True)
