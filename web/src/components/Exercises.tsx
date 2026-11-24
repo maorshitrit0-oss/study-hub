@@ -18,20 +18,29 @@ export type Exercise = {
  */
 // An option line: "**א.** ...", "**א.**...", "א. ...", "(א) ...", "- **א)** ..." - Gemini writes all of these (his screenshot
 // 24/11/2026: an exam-style exercise showed its options as text instead of buttons).
-const OPT = /(?:^|\n)[ \t]*(?:[-*][ \t]+)?(?:\*\*)?\(?([אבגד])[.)](?:\*\*)?[ \t]+/g;
+const OPT = /(?:^|\n)[ \t]*(?:[-*][ \t]+)?(?:\*\*)?\(?([אבגדהו])[.)](?:\*\*)?[ \t]+/g;
 
 function mcqOf(q: string, sol: string | null) {
   // "התשובה: **ב**" at the start, or "לכן התשובה הנכונה היא **א**." at the end (Gemini's drills, 24/11/2026); the
   // options block in the question is what makes it a multiple-choice exercise, so a phrase anywhere is safe.
   sol = sol ? fixArabic(sol) : sol;  // "התשובה הנכונה هي ב'" - Gemini slipped into Arabic (24/11/2026)
-  const answer = sol?.match(/התשובה(?:\s+הנכונה)?(?:\s+היא)?\s*:?\s*\*\*\s*\(?([אבגד])/)?.[1]
-    ?? sol?.match(/התשובה\s+הנכונה(?:\s+היא)?\s*:?\s*\(?([אבגד])['׳]?(?![\u0590-\u05FF])/)?.[1];
+  const answer = sol?.match(/התשובה(?:\s+הנכונה)?(?:\s+היא)?\s*:?\s*\*\*\s*\(?([אבגדהו])/)?.[1]
+    ?? sol?.match(/התשובה\s+הנכונה(?:\s+היא)?\s*:?\s*\(?([אבגדהו])['׳]?(?![\u0590-\u05FF])/)?.[1];
+  if (!answer) return null;
+  // one line "אפשרויות: א. 3.999, ב. 9.333, ג. 40/9 ..." (exam exercises, 24/11/2026)
+  const inline = q.match(/(?:^|\n)[^\n]*?(?:אפשרויות|תשובות)\s*:?\s*(\(?א[.)][^\n]*)$/);
+  if (inline && !/\n\s*(\*\*)?\(?ב[.)]/.test(q)) {
+    const parts = [...inline[1].matchAll(/\(?([אבגדהו])[.)]\s*([\s\S]*?)(?=[,;]\s*\(?[אבגדהו][.)]\s|\.?\s*$)/g)]
+      .map((m) => ({ letter: m[1], md: m[2].trim() }));
+    if (parts.length >= 2 && parts.every((m, i) => m.letter === "אבגדהו"[i]))
+      return { stem: q.slice(0, q.lastIndexOf(inline[0].trim())), options: parts, answer };
+  }
   const marks = [...q.matchAll(OPT)];
   const start = marks.findIndex((m) => m[1] === "א");
-  if (!answer || start < 0) return null;
+  if (start < 0) return null;
   const opts = marks.slice(start);
   // the options must be א, ב, ג... in order
-  if (opts.some((m, i) => m[1] !== "אבגד"[i])) return null;
+  if (opts.some((m, i) => m[1] !== "אבגדהו"[i])) return null;
   const options = opts.map((m, i) => ({
     letter: m[1],
     md: q.slice(m.index! + m[0].length, i + 1 < opts.length ? opts[i + 1].index : q.length).replace(/\n\n✍️[\s\S]*$/, "").trim(),

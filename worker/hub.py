@@ -517,7 +517,6 @@ def full_from_start(job, chapter_md, short, by):
         return chapter_md
     if len(md) < 0.6 * coverage.THIN * len(les["transcript"]):
         return chapter_md
-    coverage.add_questions(job.sb, les, job.course, qs)
     print(f"::notice title=Full chapter::{les.get('title') or les['id'][:8]}: thin ({len(chapter_md)}) -> full ({len(md)})", flush=True)
     return md
 
@@ -534,7 +533,6 @@ def complete_chapter(job, chapter_md, short, by):
     try:
         job.sb.table("lessons").update({"progress": "בודק את הפרק מול ההקלטה - שלא יחסר אף פרט"}).eq("id", les["id"]).execute()
         new, qs = coverage.audit(job.sb, les, job.course, chapter_md)
-        coverage.add_questions(job.sb, les, job.course, qs)
         st = coverage.load(job.sb)
         st.setdefault("audited", {})[les["id"]] = len(new) - len(chapter_md)
         coverage.save(job.sb, st, keys=["audited"])
@@ -545,6 +543,13 @@ def complete_chapter(job, chapter_md, short, by):
             job.sb.table("lessons").update({"chapter_md": new, "progress": "הפרק עדיין קצר - נכתב שוב בחלקים קטנים"}).eq("id", les["id"]).execute()
             coverage.rewrite_lesson(job.sb, les["id"])
             new = job.sb.table("lessons").select("chapter_md").eq("id", les["id"]).execute().data[0]["chapter_md"] or new
+        try:  # broken formulas: the queue repairs the course's texts with the site's own renderer (24/11/2026)
+            stq = coverage.load(job.sb)
+            if not any(j.get("mathfix") and j.get("course") in (job.course.get("name") or "") for j in stq.get("pending") or []):
+                stq.setdefault("pending", []).append({"course": job.course.get("name"), "mathfix": True})
+                coverage.save(job.sb, stq, keys=["pending"])
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Math fix queue::{str(e)[:150]}", flush=True)
         try:  # every board block against its snapshot (his rule 24/11/2026)
             job.sb.table("lessons").update({"chapter_md": new}).eq("id", les["id"]).execute()
             coverage.board_check(job.sb, dict(les, chapter_md=new))

@@ -339,7 +339,7 @@ def focused(st, courses):
     that course is worked on - text, quizzes and videos - until he approves the next."""
     courses = {k: c for k, c in courses.items() if not SKIP_COURSES.search(c["name"] or "")}
     f = st.get("focus")
-    return {k: c for k, c in courses.items() if f in (c["name"] or "")} if f else courses
+    return {k: c for k, c in courses.items() if any(x in (c["name"] or "") for x in f.split("|"))} if f else courses
 
 
 def todo(sb, st):
@@ -402,7 +402,6 @@ def step(sb):
             store.upload(f"{l['user_id']}/lessons/{l['id']}/chapter_before_audit.md", (l.get("chapter_md") or "").encode(),
                          {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
             sb.table("lessons").update({"chapter_md": new}).eq("id", l["id"]).execute()
-            add_questions(sb, l, course, qs)
             video_now(sb, l)
         st.setdefault("audited", {})[l["id"]] = len(new) - len(l.get("chapter_md") or "")
         print(f"::notice title=Audit::{course['name'][:20]} {l['kind']} {l.get('number')} {(l.get('title') or '')[:20]}: "
@@ -428,7 +427,6 @@ def step(sb):
             except Exception:  # noqa: BLE001 - the summary is a nice-to-have
                 pass
             sb.table("lessons").update(upd).eq("id", l["id"]).execute()
-            add_questions(sb, l, course, qs)
             video_now(sb, l)
             st["done"][l["id"]] = "rewrite"
             print(f"::notice title=Coverage::{course['name']} {l['kind']} {l['number']}: rewritten in full ({len(md)} chars)", flush=True)
@@ -1091,14 +1089,15 @@ def plan_focus(sb):
     now = datetime.now(ZoneInfo("Asia/Jerusalem"))
     courses = sb.table("courses").select("id, name, user_id").execute().data
     prev = st.get("focus")
-    focus = None
+    live = []
     for name, until in SCHEDULE:
         if now >= datetime.fromisoformat(until):
             continue
         c = [x for x in courses if name in (x["name"] or "")]
         if c and missing_for(sb, c[0], st):
-            focus = name
-            break
+            live.append((name, datetime.fromisoformat(until).date()))
+    # every course due the same day as the first one is worked on together (24/11/2026: digital, Java, micro today)
+    focus = "|".join(n for n, d in live if d == live[0][1]) if live else None
     st["focus"] = focus
     save(sb, st)
     if prev and prev != focus:
@@ -1120,6 +1119,8 @@ def _mine(st, j):
     f = st.get("focus") or ""
     if not f:  # no focus (after the week's schedule): every pending repair may run
         return True
+    if "|" in f:
+        return any(x in j["course"] or j["course"] in x for x in f.split("|"))
     return bool(f) and (f in j["course"] or j["course"] in f)
 
 
@@ -1265,10 +1266,10 @@ def run_job(sb, st, j):
 
 
 VERIFY_EX = """לפניך שאלות אמריקאיות מתרגילים בהנדסת חשמל. פתור כל אחת בעצמך מההתחלה, צעד אחרי צעד, בלי להסתמך על שום
-פתרון, והחזר לכל id את האות של התשובה הנכונה (א/ב/ג/ד). אם אף אפשרות לא נכונה או שהשאלה לא חד-משמעית - letter ריק."""
+פתרון, והחזר לכל id את האות של התשובה הנכונה (א/ב/ג/ד/ה/ו). אם אף אפשרות לא נכונה או שהשאלה לא חד-משמעית - letter ריק."""
 VERIFY_SCHEMA = {"type": "object", "properties": {"answers": {"type": "array", "items": {"type": "object", "properties": {
     "id": {"type": "string"}, "letter": {"type": "string"}}, "required": ["id", "letter"]}}}, "required": ["answers"]}
-ANS = re.compile(r"התשובה(?:\s+הנכונה)?(?:\s+היא)?\s*:?\s*\*\*\s*\(?([אבגד])|התשובה\s+הנכונה(?:\s+היא)?\s*:?\s*\(?([אבגד])['׳]?(?![\u0590-\u05FF])")
+ANS = re.compile(r"התשובה(?:\s+הנכונה)?(?:\s+היא)?\s*:?\s*\*\*\s*\(?([אבגדהו])|התשובה\s+הנכונה(?:\s+היא)?\s*:?\s*\(?([אבגדהו])['׳]?(?![\u0590-\u05FF])")
 
 
 def verify_exercises(sb, name):
@@ -1277,13 +1278,26 @@ def verify_exercises(sb, name):
     from google.genai import types
     c = [x for x in sb.table("courses").select("id, name").execute().data if name in (x["name"] or "")][0]
     rows = [x for x in sb.table("exercises").select("id, question_md, solution_md, uncertain, done_at").eq("course_id", c["id"])
-            .eq("source", "lesson").execute().data if re.search(r"(?m)^\s*(\*\*)?[א][.)]", x["question_md"] or "")]
-    stated = {}
+            .execute().data if re.search(r"(?m)^\s*(\*\*)?\(?[א][.)]|אפשרויות\s*:?\s*\(?א[.)]", x["question_md"] or "")]
+    stated, unstated = {}, []
     for x in rows:
         m = ANS.search(author.fix_arabic(x.get("solution_md") or ""))
         if m:
             stated[x["id"]] = m.group(1) or m.group(2)
+        elif (x.get("solution_md") or "").strip():
+            unstated.append(x)  # options but no stated letter (exam files): it cannot be clicked
     rows = [x for x in rows if x["id"] in stated and "⚠️ הפתרון לא אומת" not in (x.get("solution_md") or "")]
+    for i in range(0, len(unstated), 8):  # the letter the solution leads to, so the question becomes clickable
+        chunk = unstated[i:i + 8]
+        out = author._generate_json([types.Part.from_text(text="\n\n".join(
+            f"=== id: {x['id']} ===\n{x['question_md']}\n--- הפתרון ---\n{x['solution_md']}" for x in chunk))],
+            VERIFY_EX + " לכל שאלה מצורף פתרון: החזר את האות שהפתרון מגיע אליה; אם הפתרון שגוי - את האות הנכונה.", VERIFY_SCHEMA, "HIGH")
+        got = {a["id"]: (a.get("letter") or "").strip().strip("'׳") for a in out.get("answers") or []}
+        for x in chunk:
+            g = got.get(x["id"])
+            if g and g in "אבגדהו":
+                sb.table("exercises").update({"solution_md": f"התשובה: **{g}**\n\n" + x["solution_md"]}).eq("id", x["id"]).execute()
+    print(f"::notice title=Verify::{c['name']}: {len(unstated)} exercises got their answer letter (clickable now)", flush=True)
     bad = 0
     for i in range(0, len(rows), 8):
         chunk = rows[i:i + 8]

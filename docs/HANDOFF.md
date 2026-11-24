@@ -1129,6 +1129,11 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    (worker/ghm_probe.py, inspect=ghm-probe) - something in between, not GitHub. The fallback stays in the code and
    simply returns None. Pending jobs now also "place" (old 🧩 sections into their topics) and "verify" (multiple-choice
    answers re-solved; a disagreement gets "⚠️ הפתרון לא אומת"). Zoom link first, uploaded file as fallback.
+   24/11 DEFAULTS for every lesson (his rule: every fix he asked for is the default): one quiz per lecture (rewrite /
+   audit steps add no questions); a math-fix job (site renderer web/site-check.mjs + Gemini, kept only if it renders
+   better; node + npm ci in queue/publish) is queued for the course after each new chapter; exercises with options
+   but no stated answer get "התשובה: **X**" from a re-solve (verify) so they are clickable; inline "אפשרויות: א. ..."
+   and up to six options (א-ו) are clickable. Focus = every SCHEDULE course due the same day (digital+Java+micro today).
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.
