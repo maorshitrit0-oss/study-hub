@@ -460,7 +460,11 @@ def _generate_json(parts, system, schema, thinking="MEDIUM"):
         i, j = text.find("{"), text.rfind("}")
         if i < 0 or j <= i:
             raise
-        return clean_tree(json.loads(fix_latex_escapes(text[i:j + 1])))
+        body = fix_latex_escapes(text[i:j + 1])
+        try:
+            return clean_tree(json.loads(body, strict=False))
+        except json.JSONDecodeError:  # LaTeX backslashes left raw ("\frac", "\alpha"): every lone backslash doubled
+            return clean_tree(json.loads(re.sub(r'\\(?![\\"/nu])', r"\\\\", body), strict=False))
 
 
 
