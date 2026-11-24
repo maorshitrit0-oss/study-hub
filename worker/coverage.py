@@ -198,6 +198,8 @@ def write(sb, lesson, course, chapter=None):
 
 
 def add_questions(sb, lesson, course, qs):
+    qs = [q for q in qs or [] if (q.get("question") or "").strip() and len(q.get("options") or []) >= 2
+          and isinstance(q.get("correct"), int) and 0 <= q["correct"] < len(q["options"])]
     if qs:
         sb.table("questions").insert([{
             "user_id": lesson["user_id"], "course_id": course["id"], "lesson_id": lesson["id"], "topic": q.get("topic"),
@@ -1064,8 +1066,11 @@ def refresh_weeks(sb, name, weeks):
               .eq("course_id", c["id"]).in_("number", weeks).in_("kind", ["lecture", "practice"]).execute().data):
         if (l.get("title") or "").startswith("📦"):
             continue
-        requiz(sb, l)
-        reextract(sb, c, l)
+        for step, fn in (("quiz", lambda: requiz(sb, l)), ("exercises", lambda: reextract(sb, c, l))):
+            try:  # one lesson's failure must not stop the week (24/11/2026)
+                fn()
+            except Exception as e:  # noqa: BLE001
+                print(f"::warning title=Week refresh::{l['kind']} {l.get('number')} {step}: {str(e)[:200]}", flush=True)
     for w in weeks:
         try:
             weekset.drop("^" + re.escape(c["name"]) + "$", str(w), ["all"])
