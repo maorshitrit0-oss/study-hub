@@ -1,5 +1,6 @@
 """Turn a transcript + board snapshots into a summary + exercises with solutions (or a full chapter + quiz)."""
 import json
+import time
 import os
 import re
 from pathlib import Path
@@ -355,8 +356,9 @@ def _with_gemini(call):
 
 # Free backups for TEXT tasks when Gemini is busy / out of quota (his request 24/11/2026: not depend on Gemini alone).
 # OpenAI-compatible chat APIs; each needs its key as a GitHub secret. GitHub Models was unreachable from the runners.
-BACKUPS = [("GROQ_API_KEY", "https://api.groq.com/openai/v1/chat/completions", "llama-3.3-70b-versatile"),
-           ("MISTRAL_API_KEY", "https://api.mistral.ai/v1/chat/completions", "mistral-large-latest"),
+BACKUPS = [("GROQ_API_KEY", "https://api.groq.com/openai/v1/chat/completions", "openai/gpt-oss-120b"),
+           ("MISTRAL_API_KEY", "https://api.mistral.ai/v1/chat/completions", "mistral-medium-latest"),
+           ("GROQ_API_KEY", "https://api.groq.com/openai/v1/chat/completions", "qwen/qwen3.8-27b"),
            ("MISTRAL_API_KEY", "https://api.mistral.ai/v1/chat/completions", "mistral-small-latest")]
 
 
@@ -377,8 +379,12 @@ def _backup_json(parts, system, schema):
         if not key:
             continue
         try:
-            r = requests.post(url, timeout=600, headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                              json={"model": model, "messages": msgs, "temperature": 0.3, "response_format": {"type": "json_object"}})
+            for attempt in range(3):  # free tiers allow ~1 request a second: wait and try again on 429
+                r = requests.post(url, timeout=600, headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                                  json={"model": model, "messages": msgs, "temperature": 0.3, "response_format": {"type": "json_object"}})
+                if r.status_code != 429:
+                    break
+                time.sleep(5 * (attempt + 1))
             if r.status_code != 200:
                 print(f"::notice title=Backup::{model} {r.status_code} {r.text[:160]}", flush=True)
                 continue

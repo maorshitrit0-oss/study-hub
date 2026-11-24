@@ -1,13 +1,19 @@
-"""Checks the free backup providers (Groq, Mistral) from the runner: which models the keys allow, and a Hebrew task."""
+"""Checks the free backup providers from the runner with a real Hebrew task (quiz with LaTeX, JSON)."""
 import json
-import os
-import time
 
-import requests
+from google.genai import types
 
-for name, url, env in (("groq", "https://api.groq.com/openai/v1/models", "GROQ_API_KEY"),
-                       ("mistral", "https://api.mistral.ai/v1/models", "MISTRAL_API_KEY")):
-    r = requests.get(url, headers={"Authorization": "Bearer " + os.environ.get(env, "")}, timeout=60)
-    ids = sorted(m.get("id") for m in (r.json().get("data") or []) if isinstance(m, dict))
-    print("MODELS", name, r.status_code, ", ".join(ids)[:1500], flush=True)
-    time.sleep(2)
+import author
+
+text = """מהפך CMOS: כאשר הכניסה נמוכה, טרנזיסטור ה-PMOS מוליך וה-NMOS בקיטעון, ולכן המוצא שווה ל-$V_{DD}$.
+מתח המעבר $V_M$ הוא הנקודה שבה $V_{in} = V_{out}$; במהפך סימטרי $V_M = V_{DD}/2$.
+שולי הרעש: $NM_L = V_{IL} - V_{OL}$ ו-$NM_H = V_{OH} - V_{IH}$."""
+schema = {"type": "object", "properties": {"questions": {"type": "array", "items": {"type": "object", "properties": {
+    "question": {"type": "string"}, "options": {"type": "array", "items": {"type": "string"}}, "correct": {"type": "integer"},
+    "explanation": {"type": "string"}}}}}}
+saved = list(author.BACKUPS)
+for one in saved:
+    author.BACKUPS = [one]
+    out = author._backup_json([types.Part.from_text(text=text)],
+                              "כתוב 2 שאלות אמריקאיות של הבנה על הפרק, 4 תשובות, correct = אינדקס, נוסחאות ב-$...$.", schema)
+    print("RESULT", one[2], json.dumps(out, ensure_ascii=False)[:1200] if out else None, flush=True)
