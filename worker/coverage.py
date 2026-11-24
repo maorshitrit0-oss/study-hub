@@ -787,7 +787,7 @@ def trim(sb, unit):
     if md.count("\\\\(") > old.count("\\\\("):  # \\cos broken into \\\\( (comm completion 3)
         print("::notice title=Trim guard::broken formulas", flush=True)
         return None
-    if len(md) < 0.5 * len(old) and len(removed) < 2:
+    if len(md) < 0.1 * len(old) and len(removed) < 2:  # 23/11: Gemini often lists nothing; only a near-wipe is refused
         print(f"::notice title=Trim guard::{len(old)} -> {len(md)} with {len(removed)} listed", flush=True)
         return None
     return md, removed
