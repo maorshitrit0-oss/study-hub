@@ -383,7 +383,7 @@ def step(sb):
     if jobs:
         j = jobs[0]
         finished, _ = run_job(sb, st, j)
-        if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify")):
+        if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify", "mathfix")):
             st["pending"].remove(j)
         save(sb, st)
         return True
@@ -1136,7 +1136,7 @@ def pending_for_next_day(sb):
         return False
     j = mine[0]
     finished, what = run_job(sb, st, j)
-    if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify")):
+    if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify", "mathfix")):
         st["pending"].remove(j)
     save(sb, st)
     progress_push(sb, what)
@@ -1253,6 +1253,10 @@ def run_job(sb, st, j):
         refresh_weeks(sb, j["course"], j["weeks"])
         j.pop("weeks")
         return False, "שאלונים ותרגילים של השבועות סודרו"
+    if j.get("mathfix"):
+        math_fix(sb, j["course"])
+        j.pop("mathfix")
+        return False, "נוסחאות שבורות תוקנו בכל הפרקים, השאלונים והתרגילים"
     if j.get("verify"):
         verify_exercises(sb, j["course"])
         j.pop("verify")
@@ -1295,6 +1299,91 @@ def verify_exercises(sb, name):
     print(f"::notice title=Verify::{c['name']}: {len(rows)} multiple-choice solutions re-solved, {bad} disagree (marked ⚠️)", flush=True)
 
 
+FIXTEX = """לפניך טקסט מפרק לימוד (עברית + נוסחאות LaTeX), ואחריו רשימת המקומות שבהם הנוסחאות נשברות בתצוגה. תקן רק את
+הנוסחאות השבורות: כל נוסחה בתוך $...$ (בתוך משפט) או בבלוק שבו $$ בשורה לבד לפני ואחרי. עברית לא בתוך נוסחה (אם צריך
+מילה בתוך נוסחה - \\text{} באנגלית או מחוץ לנוסחה). פקודה ששובשה (\\fle, \\root, \\n באמצע) - הפקודה הנכונה לפי ההקשר
+(\\le, \\sqrt, ירידת שורה...). "\\n" שכתוב כטקסט - ירידת שורה אמיתית. אל תשנה שום מילה אחרת, אל תקצר ואל תוסיף.
+החזר את כל הטקסט המתוקן ב-text."""
+FIXTEX_SCHEMA = {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]}
+SITE_CHECK = Path(__file__).resolve().parent.parent / "web" / "site-check.mjs"
+
+
+def render_errors(texts):
+    """The site's own renderer (web/site-check.mjs) on each text -> list of error lines per text ([] = clean).
+    None when node / the web packages are not available here."""
+    import subprocess
+    import tempfile
+    if not SITE_CHECK.exists() or not (SITE_CHECK.parent / "node_modules").exists():
+        return None
+    out = []
+    d = Path(tempfile.mkdtemp())
+    for i, x in enumerate(texts):
+        f = d / f"{i}.md"
+        f.write_text(x or "", encoding="utf-8")
+        r = subprocess.run(["node", "--experimental-strip-types", str(SITE_CHECK), str(f)], cwd=str(SITE_CHECK.parent),
+                           capture_output=True, text=True, timeout=120)
+        out.append([l for l in r.stdout.splitlines() if l.startswith(("ERR", "RAW"))])
+    return out
+
+
+def _literal_newlines(s):
+    return re.sub(r"\\n(?![a-zA-Z])", "\n", s or "")
+
+
+def fix_text(text, errs):
+    from google.genai import types
+    out = author._generate_json([types.Part.from_text(text=text),
+                                 types.Part.from_text(text="=== המקומות השבורים ===\n" + "\n".join(errs[:30]))], FIXTEX, FIXTEX_SCHEMA, "LOW")
+    return (out.get("text") or "").strip()
+
+
+def math_fix(sb, name):
+    """Every chapter, question and exercise of the course through the site's renderer; what shows red is repaired by
+    Gemini (formulas only) and kept only if it renders with fewer errors and lost no text (his screenshots 24/11/2026)."""
+    c = [x for x in sb.table("courses").select("id, name").execute().data if name in (x["name"] or "")][0]
+    items = []  # (table, id, field, value)
+    for l in sb.table("lessons").select("id, chapter_md").eq("course_id", c["id"]).execute().data:
+        items.append(("lessons", l["id"], "chapter_md", l.get("chapter_md") or ""))
+    for x in sb.table("exercises").select("id, question_md, solution_md").eq("course_id", c["id"]).execute().data:
+        items += [("exercises", x["id"], "question_md", x.get("question_md") or ""), ("exercises", x["id"], "solution_md", x.get("solution_md") or "")]
+    for q in sb.table("questions").select("id, question, explanation, options").eq("course_id", c["id"]).execute().data:
+        items += [("questions", q["id"], "question", q.get("question") or ""), ("questions", q["id"], "explanation", q.get("explanation") or "")]
+        items += [("questions", q["id"], f"option{k}", o) for k, o in enumerate(q.get("options") or [])]
+    # literal "\n" in exercises - no Gemini needed
+    items = [(tb, i, f, _literal_newlines(v) if tb == "exercises" else v) for tb, i, f, v in items]
+    errs = render_errors([v for *_, v in items])
+    if errs is None:
+        print("::warning title=Math fix::the site renderer is not available here", flush=True)
+        return
+    fixed = 0
+    opts = {}
+    for (tb, i, f, v), e in zip(items, errs):
+        new = v
+        if e:
+            try:
+                cand = fix_text(v, e)
+            except Exception as ex:  # noqa: BLE001
+                print(f"::warning title=Math fix::{tb} {i[:8]} {f}: {str(ex)[:120]}", flush=True)
+                cand = ""
+            if cand and len(cand) > 0.9 * len(v):
+                e2 = render_errors([cand])[0]
+                if len(e2) < len(e):
+                    new = cand
+        if f.startswith("option"):
+            opts.setdefault(i, {})[int(f[6:])] = new
+            continue
+        if new != (sb.table(tb).select(f).eq("id", i).execute().data or [{}])[0].get(f):
+            sb.table(tb).update({f: new}).eq("id", i).execute()
+            fixed += 1
+    for i, o in opts.items():
+        cur = (sb.table("questions").select("options").eq("id", i).execute().data or [{}])[0].get("options") or []
+        new = [o.get(k, x) for k, x in enumerate(cur)]
+        if new != cur:
+            sb.table("questions").update({"options": new}).eq("id", i).execute()
+            fixed += 1
+    print(f"::notice title=Math fix::{c['name']}: {sum(1 for e in errs if e)} broken texts, {fixed} fields fixed", flush=True)
+
+
 def thursday_alert(sb):
     """Thursday evening: anything he needs by Friday that is not ready -> one push."""
     from zoneinfo import ZoneInfo
@@ -1335,6 +1424,8 @@ if __name__ == "__main__":
     elif "--refresh-weeks" in sys.argv:  # "<course>|4,5"
         name, ws = sys.argv[sys.argv.index("--refresh-weeks") + 1].split("|", 1)
         refresh_weeks(s, name, [int(x) for x in ws.split(",")])
+    elif "--mathfix" in sys.argv:
+        math_fix(s, sys.argv[sys.argv.index("--mathfix") + 1])
     elif "--fix-course" in sys.argv:
         fix_course(s, sys.argv[sys.argv.index("--fix-course") + 1])
     elif "--redrill" in sys.argv:  # "<course>|הרצאה 1,הרצאה 2"
