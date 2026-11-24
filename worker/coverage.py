@@ -1152,7 +1152,8 @@ def pending_for_next_day(sb):
     if not jobs:
         return False
     plan_focus(sb)
-    if not quota_out():  # Gemini is back: the steps skipped for its quota may run again
+    if not _CACHE.get("skips_cleared"):  # once per queue run: steps skipped for Gemini's quota are tried again
+        _CACHE["skips_cleared"] = True    # (other models / Gemma may answer now - 24/11/2026)
         for j in jobs:
             j.pop("_skip", None)
     for j in [j for j in jobs if _mine(st, j)]:
