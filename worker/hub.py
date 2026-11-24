@@ -1456,7 +1456,7 @@ def cmd_drop_lesson(lesson_id):
     for t in ("questions", "exercises"):
         sb.table(t).delete().eq("lesson_id", l["id"]).execute()
     sb.table("lessons").delete().eq("id", l["id"]).execute()
-    print(f"::notice title=Drop::{l['title'][:60]} removed{(' (duplicate of ' + twins[0]['id'][:8] + ')') if twins else ''}", flush=True)
+    print(f"::notice title=Drop::{(l.get('title') or l['id'][:8])[:60]} removed{(' (duplicate of ' + twins[0]['id'][:8] + ')') if twins else ''}", flush=True)
 
 
 def cmd_latex_repair():
