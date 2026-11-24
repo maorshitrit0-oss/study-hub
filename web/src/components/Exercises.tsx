@@ -15,13 +15,25 @@ export type Exercise = {
  * An exercise written as an exam multiple-choice question (Java / micro, 18/11/2026): "**א.** ..." options and a
  * solution that starts "התשובה: **X**". Then he clicks an answer, sees right / wrong, and the solution opens.
  */
+// An option line: "**א.** ...", "**א.**...", "א. ...", "(א) ...", "- **א)** ..." - Gemini writes all of these (his screenshot
+// 24/11/2026: an exam-style exercise showed its options as text instead of buttons).
+const OPT = /(?:^|\n)[ \t]*(?:[-*][ \t]+)?(?:\*\*)?\(?([אבגד])[.)](?:\*\*)?[ \t]+/g;
+
 function mcqOf(q: string, sol: string | null) {
-  const answer = sol?.match(/התשובה: \*\*([אבגד])\*\*/)?.[1];
-  const first = q.indexOf("\n\n**א.** ");
-  if (!answer || first < 0) return null;
-  const options = [...q.slice(first).matchAll(/\n\n\*\*([אבגד])\.\*\* ([\s\S]*?)(?=\n\n\*\*[אבגד]\.\*\* |\n\n✍️|$)/g)]
-    .map((m) => ({ letter: m[1], md: m[2].trim() }));
-  return options.length >= 2 ? { stem: q.slice(0, first), options, answer } : null;
+  const head = sol?.slice(0, 300);  // the answer is stated up front; a lettered sub-part deeper in an open solution is not it
+  const answer = head?.match(/התשובה(?:\s+הנכונה)?(?:\s+היא)?\s*:?\s*\**\s*\(?([אבגד])(?![\u0590-\u05FF])/)?.[1]
+    ?? head?.match(/תשובה\s+נכונה\s*:?\s*\**\s*\(?([אבגד])(?![\u0590-\u05FF])/)?.[1];
+  const marks = [...q.matchAll(OPT)];
+  const start = marks.findIndex((m) => m[1] === "א");
+  if (!answer || start < 0) return null;
+  const opts = marks.slice(start);
+  // the options must be א, ב, ג... in order
+  if (opts.some((m, i) => m[1] !== "אבגד"[i])) return null;
+  const options = opts.map((m, i) => ({
+    letter: m[1],
+    md: q.slice(m.index! + m[0].length, i + 1 < opts.length ? opts[i + 1].index : q.length).replace(/\n\n✍️[\s\S]*$/, "").trim(),
+  }));
+  return options.length >= 2 ? { stem: q.slice(0, opts[0].index), options, answer } : null;
 }
 
 /** The formula(s) the solution uses, without the substitution or the result (his request 19/11/2026: he does not know
