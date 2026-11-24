@@ -57,6 +57,8 @@ jobs:
           GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
           GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
           GEMINI_API_KEY_4: ${{ secrets.GEMINI_API_KEY_4 }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           COURSE: ${{ inputs.course }}
           CHAPTER: ${{ inputs.chapter }}
           KIND: ${{ inputs.kind }}
@@ -97,7 +99,7 @@ jobs:
           if [ "$INSPECT" = "drop-moodle" ]; then python hub.py drop-moodle; exit $?; fi
           if [ "$INSPECT" = "find-dupes" ]; then python find_dupes.py; exit $?; fi
           if [ "$INSPECT" = "ghm-probe" ]; then python ghm_probe.py; exit $?; fi
-          if [ "$INSPECT" = "ghm-test" ]; then python -c "import author; from google.genai import types; print(author._github_models([types.Part.from_text(text='כתוב משפט אחד בעברית על מהפך CMOS, ונוסחה אחת ב-LaTeX')], 'ענה בעברית', {'type':'object','properties':{'md':{'type':'string'}}}))"; exit $?; fi
+          if [ "$INSPECT" = "ghm-test" ]; then python backup_test.py; exit $?; fi
           if [ "$INSPECT" = "board-check" ]; then python -c "import coverage, hub; coverage.board_check_course(hub.db(), '$TITLE')"; exit $?; fi
           if [ "$INSPECT" = "trim-quiz" ]; then python coverage.py --trim-quiz "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "coverage-pending" ]; then python coverage.py --pending "$TITLE"; exit $?; fi

@@ -353,45 +353,43 @@ def _with_gemini(call):
     raise RuntimeError(friendly_error(busy_seen if busy_seen and _is(last, "RESOURCE_EXHAUSTED", "429", "quota") else last))
 
 
-GH_MODELS = [("https://models.github.ai/inference/chat/completions", "openai/gpt-4.1"),
-             ("https://models.inference.ai.azure.com/chat/completions", "gpt-4o"),
-             ("https://models.inference.ai.azure.com/chat/completions", "gpt-4o-mini")]
+# Free backups for TEXT tasks when Gemini is busy / out of quota (his request 24/11/2026: not depend on Gemini alone).
+# OpenAI-compatible chat APIs; each needs its key as a GitHub secret. GitHub Models was unreachable from the runners.
+BACKUPS = [("GROQ_API_KEY", "https://api.groq.com/openai/v1/chat/completions", "llama-3.3-70b-versatile"),
+           ("MISTRAL_API_KEY", "https://api.mistral.ai/v1/chat/completions", "mistral-large-latest"),
+           ("MISTRAL_API_KEY", "https://api.mistral.ai/v1/chat/completions", "mistral-small-latest")]
 
 
 def _text_only(parts):
     return all(getattr(p, "text", None) is not None for p in parts)
 
 
-def _github_models(parts, system, schema):
-    """Backup for text-only tasks when Gemini is busy or out of quota (his request 24/11/2026: free, no waiting).
-    GitHub Models answers with the workflow's own GITHUB_TOKEN (permissions: models: read). None if unavailable."""
+def _backup_json(parts, system, schema):
+    """A text-only task answered by a free backup provider. None if none is configured / answers well."""
     import requests
-    token = os.environ.get("GITHUB_TOKEN")
-    if not token:
-        return None
     user = "\n\n".join(p.text for p in parts)
-    msgs = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content":
+    if len(user) > 90000:  # the backups' context is smaller than Gemini's
+        return None
+    msgs = ([{"role": "system", "content": (system or "") + "\nכתוב בעברית תקינה. החזר JSON בלבד."}]) + [{"role": "user", "content":
             user + "\n\nהחזר אך ורק JSON תקין לפי ה-JSON Schema הזה:\n" + json.dumps(schema, ensure_ascii=False)}]
-    for url, model in GH_MODELS:
+    for env, url, model in BACKUPS:
+        key = os.environ.get(env)
+        if not key:
+            continue
         try:
-            r = requests.post(url, timeout=600,
-                              headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json",
-                                       "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"},
-                              json={"model": model, "messages": msgs, "response_format": {"type": "json_object"}})
+            r = requests.post(url, timeout=600, headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                              json={"model": model, "messages": msgs, "temperature": 0.3, "response_format": {"type": "json_object"}})
             if r.status_code != 200:
-                print(f"::notice title=GitHub Models::{model} {r.status_code} {r.text[:160]}", flush=True)
+                print(f"::notice title=Backup::{model} {r.status_code} {r.text[:160]}", flush=True)
                 continue
-            try:
-                text = r.json()["choices"][0]["message"]["content"].strip()
-            except Exception:  # noqa: BLE001
-                print(f"::notice title=GitHub Models::{model} {r.status_code} {r.headers.get('content-type')} {r.text[:200]!r}", flush=True)
-                continue
+            text = r.json()["choices"][0]["message"]["content"].strip()
             if text.startswith("```"):
                 text = text.strip("`").removeprefix("json").strip()
-            print(f"::notice title=GitHub Models::{model} answered (Gemini was busy)", flush=True)
-            return clean_tree(json.loads(fix_latex_escapes(text)))
+            out = clean_tree(json.loads(fix_latex_escapes(text)))
+            print(f"::notice title=Backup::{model} answered (Gemini busy / out of quota)", flush=True)
+            return out
         except Exception as e:  # noqa: BLE001
-            print(f"::notice title=GitHub Models::{model} {str(e)[:160]}", flush=True)
+            print(f"::notice title=Backup::{model} {str(e)[:160]}", flush=True)
     return None
 
 
@@ -431,7 +429,7 @@ def _generate_json(parts, system, schema, thinking="MEDIUM"):
         if not (_is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "RESOURCE_EXHAUSTED", "429", "quota", "עמוסים", "המכסה")
                 and _text_only(parts)):
             raise
-        out = _github_models(parts, system, schema)
+        out = _backup_json(parts, system, schema)
         if out is None:
             raise
         return out
