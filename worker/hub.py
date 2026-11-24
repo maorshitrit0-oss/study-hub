@@ -525,7 +525,7 @@ def complete_chapter(job, chapter_md, short, by):
         coverage.add_questions(job.sb, les, job.course, qs)
         st = coverage.load(job.sb)
         st.setdefault("audited", {})[les["id"]] = len(new) - len(chapter_md)
-        coverage.save(job.sb, st)
+        coverage.save(job.sb, st, keys=["audited"])
         print(f"::notice title=Audit::{les.get('title') or les['id'][:8]}: +{len(new) - len(chapter_md)} chars", flush=True)
         try:  # every board block against its snapshot (his rule 24/11/2026)
             job.sb.table("lessons").update({"chapter_md": new}).eq("id", les["id"]).execute()

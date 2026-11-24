@@ -16,7 +16,7 @@ on:
 
 permissions:
   contents: read
-  actions: read
+  actions: write   # starts the queue (24/11/2026)
 
 jobs:
   notify:
@@ -49,3 +49,8 @@ jobs:
           MEDIA_SUPABASE_KEY: ${{ secrets.MEDIA_SUPABASE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python usage.py
+      - name: Start the queue (08:00 and 20:00 - GitHub's own schedule skips hours; 20:00 = the next course's turn)
+        if: inputs.mode == 'daily' || inputs.mode == 'evening'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run queue.yml -R "$GITHUB_REPOSITORY" || true

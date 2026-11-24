@@ -84,7 +84,17 @@ def load(sb):
     return _CACHE["st"]
 
 
-def save(sb, st):
+def save(sb, st, keys=None):
+    """keys: a writer outside the queue (a lesson being processed) updates only these keys on a fresh copy, so it never
+    overwrites the queue's list of repairs (23-24/11/2026 the night's list was lost that way)."""
+    if keys:
+        try:
+            fresh = json.loads(sb.storage.from_(BUCKET).download(STATE).decode())
+        except Exception:  # noqa: BLE001
+            fresh = {}
+        for k in keys:
+            fresh[k] = {**(fresh.get(k) or {}), **(st.get(k) or {})} if isinstance(st.get(k), dict) else st.get(k)
+        st = fresh
     _CACHE["st"] = st
     sb.storage.from_(BUCKET).upload(STATE, json.dumps(st).encode(), {"content-type": "application/json", "upsert": "true"})
 

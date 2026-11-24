@@ -1111,6 +1111,9 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    and rewrites it to match (a projected slide's own text too, nothing unseen); runs after every new chapter
    (hub.complete_chapter) and once for every existing lesson via pending {"course", "boards": true} (state
    "boards_checked"); inspect=board-check title=<course> runs it by hand. Completions drop course goals/syllabus.
+   24/11 reliability: notify.yml (pg_cron 08:00/20:00, reliable) also starts queue.yml; the queue loop starts the next
+   run itself while repairs are left; coverage.save(keys=[...]) lets lesson processing update only its keys, so the
+   queue's "pending" list is never overwritten. Claude must NOT run publish jobs while the queue runs (state race).
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.
