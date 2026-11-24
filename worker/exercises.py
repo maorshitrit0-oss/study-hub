@@ -199,6 +199,21 @@ def save_extras(sb, course, m, hints, formulas):
                                         {"content-type": "application/json", "upsert": "true"})
 
 
+MCQ_FORM = """
+פורמט המבחן בקורס הזה אמריקאי (בקשתו 24/11/2026: התרגילים אחרי השיעור בפורמט של המבחן, בלחיצה). לכן כל תרגיל שאתה מחזיר
+כתוב כשאלה אמריקאית ברמת מבחן: בסוף question_md 4 אפשרויות, כל אחת בפסקה משלה בדיוק כך: **א.** ... / **ב.** ... /
+**ג.** ... / **ד.** ... (מסיחים סבירים: טעויות נפוצות בחישוב / ביחידות / בהבנה); solution_md מתחיל בשורה "התשובה: **X**"
+ואחריה הפתרון המלא צעד אחרי צעד ולמה כל אחת מהאחרות שגויה. תרגיל עם כמה סעיפים - פצל לכמה שאלות אמריקאיות."""
+MIXED_FORM = """
+המבחן בקורס הזה משולב (אמריקאי ופתוח): כתוב בערך מחצית מהתרגילים כשאלות אמריקאיות בפורמט הבא, והשאר פתוחים כרגיל.
+""" + MCQ_FORM
+
+
+def exam_form(course):
+    """The exercises follow the course's exam (his rule 24/11/2026): multiple choice -> clickable questions."""
+    return {"mcq": MCQ_FORM, "mixed": MIXED_FORM}.get(course.get("exam_type") or "", "")
+
+
 LESSON_PROMPT = """לפניך שיעור ({kind}) בקורס "{course}" - הפרק שנכתב עליו ותמלול ההקלטה. הסטודנט לומד מפתרון תרגילים בעצמו.
 הוצא את **כל** התרגילים, הדוגמאות המספריות, השאלות וההוכחות שנפתרו או ניתנו בשיעור, לפי הסדר:
 - title: כותרת קצרה. question_md: נוסח מלא שאפשר לפתור בלי ההקלטה - כל הנתונים, ושרטוט/מעגל מתואר במילים.
@@ -236,7 +251,7 @@ def from_lessons(sb, course, budget_end):
         kind = f"{'תרגול' if l['kind'] == 'practice' else 'הרצאה'} {l.get('number') or ''}".strip()
         text = f"=== הפרק ===\n{(l.get('chapter_md') or '')[:60000]}\n\n=== התמלול ===\n{(l.get('transcript') or '')[:120000]}"
         parts = [types.Part.from_text(text=LESSON_PROMPT.format(kind=kind, course=course["name"],
-                                                               topics=", ".join(l.get("topics") or []) or "-")),
+                                                               topics=", ".join(l.get("topics") or []) or "-") + exam_form(course)),
                  types.Part.from_text(text=text)]
         try:
             found = gen(parts, None)
@@ -383,7 +398,7 @@ def reformat(sb, course, budget_end):
 def run(only=None):
     sb, start = db(), time.time()
     # Labs are out: he does the experiments and entry quizzes himself (30/10/2026).
-    q = sb.table("courses").select("id, name, user_id, kind").eq("archived", False).neq("kind", "self").neq("kind", "lab")
+    q = sb.table("courses").select("id, name, user_id, kind, exam_type").eq("archived", False).neq("kind", "self").neq("kind", "lab")
     courses = q.eq("id", only).execute().data if only else q.execute().data
     for course in courses:
         materials = sb.table("materials").select("*").eq("course_id", course["id"]).order("created_at").execute().data

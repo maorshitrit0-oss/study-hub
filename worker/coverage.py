@@ -933,7 +933,8 @@ def reextract(sb, course, l):
     from google.genai import types
     kind = f"{'תרגול' if l['kind'] == 'practice' else 'הרצאה'} {l.get('number') or ''}".strip()
     text = f"=== הפרק ===\n{body_of(l.get('chapter_md') or '')[:80000]}\n\n=== התמלול ===\n{(l.get('transcript') or '')[:120000]}"
-    parts = [types.Part.from_text(text=exmod.LESSON_PROMPT.format(kind=kind, course=course["name"], topics=", ".join(l.get("topics") or []) or "-")),
+    parts = [types.Part.from_text(text=exmod.LESSON_PROMPT.format(kind=kind, course=course["name"], topics=", ".join(l.get("topics") or []) or "-")
+                                  + exmod.exam_form(course)),
              types.Part.from_text(text=text)]
     found = exmod.gen(parts, None)
     if not found:
@@ -978,7 +979,7 @@ def rewrite_lesson(sb, lid, part_sec=1200):
 def refresh_weeks(sb, name, weeks):
     """Weeks whose lessons changed (rewritten / audited): quiz per lecture, exercises read again, the week's set rebuilt."""
     import weekset
-    c = [x for x in sb.table("courses").select("id, name, user_id").execute().data if name in (x["name"] or "")][0]
+    c = [x for x in sb.table("courses").select("id, name, user_id, exam_type").execute().data if name in (x["name"] or "")][0]
     for l in (sb.table("lessons").select("id, user_id, course_id, kind, number, title, topics, chapter_md, transcript, read_at")
               .eq("course_id", c["id"]).in_("number", weeks).in_("kind", ["lecture", "practice"]).execute().data):
         if (l.get("title") or "").startswith("📦"):
