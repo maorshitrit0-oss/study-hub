@@ -784,9 +784,11 @@ def trim(sb, unit):
     # guards (23/11/2026, comm completion 3: 10.7k -> 0.8k with nothing listed, and \\cos broken into \\\\( ):
     if md and author.is_cut(md):
         return None
-    if md.count("\\\\(") > old.count("\\\\(") or len(re.findall(r"\\(?:cos|sin|frac|sqrt)", md)) > len(re.findall(r"\\(?:cos|sin|frac|sqrt)", old)):
+    if md.count("\\\\(") > old.count("\\\\("):  # \\cos broken into \\\\( (comm completion 3)
+        print("::notice title=Trim guard::broken formulas", flush=True)
         return None
     if len(md) < 0.5 * len(old) and len(removed) < 2:
+        print(f"::notice title=Trim guard::{len(old)} -> {len(md)} with {len(removed)} listed", flush=True)
         return None
     return md, removed
 
