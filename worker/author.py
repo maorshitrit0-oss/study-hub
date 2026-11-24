@@ -353,7 +353,9 @@ def _with_gemini(call):
     raise RuntimeError(friendly_error(busy_seen if busy_seen and _is(last, "RESOURCE_EXHAUSTED", "429", "quota") else last))
 
 
-GH_MODELS = ["openai/gpt-4.1", "openai/gpt-4.1-mini"]
+GH_MODELS = [("https://models.github.ai/inference/chat/completions", "openai/gpt-4.1"),
+             ("https://models.inference.ai.azure.com/chat/completions", "gpt-4o"),
+             ("https://models.inference.ai.azure.com/chat/completions", "gpt-4o-mini")]
 
 
 def _text_only(parts):
@@ -370,9 +372,9 @@ def _github_models(parts, system, schema):
     user = "\n\n".join(p.text for p in parts)
     msgs = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content":
             user + "\n\nהחזר אך ורק JSON תקין לפי ה-JSON Schema הזה:\n" + json.dumps(schema, ensure_ascii=False)}]
-    for model in GH_MODELS:
+    for url, model in GH_MODELS:
         try:
-            r = requests.post("https://models.github.ai/inference/chat/completions", timeout=600,
+            r = requests.post(url, timeout=600,
                               headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json",
                                        "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"},
                               json={"model": model, "messages": msgs, "response_format": {"type": "json_object"}})
