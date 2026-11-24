@@ -4,6 +4,10 @@ import json
 from google.genai import types
 
 import author
+import os
+
+for k in ("GROQ_API_KEY", "MISTRAL_API_KEY"):
+    print("KEY", k, "set" if os.environ.get(k) else "MISSING", flush=True)
 
 text = """מהפך CMOS: כאשר הכניסה נמוכה, טרנזיסטור ה-PMOS מוליך וה-NMOS בקיטעון, ולכן המוצא שווה ל-$V_{DD}$.
 מתח המעבר $V_M$ הוא הנקודה שבה $V_{in} = V_{out}$; במהפך סימטרי $V_M = V_{DD}/2$.
