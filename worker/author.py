@@ -373,7 +373,8 @@ def _github_models(parts, system, schema):
     for model in GH_MODELS:
         try:
             r = requests.post("https://models.github.ai/inference/chat/completions", timeout=600,
-                              headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                              headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json",
+                                       "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"},
                               json={"model": model, "messages": msgs, "response_format": {"type": "json_object"}})
             if r.status_code != 200:
                 print(f"::notice title=GitHub Models::{model} {r.status_code} {r.text[:160]}", flush=True)
