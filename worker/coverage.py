@@ -1118,6 +1118,21 @@ def plan_focus(sb):
     return focus
 
 
+def progress_push(sb, what):
+    """A short push after each piece of work on the focus courses (his request 23/11/2026: keep me posted)."""
+    try:
+        import notify
+        st = load(sb)
+        names = (st.get("focus") or "").split("|")
+        for c in sb.table("courses").select("id, name, user_id").execute().data:
+            if any(n and n in (c["name"] or "") for n in names):
+                left = missing_for(sb, c, st)
+                notify.send(sb, c["user_id"], f"🔧 {c['name']}: {what}", ("נשאר: " + ", ".join(left)) if left else "הקורס מוכן")
+                break
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning title=Progress push::{str(e)[:150]}", flush=True)
+
+
 def _mine(st, j):
     f = st.get("focus") or ""
     if not f:  # no focus (after the week's schedule): every pending repair may run
