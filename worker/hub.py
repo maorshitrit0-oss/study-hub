@@ -527,6 +527,12 @@ def complete_chapter(job, chapter_md, short, by):
         st.setdefault("audited", {})[les["id"]] = len(new) - len(chapter_md)
         coverage.save(job.sb, st)
         print(f"::notice title=Audit::{les.get('title') or les['id'][:8]}: +{len(new) - len(chapter_md)} chars", flush=True)
+        try:  # every board block against its snapshot (his rule 24/11/2026)
+            job.sb.table("lessons").update({"chapter_md": new}).eq("id", les["id"]).execute()
+            coverage.board_check(job.sb, dict(les, chapter_md=new))
+            new = job.sb.table("lessons").select("chapter_md").eq("id", les["id"]).execute().data[0]["chapter_md"] or new
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Boards::{str(e)[:200]}", flush=True)
         return new
     except Exception as e:  # noqa: BLE001
         print(f"::warning title=Audit::{str(e)[:200]} - the coverage queue checks it later", flush=True)

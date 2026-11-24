@@ -300,14 +300,18 @@ def step(sb):
     jobs = [j for j in st.get("pending") or [] if _mine(st, j)]
     if jobs:
         j = jobs[0]
-        if j.get("fix"):  # completions: one per week, trimmed, quiz/exercises redone
+        if j.get("boards"):  # every board block against its snapshot
+            board_check_course(sb, j["course"])
+            j.pop("boards")
+        elif j.get("fix"):  # completions: one per week, trimmed, quiz/exercises redone
             fix_course(sb, j["course"])
             j.pop("fix")
         elif j.get("rewrite"):
             rewrite_lesson(sb, j["rewrite"])
             j.pop("rewrite")
         else:
-            refresh_weeks(sb, j["course"], j["weeks"])
+            if j.get("weeks"):
+                refresh_weeks(sb, j["course"], j["weeks"])
             st["pending"].remove(j)
         save(sb, st)
         return True
@@ -760,7 +764,8 @@ TRIM = """לפניך (1) מה שהסטודנט כבר קרא ופתר: הפרק�
 החזר את פרק ההשלמה אחרי שהסרת ממנו כל מה שכבר נמצא ב-(1): נושא, הסבר, הגדרה, נוסחה או דוגמה שכבר מוסברים שם, ותרגיל
 שכבר פתר (גם אם הנתונים מנוסחים אחרת). השאר כל מה שחדש: נושא שלא היה, פרט/נוסחה/מקרה/הערת מבחן שלא הופיעו, תרגיל שלא
 פתר. אל תשכתב ואל תקצר את מה שנשאר - העתק אותו כמו שהוא (כולל ![..](slide:N), נוסחאות, 📝 מה כתוב בלוח). כותרת שכל
-התוכן שלה הוסר - הסר גם אותה. בראש הפרק השאר את שורת ה-📌 אם יש. אם הכל כבר נלמד - md ריק."""
+התוכן שלה הוסר - הסר גם אותה. הסר גם מטרות הקורס / סילבוס / רשימת נושאי הקורס (זה לא חומר
+לימוד); מידע על המבחן (מבנה, שפה, סוג שאלות) - השאר. בראש הפרק השאר את שורת ה-📌 אם יש. אם הכל כבר נלמד - md ריק."""
 TRIM_SCHEMA = {"type": "object", "properties": {"md": {"type": "string"}, "removed": {"type": "array", "items": {"type": "string"}}},
                "required": ["md"]}
 
@@ -1059,7 +1064,11 @@ def pending_for_next_day(sb):
     if not mine:
         return False
     j = mine[0]
-    if j.get("fix"):
+    if j.get("boards"):
+        board_check_course(sb, j["course"])
+        j.pop("boards")
+        what = "כל בלוקי 'מה כתוב בלוח' נבדקו מול הצילומים"
+    elif j.get("fix"):
         fix_course(sb, j["course"])
         j.pop("fix")
         what = "ההשלמות קוצרו וקיבלו שאלון ותרגילים חדשים"
@@ -1068,7 +1077,8 @@ def pending_for_next_day(sb):
         j.pop("rewrite")
         what = "פרק קצר נכתב מחדש"
     else:
-        refresh_weeks(sb, j["course"], j["weeks"])
+        if j.get("weeks"):
+            refresh_weeks(sb, j["course"], j["weeks"])
         st["pending"].remove(j)
         what = f"שאלונים ותרגילים של שבועות {', '.join(map(str, j['weeks']))} סודרו"
     save(sb, st)
@@ -1097,6 +1107,71 @@ def trim_quiz(sb, name, keep=15):
         for q in drop:
             sb.table("questions").delete().eq("id", q["id"]).execute()
         print(f"::notice title=Quiz B::{l['kind']} {l.get('number')} {(l.get('title') or '')[:20]}: {len(qs)} -> {len(qs) - len(drop)}", flush=True)
+
+
+BOARD_CHECK = """לפניך צילומים מהשיעור, וליד כל אחד הבלוק "📝 מה כתוב בלוח" שנכתב עליו בפרק. בדוק כל בלוק מול הצילום שלו
+ותקן אותו כך שיתאים בדיוק למה שרואים בצילום (הסטודנט לומד מהבלוק במקום מהתמונה):
+- שקופית מוקרנת עם טקסט: העתק את הטקסט שלה - כותרות ופסקאות במלואן, נוסחאות ב-LaTeX ($...$ בשורה, $$...$$ בשורה נפרדת).
+- כתב יד על הלוח: העתק אותו (רשימה / נוסחאות / תיאור קצר של שרטוט שבאמת נראה).
+- אל תכתוב דבר שלא רואים בצילום (גרף שנחתך, צורה שמנחשים). מה שלא קריא - [לא קריא].
+- בלוק שכבר מדויק - החזר אותו כמו שהוא. בלי הקדמות. עברית, מונחים באנגלית כמו שהם.
+החזר לכל צילום n את md - תוכן הבלוק בלבד (בלי השורה "📝 מה כתוב בלוח")."""
+BOARD_SCHEMA = {"type": "object", "properties": {"blocks": {"type": "array", "items": {"type": "object", "properties": {
+    "n": {"type": "integer"}, "md": {"type": "string"}}, "required": ["n", "md"]}}}, "required": ["blocks"]}
+
+
+def board_check(sb, l):
+    """His rule 23/11/2026: every board block matches its snapshot (a slide's own text too, nothing that is not seen).
+    Checked after a chapter is written, and once for every existing chapter. Returns the number of blocks rewritten."""
+    import boards
+    from google.genai import types
+    md = l.get("chapter_md") or ""
+    bl = boards.blocks(md)
+    if not bl:
+        return 0
+    store = sb.storage.from_(BUCKET)
+    total = 0
+    for i in range(0, len(bl), 12):  # 12 snapshots per request
+        chunk, parts = bl[i:i + 12], [types.Part.from_text(text=BOARD_CHECK)]
+        for n, s, e, text in chunk:
+            try:
+                data = store.download(f"{l['user_id']}/lessons/{l['id']}/slide_{n:03d}.webp")
+            except Exception:  # noqa: BLE001
+                continue
+            body = text.split("\n", 1)[1] if "\n" in text else ""
+            parts += [types.Part.from_text(text=f"===== צילום {n} =====\nהבלוק:\n{body.strip()}"),
+                      types.Part.from_bytes(data=data, mime_type="image/webp")]
+        if len(parts) == 1:
+            continue
+        out = author._generate_json(parts, None, BOARD_SCHEMA, "LOW")
+        fixed = {b["n"]: author.normalize_math(b["md"].strip()) for b in out.get("blocks") or [] if (b.get("md") or "").strip()}
+        for n, s, e, text in sorted(chunk, key=lambda b: -b[1]):  # from the end, so offsets stay valid
+            if n in fixed and fixed[n] != text.split("\n", 1)[-1].strip():
+                md = md[:s] + f"**📝 מה כתוב בלוח:**\n{fixed[n]}\n\n" + md[e:]
+                total += 1
+        bl = boards.blocks(md) if total else bl
+    if total:
+        try:
+            store.upload(f"{l['user_id']}/lessons/{l['id']}/chapter_before_boardcheck.md", (l.get("chapter_md") or "").encode(),
+                         {"content-type": "text/markdown; charset=utf-8", "upsert": "false"})
+        except Exception:  # noqa: BLE001
+            pass
+        sb.table("lessons").update({"chapter_md": md}).eq("id", l["id"]).execute()
+    print(f"::notice title=Boards::{l.get('kind')} {l.get('number')} {(l.get('title') or '')[:25]}: {total} of {len(boards.blocks(md))} blocks fixed", flush=True)
+    return total
+
+
+def board_check_course(sb, name):
+    st = load(sb)
+    done = st.setdefault("boards_checked", {})
+    c = [x for x in sb.table("courses").select("id, name").execute().data if name in (x["name"] or "")][0]
+    for l in (sb.table("lessons").select("id, user_id, course_id, kind, number, title, chapter_md").eq("course_id", c["id"])
+              .eq("status", "ready").execute().data):
+        if done.get(l["id"]) or (l.get("title") or "").startswith("📦"):
+            continue
+        board_check(sb, l)
+        done[l["id"]] = 1
+        save(sb, st)
 
 
 def thursday_alert(sb):

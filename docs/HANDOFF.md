@@ -1107,6 +1107,10 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    before anything else in the queue (pending_for_next_day).
    Progress pushes: after each repair job on the focus course (progress_push) and when the plan moves on (✅ ready /
    ⏭️ time's up with what is left).
+   BOARD CHECK (24/11, his rule): coverage.board_check() sends every "📝 מה כתוב בלוח" block with its snapshot to Gemini
+   and rewrites it to match (a projected slide's own text too, nothing unseen); runs after every new chapter
+   (hub.complete_chapter) and once for every existing lesson via pending {"course", "boards": true} (state
+   "boards_checked"); inspect=board-check title=<course> runs it by hand. Completions drop course goals/syllabus.
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.
