@@ -280,7 +280,10 @@ def build_prompt(course, lesson, transcript, slide_count, previous_topics, mode=
 # Free-tier quotas are per project AND per model (e.g. 20 requests/day on the newest Flash): fall back
 # across models, and across keys when GEMINI_API_KEY holds several comma-separated keys.
 # 2.5 models are gone for new keys (404, Oct 2026); Google names gemini-3.8-flash / gemini-3.5-flash-lite instead.
-WORK_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite"]  # the "-latest" aliases answer 404 (21/11/2026)
+# 24/11/2026: every model has its OWN free daily quota - when the two main ones are out, the others still answer
+# (newer Gemini flash models, and Gemma, which also reads images). Tried in this order.
+WORK_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash",
+               "gemini-3.1-flash-lite", "gemma-4-31b-it", "gemma-4-26b-a4b-it"]
 
 
 def _list(v):
@@ -409,12 +412,16 @@ def _generate_json(parts, system, schema, thinking="MEDIUM"):
     from google.genai import types
 
     def call(client, model):
+        gemma = model.startswith("gemma")  # no system instruction / JSON schema / thinking: everything in the message
+
         def run(with_thinking, with_schema):
+            if gemma:
+                with_thinking = with_schema = False
             # A call that never answers must not hold the whole job (micro lecture 1, 27/10: stuck past 2.5 hours);
             # a timeout counts as "busy" in _with_gemini: retried, then the next model.
-            cfg = dict(system_instruction=system, response_mime_type="application/json", max_output_tokens=65536,
-                       http_options=types.HttpOptions(timeout=12 * 60 * 1000))
-            contents = list(parts)
+            cfg = dict(system_instruction=None if gemma else system, response_mime_type=None if gemma else "application/json",
+                       max_output_tokens=32768 if gemma else 65536, http_options=types.HttpOptions(timeout=12 * 60 * 1000))
+            contents = ([types.Part.from_text(text="הוראות:\n" + system)] if gemma and system else []) + list(parts)
             if with_schema:
                 cfg["response_json_schema"] = schema
             else:
@@ -447,7 +454,13 @@ def _generate_json(parts, system, schema, thinking="MEDIUM"):
     text = (resp.text or "").strip()
     if text.startswith("```"):
         text = text.strip("`").removeprefix("json").strip()
-    return clean_tree(json.loads(fix_latex_escapes(text)))
+    try:
+        return clean_tree(json.loads(fix_latex_escapes(text)))
+    except json.JSONDecodeError:  # Gemma (no JSON mode) may wrap the JSON in words: take the outermost {...}
+        i, j = text.find("{"), text.rfind("}")
+        if i < 0 or j <= i:
+            raise
+        return clean_tree(json.loads(fix_latex_escapes(text[i:j + 1])))
 
 
 

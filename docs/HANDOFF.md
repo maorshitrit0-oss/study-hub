@@ -1145,6 +1145,9 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    gpt-oss-120b / qwen3.8-27b on Groq (work, tested Hebrew + LaTeX), Mistral medium/small (free tier rate-limited).
    Text-only Gemini calls fall back to them on busy/quota; the queue keeps running when Gemini's quota is out
    (has_backups); pending steps that need Gemini (boards, rewrite) are skipped until its reset (_skip).
+   24/11 evening: each Gemini model has its own free daily quota - WORK_MODELS now also tries gemini-3.7/3.6/3.5-flash,
+   3.1-flash-lite and gemma-4-31b-it / gemma-4-26b-a4b-it (Gemma: no system instruction / JSON mode, all in the
+   message, JSON taken from the reply). Probe: inspect=ghm-test (worker/backup_test.py).
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.
