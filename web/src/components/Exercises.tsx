@@ -1,4 +1,5 @@
 "use client";
+import { fixArabic } from "@/lib/math";
 
 import { useState } from "react";
 import { toggleExercise } from "@/app/(app)/actions";
@@ -22,6 +23,7 @@ const OPT = /(?:^|\n)[ \t]*(?:[-*][ \t]+)?(?:\*\*)?\(?([אבגד])[.)](?:\*\*)?[
 function mcqOf(q: string, sol: string | null) {
   // "התשובה: **ב**" at the start, or "לכן התשובה הנכונה היא **א**." at the end (Gemini's drills, 24/11/2026); the
   // options block in the question is what makes it a multiple-choice exercise, so a phrase anywhere is safe.
+  sol = sol ? fixArabic(sol) : sol;  // "התשובה הנכונה هي ב'" - Gemini slipped into Arabic (24/11/2026)
   const answer = sol?.match(/התשובה(?:\s+הנכונה)?(?:\s+היא)?\s*:?\s*\*\*\s*\(?([אבגד])/)?.[1]
     ?? sol?.match(/התשובה\s+הנכונה(?:\s+היא)?\s*:?\s*\(?([אבגד])['׳]?(?![\u0590-\u05FF])/)?.[1];
   const marks = [...q.matchAll(OPT)];
