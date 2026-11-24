@@ -53,6 +53,11 @@ function formulaOf(sol: string | null): string | null {
     // "**נוסחה:**" with the formula in one of the next lines
     for (let j = i + 1; j < Math.min(lines.length, i + 5); j++) {
       if (/הצבה|תוצאה/.test(lines[j])) break;
+      if (lines[j].trim() === "$$") {  // a block: "$$" alone, the formula, "$$" (24/11/2026: the hint showed empty)
+        const end = lines.findIndex((x, k) => k > j && x.trim() === "$$");
+        if (end > j) { out.push(lines.slice(j, end + 1).join("\n")); i = end; }
+        break;
+      }
       if (lines[j].includes("$$")) { out.push(lines[j]); i = j; break; }
     }
   }
