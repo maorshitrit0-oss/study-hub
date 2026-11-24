@@ -403,7 +403,7 @@ def loop(hours=5.5):
             time.sleep(max(60, wait))
         elif why in ("busy", "empty"):
             time.sleep(10 * 60)
-    if waiting_work(sb):
+    if waiting_work(sb) or repairs_left(sb):  # 24/11: the schedule skipped hours - the loop starts the next run itself
         import course_site
         print(f"::notice title=Queue::time is up, work left -> next run: {course_site.dispatch('', workflow='queue.yml')}", flush=True)
 
