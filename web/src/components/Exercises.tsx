@@ -20,9 +20,10 @@ export type Exercise = {
 const OPT = /(?:^|\n)[ \t]*(?:[-*][ \t]+)?(?:\*\*)?\(?([אבגד])[.)](?:\*\*)?[ \t]+/g;
 
 function mcqOf(q: string, sol: string | null) {
-  const head = sol?.slice(0, 300);  // the answer is stated up front; a lettered sub-part deeper in an open solution is not it
-  const answer = head?.match(/התשובה(?:\s+הנכונה)?(?:\s+היא)?\s*:?\s*\**\s*\(?([אבגד])(?![\u0590-\u05FF])/)?.[1]
-    ?? head?.match(/תשובה\s+נכונה\s*:?\s*\**\s*\(?([אבגד])(?![\u0590-\u05FF])/)?.[1];
+  // "התשובה: **ב**" at the start, or "לכן התשובה הנכונה היא **א**." at the end (Gemini's drills, 24/11/2026); the
+  // options block in the question is what makes it a multiple-choice exercise, so a phrase anywhere is safe.
+  const answer = sol?.match(/התשובה(?:\s+הנכונה)?(?:\s+היא)?\s*:?\s*\*\*\s*\(?([אבגד])/)?.[1]
+    ?? sol?.match(/התשובה\s+הנכונה(?:\s+היא)?\s*:?\s*\(?([אבגד])['׳]?(?![\u0590-\u05FF])/)?.[1];
   const marks = [...q.matchAll(OPT)];
   const start = marks.findIndex((m) => m[1] === "א");
   if (!answer || start < 0) return null;
