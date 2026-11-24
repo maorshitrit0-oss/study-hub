@@ -93,6 +93,7 @@ jobs:
           if [ "$INSPECT" = "board-check" ]; then python -c "import coverage, hub; coverage.board_check_course(hub.db(), '$TITLE')"; exit $?; fi
           if [ "$INSPECT" = "trim-quiz" ]; then python coverage.py --trim-quiz "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "coverage-pending" ]; then python coverage.py --pending "$TITLE"; exit $?; fi
+          if [ "$INSPECT" = "coverage-place" ]; then python coverage.py --place "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "coverage-rewrite" ]; then python coverage.py --rewrite "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "refresh-weeks" ]; then python coverage.py --refresh-weeks "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "coverage-fix" ]; then python coverage.py --fix-course "$TITLE"; exit $?; fi

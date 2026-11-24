@@ -219,17 +219,87 @@ AUDIT_HEAD = "## 🧩 פרטים שהבדיקה מול ההקלטה הוסיפה
 VERIFY_SPLIT = "\n---\n### ✅ בדיקת עובדות"
 
 
+PLACE = """לפניך רשימת הכותרות של פרק קריאה, ואחריה קטע חומר שחסר בפרק. חלק את הקטע לפי נושאים, ולכל חלק בחר את הכותרת
+מהרשימה שהחלק שייך לסוף הנושא שלה (העתק אותה בדיוק כמו ברשימה). חלק שאין לו נושא מתאים - heading ריק.
+אל תשנה את הטקסט של הקטע: העתק אותו כמו שהוא (כולל ![..](slide:N), נוסחאות ו-📝)."""
+PLACE_SCHEMA = {"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object", "properties": {
+    "heading": {"type": "string"}, "md": {"type": "string"}}, "required": ["heading", "md"]}}}, "required": ["items"]}
+
+
+def integrate(md, items):
+    """Each missing piece goes to the END of its own topic (before the next heading of the same or a higher level),
+    not to a separate section at the end of the chapter (his rule 24/11/2026). Pieces with no topic go before the
+    fact-check, without any special title."""
+    body, _, ver = md.partition(VERIFY_SPLIT)
+    rest = []
+    for it in items:
+        h, add = (it.get("heading") or "").strip().lstrip("#").strip(), (it.get("md") or "").strip()
+        if not add:
+            continue
+        m = re.search(r"(?m)^(#{2,4}) " + re.escape(h) + r"\s*$", body) if h else None
+        if not m:
+            rest.append(add)
+            continue
+        level = len(m.group(1))
+        nxt = re.compile(r"(?m)^#{2,%d} " % level).search(body, m.end())
+        at = nxt.start() if nxt else len(body)
+        body = body[:at].rstrip() + "\n\n" + add + "\n\n" + body[at:]
+    if rest:
+        body = body.rstrip() + "\n\n" + "\n\n".join(rest)
+    return author.normalize_math(body) + (VERIFY_SPLIT + ver if ver else "")
+
+
 def audit(sb, lesson, course, chapter_md):
-    """His rule 23/11/2026: no detail of a lecture / practice may be missing. Every part of the recording is compared
-    with the finished chapter (the MISSING prompt) and whatever is missing is added to the SAME chapter, before he
-    reads it. Returns (chapter, questions)."""
+    """His rule 23-24/11/2026: no detail of a lecture / practice may be missing. Every part of the recording is compared
+    with the finished chapter (the MISSING prompt) and whatever is missing is written INTO the chapter, each piece at
+    the end of its own topic. Returns (chapter, questions)."""
+    from google.genai import types
     md, qs = write(sb, lesson, course, chapter=body_of(chapter_md))
     if len(md.strip()) < 200:
         return chapter_md, []  # nothing missing: no extra questions either
-    body, _, ver = chapter_md.partition(VERIFY_SPLIT)
-    add = (f"\n\n{AUDIT_HEAD}\n\n> 📌 מה שנאמר או נכתב בשיעור ולא נכנס לפרק למעלה. זה חלק מהחומר - ללמוד גם אותו.\n\n"
-           + author.normalize_math(md))
-    return body.rstrip() + add + (VERIFY_SPLIT + ver if ver else ""), qs
+    heads = "\n".join(re.findall(r"(?m)^#{2,4} (.+)$", body_of(chapter_md)))
+    try:
+        out = author._generate_json([types.Part.from_text(text="=== הכותרות ===\n" + heads),
+                                     types.Part.from_text(text="=== הקטע החסר ===\n" + md)], PLACE, PLACE_SCHEMA, "LOW")
+        items = out.get("items") or []
+        if sum(len(i.get("md") or "") for i in items) < 0.8 * len(md):  # the placing lost text: keep it whole
+            items = [{"heading": "", "md": md}]
+    except Exception:  # noqa: BLE001
+        items = [{"heading": "", "md": md}]
+    return integrate(chapter_md, items), qs
+
+
+def unfold_audit(md):
+    """An old chapter with the separate "🧩" section: (chapter without it, the section's text)."""
+    body, _, ver = md.partition(VERIFY_SPLIT)
+    i = body.find(AUDIT_HEAD)
+    if i < 0:
+        return md, ""
+    sec = re.sub(r"^> 📌[^\n]*\n+", "", body[i + len(AUDIT_HEAD):].strip())
+    return body[:i].rstrip() + (VERIFY_SPLIT + ver if ver else ""), sec
+
+
+def place_old_audits(sb, name):
+    """Chapters that still have the "🧩" section: its pieces go into their topics (once per lesson)."""
+    from google.genai import types
+    c = [x for x in sb.table("courses").select("id, name").execute().data if name in (x["name"] or "")][0]
+    for l in sb.table("lessons").select("id, user_id, title, kind, number, chapter_md").eq("course_id", c["id"]).execute().data:
+        md = l.get("chapter_md") or ""
+        if AUDIT_HEAD not in md:
+            continue
+        base, sec = unfold_audit(md)
+        heads = "\n".join(re.findall(r"(?m)^#{2,4} (.+)$", body_of(base)))
+        out = author._generate_json([types.Part.from_text(text="=== הכותרות ===\n" + heads),
+                                     types.Part.from_text(text="=== הקטע החסר ===\n" + sec)], PLACE, PLACE_SCHEMA, "LOW")
+        items = out.get("items") or []
+        if sum(len(i.get("md") or "") for i in items) < 0.8 * len(sec):
+            print(f"::warning title=Place::{(l.get('title') or '')[:30]}: placing lost text - kept as is", flush=True)
+            continue
+        new = integrate(base, items)
+        sb.storage.from_(BUCKET).upload(f"{l['user_id']}/lessons/{l['id']}/chapter_before_place.md", md.encode(),
+                                        {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+        sb.table("lessons").update({"chapter_md": new}).eq("id", l["id"]).execute()
+        print(f"::notice title=Place::{l['kind']} {l.get('number')} {(l.get('title') or '')[:25]}: {len(items)} pieces placed in their topics", flush=True)
 
 
 def thin(l):

@@ -1119,6 +1119,9 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    Sun), comm Sun 20:00 (studied Mon); from Tue 01/12 only new lectures. GitHub Models backup (author._github_models,
    gpt-4.1 / 4.1-mini with the workflow GITHUB_TOKEN, permissions models: read) answers text-only tasks when Gemini is
    busy or out of quota; inspect=ghm-test checks it.
+   24/11 audit is IN PLACE (his rule): coverage.audit() asks Gemini (PLACE) which topic each missing piece belongs to
+   and integrate() puts it at the end of that topic - no "🧩" section any more; inspect=coverage-place title=<course>
+   moves old "🧩" sections into their topics (backup chapter_before_place.md).
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.
