@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  models: read   # GitHub Models backup when Gemini is busy (24/11/2026)
 
 concurrency:
   group: studio-${{ inputs.media_id }}

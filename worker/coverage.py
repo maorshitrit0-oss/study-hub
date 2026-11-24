@@ -1010,58 +1010,51 @@ PLAN = ["מעגלים ספרתיים", "Java", "מיקרו", "מעגלים לי�
 PLAN_START = "2026-11-23T20:00:00+02:00"
 
 
+# His week (24/11/2026): every completion closed this week; waves ready to study on Sunday, comm on Monday, and from
+# Tuesday 01/12 only new lectures. Each course is worked on until its deadline (or until nothing is left in it);
+# new uploads are processed whenever they come. After the last deadline: no focus (everything by the timetable).
+SCHEDULE = [("מעגלים ספרתיים", "2026-11-24T20:00:00+02:00"), ("Java", "2026-11-25T14:00:00+02:00"),
+            ("מיקרו", "2026-11-25T23:00:00+02:00"), ("מעגלים לינאריים", "2026-11-26T14:00:00+02:00"),
+            ("אותות אקראיים", "2026-11-26T23:00:00+02:00"), ("גלים", "2026-11-28T20:00:00+02:00"),
+            ("מבוא למערכות תקשורת", "2026-11-29T20:00:00+02:00")]
+
+
 def plan_focus(sb):
-    """Sets st["focus"] by the plan: the course moves on at 20:00 Israel time, or when nothing is left in it."""
-    from datetime import timedelta
+    """The course to work on now: the first one in SCHEDULE whose deadline has not passed and that still has work."""
     from zoneinfo import ZoneInfo
     st = load(sb)
     now = datetime.now(ZoneInfo("Asia/Jerusalem"))
-    p = st.setdefault("plan", {"i": 0, "since": PLAN_START})
-    since = datetime.fromisoformat(p["since"])
-    nxt = since.replace(hour=20, minute=0, second=0, microsecond=0)
-    if nxt <= since:
-        nxt += timedelta(days=1)
-    moved, left = False, []
-    cur = [x for x in sb.table("courses").select("id, name, user_id").execute().data if PLAN[p["i"]] in (x["name"] or "")]
-    if now >= nxt:  # 20:00 passed since this course started
-        left = missing_for(sb, cur[0], st) if cur else []
-        p["i"], p["since"], moved = (p["i"] + 1) % len(PLAN), now.isoformat(), True
-    elif cur and not missing_for(sb, cur[0], st):  # all done early: the next one now
-        p["i"], p["since"], moved = (p["i"] + 1) % len(PLAN), now.isoformat(), True
-    st["focus"] = PLAN[p["i"]]
+    courses = sb.table("courses").select("id, name, user_id").execute().data
+    prev = st.get("focus")
+    focus = None
+    for name, until in SCHEDULE:
+        if now >= datetime.fromisoformat(until):
+            continue
+        c = [x for x in courses if name in (x["name"] or "")]
+        if c and missing_for(sb, c[0], st):
+            focus = name
+            break
+    st["focus"] = focus
     save(sb, st)
-    if moved:
-        print(f"::notice title=Plan::now working on {st['focus']}", flush=True)
-        try:  # he wants to hear where things stand (23/11/2026)
+    if prev and prev != focus:
+        try:  # he hears where things stand (23/11/2026)
             import notify
-            done_name = cur[0]["name"] if cur else PLAN[(p["i"] - 1) % len(PLAN)]
-            nxt_name = next((x["name"] for x in sb.table("courses").select("name").execute().data if st["focus"] in (x["name"] or "")), st["focus"])
-            if left:
-                title, body = f"⏭️ {done_name}: הזמן נגמר (20:00)", f"נשאר: {', '.join(left)} - ימשיך כשיגיע תורו שוב. עכשיו: {nxt_name}"
-            else:
-                title, body = f"✅ {done_name}: מוכן", f"השלמות, שאלונים, תרגילים וסרטונים. עכשיו עובד על: {nxt_name}"
-            if cur:
-                notify.send(sb, cur[0]["user_id"], title, body)
+            c = [x for x in courses if prev in (x["name"] or "")]
+            if c:
+                left = missing_for(sb, c[0], st)
+                nxt = next((x["name"] for x in courses if focus and focus in (x["name"] or "")), "רק הרצאות חדשות")
+                notify.send(sb, c[0]["user_id"], f"{'⏭️' if left else '✅'} {c[0]['name']}: {'הזמן נגמר' if left else 'מוכן'}",
+                            (f"נשאר: {', '.join(left)}. " if left else "") + f"עכשיו: {nxt}")
         except Exception as e:  # noqa: BLE001
             print(f"::warning title=Plan push::{str(e)[:150]}", flush=True)
-    return st["focus"]
-
-
-def progress_push(sb, what):
-    """A short push after each piece of work on the focus course (his request 23/11/2026: keep me posted)."""
-    try:
-        import notify
-        st = load(sb)
-        c = [x for x in sb.table("courses").select("id, name, user_id").execute().data if (st.get("focus") or "~") in (x["name"] or "")]
-        if c:
-            left = missing_for(sb, c[0], st)
-            notify.send(sb, c[0]["user_id"], f"🔧 {c[0]['name']}: {what}", ("נשאר: " + ", ".join(left)) if left else "זה האחרון - הקורס מוכן")
-    except Exception as e:  # noqa: BLE001
-        print(f"::warning title=Progress push::{str(e)[:150]}", flush=True)
+        print(f"::notice title=Plan::now working on {focus}", flush=True)
+    return focus
 
 
 def _mine(st, j):
     f = st.get("focus") or ""
+    if not f:  # no focus (after the week's schedule): every pending repair may run
+        return True
     return bool(f) and (f in j["course"] or j["course"] in f)
 
 

@@ -353,6 +353,41 @@ def _with_gemini(call):
     raise RuntimeError(friendly_error(busy_seen if busy_seen and _is(last, "RESOURCE_EXHAUSTED", "429", "quota") else last))
 
 
+GH_MODELS = ["openai/gpt-4.1", "openai/gpt-4.1-mini"]
+
+
+def _text_only(parts):
+    return all(getattr(p, "text", None) is not None for p in parts)
+
+
+def _github_models(parts, system, schema):
+    """Backup for text-only tasks when Gemini is busy or out of quota (his request 24/11/2026: free, no waiting).
+    GitHub Models answers with the workflow's own GITHUB_TOKEN (permissions: models: read). None if unavailable."""
+    import requests
+    token = os.environ.get("GITHUB_TOKEN")
+    if not token:
+        return None
+    user = "\n\n".join(p.text for p in parts)
+    msgs = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content":
+            user + "\n\nהחזר אך ורק JSON תקין לפי ה-JSON Schema הזה:\n" + json.dumps(schema, ensure_ascii=False)}]
+    for model in GH_MODELS:
+        try:
+            r = requests.post("https://models.github.ai/inference/chat/completions", timeout=600,
+                              headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                              json={"model": model, "messages": msgs, "response_format": {"type": "json_object"}})
+            if r.status_code != 200:
+                print(f"::notice title=GitHub Models::{model} {r.status_code} {r.text[:160]}", flush=True)
+                continue
+            text = r.json()["choices"][0]["message"]["content"].strip()
+            if text.startswith("```"):
+                text = text.strip("`").removeprefix("json").strip()
+            print(f"::notice title=GitHub Models::{model} answered (Gemini was busy)", flush=True)
+            return clean_tree(json.loads(fix_latex_escapes(text)))
+        except Exception as e:  # noqa: BLE001
+            print(f"::notice title=GitHub Models::{model} {str(e)[:160]}", flush=True)
+    return None
+
+
 def _generate_json(parts, system, schema, thinking="MEDIUM"):
     """One structured-output call (with model/key fallback); adapts to models without thinking levels or schemas."""
     from google.genai import types
@@ -382,7 +417,17 @@ def _generate_json(parts, system, schema, thinking="MEDIUM"):
                 return run(False, False)
             raise
 
-    resp = _with_gemini(call)
+    try:
+        resp = _with_gemini(call)
+    except Exception as e:  # noqa: BLE001
+        # Gemini busy / out of quota: a text-only task goes to GitHub Models (free with the repo's token, 24/11/2026)
+        if not (_is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "RESOURCE_EXHAUSTED", "429", "quota", "עמוסים", "המכסה")
+                and _text_only(parts)):
+            raise
+        out = _github_models(parts, system, schema)
+        if out is None:
+            raise
+        return out
     text = (resp.text or "").strip()
     if text.startswith("```"):
         text = text.strip("`").removeprefix("json").strip()

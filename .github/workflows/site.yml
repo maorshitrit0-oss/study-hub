@@ -5,6 +5,7 @@ name: import-site
 permissions:
   contents: read
   actions: write   # course_site.py starts process.yml for recordings (this year's and last year's)
+  models: read   # GitHub Models backup when Gemini is busy (24/11/2026)
 
 on:
   # Every half hour: has a lecturer added a recording or files? (re-read only; chapters are written by the daily run)

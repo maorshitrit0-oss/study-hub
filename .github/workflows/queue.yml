@@ -5,6 +5,7 @@ name: queue
 permissions:
   contents: read
   actions: write   # hands a lesson to claude-chapter.yml / starts the next queue run
+  models: read   # GitHub Models backup when Gemini is busy (24/11/2026)
 
 on:
   workflow_dispatch:

@@ -27,6 +27,7 @@ on:
 permissions:
   contents: write
   actions: write   # studio-retry starts media.yml
+  models: read   # GitHub Models backup when Gemini is busy (24/11/2026)
 
 jobs:
   publish:
@@ -88,6 +89,7 @@ jobs:
           if [ "$INSPECT" = "latex-repair" ]; then python hub.py latex-repair; exit $?; fi
           if [ "$INSPECT" = "coverage-dedupe" ]; then python coverage.py --dedupe; exit $?; fi
           if [ "$INSPECT" = "drop-moodle" ]; then python hub.py drop-moodle; exit $?; fi
+          if [ "$INSPECT" = "ghm-test" ]; then python -c "import author; from google.genai import types; print(author._github_models([types.Part.from_text(text='כתוב משפט אחד בעברית על מהפך CMOS, ונוסחה אחת ב-LaTeX')], 'ענה בעברית', {'type':'object','properties':{'md':{'type':'string'}}}))"; exit $?; fi
           if [ "$INSPECT" = "board-check" ]; then python -c "import coverage, hub; coverage.board_check_course(hub.db(), '$TITLE')"; exit $?; fi
           if [ "$INSPECT" = "trim-quiz" ]; then python coverage.py --trim-quiz "$TITLE"; exit $?; fi
           if [ "$INSPECT" = "coverage-pending" ]; then python coverage.py --pending "$TITLE"; exit $?; fi

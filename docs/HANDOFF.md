@@ -1114,6 +1114,11 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    24/11 reliability: notify.yml (pg_cron 08:00/20:00, reliable) also starts queue.yml; the queue loop starts the next
    run itself while repairs are left; coverage.save(keys=[...]) lets lesson processing update only its keys, so the
    queue's "pending" list is never overwritten. Claude must NOT run publish jobs while the queue runs (state race).
+   24/11 WEEK SCHEDULE (coverage.SCHEDULE replaces the 20:00 rotation): each course until its deadline or until done:
+   digital Tue 20:00, Java Wed 14:00, micro Wed 23:00, linear Thu 14:00, random Thu 23:00, waves Sat 20:00 (studied
+   Sun), comm Sun 20:00 (studied Mon); from Tue 01/12 only new lectures. GitHub Models backup (author._github_models,
+   gpt-4.1 / 4.1-mini with the workflow GITHUB_TOKEN, permissions models: read) answers text-only tasks when Gemini is
+   busy or out of quota; inspect=ghm-test checks it.
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.

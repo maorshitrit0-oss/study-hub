@@ -6,6 +6,7 @@ name: process-lesson
 permissions:
   contents: read
   actions: write   # course_site.py starts process.yml for recordings (this year's and last year's)
+  models: read   # GitHub Models backup when Gemini is busy (24/11/2026)
 
 on:
   workflow_dispatch:
