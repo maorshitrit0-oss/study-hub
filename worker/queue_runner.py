@@ -259,10 +259,13 @@ def adopt_uploads(sb):
                 continue
             made = f.get("created_at") or ""
             try:
-                if now - datetime.fromisoformat(made.replace("Z", "+00:00")) < timedelta(minutes=10):
+                age = now - datetime.fromisoformat(made.replace("Z", "+00:00"))
+                # only a fresh upload the page did not turn into a lesson (10 min - 6 h old); an older file is never
+                # adopted (24/11/2026: a deleted duplicate's file came back as "lecture 6" / "lecture 7" twice)
+                if age < timedelta(minutes=10) or age > timedelta(hours=6):
                     continue
             except ValueError:
-                pass
+                continue
             kind = "practice" if re.search(r"תרגול|tirgul|practice|tutorial", name, re.I) else "lecture"
             number = max([l["number"] or 0 for l in les if l["kind"] == kind] or [0]) + 1
             row = sb.table("lessons").insert({"user_id": c["user_id"], "course_id": c["id"], "kind": kind, "number": number,
