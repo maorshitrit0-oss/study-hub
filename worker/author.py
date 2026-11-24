@@ -378,7 +378,11 @@ def _github_models(parts, system, schema):
             if r.status_code != 200:
                 print(f"::notice title=GitHub Models::{model} {r.status_code} {r.text[:160]}", flush=True)
                 continue
-            text = r.json()["choices"][0]["message"]["content"].strip()
+            try:
+                text = r.json()["choices"][0]["message"]["content"].strip()
+            except Exception:  # noqa: BLE001
+                print(f"::notice title=GitHub Models::{model} {r.status_code} {r.headers.get('content-type')} {r.text[:200]!r}", flush=True)
+                continue
             if text.startswith("```"):
                 text = text.strip("`").removeprefix("json").strip()
             print(f"::notice title=GitHub Models::{model} answered (Gemini was busy)", flush=True)
