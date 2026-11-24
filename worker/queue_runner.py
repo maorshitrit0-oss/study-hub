@@ -245,9 +245,17 @@ def adopt_uploads(sb):
             continue
         les = sb.table("lessons").select("kind, number, source_path").eq("course_id", c["id"]).execute().data
         used = {l.get("source_path") for l in les}
+        # 24/11/2026 (his "I did not upload lecture 7"): a file is adopted ONCE ever - a lesson he deleted must not come
+        # back - and never when the same recording (same size) is already a lesson.
+        st = state(sb)
+        seen = set(st.get("adopted") or [])
+        sizes = {int((f.get("metadata") or {}).get("size") or 0) for f in files or []
+                 if f"{folder}/{f.get('name')}" in used}
         for f in files or []:
             name, path = f.get("name") or "", f"{folder}/{f.get('name')}"
-            if not name.lower().endswith(REC_EXT) or path in used:
+            if not name.lower().endswith(REC_EXT) or path in used or path in seen:
+                continue
+            if int((f.get("metadata") or {}).get("size") or 0) in sizes:  # a second copy of a recording that is a lesson
                 continue
             made = f.get("created_at") or ""
             try:
@@ -260,6 +268,9 @@ def adopt_uploads(sb):
             row = sb.table("lessons").insert({"user_id": c["user_id"], "course_id": c["id"], "kind": kind, "number": number,
                                               "source_path": path, "status": "queued", "progress": "הקלטה הועלתה - בתור"}).execute().data[0]
             les.append({"kind": kind, "number": number, "source_path": path})
+            st = state(sb)
+            st["adopted"] = sorted(set(st.get("adopted") or []) | {path})
+            save_state(sb, st)
             print(f"::notice title=Upload adopted::{c['name']} {kind} {number} <- {name}: "
                   f"{course_site.dispatch_inputs('process.yml', {'lesson_id': row['id']})}", flush=True)
 

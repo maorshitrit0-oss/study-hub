@@ -1122,6 +1122,9 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    24/11 audit is IN PLACE (his rule): coverage.audit() asks Gemini (PLACE) which topic each missing piece belongs to
    and integrate() puts it at the end of that topic - no "🧩" section any more; inspect=coverage-place title=<course>
    moves old "🧩" sections into their topics (backup chapter_before_place.md).
+   24/11 BUG "lecture 7 he never uploaded": adopt_uploads turned a recording file whose lesson he had deleted (the TA
+   video uploaded twice on 21/11) into a new lecture again. Now a file is adopted once ever (queue state "adopted")
+   and never when a file of the same size is already a lesson.
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.
