@@ -3,7 +3,7 @@ import os
 
 from google import genai
 
-keys = [os.environ.get(k) for k in ("GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3", "GEMINI_API_KEY_4") if os.environ.get(k)]
+keys = [os.environ.get(k).strip() for k in ("GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3", "GEMINI_API_KEY_4") if os.environ.get(k)]
 c = genai.Client(api_key=keys[0])
 names = [m.name.split("/")[-1] for m in c.models.list() if "generateContent" in (m.supported_actions or [])]
 print("MODELS", ", ".join(names)[:2500], flush=True)
