@@ -1076,7 +1076,8 @@ PLAN_START = "2026-11-23T20:00:00+02:00"
 # His week (24/11/2026): every completion closed this week; waves ready to study on Sunday, comm on Monday, and from
 # Tuesday 01/12 only new lectures. Each course is worked on until its deadline (or until nothing is left in it);
 # new uploads are processed whenever they come. After the last deadline: no focus (everything by the timetable).
-SCHEDULE = [("Java", "2026-11-24T23:59:00+02:00"), ("מיקרו", "2026-11-24T23:59:00+02:00"),           # Tue
+# 24/11 17:00: Gemini's daily quota ran out - Java and micro move to Wednesday with linear and random signals
+SCHEDULE = [("Java", "2026-11-25T23:59:00+02:00"), ("מיקרו", "2026-11-25T23:59:00+02:00"),           # Wed (was Tue)
             ("מעגלים לינאריים", "2026-11-25T23:59:00+02:00"), ("אותות אקראיים", "2026-11-25T23:59:00+02:00"),  # Wed
             ("VLSI", "2026-11-26T23:59:00+02:00"),                                                      # Thu
             ("גלים", "2026-11-28T23:59:00+02:00"),                                                      # Fri-Sat
