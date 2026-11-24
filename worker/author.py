@@ -362,6 +362,11 @@ BACKUPS = [("GROQ_API_KEY", "https://api.groq.com/openai/v1/chat/completions", "
            ("MISTRAL_API_KEY", "https://api.mistral.ai/v1/chat/completions", "mistral-small-latest")]
 
 
+def has_backups():
+    """A free text backup is configured (24/11/2026): the queue keeps working on text tasks when Gemini's quota is out."""
+    return any(os.environ.get(env) for env, _, _ in BACKUPS)
+
+
 def _text_only(parts):
     return all(getattr(p, "text", None) is not None for p in parts)
 

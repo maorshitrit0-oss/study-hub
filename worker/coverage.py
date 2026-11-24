@@ -381,12 +381,14 @@ def step(sb):
     # repairs he asked for that wait for Gemini (23/11/2026): run by the queue - the focus course's only
     jobs = [j for j in st.get("pending") or [] if _mine(st, j)]
     if jobs:
-        j = jobs[0]
-        finished, _ = run_job(sb, st, j)
-        if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify", "mathfix", "convert")):
-            st["pending"].remove(j)
-        save(sb, st)
-        return True
+        for j in jobs:
+            finished, what = run_job(sb, st, j)
+            if what is None:
+                continue
+            if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify", "mathfix", "convert")):
+                st["pending"].remove(j)
+            save(sb, st)
+            return True
     if MERGE_APPROVED:
         merge_units(sb)
     if drill(sb, st):
@@ -1150,13 +1152,19 @@ def pending_for_next_day(sb):
     if not jobs:
         return False
     plan_focus(sb)
-    mine = [j for j in jobs if _mine(st, j)]
-    if not mine:
+    if not quota_out():  # Gemini is back: the steps skipped for its quota may run again
+        for j in jobs:
+            j.pop("_skip", None)
+    for j in [j for j in jobs if _mine(st, j)]:
+        finished, what = run_job(sb, st, j)
+        if what is None:
+            continue  # this job waits for Gemini - the next one
+        if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify", "mathfix", "convert")):
+            st["pending"].remove(j)
+        break
+    else:
+        save(sb, st)
         return False
-    j = mine[0]
-    finished, what = run_job(sb, st, j)
-    if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify", "mathfix", "convert")):
-        st["pending"].remove(j)
     save(sb, st)
     progress_push(sb, what)
     return True
@@ -1250,40 +1258,45 @@ def board_check_course(sb, name):
         save(sb, st)
 
 
+GEMINI_ONLY = ("boards", "rewrite")
+
+
+def quota_out():
+    """Gemini's daily quota is marked as used up (queue state, set by the queue runner)."""
+    try:
+        import queue_runner
+        return queue_runner.quota_blocked(hub.db())
+    except Exception:  # noqa: BLE001
+        return False  # need images / long recordings: only Gemini can do them
+
+
 def run_job(sb, st, j):
-    """One step of a pending repair job; returns (finished, what was done)."""
-    if j.get("boards"):
-        board_check_course(sb, j["course"])
-        j.pop("boards")
-        return False, "כל בלוקי 'מה כתוב בלוח' נבדקו מול הצילומים"
-    if j.get("fix"):
-        fix_course(sb, j["course"])
-        j.pop("fix")
-        return False, "ההשלמות קוצרו וקיבלו שאלון ותרגילים חדשים"
-    if j.get("place"):
-        place_old_audits(sb, j["course"])
-        j.pop("place")
-        return False, "פרטים מההשוואה מול ההקלטה שולבו בתוך הפרקים"
-    if j.get("rewrite"):
-        rewrite_lesson(sb, j["rewrite"])
-        j.pop("rewrite")
-        return False, "פרק קצר נכתב מחדש"
-    if j.get("weeks"):
-        refresh_weeks(sb, j["course"], j["weeks"])
-        j.pop("weeks")
-        return False, "שאלונים ותרגילים של השבועות סודרו"
-    if j.get("convert"):
-        convert_exercises(sb, j["course"])
-        j.pop("convert")
-        return False, "התרגילים בפורמט המבחן (לחיצים אם המבחן אמריקאי), עם הנוסחה"
-    if j.get("mathfix"):
-        math_fix(sb, j["course"])
-        j.pop("mathfix")
-        return False, "נוסחאות שבורות תוקנו בכל הפרקים, השאלונים והתרגילים"
-    if j.get("verify"):
-        verify_exercises(sb, j["course"])
-        j.pop("verify")
-        return False, "הפתרונות של התרגילים נבדקו בפתרון מחדש"
+    """One step of a pending repair job; returns (finished, what was done). A step that needs Gemini when its quota is
+    out is skipped for now (kept in the job) and the text steps go on with the free backup (24/11/2026)."""
+    steps = [("boards", lambda: board_check_course(sb, j["course"]), "כל בלוקי 'מה כתוב בלוח' נבדקו מול הצילומים"),
+             ("fix", lambda: fix_course(sb, j["course"]), "ההשלמות קוצרו וקיבלו שאלון ותרגילים חדשים"),
+             ("place", lambda: place_old_audits(sb, j["course"]), "פרטים מההשוואה מול ההקלטה שולבו בתוך הפרקים"),
+             ("rewrite", lambda: rewrite_lesson(sb, j["rewrite"]), "פרק קצר נכתב מחדש"),
+             ("weeks", lambda: refresh_weeks(sb, j["course"], j["weeks"]), "שאלונים ותרגילים של השבועות סודרו"),
+             ("verify", lambda: verify_exercises(sb, j["course"]), "הפתרונות של התרגילים נבדקו בפתרון מחדש"),
+             ("mathfix", lambda: math_fix(sb, j["course"]), "נוסחאות שבורות תוקנו בכל הפרקים, השאלונים והתרגילים"),
+             ("convert", lambda: convert_exercises(sb, j["course"]), "התרגילים בפורמט המבחן (לחיצים אם המבחן אמריקאי), עם הנוסחה")]
+    skipped = set(j.get("_skip") or [])
+    for key, fn, what in steps:
+        if not j.get(key) or key in skipped:
+            continue
+        try:
+            fn()
+        except Exception as e:  # noqa: BLE001
+            if key in GEMINI_ONLY and author._is(e, "RESOURCE_EXHAUSTED", "429", "quota", "UNAVAILABLE", "503", "עמוסים", "המכסה"):
+                j["_skip"] = sorted(skipped | {key})  # after Gemini's reset (the skip list is cleared then)
+                print(f"::notice title=Repairs::{j['course']} {key}: waits for Gemini - the other steps go on", flush=True)
+                return False, ""
+            raise
+        j.pop(key)
+        return False, what
+    if any(j.get(k) for k in skipped):
+        return False, None  # only Gemini steps are left: nothing to do until its reset
     return True, ""
 
 

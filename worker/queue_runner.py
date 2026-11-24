@@ -285,7 +285,7 @@ def run():
         adopt_uploads(sb)
     except Exception as e:  # noqa: BLE001
         print(f"::warning title=Uploads::{str(e)[:200]}", flush=True)
-    if quota_blocked(sb):
+    if quota_blocked(sb) and not author.has_backups():
         # Gemini is out for today: lessons he is waiting for go to Claude (a few a day); fill-ins wait for the reset.
         for r, mode in candidates(sb):
             if r["status"] != "ready" and mode != "summary":

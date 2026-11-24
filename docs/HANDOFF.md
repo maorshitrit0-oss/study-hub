@@ -1141,6 +1141,10 @@ Goal: Claude only builds; ALL chapter writing by Gemini (free keys). No Claude-w
    as clickable multiple choice when exam_type=mcq, open otherwise, each solution with a "**הנוסחה:**" block for the
    📐 hint). Duplicates removed with his approval: Java fake lecture 6 + 35 copies of micro site weeks (import-site
    made a new lesson whenever the lecturer's page anchor moved - fixed: same page + week = same lesson).
+   24/11 FREE TEXT BACKUP: GROQ_API_KEY + MISTRAL_API_KEY (GitHub secrets, in every workflow). author._backup_json:
+   gpt-oss-120b / qwen3.8-27b on Groq (work, tested Hebrew + LaTeX), Mistral medium/small (free tier rate-limited).
+   Text-only Gemini calls fall back to them on busy/quota; the queue keeps running when Gemini's quota is out
+   (has_backups); pending steps that need Gemini (boards, rewrite) are skipped until its reset (_skip).
    Completions are a ONE-TIME catch-up (this week). New chapters must be full from the start: save_chapter ->
    full_from_start() rewrites a thin chapter part by part (coverage.write) before it is marked ready.
    He is at ~80% of his weekly Claude limit (23/11): Claude only checks quizzes of the course he studies next, on request.
