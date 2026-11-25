@@ -1,0 +1,25 @@
+# 25/11/2026: two nights in a row new lectures failed on a code bug (a name used before it was set). Every push of
+# the worker is checked for such bugs (undefined names, a local used before it is set) and for a clean import.
+name: check
+on:
+  push:
+    paths: ["worker/**", ".github/workflows/**"]
+permissions:
+  contents: read
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pyflakes
+      - name: Bugs a run would hit
+        working-directory: worker
+        run: |
+          out=$(python -m pyflakes *.py | grep -v -E "imported but unused|assigned to but never used|missing placeholders|redefinition of unused" || true)
+          if [ -n "$out" ]; then echo "$out"; exit 1; fi
+      - name: Workflows parse
+        run: python -c "import glob, yaml; [yaml.safe_load(open(f)) for f in glob.glob('.github/workflows/*.yml')]"

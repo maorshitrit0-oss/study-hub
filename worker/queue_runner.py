@@ -113,6 +113,12 @@ def candidates(sb):
     busy = [(r, "auto") for r in rows if r["status"] == "error" and ("עמוסים" in (r.get("error") or "") or "INTERNAL" in (r.get("error") or ""))
             and r["updated_at"] < (now - timedelta(minutes=10)).isoformat()
             and r["created_at"] > (now - timedelta(days=2)).isoformat()]
+    # 25/11/2026: a new lesson that failed on anything else (a code bug, a broken model answer) is tried again by
+    # itself an hour later - twice (23/11, 24/11) new lectures stayed failed on a bug that was already fixed.
+    known = {x[0]["id"] for x in quota + zoom + busy}
+    busy += [(r, "full") for r in rows if r["status"] == "error" and r["id"] not in known
+             and r["updated_at"] < (now - timedelta(hours=1)).isoformat()
+             and r["created_at"] > (now - timedelta(days=7)).isoformat()]
     # A lesson that already failed 3 times today waits for tomorrow (no hammering one lesson all day).
     st = state(sb)
     today = datetime.now(ZoneInfo("Asia/Jerusalem")).date().isoformat()
@@ -141,6 +147,19 @@ def candidates(sb):
 ENGINE_SINCE = "2026-11-08T17:20"
 
 
+def _focus_only(sb, rows, names):
+    """Videos of the focus courses only. The focus can name several courses ("Java|מיקרו|...") - 24-25/11 the whole
+    string was matched against each name, so with several courses in focus no video was made at all."""
+    try:
+        import coverage
+        f = None if coverage._CACHE.get("nofocus") else coverage.load(sb).get("focus")
+        if f:
+            return [r for r in rows if any(x in names.get(r["course_id"], "") for x in f.split("|"))]
+    except Exception:  # noqa: BLE001
+        pass
+    return rows
+
+
 def retry_studio(sb):
     """Podcasts / videos that stopped on the daily quota go again once Gemini is back (a few per run)."""
     import course_site
@@ -152,13 +171,7 @@ def retry_studio(sb):
         return
     # Only items that stopped on the quota (requested by him or for him); a video waits for the natural Gemini voice.
     rows = [r for r in rows if names.get(r["course_id"]) and r["kind"] == "video"]  # podcasts dropped 22/11/2026
-    try:  # one course at a time when he set a focus (23/11/2026)
-        import coverage
-        f = coverage.load(sb).get("focus")
-        if f:
-            rows = [r for r in rows if f in names.get(r["course_id"], "")]
-    except Exception:  # noqa: BLE001
-        pass
+    rows = _focus_only(sb, rows, names)
     # not when the same lessons already have a ready one of that kind from the current engine (made after it failed, or
     # after ENGINE_SINCE: the subtitled, synced video he approved 08/11/2026) - a duplicate would waste the voice quota
     redo = [r for r in rows if "נוסחאות שנחתכו" in (r.get("error") or "")]  # studio-redo: made again on purpose
@@ -178,13 +191,7 @@ def retry_studio(sb):
     except Exception:  # noqa: BLE001
         day = {}
     rows = sorted(stale + rows, key=lambda r: (r in redo, day.get(r["course_id"], 99), r["created_at"]))
-    try:
-        import coverage
-        f = coverage.load(sb).get("focus")
-        if f:
-            rows = [r for r in rows if f in names.get(r["course_id"], "")]
-    except Exception:  # noqa: BLE001
-        pass
+    rows = _focus_only(sb, rows, names)
     picks = [r for r in rows if any(w in (r.get("error") or "") for w in ("מכסה", "עמוסים"))]
     # 20/11/2026: he uploads a whole batch of lectures today - the video remakes wait until tomorrow morning, so all of
     # Gemini's quota goes to his lessons
@@ -294,10 +301,12 @@ def run():
         print("::notice title=Queue::Gemini quota used up earlier today - fill-ins wait for the reset", flush=True)
         return "quota"
     # his priority is by days (23/11/2026): repairs of the course he studies next come before new uploads of others
+    global REPAIRED
+    REPAIRED = 0
     try:
         import coverage
         while coverage.pending_for_next_day(sb):
-            pass
+            REPAIRED += 1
     except Exception as e:  # noqa: BLE001
         print(f"::warning title=Repairs::{author.friendly_error(e)[:300]}", flush=True)
         if is_quota(e):
@@ -379,7 +388,12 @@ def run():
     except Exception as e:  # noqa: BLE001
         print(f"::warning title=Ready alert::{str(e)[:300]}", flush=True)
     print(f"::notice title=Queue::{len(done)} done: {'; '.join(done)[:3000] or '-'}", flush=True)
+    global LAST_DONE
+    LAST_DONE = len(done) + REPAIRED
     return why
+
+
+LAST_DONE = REPAIRED = 0
 
 
 def waiting_work(sb):
@@ -405,8 +419,21 @@ def loop(hours=5.5):
     start the next queue.yml."""
     sb = hub.db()
     end = time.time() + hours * 3600
+    idle = 0
     while time.time() < end:
         why = run()
+        # 25/11/2026 (second night in a row with "0 done" for hours while repairs were left): two empty rounds with
+        # work still listed -> the day's focus is dropped for this run and every course's jobs and steps are tried
+        if why == "empty" and LAST_DONE == 0 and (repairs_left(sb) or waiting_work(sb)):
+            idle += 1
+        else:
+            idle = 0
+        if idle >= 2:
+            import coverage
+            if not coverage._CACHE.get("nofocus"):
+                print("::notice title=Queue::nothing done twice with work left - every course is worked on now", flush=True)
+            coverage._CACHE["nofocus"] = True
+            coverage._CACHE.pop("skips_cleared", None)
         if why == "empty" and not waiting_work(sb) and not repairs_left(sb):
             print("::notice title=Queue::nothing left that he is waiting for", flush=True)
             return

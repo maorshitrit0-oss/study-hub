@@ -349,7 +349,7 @@ def _with_gemini(call):
                         continue
                     if busy:
                         busy_seen = e
-                    if busy or _is(e, "RESOURCE_EXHAUSTED", "429", "quota", "NOT_FOUND", "404", "not supported"):
+                    if busy or _is(e, "RESOURCE_EXHAUSTED", "429", "quota", "NOT_FOUND", "404", "not supported", "BADJSON"):
                         print(f"::notice title=Gemini {model}::{str(e)[:200]} -> next model".replace("\n", " "), flush=True)
                         break
                     raise
@@ -432,16 +432,21 @@ def _generate_json(parts, system, schema, thinking="MEDIUM"):
             return client.models.generate_content(model=model, contents=[types.Content(role="user", parts=contents)],
                                                   config=types.GenerateContentConfig(**cfg))
         try:
-            return run(True, True)
+            resp = run(True, True)
         except Exception as e:  # noqa: BLE001
             if _is(e, "thinking"):
-                return run(False, True)
-            if _is(e, "INVALID_ARGUMENT"):
-                return run(False, False)
-            raise
+                resp = run(False, True)
+            elif _is(e, "INVALID_ARGUMENT"):
+                resp = run(False, False)
+            else:
+                raise
+        try:
+            return _parse_answer(resp.text)
+        except (json.JSONDecodeError, ValueError) as e:  # empty / cut / broken answer: the next model, not a crash
+            raise RuntimeError(f"BADJSON {model}: {str(e)[:100]}") from e
 
     try:
-        resp = _with_gemini(call)
+        return _with_gemini(call)
     except Exception as e:  # noqa: BLE001
         # Gemini busy / out of quota: a text-only task goes to GitHub Models (free with the repo's token, 24/11/2026)
         if not (_is(e, "UNAVAILABLE", "503", "overloaded", "high demand", "RESOURCE_EXHAUSTED", "429", "quota", "עמוסים", "המכסה")
@@ -451,7 +456,13 @@ def _generate_json(parts, system, schema, thinking="MEDIUM"):
         if out is None:
             raise
         return out
-    text = (resp.text or "").strip()
+
+
+
+def _parse_answer(text):
+    text = (text or "").strip()
+    if not text:
+        raise ValueError("empty answer")
     if text.startswith("```"):
         text = text.strip("`").removeprefix("json").strip()
     try:

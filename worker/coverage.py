@@ -338,7 +338,7 @@ def focused(st, courses):
     """He decides the order (23/11/2026: "מעגלים ספרתיים ... אני אאשר לך" the next one): with st["focus"] set, only
     that course is worked on - text, quizzes and videos - until he approves the next."""
     courses = {k: c for k, c in courses.items() if not SKIP_COURSES.search(c["name"] or "")}
-    f = st.get("focus")
+    f = None if _CACHE.get("nofocus") else st.get("focus")  # the queue found nothing to do with the focus (25/11)
     return {k: c for k, c in courses.items() if any(x in (c["name"] or "") for x in f.split("|"))} if f else courses
 
 
@@ -534,8 +534,9 @@ def video_now(sb, l):
     title = l.get("title") or ""
     if l.get("kind") in ("practice", "lab") or title.startswith("🔁 השלמה לתרגול"):
         return
-    f = load(sb).get("focus")
-    if f and not any(f in (c["name"] or "") for c in sb.table("courses").select("name").eq("id", l["course_id"]).execute().data):
+    f = None if _CACHE.get("nofocus") else load(sb).get("focus")  # several courses: "A|B" (the whole string matched none)
+    if f and not any(x in (c["name"] or "") for x in f.split("|")
+                     for c in sb.table("courses").select("name").eq("id", l["course_id"]).execute().data):
         return  # videos only for the course he is on now (comm videos stopped at his request 23/11/2026)
     sb.table("lesson_media").delete().contains("lesson_ids", [l["id"]]).execute()
     row = sb.table("lesson_media").insert({"user_id": l["user_id"], "course_id": l["course_id"], "kind": "video",
@@ -692,7 +693,7 @@ def drill(sb, st):
     """One completion lesson without its quiz/exercises: a hand-written file in chapters/drills, else Gemini."""
     st.setdefault("drill", {})
     more = st.get("drill_more") or {}
-    if more and st.get("focus"):  # only the focused course's
+    if more and st.get("focus") and not _CACHE.get("nofocus"):  # only the focused course's
         ok = {c["id"] for c in focused(st, {c["id"]: c for c in sb.table("courses").select("id, name").execute().data}).values()}
         ids = {l["id"] for l in sb.table("lessons").select("id, course_id").in_("id", list(more)).execute().data if l["course_id"] in ok}
         more = {k: v for k, v in more.items() if k in ids}
@@ -1145,7 +1146,7 @@ def progress_push(sb, what):
 
 
 def _mine(st, j):
-    f = st.get("focus") or ""
+    f = "" if _CACHE.get("nofocus") else (st.get("focus") or "")
     if not f:  # no focus (after the week's schedule): every pending repair may run
         return True
     if "|" in f:
@@ -1161,8 +1162,9 @@ def pending_for_next_day(sb):
     if not jobs:
         return False
     plan_focus(sb)
-    if not _CACHE.get("skips_cleared"):  # once per queue run: steps skipped for Gemini's quota are tried again
-        _CACHE["skips_cleared"] = True    # (other models / Gemma may answer now - 24/11/2026)
+    import time as _t  # every hour (was once per run - the quota reset inside a run went unnoticed, 25/11/2026):
+    if _t.time() - (_CACHE.get("skips_cleared") or 0) > 3600:  # steps skipped for Gemini's quota are tried again
+        _CACHE["skips_cleared"] = _t.time()                     # (other models / Gemma may answer now)
         for j in jobs:
             j.pop("_skip", None)
     mine = [j for j in jobs if _mine(st, j)]

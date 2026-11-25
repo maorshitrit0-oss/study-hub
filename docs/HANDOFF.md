@@ -1184,3 +1184,14 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
   completion; a new upload gets only the normal flow (transcript, full chapter, self-check vs recording, boards,
   video, quiz for lectures, exercises in the exam format). The existing course is only checked (audits, math, boards).
 - From Fri 27/11 he uploads every new lecture / practice of all courses (waves etc.) and does not deal with the system.
+
+## 25/11/2026 - why the queue did nothing for two nights, and what now prevents it
+- The focus can name several courses ("Java|מיקרו|..."), but retry_studio and video_now matched the WHOLE string
+  against each course name -> no video was retried or made at all. Now split on "|" (queue_runner._focus_only).
+- Two empty rounds in a row while work is still listed -> the queue drops the focus for the rest of the run and works
+  on every course (coverage._CACHE["nofocus"]). Steps skipped for Gemini's quota are retried every hour (not once a run).
+- A new lesson (< 7 days) that failed on anything not already handled (a code bug, a broken answer) is retried by the
+  queue an hour later, up to 3 times a day. author._generate_json: an empty / broken answer goes to the next model
+  ("BADJSON") instead of failing the lesson (comm lecture 6 failed on "Expecting value" 25/11).
+- .github/workflows/check.yml: every worker push runs pyflakes (undefined names, used-before-set). Run
+  `python -m pyflakes *.py` in worker/ before every commit.
