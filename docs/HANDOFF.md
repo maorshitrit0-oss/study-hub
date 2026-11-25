@@ -1175,3 +1175,5 @@ Gemini: 3 keys only help if in SEPARATE Google projects (asked him). His Gemini 
 job does (videos waiting for Gemini) while the other courses' jobs were not "mine". Now pending_for_next_day runs the
 focus jobs first and then the rest by SCHEDULE deadline. Read-only status: publish inspect=coverage-status (what is
 missing per course + the repair jobs left).
+Also 25/11: missing_for() counted completions with an empty state (no v2 / audited), so every finished course showed
+"N השלמות בכתיבה" for ever - the focus never moved on and no "✅ מוכן" push could come. Now it uses the real state.

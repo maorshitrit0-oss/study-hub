@@ -787,7 +787,9 @@ def missing_for(sb, course, st):
     busy = [l for l in ls if l["status"] in ("queued", "processing", "transcribed", "error")]
     if busy:
         out.append(f"{len(busy)} שיעורים בעיבוד")
-    cov = [j for j in todo(sb, {"done": st.get("done", {})}) if j[1]["id"] == course["id"]]
+    # 25/11: with the real state (v2 / audited) - an empty one counted every lesson again ("8 completions" on a
+    # finished course), so the focus never moved on; focus None = every course is looked at
+    cov = [j for j in todo(sb, {**st, "focus": None}) if j[1]["id"] == course["id"]]
     if cov:
         out.append(f"{len(cov)} השלמות בכתיבה")
     if any(course["name"] and j.get("course") and j["course"] in course["name"] for j in st.get("pending") or []):
@@ -1559,7 +1561,7 @@ if __name__ == "__main__":
                       f"{(r.get('error') or '')[:150]} | {(r.get('progress') or '')[:80]}", flush=True)
         for l in s.table("lessons").select("id, kind, number, title, status, error, updated_at").in_(
                 "status", ["queued", "processing", "transcribed", "error"]).execute().data:
-            print(f"::notice title=Busy lesson::{l['id'][:8]} {l['kind']} {l.get('number')} {(l.get('title') or '')[:30]} "
+            print(f"::notice title=Busy lesson::{l['id']} {l['kind']} {l.get('number')} {(l.get('title') or '')[:30]} "
                   f"{l['status']} {l['updated_at'][:16]} {(l.get('error') or '')[:120]}", flush=True)
         for j in st.get("pending") or []:
             print(f"::notice title=Pending::{j.get('course')}: {', '.join(k for k in j if not k.startswith('_') and k != 'course')}"
