@@ -1156,7 +1156,13 @@ def pending_for_next_day(sb):
         _CACHE["skips_cleared"] = True    # (other models / Gemma may answer now - 24/11/2026)
         for j in jobs:
             j.pop("_skip", None)
-    for j in [j for j in jobs if _mine(st, j)]:
+    mine = [j for j in jobs if _mine(st, j)]
+    # 25/11: the focus course can still "miss" things no repair job does (a video waiting for Gemini) - then the
+    # queue sat idle all night. Nothing of the focus left to repair -> the next courses' jobs, by their deadline.
+    order = {n: i for i, (n, _) in enumerate(SCHEDULE)}
+    rest = sorted([j for j in jobs if j not in mine],
+                  key=lambda j: min([i for n, i in order.items() if n in j["course"] or j["course"] in n] or [99]))
+    for j in mine + rest:
         finished, what = run_job(sb, st, j)
         if what is None:
             continue  # this job waits for Gemini - the next one
@@ -1538,6 +1544,17 @@ if __name__ == "__main__":
     elif "--trim" in sys.argv:  # completions without what he already read / solved (23/11/2026)
         arg = sys.argv[sys.argv.index("--trim") + 1]  # "<course>" or "<course>|הרצאה 2,הרצאה 3"
         trim_course(s, *arg.split("|", 1))
+    elif "--status" in sys.argv:  # 25/11: what is still missing per course + the repair jobs left (read only)
+        st = load(s)
+        cs = s.table("courses").select("id, name").execute().data
+        for name, until in SCHEDULE:
+            c = [x for x in cs if name in (x["name"] or "")]
+            if c:
+                print(f"::notice title=Status::{name} ({until[:10]}): {'; '.join(missing_for(s, c[0], st)) or 'ready'}", flush=True)
+        print(f"::notice title=Status::focus = {st.get('focus')}", flush=True)
+        for j in st.get("pending") or []:
+            print(f"::notice title=Pending::{j.get('course')}: {', '.join(k for k in j if not k.startswith('_') and k != 'course')}"
+                  f"{' (skip ' + ','.join(j['_skip']) + ')' if j.get('_skip') else ''}", flush=True)
     elif "--focus" in sys.argv:  # --focus "<part of a course name>" | --focus "" (all)
         st = load(s)
         st["focus"] = sys.argv[sys.argv.index("--focus") + 1] or None

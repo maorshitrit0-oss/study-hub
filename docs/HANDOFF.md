@@ -1170,3 +1170,8 @@ Gemini: 3 keys only help if in SEPARATE Google projects (asked him). His Gemini 
   and what (if any) SQL to run, in Hebrew, without jargon.
 - Start a new Claude Code session per bigger task (e.g. each semester) so the conversation context stays small;
   this file and `CLAUDE.md` carry the knowledge between sessions.
+
+25/11/2026: the queue sat idle 21:27-02:52 ("0 done" every 12 min): the focus course still "missed" something no repair
+job does (videos waiting for Gemini) while the other courses' jobs were not "mine". Now pending_for_next_day runs the
+focus jobs first and then the rest by SCHEDULE deadline. Read-only status: publish inspect=coverage-status (what is
+missing per course + the repair jobs left).
