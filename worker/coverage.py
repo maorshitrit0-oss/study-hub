@@ -342,6 +342,17 @@ def focused(st, courses):
     return {k: c for k, c in courses.items() if any(x in (c["name"] or "") for x in f.split("|"))} if f else courses
 
 
+# His rule 25/11/2026: completions were a ONE-TIME catch-up for what he had already read. They are all finished on
+# Wed 25/11; from then on no new completion is ever made - a new upload gets the normal flow (transcript, full chapter,
+# self-check against the recording, boards, video, quiz, exercises) and the rest of the course is only checked.
+COMPLETIONS_UNTIL = "2026-11-26T00:00:00+02:00"
+
+
+def completions_over():
+    from datetime import timezone
+    return datetime.now(timezone.utc) >= datetime.fromisoformat(COMPLETIONS_UNTIL)
+
+
 def todo(sb, st):
     """(lesson, course, target) in the order he needs them; target None = rewrite the lesson itself."""
     courses = focused(st, {c["id"]: c for c in sb.table("courses").select("id, name").eq("archived", False).execute().data})
@@ -364,7 +375,7 @@ def todo(sb, st):
             if not st.setdefault("v2", {}).get(l["id"]) and thin(l):
                 if not l.get("read_at"):
                     out.append((l, courses[cid], None))
-                elif nxt:  # nothing unread after it yet: waits for his next upload
+                elif nxt and not completions_over():  # nothing unread after it yet: waits for his next upload
                     out.append((l, courses[cid], nxt))
             elif not l.get("read_at") and not st.setdefault("audited", {}).get(l["id"]) and len(l.get("transcript") or "") > 10000:
                 out.append((l, courses[cid], "audit"))  # every unread lesson: compared with its recording (23/11/2026)
@@ -1081,12 +1092,8 @@ PLAN_START = "2026-11-23T20:00:00+02:00"
 # Tuesday 01/12 only new lectures. Each course is worked on until its deadline (or until nothing is left in it);
 # new uploads are processed whenever they come. After the last deadline: no focus (everything by the timetable).
 # 24/11 17:00: Gemini's daily quota ran out - Java and micro move to Wednesday with linear and random signals
-SCHEDULE = [("Java", "2026-11-25T23:59:00+02:00"), ("מיקרו", "2026-11-25T23:59:00+02:00"),           # Wed (was Tue)
-            ("מעגלים לינאריים", "2026-11-25T23:59:00+02:00"), ("אותות אקראיים", "2026-11-25T23:59:00+02:00"),  # Wed
-            ("VLSI", "2026-11-26T23:59:00+02:00"),                                                      # Thu
-            ("גלים", "2026-11-28T23:59:00+02:00"),                                                      # Fri-Sat
-            ("מבוא למערכות תקשורת", "2026-11-29T23:59:00+02:00"),                                       # Sun
-            ("מעגלים ספרתיים", "2026-11-30T23:59:00+02:00")]                                            # Mon
+SCHEDULE = [(n, "2026-11-25T23:59:00+02:00") for n in (  # 25/11 morning, his request: EVERY course is finished today
+    "Java", "מיקרו", "מעגלים לינאריים", "אותות אקראיים", "VLSI", "גלים", "מבוא למערכות תקשורת", "מעגלים ספרתיים")]
 
 
 def plan_focus(sb):

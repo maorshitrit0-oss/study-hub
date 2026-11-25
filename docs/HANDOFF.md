@@ -1177,3 +1177,10 @@ focus jobs first and then the rest by SCHEDULE deadline. Read-only status: publi
 missing per course + the repair jobs left).
 Also 25/11: missing_for() counted completions with an empty state (no v2 / audited), so every finished course showed
 "N השלמות בכתיבה" for ever - the focus never moved on and no "✅ מוכן" push could come. Now it uses the real state.
+
+## 25/11/2026 morning - HIS DECISION: everything finished today, no completions ever again
+- Every course is finished on Wed 25/11 (coverage.SCHEDULE: all 8 courses due 25/11 23:59 -> one focus = all courses).
+- Completions were a one-time catch-up. coverage.COMPLETIONS_UNTIL = 26/11 00:00: after it todo() makes no new
+  completion; a new upload gets only the normal flow (transcript, full chapter, self-check vs recording, boards,
+  video, quiz for lectures, exercises in the exam format). The existing course is only checked (audits, math, boards).
+- From Fri 27/11 he uploads every new lecture / practice of all courses (waves etc.) and does not deal with the system.
