@@ -1552,6 +1552,15 @@ if __name__ == "__main__":
             if c:
                 print(f"::notice title=Status::{name} ({until[:10]}): {'; '.join(missing_for(s, c[0], st)) or 'ready'}", flush=True)
         print(f"::notice title=Status::focus = {st.get('focus')}", flush=True)
+        import queue_runner
+        for r, mode in queue_runner.candidates(s):
+            if r["status"] != "ready":
+                print(f"::notice title=Waiting lesson::{r['id']} {r['kind']} {r['status']} {mode} upd={r['updated_at'][:16]} "
+                      f"{(r.get('error') or '')[:150]} | {(r.get('progress') or '')[:80]}", flush=True)
+        for l in s.table("lessons").select("id, kind, number, title, status, error, updated_at").in_(
+                "status", ["queued", "processing", "transcribed", "error"]).execute().data:
+            print(f"::notice title=Busy lesson::{l['id'][:8]} {l['kind']} {l.get('number')} {(l.get('title') or '')[:30]} "
+                  f"{l['status']} {l['updated_at'][:16]} {(l.get('error') or '')[:120]}", flush=True)
         for j in st.get("pending") or []:
             print(f"::notice title=Pending::{j.get('course')}: {', '.join(k for k in j if not k.startswith('_') and k != 'course')}"
                   f"{' (skip ' + ','.join(j['_skip']) + ')' if j.get('_skip') else ''}", flush=True)
