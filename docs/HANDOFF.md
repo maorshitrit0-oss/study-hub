@@ -1249,3 +1249,32 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
   pages; lecture 1 +8.3k chars, 2/3/4 +1.5-2k). The course page shows the rest (later weeks, exam solutions, last
   year's comparisons) only in a closed "🗄️ ארכיון" at the bottom; no more "read last year's week" tasks (week.ts).
 - Comm lecture 6 (ba744d66): a Zoom mp4 he uploaded in the app on Mon 23/11 18:55 (the comm lecture day); content SSB+AM.
+- 27/11 afternoon (his long list of remarks, rules now in CLAUDE.md "His rules ... 27/11/2026"):
+  - Wrong merges undone (coverage --unmerge, backups chapter_before_unmerge.md): comm practice 4 split, 9273bdac =
+    practice 6 (23/11 Zoom link), ba744d66 "lecture 6" (file copy of practice 6) dropped, its 4 exercises moved;
+    linear 79fa5fb1 = practice 5 (BJT DC), 6c533aec = practice 6, duplicate ddfedb68 dropped; Java 6ac3336f =
+    practice 3, f0ef8d5b = practice 4, duplicate 1bf67d9e dropped (Java practice 6 missing - he may upload it);
+    digital 0cba36d8 (fragment of practice 6) dropped, 2 exercises to 0ad4586a; micro lecture 3 uploaded twice:
+    22d7530f stays, 29fa7bd7 dropped (3 exercises moved). Digital practices 1-5 are Claude-written from course
+    files (no recording, so no link).
+  - Completions (🔁) merged into their lectures (coverage --completions all; COMPLETE prompt adds only what is
+    missing, placed per topic; backup chapter_before_completion.md; completion hidden as 📦): linear L1/L2, digital
+    L1-3, waves L2-4 (L3 +28k, L4 +16k: the lectures had been thin), comm L1-3, micro L1.
+  - 81 podcasts deleted (studio-list drop=podcasts); studio-new refuses podcasts unless PODCAST_OK. Course chat tab
+    removed (chat page only redirects).
+  - Formulas: \text{\pi} (KaTeX shows it red without an error class) fixed everywhere (coverage --textsym,
+    author.fix_text_symbols, web fixTextSymbols); indented lines no longer become "code" (web noIndentedCode).
+    web/site-check.mjs reports both.
+  - Quiz rule 10-12 per lecture, none on a practice: coverage --quizfix (requiz). BUG 27/11: it deleted unanswered
+    questions and then failed on lesson user_id (not selected) - re-run after the fix regenerates them; question
+    counts now paginated (a course can have > 1000 questions; the first page miscounted random-signals lectures).
+  - BUG 27/11: coverage --codefix ran on every course and turned formulas into ```c blocks in 12 exercises of
+    waves / linear / digital / random. Restored (waves from the morning dump, the others by Claude:
+    chapters/fix_2711_*_code.json; linear 8a29b40a feedback triple fully solved: R_F=900, Aβ=31.3, A_f=9.69, 933Ω).
+    codefix now runs only on Java / micro / VLSI. Waves MATLAB parts of exam questions are real (kept).
+  - coverage --thin <course|all> [dry]: a lecture/practice whose chapter is < 20% of its transcript is written again
+    in full (rewrite_lesson), then quiz + exercises. --thinex: lessons with a long chapter and < 3 exercises.
+  - Gemini quota: running 7 jobs in parallel exhausts the free quota (429 -> next model); run heavy jobs one by one.
+  - Still open: digital 4f89cd01 (depletion-load inverter) and ~75 other exercises whose solution has no numbers
+    (linear 35, random 22, digital 12, waves 7 by a rough check) - to be solved properly; micro "mixed" exam balance
+    (half MCQ / half open) not implemented; waves 4-page formula sheet (docs.py) not built yet.
