@@ -1670,9 +1670,17 @@ if __name__ == "__main__":
     elif "--unverified" in sys.argv:  # 27/11: the multiple-choice answers re-solving disagreed with, for Claude to settle
         import json as _j
         for x in s.table("courses").select("id, name").eq("archived", False).execute().data:
-            for e in s.table("exercises").select("id, title, question_md, solution_md").eq("course_id", x["id"]).execute().data:
+            for e in s.table("exercises").select("id, title, question_md, solution_md, source, lesson_id, material_id, uncertain, done_at") \
+                    .eq("course_id", x["id"]).execute().data:
                 if "⚠️ הפתרון לא אומת" in (e.get("solution_md") or ""):
                     print("@@EX " + _j.dumps({"course": x["name"], **e}, ensure_ascii=False), flush=True)
+        for lid in [a for a in sys.argv[sys.argv.index("--unverified") + 1:] if len(a) == 36]:  # the lessons' chapters too
+            l = s.table("lessons").select("id, title, kind, number, chapter_md").eq("id", lid).execute().data
+            for ln in ((l[0]["chapter_md"] or "") if l else "").splitlines():
+                print("@@MD " + lid[:8] + " " + ln, flush=True)
+        for mid in [a[4:] for a in sys.argv if a.startswith("mat:")]:  # a material's title + path
+            print("@@MAT " + _j.dumps(s.table("materials").select("id, title, kind, storage_path").eq("id", mid).execute().data,
+                                      ensure_ascii=False), flush=True)
     elif "--status" in sys.argv:  # 25/11: what is still missing per course + the repair jobs left (read only)
         st = load(s)
         cs = s.table("courses").select("id, name").execute().data
