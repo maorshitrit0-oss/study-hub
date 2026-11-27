@@ -73,6 +73,18 @@ SCHEMA = {"type": "object", "properties": {
 _CACHE = {}
 
 
+def name_match(key, full):
+    """A course name given by part ("גלים", "Java") matches only at the start of a word of the full name - 27/11/2026:
+    "גלים" (waves) matched inside "מעגלים" (linear / digital circuits), so the waves jobs worked on another course."""
+    key, full = (key or "").strip(), (full or "")
+    return bool(key) and bool(re.search(r"(?:^|[\s(\-–,·])" + re.escape(key), full, re.I))
+
+
+def same_course(a, b):
+    """Two course names (either may be a part of the other) name the same course."""
+    return name_match(a, b) or name_match(b, a)
+
+
 def load(sb):
     """The state, read once per process: storage downloads can be served stale (22/11/2026 the first run read an old
     copy between steps and wrote lecture 3's completions twice)."""
@@ -305,7 +317,7 @@ def unfold_audit(md):
 def place_old_audits(sb, name):
     """Chapters that still have the "🧩" section: its pieces go into their topics (once per lesson)."""
     from google.genai import types
-    c = [x for x in sb.table("courses").select("id, name").execute().data if name in (x["name"] or "")][0]
+    c = [x for x in sb.table("courses").select("id, name").execute().data if name_match(name, x["name"])][0]
     for l in sb.table("lessons").select("id, user_id, title, kind, number, chapter_md").eq("course_id", c["id"]).execute().data:
         md = l.get("chapter_md") or ""
         if AUDIT_HEAD not in md:
@@ -360,7 +372,7 @@ def focused(st, courses):
     that course is worked on - text, quizzes and videos - until he approves the next."""
     courses = {k: c for k, c in courses.items() if not SKIP_COURSES.search(c["name"] or "")}
     f = None if _CACHE.get("nofocus") else st.get("focus")  # the queue found nothing to do with the focus (25/11)
-    return {k: c for k, c in courses.items() if any(x in (c["name"] or "") for x in f.split("|"))} if f else courses
+    return {k: c for k, c in courses.items() if any(name_match(x, c["name"]) for x in f.split("|"))} if f else courses
 
 
 # His rule 25/11/2026: completions were a ONE-TIME catch-up for what he had already read. They are all finished on
@@ -556,7 +568,7 @@ def video_now(sb, l):
     if l.get("kind") in ("practice", "lab") or title.startswith("🔁 השלמה לתרגול"):
         return
     f = None if (_CACHE.get("nofocus") or _CACHE.get("nofocus_video")) else load(sb).get("focus")  # "A|B" = several courses
-    if f and not any(x in (c["name"] or "") for x in f.split("|")
+    if f and not any(name_match(x, c["name"]) for x in f.split("|")
                      for c in sb.table("courses").select("name").eq("id", l["course_id"]).execute().data):
         return  # videos only for the course he is on now (comm videos stopped at his request 23/11/2026)
     sb.table("lesson_media").delete().contains("lesson_ids", [l["id"]]).execute()
@@ -747,7 +759,7 @@ def drill(sb, st):
     hand = None
     for f in sorted(DRILLS.glob("*.json")) if DRILLS.exists() else []:
         d = json.loads(f.read_text(encoding="utf-8"))
-        if d["title"] == l["title"] and d["course"] in courses[l["course_id"]]["name"]:
+        if d["title"] == l["title"] and name_match(d["course"], courses[l["course_id"]]["name"]):
             hand = d
     if hand:
         put_drill(sb, l, hand["questions"], hand["exercises"], False)
@@ -827,7 +839,7 @@ def missing_for(sb, course, st):
     cov = [j for j in todo(sb, {**st, "focus": None}) if j[1]["id"] == course["id"]]
     if cov:
         out.append(f"{len(cov)} השלמות בכתיבה")
-    if any(course["name"] and j.get("course") and j["course"] in course["name"] for j in st.get("pending") or []):
+    if any(course["name"] and j.get("course") and same_course(j["course"], course["name"]) for j in st.get("pending") or []):
         out.append("תיקוני שאלונים, השלמות ותרגילים")
     units = [l for l in ls if l["kind"] == "other" and (l.get("title") or "").startswith("🔁 השלמה")]
     nodrill = [u for u in units if u["id"] not in st.get("drill", {})]
@@ -954,7 +966,7 @@ def trim(sb, unit):
 
 
 def trim_course(sb, name, only=""):
-    ids = [c["id"] for c in sb.table("courses").select("id, name").execute().data if name in (c["name"] or "")]
+    ids = [c["id"] for c in sb.table("courses").select("id, name").execute().data if name_match(name, c["name"])]
     for u in (sb.table("lessons").select("id, user_id, course_id, title, chapter_md").in_("course_id", ids).eq("kind", "other")
               .like("title", "🔁 השלמה%").execute().data):
         if only and not any(u["title"] == f"🔁 השלמה ל{x.strip()}" for x in only.split(",")):
@@ -1018,7 +1030,7 @@ def fix_course(sb, name, tries=4):
     read/solved (tried again until a trim passes the guards); a new quiz + exercises on what is left, never repeating a
     solved exercise; questions not about the completion removed."""
     merge_units(sb)
-    ids = [c["id"] for c in sb.table("courses").select("id, name").execute().data if name in (c["name"] or "")]
+    ids = [c["id"] for c in sb.table("courses").select("id, name").execute().data if name_match(name, c["name"])]
     st = load(sb)
     done = st.setdefault("trimmed", {})
     for u in (sb.table("lessons").select("id, user_id, course_id, title, chapter_md").in_("course_id", ids).eq("kind", "other")
@@ -1130,7 +1142,7 @@ def rewrite_lesson(sb, lid, part_sec=1200):
 def refresh_weeks(sb, name, weeks):
     """Weeks whose lessons changed (rewritten / audited): quiz per lecture, exercises read again, the week's set rebuilt."""
     import weekset
-    c = [x for x in sb.table("courses").select("id, name, user_id, exam_type").execute().data if name in (x["name"] or "")][0]
+    c = [x for x in sb.table("courses").select("id, name, user_id, exam_type").execute().data if name_match(name, x["name"])][0]
     for l in (sb.table("lessons").select("id, user_id, course_id, kind, number, title, topics, chapter_md, transcript, read_at")
               .eq("course_id", c["id"]).in_("number", weeks).in_("kind", ["lecture", "practice"]).execute().data):
         if (l.get("title") or "").startswith("📦"):
@@ -1173,7 +1185,7 @@ def plan_focus(sb):
     for name, until in SCHEDULE:
         if now >= datetime.fromisoformat(until):
             continue
-        c = [x for x in courses if name in (x["name"] or "")]
+        c = [x for x in courses if name_match(name, x["name"])]
         if c and missing_for(sb, c[0], st):
             live.append((name, datetime.fromisoformat(until).date()))
     # every course due the same day as the first one is worked on together (24/11/2026: digital, Java, micro today)
@@ -1183,10 +1195,10 @@ def plan_focus(sb):
     if prev and prev != focus:
         try:  # he hears where things stand (23/11/2026)
             import notify
-            c = [x for x in courses if prev in (x["name"] or "")]
+            c = [x for x in courses if name_match(prev, x["name"])]
             if c:
                 left = missing_for(sb, c[0], st)
-                nxt = next((x["name"] for x in courses if focus and focus in (x["name"] or "")), "רק הרצאות חדשות")
+                nxt = next((x["name"] for x in courses if focus and name_match(focus.split("|")[0], x["name"])), "רק הרצאות חדשות")
                 notify.send(sb, c[0]["user_id"], f"{'⏭️' if left else '✅'} {c[0]['name']}: {'הזמן נגמר' if left else 'מוכן'}",
                             (f"נשאר: {', '.join(left)}. " if left else "") + f"עכשיו: {nxt}")
         except Exception as e:  # noqa: BLE001
@@ -1204,7 +1216,7 @@ def progress_push(sb, what, course=""):
         import notify
         st = load(sb)
         for c in sb.table("courses").select("id, name, user_id").execute().data:
-            if course in (c["name"] or "") or (c["name"] or "") in course:
+            if same_course(course, c["name"]):
                 left = missing_for(sb, c, st)
                 notify.send(sb, c["user_id"], f"🔧 {c['name']}: {what}", ("נשאר: " + ", ".join(left)) if left else "הקורס מוכן")
                 break
@@ -1217,8 +1229,8 @@ def _mine(st, j):
     if not f:  # no focus (after the week's schedule): every pending repair may run
         return True
     if "|" in f:
-        return any(x in j["course"] or j["course"] in x for x in f.split("|"))
-    return bool(f) and (f in j["course"] or j["course"] in f)
+        return any(same_course(x, j["course"]) for x in f.split("|"))
+    return bool(f) and same_course(f, j["course"])
 
 
 def pending_for_next_day(sb):
@@ -1239,7 +1251,7 @@ def pending_for_next_day(sb):
     # queue sat idle all night. Nothing of the focus left to repair -> the next courses' jobs, by their deadline.
     order = {n: i for i, (n, _) in enumerate(SCHEDULE)}
     rest = sorted([j for j in jobs if j not in mine],
-                  key=lambda j: min([i for n, i in order.items() if n in j["course"] or j["course"] in n] or [99]))
+                  key=lambda j: min([i for n, i in order.items() if same_course(n, j["course"])] or [99]))
     for j in mine + rest:
         finished, what = run_job(sb, st, j)
         if what is None:
@@ -1259,7 +1271,7 @@ def trim_quiz(sb, name, keep=15):
     """Without Gemini (plan B, 23/11/2026): a lecture keeps the quiz written with its chapter (the first batch) plus
     whatever he answered, up to `keep`; the questions piled up by rewrites / audits go. A practice keeps only answered
     ones (no quiz on practices). Gemini's requiz replaces this later when it can."""
-    c = [x for x in sb.table("courses").select("id, name").execute().data if name in (x["name"] or "")][0]
+    c = [x for x in sb.table("courses").select("id, name").execute().data if name_match(name, x["name"])][0]
     for l in sb.table("lessons").select("id, kind, number, title").eq("course_id", c["id"]).in_("kind", ["lecture", "practice"]).execute().data:
         qs = sb.table("questions").select("id, created_at").eq("lesson_id", l["id"]).order("created_at").execute().data
         if not qs:
@@ -1333,7 +1345,7 @@ def board_check(sb, l):
 def board_check_course(sb, name):
     st = load(sb)
     done = st.setdefault("boards_checked", {})
-    c = [x for x in sb.table("courses").select("id, name").execute().data if name in (x["name"] or "")][0]
+    c = [x for x in sb.table("courses").select("id, name").execute().data if name_match(name, x["name"])][0]
     for l in (sb.table("lessons").select("id, user_id, course_id, kind, number, title, chapter_md").eq("course_id", c["id"])
               .eq("status", "ready").execute().data):
         if done.get(l["id"]) or (l.get("title") or "").startswith("📦"):
@@ -1411,7 +1423,7 @@ def verify_exercises(sb, name):
     """His rule 24/11/2026: an exercise Gemini wrote is checked by solving it again independently. A multiple-choice
     exercise whose stated answer differs from the second solution is marked uncertain and gets a visible warning."""
     from google.genai import types
-    c = [x for x in sb.table("courses").select("id, name").execute().data if name in (x["name"] or "")][0]
+    c = [x for x in sb.table("courses").select("id, name").execute().data if name_match(name, x["name"])][0]
     rows = [x for x in sb.table("exercises").select("id, question_md, solution_md, uncertain, done_at").eq("course_id", c["id"])
             .execute().data if re.search(r"(?m)^\s*(\*\*)?\(?[א][.)]|אפשרויות\s*:?\s*\(?א[.)]", x["question_md"] or "")]
     stated, unstated = {}, []
@@ -1489,7 +1501,7 @@ def fix_text(text, errs):
 def math_fix(sb, name):
     """Every chapter, question and exercise of the course through the site's renderer; what shows red is repaired by
     Gemini (formulas only) and kept only if it renders with fewer errors and lost no text (his screenshots 24/11/2026)."""
-    c = [x for x in sb.table("courses").select("id, name").execute().data if name in (x["name"] or "")][0]
+    c = [x for x in sb.table("courses").select("id, name").execute().data if name_match(name, x["name"])][0]
     items = []  # (table, id, field, value)
     for l in sb.table("lessons").select("id, chapter_md").eq("course_id", c["id"]).execute().data:
         items.append(("lessons", l["id"], "chapter_md", l.get("chapter_md") or ""))
@@ -1533,16 +1545,19 @@ def math_fix(sb, name):
     print(f"::notice title=Math fix::{c['name']}: {sum(1 for e in errs if e)} broken texts, {fixed} fields fixed", flush=True)
 
 
-CONVERT = """לפניך תרגילים מהשיעורים בקורס שהמבחן בו {exam}. כתוב כל תרגיל מחדש בפורמט של המבחן, עם אותם נתונים ואותו נושא:
-- אמריקאי: question_md = השאלה ואחריה 4 אפשרויות, כל אחת בפסקה משלה בדיוק כך: **א.** ... / **ב.** ... / **ג.** ... / **ד.** ...
-  (מסיחים סבירים: טעויות נפוצות). תרגיל עם כמה סעיפים - הסעיף העיקרי כשאלה אחת (או פצל ל-questions נוספות).
-- פתוח: question_md = השאלה עם סעיפים, כמו במבחן.
-solution_md מתחיל (באמריקאי) בשורה "התשובה: **X**", ואחריה תמיד שורה "**הנוסחה:**" ובשורות הבאות הנוסחה/הנוסחאות
-שצריך לשאלה (בלוק $$ ... $$, בלי הצבה ובלי התוצאה), ואחר כך הפתרון המלא צעד אחרי צעד (ובאמריקאי: למה כל אחת מהאחרות שגויה).
-החזר לכל id את question_md ו-solution_md. נוסחאות ב-LaTeX: $...$ בשורה, בלוק $$ בשורה לבד לפני ואחרי. עברית."""
+CONVERT = """לפניך תרגילים מהשיעורים בקורס שהמבחן בו {exam}, כל אחד עם הפתרון המלא שלו. אל תכתוב את הפתרון מחדש - הוא
+נשאר כמו שהוא. לכל id החזר רק:
+- question_md: באמריקאי - השאלה (אותם נתונים ואותו נושא) ואחריה 4 אפשרויות, כל אחת בפסקה משלה בדיוק כך:
+  **א.** ... / **ב.** ... / **ג.** ... / **ד.** ... - אחת מהן התוצאה של הפתרון, והשאר טעויות נפוצות. תרגיל עם כמה סעיפים -
+  הסעיף העיקרי כשאלה. בפתוח - השאלה כמו שהיא (אפשר רק לסדר לסעיפים כמו במבחן).
+- answer: באמריקאי - האות של האפשרות הנכונה (א/ב/ג/ד), לפי הפתרון. בפתוח - ריק.
+- formula_md: הנוסחה / הנוסחאות שצריך לשאלה, בבלוק $$ ... $$ (שורה לבד לפני ואחרי), בלי הצבה ובלי התוצאה.
+- others_md: באמריקאי - שורה קצרה לכל אפשרות שגויה: למה היא שגויה. בפתוח - ריק.
+החזר פריט לכל id שקיבלת. נוסחאות ב-LaTeX: $...$ בשורה. עברית."""
 CONVERT_SCHEMA = {"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object", "properties": {
-    "id": {"type": "string"}, "question_md": {"type": "string"}, "solution_md": {"type": "string"}},
-    "required": ["id", "question_md", "solution_md"]}}}, "required": ["items"]}
+    "id": {"type": "string"}, "question_md": {"type": "string"}, "answer": {"type": "string"},
+    "formula_md": {"type": "string"}, "others_md": {"type": "string"}},
+    "required": ["id", "question_md", "formula_md"]}}}, "required": ["items"]}
 MCQ_SHAPE = re.compile(r"(?m)^\s*(\*\*)?\(?[א][.)]|אפשרויות\s*:?\s*\(?א[.)]")
 
 
@@ -1551,7 +1566,7 @@ def convert_exercises(sb, name):
     format - multiple choice (clickable) when the exam is, open otherwise - and each solution carries its formula
     ("📐 הנוסחה לשאלה"). Exercises he marked done stay as they are; the original text is kept in a backup field."""
     from google.genai import types
-    c = [x for x in sb.table("courses").select("id, name, exam_type").execute().data if name in (x["name"] or "")][0]
+    c = [x for x in sb.table("courses").select("id, name, exam_type").execute().data if name_match(name, x["name"])][0]
     exam = c.get("exam_type") or "open"
     rows = [x for x in sb.table("exercises").select("id, question_md, solution_md, done_at, source").eq("course_id", c["id"])
             .eq("source", "lesson").is_("done_at", "null").execute().data]
@@ -1560,8 +1575,8 @@ def convert_exercises(sb, name):
             or "הנוסחה" not in (x.get("solution_md") or "")]
     label = {"mcq": "אמריקאי", "mixed": "משולב (חצי אמריקאי, חצי פתוח)"}.get(exam, "שאלות פתוחות")
     done = 0
-    for i in range(0, len(todo), 5):
-        chunk = todo[i:i + 5]
+    for i in range(0, len(todo), 3):  # 3 at a time: with 5 the answer left some out (27/11/2026)
+        chunk = todo[i:i + 3]
         try:
             out = author._generate_json([types.Part.from_text(text="\n\n".join(
                 f"=== id: {x['id']} ===\n{x['question_md']}\n--- פתרון ---\n{x.get('solution_md') or ''}" for x in chunk))],
@@ -1574,14 +1589,24 @@ def convert_exercises(sb, name):
         got = {it["id"]: it for it in out.get("items") or []}
         for x in chunk:
             it = got.get(x["id"])
-            if not it or len(it.get("solution_md") or "") < 0.5 * len(x.get("solution_md") or ""):
-                print(f"::notice title=Convert::{x['id'][:8]} kept: {'no answer' if not it else 'solution came out short'}", flush=True)
+            if not it or not (it.get("formula_md") or "").strip():
+                print(f"::notice title=Convert::{x['id'][:8]} kept: {'no answer' if not it else 'no formula'}", flush=True)
                 continue
-            if want_mcq and not MCQ_SHAPE.search(it["question_md"]):
-                print(f"::notice title=Convert::{x['id'][:8]} kept: no options א-ד in the answer", flush=True)
-                continue
-            sb.table("exercises").update({"question_md": wrap_math(it["question_md"]), "solution_md": wrap_math(it["solution_md"])}) \
-                .eq("id", x["id"]).execute()
+            old = x.get("solution_md") or ""
+            q = x["question_md"] or ""
+            head = ""
+            if want_mcq and not MCQ_SHAPE.search(q):
+                letter = (it.get("answer") or "").strip().strip("*.")[:1]
+                if not MCQ_SHAPE.search(it.get("question_md") or "") or letter not in "אבגד" or not letter:
+                    print(f"::notice title=Convert::{x['id'][:8]} kept: no options א-ד / no answer letter", flush=True)
+                    continue
+                q = it["question_md"]
+                if not re.search(r"התשובה[^\n]{0,20}\*\*[א-ו]", old):
+                    head = f"התשובה: **{letter}**\n\n"
+            sol = head + ("" if "הנוסחה" in old else f"**הנוסחה:**\n\n{it['formula_md'].strip()}\n\n") + old
+            if want_mcq and (it.get("others_md") or "").strip() and "למה" not in old[-600:]:
+                sol += f"\n\n**למה לא האחרות:**\n\n{it['others_md'].strip()}"
+            sb.table("exercises").update({"question_md": wrap_math(q), "solution_md": wrap_math(sol)}).eq("id", x["id"]).execute()
             done += 1
     print(f"::notice title=Convert::{c['name']} ({label}): {done} of {len(todo)} exercises in the exam's format, with their formula", flush=True)
     return done, len(todo)
@@ -1635,7 +1660,7 @@ if __name__ == "__main__":
         fix_course(s, sys.argv[sys.argv.index("--fix-course") + 1])
     elif "--redrill" in sys.argv:  # "<course>|הרצאה 1,הרצאה 2"
         name, only = sys.argv[sys.argv.index("--redrill") + 1].split("|", 1)
-        ids = [c["id"] for c in s.table("courses").select("id, name").execute().data if name in (c["name"] or "")]
+        ids = [c["id"] for c in s.table("courses").select("id, name").execute().data if name_match(name, c["name"])]
         for u in s.table("lessons").select("id, user_id, course_id, title, chapter_md").in_("course_id", ids).like("title", "🔁 השלמה%").execute().data:
             if any(u["title"] == f"🔁 השלמה ל{x.strip()}" for x in only.split(",")):
                 redrill(s, u)
@@ -1646,7 +1671,7 @@ if __name__ == "__main__":
         st = load(s)
         cs = s.table("courses").select("id, name").execute().data
         for name, until in SCHEDULE:
-            c = [x for x in cs if name in (x["name"] or "")]
+            c = [x for x in cs if name_match(name, x["name"])]
             if c:
                 print(f"::notice title=Status::{name} ({until[:10]}): {'; '.join(missing_for(s, c[0], st)) or 'ready'}", flush=True)
         print(f"::notice title=Status::focus = {st.get('focus')}", flush=True)
@@ -1678,7 +1703,7 @@ if __name__ == "__main__":
         print(f"::notice title=Focus::{st['focus'] or 'all courses'}", flush=True)
     elif "--drop-videos" in sys.argv:  # his request 23/11/2026: waiting / failed videos of a course are dropped
         name = sys.argv[sys.argv.index("--drop-videos") + 1]
-        ids = [c["id"] for c in s.table("courses").select("id, name").execute().data if name in (c["name"] or "")]
+        ids = [c["id"] for c in s.table("courses").select("id, name").execute().data if name_match(name, c["name"])]
         rows = s.table("lesson_media").select("id").in_("course_id", ids).neq("status", "ready").execute().data
         for r in rows:
             s.table("lesson_media").delete().eq("id", r["id"]).execute()

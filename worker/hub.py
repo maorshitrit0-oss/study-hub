@@ -545,7 +545,7 @@ def complete_chapter(job, chapter_md, short, by):
             new = job.sb.table("lessons").select("chapter_md").eq("id", les["id"]).execute().data[0]["chapter_md"] or new
         try:  # broken formulas: the queue repairs the course's texts with the site's own renderer (24/11/2026)
             stq = coverage.load(job.sb)
-            if not any(j.get("mathfix") and j.get("course") in (job.course.get("name") or "") for j in stq.get("pending") or []):
+            if not any(j.get("mathfix") and coverage.same_course(j.get("course") or "", job.course.get("name") or "") for j in stq.get("pending") or []):
                 stq.setdefault("pending", []).append(coverage.new_job({"course": job.course.get("name"), "mathfix": True}))
                 coverage.save(job.sb, stq, keys=["pending"])
         except Exception as e:  # noqa: BLE001

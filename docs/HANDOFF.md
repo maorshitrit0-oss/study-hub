@@ -1210,3 +1210,9 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
 - 27/11: status (publish inspect=coverage-status) also counts per course the exercises not yet in the exam's format /
   without "הנוסחה". The convert step repeats (up to 5 rounds) while each round still converts some, and logs why an
   exercise was kept. `coverage.py --pending` takes a JSON list of jobs too.
+- 27/11 BUG: "גלים" (waves) matched inside "מעגלים" (linear / digital circuits): every waves job, status and focus
+  check went to another course. coverage.name_match / same_course now match a course part only at a word start;
+  used everywhere a course is found by part of its name (coverage, queue_runner, hub).
+- 27/11: the exam-format step no longer rewrites the solution (the rewrites came out short and were rejected - 176
+  of them): Gemini returns only the MCQ question + answer letter, the formula and why-not-the-others; the solution
+  becomes answer line + "**הנוסחה:**" block + HIS ORIGINAL SOLUTION unchanged (+ "למה לא האחרות"). 3 per call.

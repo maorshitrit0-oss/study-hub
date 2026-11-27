@@ -162,7 +162,7 @@ def _focus_only(sb, rows, names):
         import coverage
         f = None if coverage._CACHE.get("nofocus") else coverage.load(sb).get("focus")
         if f:
-            return [r for r in rows if any(x in names.get(r["course_id"], "") for x in f.split("|"))]
+            return [r for r in rows if any(coverage.name_match(x, names.get(r["course_id"], "")) for x in f.split("|"))]
     except Exception:  # noqa: BLE001
         pass
     return rows
