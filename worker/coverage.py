@@ -2012,6 +2012,7 @@ if __name__ == "__main__":
                     print(f"@@H {l['id'][:8]} {h[:90]}", flush=True)
     elif "--thin" in sys.argv:  # 27/11: chapters far shorter than their recording are written again in full
         # ("--thin <course|all> [dry]"); after a rewrite: the lecture's quiz and the lesson's exercises again
+        import time
         key = sys.argv[sys.argv.index("--thin") + 1]
         dry = sys.argv[-1] == "dry"
         t0 = time.time()
