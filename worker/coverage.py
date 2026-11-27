@@ -1763,6 +1763,13 @@ if __name__ == "__main__":
         for mid in [a[4:] for a in sys.argv if a.startswith("mat:")]:  # a material's title + path
             print("@@MAT " + _j.dumps(s.table("materials").select("id, title, kind, storage_path").eq("id", mid).execute().data,
                                       ensure_ascii=False), flush=True)
+    elif "--exdump" in sys.argv:  # every exercise of a course as JSON lines (read only)
+        import json as _j
+        for x in s.table("courses").select("id, name").execute().data:
+            if name_match(sys.argv[sys.argv.index("--exdump") + 1], x["name"]):
+                for e in s.table("exercises").select("id, title, source, lesson_id, done_at, question_md, solution_md") \
+                        .eq("course_id", x["id"]).execute().data:
+                    print("@@EX " + _j.dumps({"course": x["name"], **e}, ensure_ascii=False), flush=True)
     elif "--toopen" in sys.argv:  # 27/11: open-exam course -> its multiple-choice exercises become open ones
         for x in s.table("courses").select("id, name, exam_type").execute().data:
             if name_match(sys.argv[sys.argv.index("--toopen") + 1], x["name"]) and x.get("exam_type") == "open":
