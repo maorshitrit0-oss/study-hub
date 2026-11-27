@@ -1770,6 +1770,19 @@ if __name__ == "__main__":
                 for e in s.table("exercises").select("id, title, source, lesson_id, done_at, question_md, solution_md") \
                         .eq("course_id", x["id"]).execute().data:
                     print("@@EX " + _j.dumps({"course": x["name"], **e}, ensure_ascii=False), flush=True)
+    elif "--lessons" in sys.argv:  # a course's lessons and where each came from (read only; a link shows its host only)
+        import json as _j
+        from urllib.parse import urlparse
+        for x in s.table("courses").select("id, name").execute().data:
+            if name_match(sys.argv[sys.argv.index("--lessons") + 1], x["name"]):
+                for l in s.table("lessons").select("id, kind, number, title, status, source_url, source_path, created_at, author, "
+                                                   "read_at, chapter_md, transcript").eq("course_id", x["id"]).order("created_at").execute().data:
+                    u = l.pop("source_url") or ""
+                    l["source"] = (urlparse(u).netloc or u[:40]) if u else ""
+                    l["chapter_len"] = len(l.pop("chapter_md") or "")
+                    t = l.pop("transcript") or ""
+                    l["transcript_len"], l["transcript_head"] = len(t), t[:400]
+                    print("@@L " + _j.dumps({"course": x["name"], **l}, ensure_ascii=False), flush=True)
     elif "--toopen" in sys.argv:  # 27/11: open-exam course -> its multiple-choice exercises become open ones
         for x in s.table("courses").select("id, name, exam_type").execute().data:
             if name_match(sys.argv[sys.argv.index("--toopen") + 1], x["name"]) and x.get("exam_type") == "open":
