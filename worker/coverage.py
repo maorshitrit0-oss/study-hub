@@ -1878,7 +1878,15 @@ if __name__ == "__main__":
         n = 0
         for tb, cols in (("lessons", ["chapter_md", "summary_md"]), ("exercises", ["question_md", "solution_md"]),
                          ("questions", ["question", "explanation", "options"])):
-            for r in s.table(tb).select("id, " + ", ".join(cols)).execute().data:
+            rows, k = [], 0
+            while True:  # past the API's 1000-row page
+                got = s.table(tb).select("id, " + ", ".join(cols)).order("id").range(k, k + 999).execute().data
+                rows += got
+                k += 1000
+                if len(got) < 1000:
+                    break
+            print(f"::notice title=Text symbols::{tb}: {len(rows)} rows read", flush=True)
+            for r in rows:
                 upd = {}
                 for f in cols:
                     v = r.get(f)
