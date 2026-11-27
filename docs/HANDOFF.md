@@ -1207,3 +1207,6 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
 - 27/11: queue loop 4.75 h (was 5.5) and no new step after that (queue_runner.time_left / STOP_SEC): on 24/11 a step
   ran past the job's 350-minute limit, the job was killed and the next run was never chained. No quiz is saved for a
   practice (hub.save_chapter). notify.send drops any push mentioning "מעבדה" (his rule, one place for all senders).
+- 27/11: status (publish inspect=coverage-status) also counts per course the exercises not yet in the exam's format /
+  without "הנוסחה". The convert step repeats (up to 5 rounds) while each round still converts some, and logs why an
+  exercise was kept. `coverage.py --pending` takes a JSON list of jobs too.

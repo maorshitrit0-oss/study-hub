@@ -1371,7 +1371,7 @@ def run_job(sb, st, j):
         if not j.get(key) or key in skipped:
             continue
         try:
-            fn()
+            res = fn()
         except Exception as e:  # noqa: BLE001
             gemini = author._is(e, "RESOURCE_EXHAUSTED", "429", "quota", "UNAVAILABLE", "503", "עמוסים", "המכסה")
             if key in GEMINI_ONLY and gemini:
@@ -1388,6 +1388,11 @@ def run_job(sb, st, j):
             if fails[key] >= 2:
                 j.pop(key)
             return False, ""
+        # 27/11/2026: the exam-format step converted only part of the exercises (Java 11 of 32) and was then "done" -
+        # it goes again while each round still converts some (at most 5 rounds)
+        if key == "convert" and isinstance(res, tuple) and 0 < res[0] < res[1] and j.get("_rounds", 0) < 5:
+            j["_rounds"] = j.get("_rounds", 0) + 1
+            return False, what
         j.pop(key)
         return False, what
     if any(j.get(k) for k in skipped):
@@ -1570,13 +1575,16 @@ def convert_exercises(sb, name):
         for x in chunk:
             it = got.get(x["id"])
             if not it or len(it.get("solution_md") or "") < 0.5 * len(x.get("solution_md") or ""):
+                print(f"::notice title=Convert::{x['id'][:8]} kept: {'no answer' if not it else 'solution came out short'}", flush=True)
                 continue
             if want_mcq and not MCQ_SHAPE.search(it["question_md"]):
+                print(f"::notice title=Convert::{x['id'][:8]} kept: no options א-ד in the answer", flush=True)
                 continue
             sb.table("exercises").update({"question_md": wrap_math(it["question_md"]), "solution_md": wrap_math(it["solution_md"])}) \
                 .eq("id", x["id"]).execute()
             done += 1
     print(f"::notice title=Convert::{c['name']} ({label}): {done} of {len(todo)} exercises in the exam's format, with their formula", flush=True)
+    return done, len(todo)
 
 
 def thursday_alert(sb):
@@ -1607,11 +1615,13 @@ if __name__ == "__main__":
         trim_quiz(s, sys.argv[sys.argv.index("--trim-quiz") + 1])
     elif "--pending" in sys.argv:  # '{"course": "...", "weeks": [4,5], "rewrite": "<lesson id>"}' -> done by the queue
         st = load(s)
-        job = new_job(json.loads(sys.argv[sys.argv.index("--pending") + 1]))
-        if job.pop("first", False):  # the course he studies next goes first
-            st.setdefault("pending", []).insert(0, job)
-        else:
-            st.setdefault("pending", []).append(job)
+        arg = json.loads(sys.argv[sys.argv.index("--pending") + 1])
+        for job in (arg if isinstance(arg, list) else [arg]):  # one job or a list of jobs (27/11/2026)
+            job = new_job(job)
+            if job.pop("first", False):  # the course he studies next goes first
+                st.setdefault("pending", []).insert(0, job)
+            else:
+                st.setdefault("pending", []).append(job)
         save(s, st)
         print(f"::notice title=Pending::{st['pending']}", flush=True)
     elif "--rewrite" in sys.argv:
