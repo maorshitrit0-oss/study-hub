@@ -1241,3 +1241,11 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
   coverage.is_mcq = options + a stated answer letter (an open question with parts א/ב/ג is not one).
   hub.find_course takes a regex: pass "^גלים" for waves ("גלים" also matches "מעגלים").
   VLSI (no exam) keeps its "what does the code do" multiple-choice exercises.
+- 27/11 HIS RULE (every course): he studies lecture -> practice -> exercises only, never "חומר נוסף" by itself.
+  coverage.merge_extra: an extra lesson (kind web/other, not 🔁 / 📦 / "מפגש" / "(להשוואה)") of week N gives this
+  year's lecture N what it lacks (EXTRA prompt, each piece under "> 📎 מחומר הקורס (לא נאמר בהרצאה)" at the end of its
+  topic; backup chapter_before_extra.md) and becomes "📦 (שולב בהרצאה N) ..." (hidden). The queue runs it every round
+  (merge_extra_all), so a later week's extra merges when that lecture arrives. Done 27/11: micro weeks 1-4 (9 site
+  pages; lecture 1 +8.3k chars, 2/3/4 +1.5-2k). The course page shows the rest (later weeks, exam solutions, last
+  year's comparisons) only in a closed "🗄️ ארכיון" at the bottom; no more "read last year's week" tasks (week.ts).
+- Comm lecture 6 (ba744d66): a Zoom mp4 he uploaded in the app on Mon 23/11 18:55 (the comm lecture day); content SSB+AM.
