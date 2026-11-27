@@ -323,13 +323,33 @@ def place_old_audits(sb, name):
         if AUDIT_HEAD not in md:
             continue
         base, sec = unfold_audit(md)
+        while AUDIT_HEAD in base:  # a second "🧩" section (two audit rounds): its text joins the first
+            base, more = unfold_audit(base)
+            sec += "\n\n" + more
+        sec = sec.replace(AUDIT_HEAD, "")
         heads = "\n".join(re.findall(r"(?m)^#{2,4} (.+)$", body_of(base)))
-        out = author._generate_json([types.Part.from_text(text="=== הכותרות ===\n" + heads),
-                                     types.Part.from_text(text="=== הקטע החסר ===\n" + sec)], PLACE, PLACE_SCHEMA, "LOW")
-        items = out.get("items") or []
-        if sum(len(i.get("md") or "") for i in items) < 0.8 * len(sec):
-            print(f"::warning title=Place::{(l.get('title') or '')[:30]}: placing lost text - kept as is", flush=True)
-            continue
+        # 27/11: piece by piece (one call for a long section lost text and the section stayed at the end)
+        pieces = [p for p in re.split(r"(?m)^(?=#{2,3} )", sec) if p.strip()]
+        items, lost = [], False
+        for piece in pieces:
+            got = []
+            for _ in range(2):
+                try:
+                    got = author._generate_json([types.Part.from_text(text="=== הכותרות ===\n" + heads),
+                                                 types.Part.from_text(text="=== הקטע החסר ===\n" + piece)],
+                                                PLACE, PLACE_SCHEMA, "LOW").get("items") or []
+                except Exception as e:  # noqa: BLE001
+                    if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota"):
+                        raise
+                    got = []
+                if sum(len(i.get("md") or "") for i in got) >= 0.8 * len(piece.strip()):
+                    break
+            else:
+                lost = True
+                got = [{"heading": "", "md": piece}]
+            items += got
+        if lost:
+            print(f"::notice title=Place::{(l.get('title') or '')[:30]}: a piece had no clear topic - put before the check", flush=True)
         new = integrate(base, items)
         sb.storage.from_(BUCKET).upload(f"{l['user_id']}/lessons/{l['id']}/chapter_before_place.md", md.encode(),
                                         {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
@@ -1866,6 +1886,14 @@ if __name__ == "__main__":
                     t = l.pop("transcript") or ""
                     l["transcript_len"], l["transcript_head"] = len(t), t[:400]
                     print("@@L " + _j.dumps({"course": x["name"], **l}, ensure_ascii=False), flush=True)
+    elif "--place" in sys.argv:  # the "🧩" sections into their topics: one course, or every course when empty
+        key = sys.argv[sys.argv.index("--place") + 1] if len(sys.argv) > sys.argv.index("--place") + 1 else ""
+        for x in s.table("courses").select("id, name").eq("archived", False).execute().data:
+            if (not key or name_match(key, x["name"])) and not SKIP_COURSES.search(x["name"] or ""):
+                try:
+                    place_old_audits(s, x["name"])
+                except Exception as e:  # noqa: BLE001
+                    print(f"::warning title=Place::{x['name']}: {str(e)[:150]}", flush=True)
     elif "--unmerge" in sys.argv:  # 27/11: undo a wrong merge. JSON {into, src, cut, src_kind, src_number, src_title,
         # move_ex_from: [lesson ids whose exercises go to src], hide: [{id, title}]}
         import json as _j
