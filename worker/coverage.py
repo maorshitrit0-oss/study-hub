@@ -555,7 +555,7 @@ def video_now(sb, l):
     title = l.get("title") or ""
     if l.get("kind") in ("practice", "lab") or title.startswith("🔁 השלמה לתרגול"):
         return
-    f = None if _CACHE.get("nofocus") else load(sb).get("focus")  # several courses: "A|B" (the whole string matched none)
+    f = None if (_CACHE.get("nofocus") or _CACHE.get("nofocus_video")) else load(sb).get("focus")  # "A|B" = several courses
     if f and not any(x in (c["name"] or "") for x in f.split("|")
                      for c in sb.table("courses").select("name").eq("id", l["course_id"]).execute().data):
         return  # videos only for the course he is on now (comm videos stopped at his request 23/11/2026)
@@ -817,7 +817,9 @@ def missing_for(sb, course, st):
     from datetime import timedelta, timezone
     ls = sb.table("lessons").select("id, kind, title, status, transcript, created_at").eq("course_id", course["id"]).execute().data
     out = []
-    busy = [l for l in ls if l["status"] in ("queued", "processing", "transcribed", "error")]
+    # last year's recording kept "(להשוואה)" is transcribed only, on purpose - not a lesson in work (27/11/2026)
+    busy = [l for l in ls if l["status"] in ("queued", "processing", "transcribed", "error")
+            and "(להשוואה)" not in (l.get("title") or "")]
     if busy:
         out.append(f"{len(busy)} שיעורים בעיבוד")
     # 25/11: with the real state (v2 / audited) - an empty one counted every lesson again ("8 completions" on a
@@ -831,17 +833,59 @@ def missing_for(sb, course, st):
     nodrill = [u for u in units if u["id"] not in st.get("drill", {})]
     if nodrill:
         out.append(f"{len(nodrill)} שאלונים ותרגילים")
-    week = (datetime.now(timezone.utc) - timedelta(days=8)).isoformat()
-    want = units + [l for l in ls if l["kind"] == "lecture" and l["status"] == "ready" and l["created_at"] >= week
-                    and hub.AUTO_STUDIO.search(course["name"] or "")
-                    and not (l.get("transcript") or "").startswith(hub.course_site.SITE_NOTE)]
-    if want:
-        ready = {i for m in sb.table("lesson_media").select("lesson_ids").eq("kind", "video").eq("status", "ready")
-                 .eq("course_id", course["id"]).execute().data for i in (m.get("lesson_ids") or [])}
-        novid = [l for l in want if l["id"] not in ready]
-        if novid:
-            out.append(f"{len(novid)} סרטונים")
+    novid = no_video(sb, course, ls)
+    if novid:
+        out.append(f"{len(novid)} סרטונים")
     return out
+
+
+def no_video(sb, course, ls=None):
+    """Lessons that should have a video and have no ready one: completions of lectures and this week's lectures (never
+    practices, labs or a practice's completion - video_now makes none for them, so they were "missing" for ever)."""
+    from datetime import timedelta, timezone
+    if SKIP_COURSES.search(course["name"] or ""):
+        return []
+    if ls is None:
+        ls = sb.table("lessons").select("id, user_id, course_id, kind, title, status, transcript, created_at").eq("course_id", course["id"]).execute().data
+    week = (datetime.now(timezone.utc) - timedelta(days=8)).isoformat()
+    want = [l for l in ls if l["kind"] == "other" and (l.get("title") or "").startswith("🔁 השלמה להרצאה")] + \
+           [l for l in ls if l["kind"] == "lecture" and l["status"] == "ready" and l["created_at"] >= week
+            and hub.AUTO_STUDIO.search(course["name"] or "")
+            and not (l.get("transcript") or "").startswith(hub.course_site.SITE_NOTE)]
+    if not want:
+        return []
+    rows = sb.table("lesson_media").select("lesson_ids, status").eq("kind", "video").eq("course_id", course["id"]).execute().data
+    ready = {i for m in rows if m["status"] == "ready" for i in (m.get("lesson_ids") or [])}
+    return [l for l in want if l["id"] not in ready]
+
+
+def make_missing_videos(sb, limit=2):
+    """27/11/2026: a lesson whose video was never started (video_now skipped it - the focus bug of 24-25/11) has no
+    media row, so nothing ever retried it. Every queue round starts up to `limit` of those (no row in work yet)."""
+    from datetime import timedelta, timezone
+    started = 0
+    for c in sb.table("courses").select("id, name").eq("archived", False).execute().data:
+        for l in no_video(sb, c):
+            if started >= limit:
+                return started
+            rows = sb.table("lesson_media").select("status, error, created_at").eq("kind", "video").contains("lesson_ids", [l["id"]]).execute().data
+            if any(r["status"] in ("queued", "processing") for r in rows):
+                continue
+            errs = [r for r in rows if r["status"] == "error"]
+            if any(w in (r.get("error") or "") for r in errs for w in ("מכסה", "עמוסים")):
+                continue  # retried by queue_runner.retry_studio after Gemini's reset
+            day_ago = (datetime.now(timezone.utc) - timedelta(hours=12)).isoformat()
+            if any(r["created_at"] > day_ago for r in errs):
+                continue  # failed on something else less than 12 hours ago: not again yet
+            full = sb.table("lessons").select("id, user_id, course_id, kind, title").eq("id", l["id"]).execute().data
+            if full:
+                _CACHE["nofocus_video"] = True
+                try:
+                    video_now(sb, full[0])
+                finally:
+                    _CACHE.pop("nofocus_video", None)
+                started += 1
+    return started
 
 
 def ready_alert(sb):

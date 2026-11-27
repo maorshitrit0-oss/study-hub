@@ -1200,3 +1200,7 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
 - 27/11: a repair step failing on anything but Gemini's quota is tried twice, then dropped (warning) - it no longer
   blocks every job behind it. Progress pushes name the job's own course and are never empty.
 - 27/11: practices lost the "✓ סיימתי" buttons with the quiz (23/11) - now only the quiz is hidden on a practice.
+- 27/11: videos never started (no media row - video_now skipped them under the multi-course focus bug) are started by
+  the queue (coverage.make_missing_videos, 2 a round; a non-quota failure again after 12 h). coverage.no_video() is the
+  one rule for "should have a video" (lecture completions + this week's lectures; never practices / labs / a
+  practice's completion). "(להשוואה)" lessons (last year, transcript only) no longer count as "in work".
