@@ -1004,6 +1004,8 @@ def cmd_course_set(match, path):
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     if data.get("grade_weights"):
         sb.table("courses").update({"grade_weights": data["grade_weights"]}).eq("id", course["id"]).execute()
+    if data.get("exam_type") in ("mcq", "open", "mixed", "none"):  # his word on the exam's format (27/11/2026: micro)
+        sb.table("courses").update({"exam_type": data["exam_type"]}).eq("id", course["id"]).execute()
     have = {f["text"] for f in sb.table("course_facts").select("text").eq("course_id", course["id"]).execute().data}
     for f in data.get("facts") or []:
         if f["text"] not in have:
