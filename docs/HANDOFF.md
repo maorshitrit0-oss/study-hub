@@ -1278,3 +1278,18 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
   - Still open: digital 4f89cd01 (depletion-load inverter) and ~75 other exercises whose solution has no numbers
     (linear 35, random 22, digital 12, waves 7 by a rough check) - to be solved properly; micro "mixed" exam balance
     (half MCQ / half open) not implemented; waves 4-page formula sheet (docs.py) not built yet.
+  - 27/11 evening: audit (coverage --audit, now paginated, with @@C per course: exercises / mcq / hollow / code
+    blocks, and 🧩 / 🔁 per lesson): 🧩 0 everywhere, 🔁 0; red formulas fixed by hand in 8 chapters
+    (chapters/replace_2711_red.json: comm L1 board lines one per formula + "\$" + a wrong "40dB+5dBm" remark,
+    linear P3 "#PF", digital L4 \tag, micro L1 &a[0], random L3/L10/L12). coverage --replace takes
+    {"id","set","guard"} = a whole chapter by Claude (backup chapter_before_replace.md).
+  - BUG: some placed pieces came back with "\n" written out (Java practice 3 was one line; random L12 a block):
+    coverage.unescape_newlines (integrate() now applies it; --unescape [dry] repairs stored chapters - done).
+  - Practices still holding quiz questions = ones he ALREADY ANSWERED (kept: his history). Lectures over 12 the same
+    (waves L1 16, comm L1 14). Asked him whether to move/delete.
+  - Gemini quota ran out 27/11 ~15:15 UTC. Scheduled wake 28/11 08:15 UTC (trig_0146m7rqLq2efqXcxodCwkCw):
+    quizfix, thin all, hollow per course (linear 92, comm 52, random 23, micro 24, Java 23, digital 20, waves 10,
+    VLSI 8 by the detector; random-signals symbolic derivations are partly false positives), micro balance
+    (25 of 99 MCQ -> about half), waves formula sheet, final audit. One job at a time.
+  - Linear / digital / Java exam is MCQ but only lesson exercises are converted (linear 56 of 364 MCQ): exam /
+    sheet exercises keep their original form - open question to him.
