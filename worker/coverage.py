@@ -2331,19 +2331,31 @@ if __name__ == "__main__":
                 continue
             ls = s.table("lessons").select("id, kind, number, title, status, chapter_md").eq("course_id", c["id"]).execute().data
             ls = [l for l in ls if not (l.get("title") or "").startswith("📦")]
+            def _all(table, cols):  # paginated (a course can hold more than 1000 rows)
+                out, k = [], 0
+                while True:
+                    page = s.table(table).select(cols).eq("course_id", c["id"]).order("id").range(k, k + 999).execute().data
+                    out += page
+                    if len(page) < 1000:
+                        return out
+                    k += 1000
             qn = {}
-            for q in s.table("questions").select("lesson_id").eq("course_id", c["id"]).execute().data:
+            for q in _all("questions", "id, lesson_id"):
                 qn[q["lesson_id"]] = qn.get(q["lesson_id"], 0) + 1
-            en = {}
-            for e in s.table("exercises").select("lesson_id").eq("course_id", c["id"]).execute().data:
+            en, xs = {}, _all("exercises", "id, lesson_id, question_md, solution_md")
+            for e in xs:
                 en[e["lesson_id"]] = en.get(e["lesson_id"], 0) + 1
+            print("@@C " + _j.dumps({"course": c["name"], "exam": c.get("exam_type"), "exercises": len(xs),
+                                     "mcq": sum(1 for x in xs if is_mcq(x)), "hollow": sum(1 for x in xs if hollow(x)),
+                                     "code_blocks": sum(1 for x in xs if "```" in (x.get("solution_md") or ""))}, ensure_ascii=False), flush=True)
             errs = render_errors([l.get("chapter_md") or "" for l in ls]) or [[] for _ in ls]
             for l, e in sorted(zip(ls, errs), key=lambda z: (z[0].get("number") or 99, z[0]["kind"])):
                 md = l.get("chapter_md") or ""
                 langs = re.findall(r"(?m)^```(\w*)", md)[::2]
                 print("@@A " + _j.dumps({"id": l["id"], "kind": l["kind"], "n": l.get("number"), "title": (l.get("title") or "")[:60],
                       "len": len(md), "quiz": qn.get(l["id"], 0), "ex": en.get(l["id"], 0), "code": langs,
-                      "red": len(e), "red_sample": e[:3], "greek": len(GREEK.findall(md)),
+                      "red": len(e), "red_sample": e[:3], "greek": len(GREEK.findall(md)), "puzzle": md.count("🧩"),
+                      "completion": md.count("🔁"),
                       "greek_sample": list({m.group(0) for m in GREEK.finditer(md)})[:8]}, ensure_ascii=False), flush=True)
             try:
                 ws = weekset.load(s, c) if hasattr(weekset, "load") else None
