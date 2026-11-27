@@ -2010,6 +2010,33 @@ if __name__ == "__main__":
                 print(f"@@TR {l['id'][:8]} " + re.sub(r"\s+", " ", (l.get("transcript") or "")[:600]), flush=True)
                 for h in re.findall(r"(?m)^#{1,2} (.+)$", l.get("chapter_md") or ""):
                     print(f"@@H {l['id'][:8]} {h[:90]}", flush=True)
+    elif "--thin" in sys.argv:  # 27/11: chapters far shorter than their recording are written again in full
+        # ("--thin <course|all> [dry]"); after a rewrite: the lecture's quiz and the lesson's exercises again
+        key = sys.argv[sys.argv.index("--thin") + 1]
+        dry = sys.argv[-1] == "dry"
+        t0 = time.time()
+        for c in s.table("courses").select("*").eq("archived", False).execute().data:
+            if not (key == "all" or name_match(key, c["name"])) or SKIP_COURSES.search(c["name"] or "") or c.get("kind") in ("lab", "self"):
+                continue
+            ls = s.table("lessons").select("id, kind, number, title, status, transcript, chapter_md").eq("course_id", c["id"]) \
+                .in_("kind", ["lecture", "practice"]).eq("status", "ready").execute().data
+            for l in sorted(ls, key=lambda l: (l.get("number") or 0)):
+                tr, ch = len(l.get("transcript") or ""), len(body_of(l.get("chapter_md") or ""))
+                if (l.get("title") or "").startswith("📦") or tr < 15000 or ch >= 0.2 * tr:
+                    continue
+                print(f"::notice title=Thin::{c['name']} {l['kind']} {l.get('number')} {l['id'][:8]}: chapter {ch} / recording {tr}", flush=True)
+                if dry or time.time() - t0 > 95 * 60:
+                    continue
+                try:
+                    rewrite_lesson(s, l["id"])
+                    full = s.table("lessons").select("*").eq("id", l["id"]).execute().data[0]
+                    if l["kind"] == "lecture":
+                        requiz(s, full)
+                    reextract(s, c, full)
+                except Exception as e:  # noqa: BLE001
+                    print(f"::warning title=Thin::{l['id'][:8]}: {str(e)[:150]}", flush=True)
+                    if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota"):
+                        sys.exit(0)
     elif "--codefix" in sys.argv:  # 27/11: code that the math step wrapped as formulas -> fenced code again
         from google.genai import types
         CODEFIX = ("לפניך טקסט של תרגיל בקורס תכנות/מיקרו-בקרים. שלב עיבוד שגוי עטף שורות קוד (C/Java) כנוסחאות: "
