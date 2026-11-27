@@ -2076,11 +2076,16 @@ if __name__ == "__main__":
         for c in s.table("courses").select("id, name, kind").eq("archived", False).execute().data:
             if c.get("kind") in ("lab",) or SKIP_COURSES.search(c["name"] or ""):
                 continue
-            ls = s.table("lessons").select("id, course_id, kind, number, title, status, chapter_md").eq("course_id", c["id"]) \
+            ls = s.table("lessons").select("id, user_id, course_id, kind, number, title, status, chapter_md").eq("course_id", c["id"]) \
                 .in_("kind", ["lecture", "practice"]).eq("status", "ready").execute().data
-            n = {}
-            for q in s.table("questions").select("lesson_id").eq("course_id", c["id"]).execute().data:
-                n[q["lesson_id"]] = n.get(q["lesson_id"], 0) + 1
+            n, k0 = {}, 0
+            while True:  # paginated: a course can hold more than 1000 questions
+                page = s.table("questions").select("id, lesson_id").eq("course_id", c["id"]).order("id").range(k0, k0 + 999).execute().data
+                for q in page:
+                    n[q["lesson_id"]] = n.get(q["lesson_id"], 0) + 1
+                if len(page) < 1000:
+                    break
+                k0 += 1000
             for l in ls:
                 k = n.get(l["id"], 0)
                 if (l.get("title") or "").startswith("📦") or (l["kind"] == "lecture" and 10 <= k <= 12) or (l["kind"] == "practice" and not k):
