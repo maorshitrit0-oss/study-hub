@@ -1640,6 +1640,15 @@ if __name__ == "__main__":
             if c:
                 print(f"::notice title=Status::{name} ({until[:10]}): {'; '.join(missing_for(s, c[0], st)) or 'ready'}", flush=True)
         print(f"::notice title=Status::focus = {st.get('focus')}", flush=True)
+        for x in s.table("courses").select("id, name, exam_type").eq("archived", False).execute().data:
+            if SKIP_COURSES.search(x["name"] or ""):
+                continue
+            ex = s.table("exercises").select("question_md, solution_md").eq("course_id", x["id"]).eq("source", "lesson") \
+                .is_("done_at", "null").execute().data
+            bad = [e for e in ex if (x.get("exam_type") == "mcq" and not MCQ_SHAPE.search(e["question_md"] or ""))
+                   or "הנוסחה" not in (e.get("solution_md") or "")]
+            print(f"::notice title=Exercises::{x['name']} ({x.get('exam_type') or 'open'}): {len(bad)} of {len(ex)} open "
+                  f"exercises not yet in the exam's format / without the formula", flush=True)
         import queue_runner
         for r, mode in queue_runner.candidates(s):
             if r["status"] != "ready":
