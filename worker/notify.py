@@ -48,6 +48,8 @@ def ensure_keys(sb):
 
 def send(sb, user_id, title, body, url="/"):
     """Send to every device the user enabled; drop subscriptions the browser revoked."""
+    if "מעבדה" in f"{title} {body}":  # his rule: no messages about the lab (24/11/2026) - checked here, once, for all
+        return
     try:
         from pywebpush import WebPushException, webpush
 

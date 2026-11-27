@@ -574,6 +574,8 @@ def save_chapter(job, ch, by):
         # He already answered this lesson's quiz: replacing it would delete his answers (attempts cascade) - his
         # study history is never deleted (05/11/2026). The old quiz stays.
         print("quiz kept: it already has his answers", flush=True)
+    elif ch["questions"] and job.lesson.get("kind") == "practice":
+        print("practice: no quiz (his rule 23/11/2026 - the full chapter only, the exercises follow it)", flush=True)
     elif ch["questions"]:
         # Only the chapter's own quiz is replaced: lab entry-quiz questions (source set) stay. A summary has no quiz,
         # so an earlier quiz of the lesson is kept.
@@ -590,7 +592,8 @@ def save_chapter(job, ch, by):
     save_glossary(job, ch)
     chapter_md = ch["chapter_md"] + (author.verification_md(ch) if ch.get("verification") else "")
     chapter_md = complete_chapter(job, chapter_md, short, by)
-    count = f"{len(ch['exercises'])} תרגילים" if short else f"{len(ch['questions'])} שאלות"
+    count = f"{len(ch['exercises'])} תרגילים" if short else ("פרק מלא" if job.lesson.get("kind") == "practice"
+                                                              else f"{len(ch['questions'])} שאלות")
     fields = dict(chapter_md=chapter_md, topics=ch["topics"], status="ready",
                   syllabus_covered=[i for i in ch.get("syllabus_covered") or [] if isinstance(i, int)],
                   progress=f"מוכן - {count}", author=by, error=None)
@@ -646,7 +649,7 @@ def save_chapter(job, ch, by):
     if (job.lesson.get("transcript") or "").startswith(course_site.SITE_NOTE) or os.environ.get("QUIET"):
         return  # last year's material from the course site / a background fill: no push for each
     notify.send(job.sb, job.lesson["user_id"], f"✅ {job.label()} מוכן" + ("" if short else " לקריאה"),
-                f"{ch.get('title') or ''}\n" + (f"תקציר + {count} לפתרון" if short else f"{count} בשאלון"),
+                f"{ch.get('title') or ''}\n" + (f"תקציר + {count} לפתרון" if short else count if count == "פרק מלא" else f"{count} בשאלון"),
                 f"/lessons/{job.lesson['id']}")
 
 
