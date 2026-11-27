@@ -2046,6 +2046,8 @@ if __name__ == "__main__":
                    "נשארות ב-$. אל תשנה שום מילה אחרת, אל תקצר ואל תוסיף. החזר את כל הטקסט ב-text.")
         bad = re.compile(r"\$\$\s*\n[^$]*(;|uint\d+_t|\|=|&=|\^=|<<)[^$]*\n\$\$|printf\([^)]*\$|\$\\&=\$|\$[^$\n]*\\n\$")
         for c in s.table("courses").select("id, name").eq("archived", False).execute().data:
+            if not re.search(r"Java|מיקרו|VLSI|SystemVerilog|תכנות", c["name"] or ""):
+                continue  # 27/11: only programming courses - in waves / linear it turned formulas into "code"
             for e in s.table("exercises").select("id, question_md, solution_md").eq("course_id", c["id"]).execute().data:
                 for f in ("question_md", "solution_md"):
                     v = e.get(f) or ""
