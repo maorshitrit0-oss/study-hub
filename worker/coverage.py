@@ -2073,6 +2073,8 @@ if __name__ == "__main__":
         for f in _j.loads(Path(sys.argv[sys.argv.index("--replace") + 1]).read_text(encoding="utf-8")):
             md = (s.table("lessons").select("chapter_md").eq("id", f["id"]).execute().data or [{}])[0].get("chapter_md") or ""
             k = md.count(f["find"])
+            if f.get("all") and k > 1:
+                k = 1
             if k == 1:
                 s.table("lessons").update({"chapter_md": md.replace(f["find"], f["repl"])}).eq("id", f["id"]).execute()
             print(f"::notice title=Replace::{f['id'][:8]}: {'done' if k == 1 else f'NOT DONE ({k} matches)'}", flush=True)

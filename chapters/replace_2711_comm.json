@@ -1,0 +1,19 @@
+[
+ {
+  "id": "44010370-670c-45c6-b4a6-03dbe492bd10",
+  "find": "ותקפוץ ל-\\pi ($180^\\circ$)",
+  "repl": "ותקפוץ ל-$\\pi$ ($180^\\circ$)"
+ },
+ {
+  "id": "8214d4f4-4788-4e56-941a-b4644aa2c3c8",
+  "find": "Y(f) = \\frac{1}{2j}\\cdot\\frac{1}{4} [\\delta(f - 101k) - \\delta(f + 101k)] - \\frac{1}{2j}\\cdot\\frac{1}{4} [\\delta(f - 99k) - \\delta(f + 99k)] + \\frac{1}{2}\\cdot\\frac{1}{4}[\\delta(f - 102k) + \\delta(f + 102k)] + \\frac{1}{2}\\cdot\\frac{1}{4}[\\delta(f - 98k) + \\delta(f + 98k)]",
+  "repl": "\\begin{aligned}\nY(f) = &\\frac{1}{2j}\\cdot\\frac{1}{4} [\\delta(f - 101k) - \\delta(f + 101k)] \\\\\n&- \\frac{1}{2j}\\cdot\\frac{1}{4} [\\delta(f - 99k) - \\delta(f + 99k)] \\\\\n&+ \\frac{1}{2}\\cdot\\frac{1}{4}[\\delta(f - 102k) + \\delta(f + 102k)] \\\\\n&+ \\frac{1}{2}\\cdot\\frac{1}{4}[\\delta(f - 98k) + \\delta(f + 98k)]\n\\end{aligned}",
+  "all": true
+ },
+ {
+  "id": "8214d4f4-4788-4e56-941a-b4644aa2c3c8",
+  "find": "u=-1: x(t) = \\frac{1}{2} - \\frac{1}{2} = -1",
+  "repl": "u=-1: x(t) = -\\frac{1}{2} + \\frac{1}{2}(1 - 2) = -\\frac{1}{2} - \\frac{1}{2} = -1",
+  "all": true
+ }
+]
