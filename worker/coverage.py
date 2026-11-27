@@ -1882,13 +1882,13 @@ def merge_extra_all(sb, dry=False):
                 return
 
 
-def to_open(sb, c):
+def to_open(sb, c, only=None):
     """His correction 27/11/2026: a course whose exam is open has OPEN exercises - none multiple choice (the quiz after a
     lecture stays multiple choice). Every exercise of the course in that shape is rewritten as an open one; done marks
-    are kept. Returns (done, total)."""
+    are kept. `only`: these exercise ids (the mixed-exam balance). Returns (done, total)."""
     from google.genai import types
     rows = [x for x in sb.table("exercises").select("id, question_md, solution_md").eq("course_id", c["id"]).execute().data
-            if is_mcq(x)]
+            if is_mcq(x) and (only is None or x["id"] in only)]
     done = 0
     for i in range(0, len(rows), 3):
         chunk = rows[i:i + 3]
@@ -1922,6 +1922,27 @@ def to_open(sb, c):
     return done, len(rows)
 
 
+def balance_mixed(sb, c):
+    """His rule 27/11/2026: micro's exam is half multiple choice, half open - so are its exercises. When more than 60%
+    of the open-to-study exercises are multiple choice, every second one of each lesson (by order) becomes open."""
+    rows = sb.table("exercises").select("id, lesson_id, ord, question_md, solution_md, done_at").eq("course_id", c["id"]) \
+        .is_("done_at", "null").execute().data
+    mcq = [x for x in rows if is_mcq(x)]
+    if not rows or len(mcq) <= 0.6 * len(rows):
+        print(f"::notice title=Mixed::{c['name']}: {len(mcq)} of {len(rows)} multiple choice - balanced", flush=True)
+        return
+    need = len(mcq) - len(rows) // 2
+    by = {}
+    for x in sorted(mcq, key=lambda x: (str(x.get("lesson_id")), x.get("ord") or 0)):
+        by.setdefault(x.get("lesson_id"), []).append(x)
+    pick = []
+    for xs in by.values():
+        pick += xs[1::2]
+    pick = {x["id"] for x in pick[:need]}
+    print(f"::notice title=Mixed::{c['name']}: {len(mcq)} of {len(rows)} multiple choice - {len(pick)} become open", flush=True)
+    to_open(sb, c, only=pick)
+
+
 def convert_exercises(sb, name):
     """His rule 24/11/2026, every course: the exercises after a lecture / practice / completion are in the course's exam
     format - multiple choice (clickable) when the exam is, open otherwise - and each solution carries its formula
@@ -1931,6 +1952,8 @@ def convert_exercises(sb, name):
     exam = c.get("exam_type") or "open"
     if exam == "open":
         to_open(sb, c)
+    if exam == "mixed":
+        balance_mixed(sb, c)
     rows = [x for x in sb.table("exercises").select("id, question_md, solution_md, done_at, source").eq("course_id", c["id"])
             .eq("source", "lesson").is_("done_at", "null").execute().data]
     want_mcq = exam == "mcq"
@@ -2322,7 +2345,9 @@ if __name__ == "__main__":
         merge_extra_all(s, dry=sys.argv[-1] == "dry")
     elif "--toopen" in sys.argv:  # 27/11: open-exam course -> its multiple-choice exercises become open ones
         for x in s.table("courses").select("id, name, exam_type").execute().data:
-            if name_match(sys.argv[sys.argv.index("--toopen") + 1], x["name"]) and x.get("exam_type") == "open":
+            if name_match(sys.argv[sys.argv.index("--toopen") + 1], x["name"]) and x.get("exam_type") == "mixed":
+                balance_mixed(s, x)  # micro: half multiple choice, half open
+            elif name_match(sys.argv[sys.argv.index("--toopen") + 1], x["name"]) and x.get("exam_type") == "open":
                 for _ in range(3):  # a round that kept some (cut / no answer) is tried again
                     d, t = to_open(s, x)
                     if d == t or d == 0:
