@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -q pyflakes
+      - run: pip install -q pyflakes pyyaml
       - name: Bugs a run would hit
         working-directory: worker
         run: |
