@@ -1599,6 +1599,80 @@ def is_mcq(x):
     return bool(MCQ_SHAPE.search(x.get("question_md") or "") and ANS.search(author.fix_arabic(x.get("solution_md") or "")))
 
 
+EXTRA = """לפניך פרק קריאה של הרצאה (בתחילת ההודעה), ואחריו "חומר נוסף" של הקורס על אותו שבוע (דף מאתר הקורס / סיכום /
+חומר משנה קודמת). הסטודנט לומד רק מההרצאה, התרגול והתרגילים - חומר נוסף הוא לא קורא. כתוב רק את מה שמופיע בחומר
+הנוסף וחסר בפרק (או מופיע בו רק ברמז): הגדרות, נוסחאות, פיתוחים, דוגמאות, קוד, טבלאות, הערות למבחן - מלא ומדויק,
+באותו סגנון של הפרק. מה שכבר מוסבר בפרק - אל תחזור עליו. מה שסותר את ההרצאה - אל תוסיף (ההרצאה קובעת). כל קטע
+שאתה כותב מתחיל בשורה "> 📎 מחומר הקורס (לא נאמר בהרצאה)". אם לא חסר כלום - md ריק. נוסחאות ב-LaTeX ($...$ בשורה,
+$$ בשורה לבד). עברית."""
+EXTRA_SCHEMA = {"type": "object", "properties": {"md": {"type": "string"}}, "required": ["md"]}
+
+
+def is_extra(l):
+    """Material he does not study by itself (his rule 27/11/2026, every course: lecture -> practice -> exercises only):
+    course-site pages and other material that is not a lecture, practice, completion or last year's comparison."""
+    t = l.get("title") or ""
+    return (l.get("kind") in ("web", "other") and not t.startswith(("📦", "🔁")) and "(להשוואה)" not in t
+            and l.get("status") == "ready")
+
+
+def merge_extra(sb, c, dry=False):
+    """His rule 27/11/2026: "חומר נוסף" is never studied on its own. Each extra lesson of week N gives lecture N of this
+    year whatever it has that the lecture's chapter lacks (each piece at the end of its own topic), and is then hidden
+    ("📦 (שולב ב...)"). An extra with no lecture yet (a later week / no week) waits, hidden from his lists by the app."""
+    from google.genai import types
+    ls = sb.table("lessons").select("id, user_id, kind, number, title, status, chapter_md").eq("course_id", c["id"]).execute().data
+    done = 0
+    for x in ls:
+        if not is_extra(x) or not (x.get("chapter_md") or "").strip() or not x.get("number"):
+            continue
+        tg = [l for l in ls if l["kind"] == "lecture" and l.get("number") == x["number"] and l["status"] == "ready"
+              and not (l.get("title") or "").startswith("📦") and (l.get("chapter_md") or "").strip()]
+        if not tg:
+            continue
+        t = max(tg, key=lambda l: len(l["chapter_md"]))
+        print(f"::notice title=Extra::{c['name']}: {x['id'][:8]} '{(x.get('title') or '')[:50]}' -> lecture {t['number']} "
+              f"({t['id'][:8]})", flush=True)
+        if dry:
+            continue
+        out = author._generate_json([types.Part.from_text(text="=== הפרק של ההרצאה ===\n" + body_of(t["chapter_md"])),
+                                     types.Part.from_text(text="=== החומר הנוסף ===\n" + body_of(x["chapter_md"]))],
+                                    EXTRA, EXTRA_SCHEMA, "MEDIUM")
+        md = (out.get("md") or "").strip()
+        if len(md) >= 80:
+            heads = "\n".join(re.findall(r"(?m)^#{2,4} (.+)$", body_of(t["chapter_md"])))
+            try:
+                items = author._generate_json([types.Part.from_text(text="=== הכותרות ===\n" + heads),
+                                               types.Part.from_text(text="=== הקטע החסר ===\n" + md)],
+                                              PLACE, PLACE_SCHEMA, "LOW").get("items") or []
+                if sum(len(i.get("md") or "") for i in items) < 0.8 * len(md):
+                    items = [{"heading": "", "md": md}]
+            except Exception:  # noqa: BLE001
+                items = [{"heading": "", "md": md}]
+            sb.storage.from_("study").upload(f"{t['user_id']}/lessons/{t['id']}/chapter_before_extra.md",
+                                             t["chapter_md"].encode("utf-8"),
+                                             {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+            t["chapter_md"] = integrate(t["chapter_md"], items)
+            sb.table("lessons").update({"chapter_md": t["chapter_md"]}).eq("id", t["id"]).execute()
+        sb.table("lessons").update({"title": f"📦 (שולב בהרצאה {t['number']}) {x.get('title') or ''}"}).eq("id", x["id"]).execute()
+        print(f"::notice title=Extra::{c['name']}: lecture {t['number']} +{len(md) if len(md) >= 80 else 0} chars from "
+              f"{x['id'][:8]} (hidden now)", flush=True)
+        done += 1
+    return done
+
+
+def merge_extra_all(sb, dry=False):
+    for c in sb.table("courses").select("id, name, kind").eq("archived", False).execute().data:
+        if c.get("kind") in ("lab", "self") or SKIP_COURSES.search(c["name"] or ""):
+            continue
+        try:
+            merge_extra(sb, c, dry)
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Extra::{c['name']}: {str(e)[:150]}", flush=True)
+            if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota"):
+                return
+
+
 def to_open(sb, c):
     """His correction 27/11/2026: a course whose exam is open has OPEN exercises - none multiple choice (the quiz after a
     lecture stays multiple choice). Every exercise of the course in that shape is rewritten as an open one; done marks
@@ -1783,6 +1857,8 @@ if __name__ == "__main__":
                     t = l.pop("transcript") or ""
                     l["transcript_len"], l["transcript_head"] = len(t), t[:400]
                     print("@@L " + _j.dumps({"course": x["name"], **l}, ensure_ascii=False), flush=True)
+    elif "--extra" in sys.argv:  # 27/11: extra material into its lecture ("--extra dry" = only the plan)
+        merge_extra_all(s, dry=sys.argv[-1] == "dry")
     elif "--toopen" in sys.argv:  # 27/11: open-exam course -> its multiple-choice exercises become open ones
         for x in s.table("courses").select("id, name, exam_type").execute().data:
             if name_match(sys.argv[sys.argv.index("--toopen") + 1], x["name"]) and x.get("exam_type") == "open":
