@@ -1635,6 +1635,62 @@ $$ בשורה לבד). עברית."""
 EXTRA_SCHEMA = {"type": "object", "properties": {"md": {"type": "string"}}, "required": ["md"]}
 
 
+COMPLETE = """לפניך פרק קריאה של הרצאה (בתחילת ההודעה), ואחריו "השלמה" שנכתבה עליו - מה שהפרק לא כיסה מההקלטה. כתוב
+רק את מה שבהשלמה וחסר בפרק (או מופיע בו רק ברמז), **מועתק כמו שהוא** - כל הגדרה, נוסחה, פיתוח, מספר, דוגמה, תרגיל
+פתור והערה למבחן, בלי לקצר ובלי לנסח מחדש. מה שכבר מוסבר בפרק במלואו - השמט (זו כפילות). בלי שאלות חזרה ובלי
+"תרגילים לתרגול" של ההשלמה. אם לא חסר כלום - md ריק."""
+
+
+def merge_completions(sb, c, dry=False):
+    """His rule 27/11/2026: no completions - a chapter is full. Each "🔁 השלמה להרצאה N" gives lecture N what it lacks
+    (each piece at the end of its topic, duplicates dropped); its exercises join the lecture; it is hidden."""
+    from google.genai import types
+    ls = sb.table("lessons").select("id, user_id, kind, number, title, status, chapter_md").eq("course_id", c["id"]).execute().data
+    for x in ls:
+        m = re.match(r"🔁 השלמה ל(?:הרצאה|מפגש) (\d+)", x.get("title") or "")
+        if not m or not (x.get("chapter_md") or "").strip():
+            continue
+        n = int(m.group(1))
+        tg = [l for l in ls if l["kind"] == "lecture" and l.get("number") == n and l["status"] == "ready"
+              and not (l.get("title") or "").startswith("📦") and (l.get("chapter_md") or "").strip()]
+        if not tg:
+            continue
+        t = max(tg, key=lambda l: len(l["chapter_md"]))
+        print(f"::notice title=Completion::{c['name']}: {x['id'][:8]} ({len(x['chapter_md'])}) -> lecture {n} {t['id'][:8]} "
+              f"({len(t['chapter_md'])})", flush=True)
+        if dry:
+            continue
+        body = re.split(r"(?m)^#{2,3} .*(?:שאלות חזרה|תרגילים לתרגול|תרגול עצמי).*$", body_of(x["chapter_md"]))[0]
+        out = author._generate_json([types.Part.from_text(text="=== הפרק של ההרצאה ===\n" + body_of(t["chapter_md"])),
+                                     types.Part.from_text(text="=== ההשלמה ===\n" + body)], COMPLETE, EXTRA_SCHEMA, "MEDIUM")
+        md = (out.get("md") or "").strip()
+        if len(md) >= 80:
+            heads = "\n".join(re.findall(r"(?m)^#{2,4} (.+)$", body_of(t["chapter_md"])))
+            items = []
+            for piece in [p for p in re.split(r"(?m)^(?=#{2,3} )", md) if p.strip()]:
+                try:
+                    got = author._generate_json([types.Part.from_text(text="=== הכותרות ===\n" + heads),
+                                                 types.Part.from_text(text="=== הקטע החסר ===\n" + piece)],
+                                                PLACE, PLACE_SCHEMA, "LOW").get("items") or []
+                except Exception:  # noqa: BLE001
+                    got = []
+                items += got if sum(len(i.get("md") or "") for i in got) >= 0.8 * len(piece.strip()) else [{"heading": "", "md": piece}]
+            sb.storage.from_("study").upload(f"{t['user_id']}/lessons/{t['id']}/chapter_before_completion.md",
+                                             t["chapter_md"].encode("utf-8"),
+                                             {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+            t["chapter_md"] = integrate(t["chapter_md"], items)
+            sb.table("lessons").update({"chapter_md": t["chapter_md"]}).eq("id", t["id"]).execute()
+        sb.table("exercises").update({"lesson_id": t["id"]}).eq("lesson_id", x["id"]).execute()
+        qs = sb.table("questions").select("id").eq("lesson_id", x["id"]).execute().data
+        ans = {a["question_id"] for a in sb.table("attempts").select("question_id").in_("question_id", [q["id"] for q in qs]).execute().data} if qs else set()
+        for q in qs:
+            if q["id"] not in ans:
+                sb.table("questions").delete().eq("id", q["id"]).execute()
+        sb.table("lessons").update({"title": f"📦 (שולב בהרצאה {n}) {x.get('title') or ''}"}).eq("id", x["id"]).execute()
+        print(f"::notice title=Completion::{c['name']}: lecture {n} +{len(md) if len(md) >= 80 else 0} chars (of "
+              f"{len(body)}), completion hidden", flush=True)
+
+
 def is_extra(l):
     """Material he does not study by itself (his rule 27/11/2026, every course: lecture -> practice -> exercises only):
     course-site pages and other material that is not a lecture, practice, completion or last year's comparison."""
@@ -1944,6 +2000,16 @@ if __name__ == "__main__":
                 print(f"@@TR {l['id'][:8]} " + re.sub(r"\s+", " ", (l.get("transcript") or "")[:600]), flush=True)
                 for h in re.findall(r"(?m)^#{1,2} (.+)$", l.get("chapter_md") or ""):
                     print(f"@@H {l['id'][:8]} {h[:90]}", flush=True)
+    elif "--completions" in sys.argv:  # 27/11: completions into their lectures ("--completions <course|all> [dry]")
+        key = sys.argv[sys.argv.index("--completions") + 1]
+        for x in s.table("courses").select("id, name").eq("archived", False).execute().data:
+            if (key == "all" or name_match(key, x["name"])) and not SKIP_COURSES.search(x["name"] or ""):
+                try:
+                    merge_completions(s, x, dry=sys.argv[-1] == "dry")
+                except Exception as e:  # noqa: BLE001
+                    print(f"::warning title=Completion::{x['name']}: {str(e)[:150]}", flush=True)
+                    if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota"):
+                        break
     elif "--quizfix" in sys.argv:  # 27/11: every lecture's quiz 10-12 questions, no quiz on a practice (every course)
         for c in s.table("courses").select("id, name, kind").eq("archived", False).execute().data:
             if c.get("kind") in ("lab",) or SKIP_COURSES.search(c["name"] or ""):
