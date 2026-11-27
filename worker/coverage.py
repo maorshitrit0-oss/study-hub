@@ -1452,8 +1452,22 @@ def verify_exercises(sb, name):
         out = author._generate_json([types.Part.from_text(text="\n\n".join(f"=== id: {x['id']} ===\n{x['question_md']}" for x in chunk))],
                                     VERIFY_EX, VERIFY_SCHEMA, "HIGH")
         got = {a["id"]: (a.get("letter") or "").strip().strip("'׳") for a in out.get("answers") or []}
+        # 27/11: Gemini alone was wrong on 39 of 46 disagreements (he would see false warnings). A disagreement goes
+        # to a second, independent model; it is marked only if that one does not confirm the stated answer either.
+        odd = [x for x in chunk if got.get(x["id"]) and got[x["id"]] != stated[x["id"]]]
+        second = {}
+        if odd:
+            try:
+                o2 = author._backup_json([types.Part.from_text(text="\n\n".join(f"=== id: {x['id']} ===\n{x['question_md']}"
+                                                                                for x in odd))], VERIFY_EX, VERIFY_SCHEMA) or {}
+                second = {a["id"]: (a.get("letter") or "").strip().strip("'׳") for a in o2.get("answers") or []}
+            except Exception as e:  # noqa: BLE001
+                print(f"::notice title=Verify::second opinion failed: {str(e)[:120]}", flush=True)
         for x in chunk:
             g = got.get(x["id"])
+            if g and g != stated[x["id"]] and second.get(x["id"]) == stated[x["id"]]:
+                print(f"::notice title=Verify::{x['id'][:8]}: second model confirms {stated[x['id']]} - kept", flush=True)
+                continue
             if g and g != stated[x["id"]]:
                 bad += 1
                 note = f"> ⚠️ הפתרון לא אומת: בפתרון מחדש יצאה תשובה {g} ולא {stated[x['id']]}. לבדוק לפני שסומכים עליו.\n\n"
