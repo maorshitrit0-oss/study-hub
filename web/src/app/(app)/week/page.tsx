@@ -45,7 +45,8 @@ export default async function Week({ searchParams }: PageProps<"/week">) {
   const name = new Map((courses ?? []).map((c) => [c.id, c.name as string]));
   const thisWeek = held.filter((m) => m.date >= start && m.date <= end);
   const behind = held.filter((m) => m.date < start && !m.noRecording && (!m.lesson || !m.lesson.read_at));
-  const lastYear = (site ?? []).filter((l) => isSiteLesson(l) && l.status === "ready");
+  // His rule 27/11/2026: no "read last year's material" - he studies this year's lecture, practice and exercises only.
+  const lastYear = (site ?? []).filter((l) => isSiteLesson(l) && l.status === "ready" && false);
   const byCourse = (ms: Missing[]) => [...new Set(ms.map((m) => m.slot.course_id!))]
     .map((id) => [id, ms.filter((m) => m.slot.course_id === id)] as const)
     .sort((a, b) => (name.get(a[0]) ?? "").localeCompare(name.get(b[0]) ?? ""));

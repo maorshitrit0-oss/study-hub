@@ -54,15 +54,19 @@ function statusOf(l: Lesson): [string, string] {
   return STATUS[l.status];
 }
 
+const ARCHIVE = "🗄️ ארכיון - לא בסדר הלימוד (מה שחסר בהרצאות כבר שולב בהן)";
+
 /** Lectures and practices interleaved, then other material (a lab keeps one list). */
 function groupLessons(ls: Lesson[], isLab: boolean): [string, Lesson[]][] {
   if (isLab) return [["", ls]];
   const groups: [string, Lesson[]][] = [
     ["📅 מפגשים", ls.filter(isSession).sort((a, b) => (a.number ?? 99) - (b.number ?? 99))],
     ["הרצאות ותרגולים", ls.filter((l) => (l.kind === "lecture" || l.kind === "practice" || isCompletion(l)) && !isSiteLesson(l) && !isSession(l)).sort(byMeeting)],
-    ["חומר נוסף", ls.filter((l) => l.kind !== "lecture" && l.kind !== "practice" && !isCompletion(l) && !isSiteLesson(l))],
-    // Last year's material from the lecturer's site: reference and backup, after this year's own lessons.
-    ["📼 חומר משנה שעברה (מאתר המרצה)", ls.filter(isSiteLesson).sort((a, b) => (a.number ?? 99) - (b.number ?? 99))],
+    // His rule 27/11/2026: he studies lecture -> practice -> exercises only. Extra material (course site, last year,
+    // summaries) is never a lesson of its own: what a lecture lacks is merged into it (worker coverage.merge_extra),
+    // and the rest is kept closed at the bottom.
+    [ARCHIVE, ls.filter((l) => l.kind !== "lecture" && l.kind !== "practice" && !isCompletion(l) && !isSession(l))
+      .sort((a, b) => (a.number ?? 99) - (b.number ?? 99))],
   ];
   return groups.filter(([, g]) => g.length);
 }
@@ -277,8 +281,8 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
         )}
         {ls.length ? (
           groupLessons(ls, false).map(([label, group]) => (
-            <div key={label}>
-              {label && <h3 className="text-sm text-muted mt-3">{label} ({group.length})</h3>}
+            <details key={label} open={label !== ARCHIVE}>
+              {label && <summary className="text-sm text-muted mt-3 cursor-pointer">{label} ({group.length})</summary>}
               <ul className="divide-y divide-line">
                 {group.map((l) => (
                   <li key={l.id}>
@@ -293,7 +297,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
                   </li>
                 ))}
               </ul>
-            </div>
+            </details>
           ))
         ) : (
           <p className="text-sm text-muted py-2">עוד אין חומר. הדבק קישור לזום למעלה.</p>

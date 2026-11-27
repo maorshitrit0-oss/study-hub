@@ -1612,7 +1612,7 @@ def is_extra(l):
     """Material he does not study by itself (his rule 27/11/2026, every course: lecture -> practice -> exercises only):
     course-site pages and other material that is not a lecture, practice, completion or last year's comparison."""
     t = l.get("title") or ""
-    return (l.get("kind") in ("web", "other") and not t.startswith(("📦", "🔁")) and "(להשוואה)" not in t
+    return (l.get("kind") in ("web", "other") and not t.startswith(("📦", "🔁", "מפגש ")) and "(להשוואה)" not in t
             and l.get("status") == "ready")
 
 

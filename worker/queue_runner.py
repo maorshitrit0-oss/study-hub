@@ -334,6 +334,12 @@ def run():
             coverage.make_missing_videos(sb)
         except Exception as e:  # noqa: BLE001
             print(f"::warning title=Missing videos::{str(e)[:200]}", flush=True)
+    if not waiting_lesson:
+        try:  # his rule 27/11/2026: extra material of week N goes into this year's lecture N once it exists
+            import coverage
+            coverage.merge_extra_all(sb)
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=Extra::{str(e)[:200]}", flush=True)
     try:  # weeks still missing their exercise set (weekset.py)
         import weekset
         weekset.fill_missing(sb)

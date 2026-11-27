@@ -10,6 +10,7 @@ export const STUDY_LAG = Number(process.env.STUDY_LAG ?? 1);
 const DAY_MS = 864e5;
 const UPLOAD = "upload:";
 const SITE_WEEK = "site-week:";
+const NO_SITE_TASKS = true;  // his rule 27/11/2026: lecture -> practice -> exercises only, no "last year" fallback
 const KIND = { lecture: "הרצאה", practice: "תרגול" } as const;
 
 const israelDate = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem" }).format(d);
@@ -86,10 +87,10 @@ export async function syncWeekTasks(sb: SupabaseClient) {
     const hasThisYear = lectures.has(`${l.course_id}|${l.number}`);
     const t = have.get(k);
     if (t) {
-      if (!t.done && (hasThisYear || l.read_at)) close.push(t.id);
+      if (!t.done) close.push(t.id);  // 27/11/2026: he never studies last year's material - close every such task
       continue;
     }
-    if (l.number > study || hasThisYear || l.read_at) continue;
+    if (l.number > study || hasThisYear || l.read_at || NO_SITE_TASKS) continue;
     add.push({
       course_id: l.course_id, kind: "other",
       title: `📼 ${name.get(l.course_id) ?? ""} שבוע ${l.number}: אין הקלטה מהשנה - לקרוא את החומר משנה שעברה`,
