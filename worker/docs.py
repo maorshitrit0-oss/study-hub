@@ -60,6 +60,12 @@ def allows_sheet(sb, course):
     return any(ALLOWED.search(f["text"] or "") for f in facts) or bool(ALLOWED.search(course.get("notes") or ""))
 
 
+def pages(sb, course):
+    """How many pages the exam allows (a course fact like "2 דפים דו-צדדיים" / "4 עמודים") - 2 by default."""
+    facts = " ".join(f["text"] or "" for f in sb.table("course_facts").select("text").eq("course_id", course["id"]).execute().data)
+    return 4 if re.search(r"4 עמודים|ארבעה עמודים|2 דפים דו|שני דפים דו", facts) else 2
+
+
 def formula_notes(sb, course):
     """Formulas read from the course files (worker/exercises.py), by file."""
     try:
@@ -81,6 +87,9 @@ def build(sb, course, lessons):
     base = current(sb, course) if CODE.search(course["name"] or "") or claude else ""
     update = CODE_UPDATE if CODE.search(course["name"] or "") else FORMULAS_UPDATE
     prompt = f"{update}\n\n=== הדף הנוכחי ===\n{base}" if base else FORMULAS
+    if pages(sb, course) == 4:  # waves (his word 27/11/2026): 4 pages = two double-sided sheets allowed
+        prompt = prompt.replace("בשני עמודי A4 (דף אחד דו-צדדי, כמו שמותר להביא למבחן)", "בארבעה עמודי A4 (שני דפים דו-צדדיים, כמו שמותר להביא למבחן)") \
+            .replace("הדף צריך להישאר בשני עמודי A4", "הדף צריך להישאר בארבעה עמודי A4") + "\nמותרים 4 עמודים: מלא אותם בכל מה שעוזר מול תרגיל במבחן."
 
     def call(client, model):
         return client.models.generate_content(model=model, contents=[types.Content(role="user", parts=[
