@@ -1684,6 +1684,8 @@ if __name__ == "__main__":
                    or "הנוסחה" not in (e.get("solution_md") or "")]
             print(f"::notice title=Exercises::{x['name']} ({x.get('exam_type') or 'open'}): {len(bad)} of {len(ex)} open "
                   f"exercises not yet in the exam's format / without the formula", flush=True)
+            unv = [e for e in ex if "⚠️ הפתרון לא אומת" in (e.get("solution_md") or "")]
+            print(f"::notice title=Exercises::{x['name']}: {len(unv)} answers marked unverified (⚠️)", flush=True)
         import queue_runner
         for r, mode in queue_runner.candidates(s):
             if r["status"] != "ready":
