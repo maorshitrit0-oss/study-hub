@@ -704,6 +704,7 @@ DRILL_SCHEMA = {"type": "object", "properties": {
     "required": ["questions", "exercises"]}
 
 
+CODELINE = re.compile(r";\s*(//.*)?$|^\s*(#include|//|/\*)|\b(printf|digitalWrite|pinMode|Serial\.|System\.out|uint\d+_t|void|int|return|if|else|for|while)\b.*[;{(]")
 HEB = re.compile(r"[\u0590-\u05FF]")
 MATHRUN = re.compile(r"[A-Za-z0-9\\{}_^()\[\]=+\-*/.,:;|<>!' ]+")
 
@@ -723,7 +724,16 @@ def wrap_math(s):
             return run
         i = run.index(core)
         return f"{run[:i]}${core}${run[i + len(core):]}"
-    return "\n".join(MATHRUN.sub(one, line) if not line.lstrip().startswith("```") else line for line in s.split("\n"))
+    out, fence = [], False
+    for line in s.split("\n"):
+        if line.lstrip().startswith("```"):
+            fence = not fence
+            out.append(line)
+        elif fence or CODELINE.search(line):  # 27/11: C code got "$...$" (micro exercises) - code is never math
+            out.append(line)
+        else:  # inline `code` stays as it is
+            out.append("`".join(MATHRUN.sub(one, p) if i % 2 == 0 else p for i, p in enumerate(line.split("`"))))
+    return "\n".join(out)
 
 
 def put_drill(sb, l, qs, exs, uncertain):
@@ -2000,6 +2010,30 @@ if __name__ == "__main__":
                 print(f"@@TR {l['id'][:8]} " + re.sub(r"\s+", " ", (l.get("transcript") or "")[:600]), flush=True)
                 for h in re.findall(r"(?m)^#{1,2} (.+)$", l.get("chapter_md") or ""):
                     print(f"@@H {l['id'][:8]} {h[:90]}", flush=True)
+    elif "--codefix" in sys.argv:  # 27/11: code that the math step wrapped as formulas -> fenced code again
+        from google.genai import types
+        CODEFIX = ("לפניך טקסט של תרגיל בקורס תכנות/מיקרו-בקרים. שלב עיבוד שגוי עטף שורות קוד (C/Java) כנוסחאות: "
+                   "$...$, $$...$$ סביב קוד, נקודה-פסיק שנעלמה, \\& במקום &. שחזר: כל קטע קוד בבלוק ```c (או ```java) "
+                   "שורה אחרי שורה כמו קוד אמיתי, בלי $ בתוך הקוד; קוד קצר בתוך משפט - `כך`. נוסחאות מתמטיות אמיתיות "
+                   "נשארות ב-$. אל תשנה שום מילה אחרת, אל תקצר ואל תוסיף. החזר את כל הטקסט ב-text.")
+        bad = re.compile(r"\$\$\s*\n[^$]*(;|uint\d+_t|\|=|&=|\^=|<<)[^$]*\n\$\$|printf\([^)]*\$|\$\\&=\$|\$[^$\n]*\\n\$")
+        for c in s.table("courses").select("id, name").eq("archived", False).execute().data:
+            for e in s.table("exercises").select("id, question_md, solution_md").eq("course_id", c["id"]).execute().data:
+                for f in ("question_md", "solution_md"):
+                    v = e.get(f) or ""
+                    if not bad.search(v):
+                        continue
+                    try:
+                        out = author._generate_json([types.Part.from_text(text=v)], CODEFIX, FIXTEX_SCHEMA, "LOW")
+                    except Exception as ex:  # noqa: BLE001
+                        print(f"::warning title=Code fix::{e['id'][:8]}: {str(ex)[:120]}", flush=True)
+                        continue
+                    t = (out.get("text") or "").strip()
+                    fences = re.findall(r"```[a-z]*\n(.*?)```", t, re.S)
+                    ok = t and len(t) > 0.8 * len(v) and not bad.search(t) and not any("$" in b for b in fences)
+                    if ok:
+                        s.table("exercises").update({f: t}).eq("id", e["id"]).execute()
+                    print(f"::notice title=Code fix::{c['name']} {e['id'][:8]} {f}: {'fixed' if ok else 'kept (check failed)'}", flush=True)
     elif "--completions" in sys.argv:  # 27/11: completions into their lectures ("--completions <course|all> [dry]")
         key = sys.argv[sys.argv.index("--completions") + 1]
         for x in s.table("courses").select("id, name").eq("archived", False).execute().data:
