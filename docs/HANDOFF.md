@@ -1195,3 +1195,8 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
   ("BADJSON") instead of failing the lesson (comm lecture 6 failed on "Expecting value" 25/11).
 - .github/workflows/check.yml: every worker push runs pyflakes (undefined names, used-before-set). Run
   `python -m pyflakes *.py` in worker/ before every commit.
+- 27/11: repair jobs added by a lesson's run or the CLI carry an "_id" (coverage.new_job); every save keeps jobs with an
+  id it has not seen and has not finished (drop_job) - the queue's once-per-run state no longer drops them.
+- 27/11: a repair step failing on anything but Gemini's quota is tried twice, then dropped (warning) - it no longer
+  blocks every job behind it. Progress pushes name the job's own course and are never empty.
+- 27/11: practices lost the "✓ סיימתי" buttons with the quiz (23/11) - now only the quiz is hidden on a practice.

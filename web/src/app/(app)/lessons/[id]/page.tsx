@@ -143,7 +143,7 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
   const nextLabel = weekDone ? `לתרגילים של שבוע ${lesson.number}` : `לשיעור הבא: ${nextName}`;
   const quizFold = lesson.status === "ready" && (
     <section className="space-y-3" id="quiz">
-      {questions.length > 0 && (
+      {questions.length > 0 && lesson.kind !== "practice" && (
         <Fold id={`quiz-${id}`} title="✅ שאלון אמריקאי" hint={`${understandingOnly(questions).length}`}>
           <Quiz questions={understandingOnly(questions)} title="שאלון סיכום" />
           {interview.length > 0 && (
@@ -278,8 +278,9 @@ export default async function LessonPage({ params }: PageProps<"/lessons/[id]">)
 
       {/* Lectures and practices: the exercises are solved only in the course's exercises tab, week N = lecture N
           (his way, 11/11/2026) - here only a link to that week. */}
-      {/* 23/11/2026: a practice is the full chapter only - no quiz (the exercises follow it). */}
-      {!self && lesson.kind !== "practice" && quizFold}
+      {/* 23/11/2026: a practice is the full chapter only - no quiz (the exercises follow it). The "done" buttons stay
+          (27/11: hiding the whole block hid them too - he could not mark a practice as learned). */}
+      {!self && quizFold}
       {!self && (exercises ?? []).length > 0 && (lesson.kind === "lecture" || lesson.kind === "practice") && lesson.number ? (
         <Link href={`/courses/${lesson.course_id}/exercises?w=${lesson.number}`} className="card block text-center text-sm font-medium">
           ✍️ התרגילים של השיעור הזה – בעמודת התרגילים, שבוע {lesson.number}

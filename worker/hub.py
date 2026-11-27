@@ -546,7 +546,7 @@ def complete_chapter(job, chapter_md, short, by):
         try:  # broken formulas: the queue repairs the course's texts with the site's own renderer (24/11/2026)
             stq = coverage.load(job.sb)
             if not any(j.get("mathfix") and j.get("course") in (job.course.get("name") or "") for j in stq.get("pending") or []):
-                stq.setdefault("pending", []).append({"course": job.course.get("name"), "mathfix": True})
+                stq.setdefault("pending", []).append(coverage.new_job({"course": job.course.get("name"), "mathfix": True}))
                 coverage.save(job.sb, stq, keys=["pending"])
         except Exception as e:  # noqa: BLE001
             print(f"::warning title=Math fix queue::{str(e)[:150]}", flush=True)

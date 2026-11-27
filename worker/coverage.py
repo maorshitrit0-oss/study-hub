@@ -84,14 +84,35 @@ def load(sb):
     return _CACHE["st"]
 
 
+_REMOVED = set()  # ids of repair jobs this process finished (so a full save does not bring them back)
+
+
+def new_job(job):
+    """A repair job added by a writer outside the queue: gets an id, so the queue's next save keeps it (25/11/2026: the
+    queue reads the state once per run and its full save dropped jobs added meanwhile by a lesson's run)."""
+    import uuid
+    return {**job, "_id": uuid.uuid4().hex[:12]}
+
+
+def drop_job(st, j):
+    st["pending"].remove(j)
+    if j.get("_id"):
+        _REMOVED.add(j["_id"])
+
+
 def save(sb, st, keys=None):
     """keys: a writer outside the queue (a lesson being processed) updates only these keys on a fresh copy, so it never
     overwrites the queue's list of repairs (23-24/11/2026 the night's list was lost that way)."""
+    try:
+        fresh = json.loads(sb.storage.from_(BUCKET).download(STATE).decode())
+    except Exception:  # noqa: BLE001
+        fresh = {}
+    if not keys or "pending" in keys:  # repair jobs added meanwhile by another run are kept
+        have = {j.get("_id") for j in st.get("pending") or []}
+        for j in fresh.get("pending") or []:
+            if j.get("_id") and j["_id"] not in have and j["_id"] not in _REMOVED:
+                st.setdefault("pending", []).append(j)
     if keys:
-        try:
-            fresh = json.loads(sb.storage.from_(BUCKET).download(STATE).decode())
-        except Exception:  # noqa: BLE001
-            fresh = {}
         for k in keys:
             fresh[k] = {**(fresh.get(k) or {}), **(st.get(k) or {})} if isinstance(st.get(k), dict) else st.get(k)
         st = fresh
@@ -397,7 +418,7 @@ def step(sb):
             if what is None:
                 continue
             if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify", "mathfix", "convert")):
-                st["pending"].remove(j)
+                drop_job(st, j)
             save(sb, st)
             return True
     if MERGE_APPROVED:
@@ -1130,14 +1151,16 @@ def plan_focus(sb):
     return focus
 
 
-def progress_push(sb, what):
-    """A short push after each piece of work on the focus courses (his request 23/11/2026: keep me posted)."""
+def progress_push(sb, what, course=""):
+    """A short push after each piece of work (his request 23/11/2026: keep me posted) - about the job's OWN course
+    (27/11: it named the first focus course whatever was repaired) and never an empty one."""
+    if not what or not course:
+        return
     try:
         import notify
         st = load(sb)
-        names = (st.get("focus") or "").split("|")
         for c in sb.table("courses").select("id, name, user_id").execute().data:
-            if any(n and n in (c["name"] or "") for n in names):
+            if course in (c["name"] or "") or (c["name"] or "") in course:
                 left = missing_for(sb, c, st)
                 notify.send(sb, c["user_id"], f"🔧 {c['name']}: {what}", ("נשאר: " + ", ".join(left)) if left else "הקורס מוכן")
                 break
@@ -1178,13 +1201,13 @@ def pending_for_next_day(sb):
         if what is None:
             continue  # this job waits for Gemini - the next one
         if finished or not any(k in j for k in ("boards", "fix", "place", "rewrite", "weeks", "verify", "mathfix", "convert")):
-            st["pending"].remove(j)
+            drop_job(st, j)
         break
     else:
         save(sb, st)
         return False
     save(sb, st)
-    progress_push(sb, what)
+    progress_push(sb, what, j.get("course") or "")
     return True
 
 
@@ -1306,11 +1329,21 @@ def run_job(sb, st, j):
         try:
             fn()
         except Exception as e:  # noqa: BLE001
-            if key in GEMINI_ONLY and author._is(e, "RESOURCE_EXHAUSTED", "429", "quota", "UNAVAILABLE", "503", "עמוסים", "המכסה"):
+            gemini = author._is(e, "RESOURCE_EXHAUSTED", "429", "quota", "UNAVAILABLE", "503", "עמוסים", "המכסה")
+            if key in GEMINI_ONLY and gemini:
                 j["_skip"] = sorted(skipped | {key})  # after Gemini's reset (the skip list is cleared then)
                 print(f"::notice title=Repairs::{j['course']} {key}: waits for Gemini - the other steps go on", flush=True)
                 return False, ""
-            raise
+            if gemini:
+                raise
+            # 27/11/2026: any other error (a bug, bad data) - two tries, then the step is dropped and the job goes on;
+            # before, the same failing step ran again every round and every job behind it waited for ever
+            fails = j.setdefault("_fail", {})
+            fails[key] = fails.get(key, 0) + 1
+            print(f"::warning title=Repairs::{j['course']} {key} failed ({fails[key]}/2): {str(e)[:200]}", flush=True)
+            if fails[key] >= 2:
+                j.pop(key)
+            return False, ""
         j.pop(key)
         return False, what
     if any(j.get(k) for k in skipped):
@@ -1530,7 +1563,7 @@ if __name__ == "__main__":
         trim_quiz(s, sys.argv[sys.argv.index("--trim-quiz") + 1])
     elif "--pending" in sys.argv:  # '{"course": "...", "weeks": [4,5], "rewrite": "<lesson id>"}' -> done by the queue
         st = load(s)
-        job = json.loads(sys.argv[sys.argv.index("--pending") + 1])
+        job = new_job(json.loads(sys.argv[sys.argv.index("--pending") + 1]))
         if job.pop("first", False):  # the course he studies next goes first
             st.setdefault("pending", []).insert(0, job)
         else:
