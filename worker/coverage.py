@@ -1125,6 +1125,113 @@ def requiz(sb, l):
     print(f"::notice title=Quiz::lecture {l.get('number')} {(l.get('title') or '')[:20]}: {len(qs)} -> {len(new) + len(answered)} questions", flush=True)
 
 
+HOLLOW = re.compile(r"\\text\{(חישוב|ערך|שרטוט|הצבת|הסרת|ניתוק)|מחושב\S*\s*(כראוי|בנפרד|ביחידות)?\s*✅"
+                    r"|\*\*תוצאה:\*\*\s*✅?\s*(חישוב|קבלת|ערך|ערכי|תוצאות|עקומת|הספק|זמני|שרטוט|סוג)"
+                    r"|\*\*הצבה:\*\*\s*(הצבת|נציב את ערכי|שימוש ב|חישוב|הכפלת)[^$\n]*(\n|$)")
+
+
+def hollow(x):
+    """A solution that only names the steps ("**תוצאה:** ✅ ערך המשוב מחושב") - no numbers where the question has
+    data. 27/11: about a hundred exam / sheet exercises were like that."""
+    q, s = x.get("question_md") or "", x.get("solution_md") or ""
+    return bool((len(re.findall(r"\d+(?:\.\d+)?", q)) >= 4 and not re.search(r"(=|\\approx)\s*(\\pm|[-+])?\s*\$?\s*-?\d", s)) or HOLLOW.search(s))
+
+
+SOLVE = """לפניך תרגיל בקורס "{course}" (הנדסת חשמל) והפתרון השמור שלו, שהוא **חלול**: הוא רק מונה שלבים ("התוצאה מחושבת")
+בלי לחשב באמת. אם צורף הקובץ המקורי (מבחן / דף תרגילים / מטלה, ואולי פתרון רשמי) - התרגיל נמצא בו; קח ממנו את כל
+הנתונים והשרטוט. אם צורף שיעור - לפי הדרך של המרצה.
+כתוב פתרון **מלא ומחושב** לכל סעיף, לכל שלב חישוב באותו מבנה קבוע:
+  שורה של הסבר קצר למה עושים את הצעד, ואז
+  **נוסחה:** $$...$$ (הנוסחה הכללית, בסימנים)
+  **הצבה:** $$...$$ (אותה נוסחה עם המספרים והיחידות)
+  **תוצאה:** $$...$$ (המספר הסופי עם יחידות; בתשובה הסופית של הסעיף - ✅ לפניה)
+  בהוכחה או בשאלה מילולית: שלבים ממוספרים, כל שלב עם הנימוק שלו. שרטוט - תאר במילים בדיוק מה משרטטים (צירים,
+  נקודות, ערכים).
+""" + author.EXPLAIN_RULE.replace("{", "{{").replace("}", "}}") + """
+אם התרגיל רב-ברירה (יש אפשרויות א/ב/ג/ד): השורה הראשונה "התשובה: **<אות>**", אחריה הפתרון, ובסוף "למה לא האחרות".
+אם בנוסח חסר נתון שיש בקובץ - השלם אותו ב-question_md (אחרת החזר את הנוסח כמו שהוא). אל תמציא נתונים: מה שלא
+ידוע - כתוב שאינו ידוע ופתור בסימנים, ו-uncertain=true. כל ביטוי מתמטי בתוך $...$, משוואה בשורה נפרדת $$...$$.
+עברית בלבד. החזר תרגיל אחד ברשימה exercises."""
+
+
+def resolve_hollow(sb, course, x, materials, work):
+    """One hollow exercise solved again in full - from its file (exam / sheet, + the official solution) or its lesson;
+    then re-solved from scratch by the checker. Kept only when the new solution is not hollow."""
+    import exercises as exmod
+    from google.genai import types
+    parts = [types.Part.from_text(text=SOLVE.format(course=course["name"]) + exmod.exam_form(course)),
+             types.Part.from_text(text=f"=== התרגיל ===\n{x.get('question_md')}\n\n=== הפתרון החלול ===\n{x.get('solution_md')}")]
+    m = next((y for y in materials if y["id"] == x.get("material_id")), None)
+    if m:
+        data, mime = exmod.blob(sb, m, work)
+        if len(data) < exmod.INLINE_LIMIT:
+            parts += [types.Part.from_text(text="=== הקובץ המקורי ==="), types.Part.from_bytes(data=data, mime_type=mime)]
+            sol = exmod.solution_for(m, materials)
+            if sol:
+                sdata, smime = exmod.blob(sb, sol, work)
+                if len(sdata) + len(data) < exmod.INLINE_LIMIT:
+                    parts += [types.Part.from_text(text="=== קובץ הפתרון הרשמי ==="), types.Part.from_bytes(data=sdata, mime_type=smime)]
+    elif x.get("lesson_id"):
+        l = sb.table("lessons").select("chapter_md, transcript").eq("id", x["lesson_id"]).execute().data
+        if l:
+            parts.append(types.Part.from_text(text=f"=== השיעור ===\n{body_of(l[0].get('chapter_md') or '')[:60000]}\n\n"
+                                                    f"=== התמלול ===\n{(l[0].get('transcript') or '')[:80000]}"))
+    found = exmod.gen(parts, None)
+    if not found:
+        return None
+    checked = exmod.gen(parts + [types.Part.from_text(text="=== התרגיל לבדיקה ===\n" + json.dumps(found[:1], ensure_ascii=False))], exmod.CHECK)
+    new = (checked or found)[0]
+    if hollow(new) or len(new.get("solution_md") or "") < 300:
+        return None
+    return new
+
+
+def fix_hollow(sb, key, dry=False, limit_min=95):
+    """--hollow <course|all> [dry]: every hollow exercise of the course solved again (see resolve_hollow)."""
+    import tempfile
+    import time
+    import exercises as exmod
+    from tidy import tidy
+    t0 = time.time()
+    for c in sb.table("courses").select("id, name, user_id, kind, exam_type").eq("archived", False).execute().data:
+        if not (key == "all" or name_match(key, c["name"])) or SKIP_COURSES.search(c["name"] or "") or c.get("kind") == "lab":
+            continue
+        xs = sb.table("exercises").select("id, title, source, lesson_id, material_id, question_md, solution_md") \
+            .eq("course_id", c["id"]).execute().data
+        bad = [x for x in xs if hollow(x) and "🔎 נבדק מחדש" not in (x.get("solution_md") or "")]
+        print(f"::notice title=Hollow::{c['name']}: {len(bad)} of {len(xs)} exercises have a hollow solution", flush=True)
+        if dry or not bad:
+            for x in bad:
+                print(f"@@H {x['id'][:8]} {x.get('source')} {(x.get('title') or '')[:50]}", flush=True)
+            continue
+        materials = sb.table("materials").select("id, title, storage_path, mime, kind").eq("course_id", c["id"]).execute().data
+        fixed = 0
+        with tempfile.TemporaryDirectory() as work:
+            for x in bad:
+                if time.time() - t0 > limit_min * 60:
+                    print("::warning title=Hollow::time limit - run again for the rest", flush=True)
+                    return
+                try:
+                    new = resolve_hollow(sb, c, x, materials, Path(work))
+                except Exception as e:  # noqa: BLE001
+                    print(f"::warning title=Hollow::{x['id'][:8]}: {str(e)[:150]}", flush=True)
+                    if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota"):
+                        return
+                    continue
+                if not new:
+                    print(f"::warning title=Hollow::{x['id'][:8]} {(x.get('title') or '')[:40]}: still hollow - kept", flush=True)
+                    continue
+                upd = {"solution_md": tidy(wrap_math(new["solution_md"])), "uncertain": bool(new.get("uncertain"))}
+                q = new.get("question_md") or ""
+                if len(q) > len(x.get("question_md") or "") * 1.05:  # data the file had and the stored text lacked
+                    upd["question_md"] = tidy(wrap_math(q))
+                sb.table("exercises").update(upd).eq("id", x["id"]).execute()
+                exmod.mark_read(sb, c, f"exp:{x['id']}")
+                fixed += 1
+                print(f"@@FIXED {x['id'][:8]} {(x.get('title') or '')[:50]} ({len(x.get('solution_md') or '')} -> {len(upd['solution_md'])})", flush=True)
+        print(f"::notice title=Hollow::{c['name']}: {fixed} of {len(bad)} solved again", flush=True)
+
+
 def reextract(sb, course, l):
     """The lesson's exercises read again from its chapter + recording (after a rewrite / audit added material).
     Exercises he marked done stay; the others are replaced."""
@@ -2074,6 +2181,8 @@ if __name__ == "__main__":
                     print(f"::warning title=Completion::{x['name']}: {str(e)[:150]}", flush=True)
                     if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota"):
                         break
+    elif "--hollow" in sys.argv:  # 27/11: exercises whose solution only names the steps, solved again in full
+        fix_hollow(s, sys.argv[sys.argv.index("--hollow") + 1], dry=sys.argv[-1] == "dry")
     elif "--quizfix" in sys.argv:  # 27/11: every lecture's quiz 10-12 questions, no quiz on a practice (every course)
         for c in s.table("courses").select("id, name, kind").eq("archived", False).execute().data:
             if c.get("kind") in ("lab",) or SKIP_COURSES.search(c["name"] or ""):
