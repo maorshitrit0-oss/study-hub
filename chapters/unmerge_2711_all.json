@@ -1,0 +1,48 @@
+[
+ {
+  "into": "b2bf46df-7492-4616-af2f-3af77178dad0",
+  "cut": "\n---\n\n# מעגלים לינארים- תרגיל\n",
+  "first": true,
+  "src": "79fa5fb1-b134-4255-81b6-0f11a93bea54",
+  "src_kind": "practice",
+  "src_number": 5,
+  "src_title": "מעגלים לינארים- תרגיל",
+  "move_new_ex": true,
+  "since": "2026-11-21T16:59:00+00:00"
+ },
+ {
+  "into": "17694202-72b9-4691-a98b-584bf00ba567",
+  "cut": "\n---\n\n# מעגלים לינארים- תרגיל\n",
+  "src": "6c533aec-54b3-4e3b-8617-c79a6149c7b4",
+  "src_kind": "practice",
+  "src_number": 6,
+  "src_title": "מעגלים לינארים- תרגיל",
+  "move_new_ex": true,
+  "since": "2026-11-23T16:01:00+00:00"
+ },
+ {
+  "into": "065c0788-34c0-4684-9100-68dd3554d229",
+  "cut": "\n---\n\n# תכנות מונחה עצמים ושפת JAVA להנדסת חשמל- תרגיל\n",
+  "src": "6ac3336f-6717-45a4-bbc4-f32ba631a42b",
+  "src_kind": "practice",
+  "src_number": 3,
+  "src_title": "תכנות מונחה עצמים ושפת JAVA להנדסת חשמל- תרגיל",
+  "move_new_ex": true,
+  "since": "2026-11-21T16:55:00+00:00"
+ },
+ {
+  "renumber": "f0ef8d5b-fe3a-4a3c-9358-1cf985d7786d",
+  "kind": "practice",
+  "number": 4
+ },
+ {
+  "into": "c688ca4a-c44a-4ca1-8eb2-952bfc0b2e87",
+  "cut": "\n---\n\n# חלק ג:",
+  "src": "0ad4586a-d809-4ce4-b28b-e8b169459e1f",
+  "src_kind": "practice",
+  "src_number": 6,
+  "src_title": "תרגול: מהפך CMOS ומאפייני העברה (VTC)",
+  "move_new_ex": true,
+  "since": "2026-11-20T11:49:00+00:00"
+ }
+]

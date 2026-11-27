@@ -1951,24 +1951,34 @@ if __name__ == "__main__":
     elif "--unmerge" in sys.argv:  # 27/11: undo a wrong merge. JSON {into, src, cut, src_kind, src_number, src_title,
         # move_ex_from: [lesson ids whose exercises go to src], hide: [{id, title}]}
         import json as _j
-        op = _j.loads(Path(sys.argv[sys.argv.index("--unmerge") + 1]).read_text(encoding="utf-8"))
-        into = s.table("lessons").select("id, user_id, chapter_md").eq("id", op["into"]).execute().data[0]
-        md = into["chapter_md"] or ""
-        k = md.count(op["cut"])
-        if k != 1:
-            print(f"::error title=Unmerge::cut marker found {k} times - nothing done", flush=True)
-            sys.exit(1)
-        s.storage.from_("study").upload(f"{into['user_id']}/lessons/{into['id']}/chapter_before_unmerge.md", md.encode("utf-8"),
-                                        {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
-        s.table("lessons").update({"chapter_md": md.split(op["cut"])[0].rstrip().rstrip("-").rstrip()}).eq("id", into["id"]).execute()
-        s.table("lessons").update({"kind": op["src_kind"], "number": op["src_number"], "title": op["src_title"]}).eq("id", op["src"]).execute()
-        for lid in op.get("move_ex_from") or []:
-            n = s.table("exercises").update({"lesson_id": op["src"]}).eq("lesson_id", lid).execute().data
-            print(f"::notice title=Unmerge::{len(n)} exercises {lid[:8]} -> {op['src'][:8]}", flush=True)
-        for h in op.get("hide") or []:
-            s.table("lessons").update({"kind": "other", "number": None, "title": h["title"]}).eq("id", h["id"]).execute()
-        print(f"::notice title=Unmerge::{op['into'][:8]} cut ({len(md)} -> {len(md.split(op['cut'])[0])}), "
-              f"{op['src'][:8]} restored as {op['src_kind']} {op['src_number']}", flush=True)
+        ops = _j.loads(Path(sys.argv[sys.argv.index("--unmerge") + 1]).read_text(encoding="utf-8"))
+        for op in (ops if isinstance(ops, list) else [ops]):
+            if op.get("renumber"):  # {"renumber": id, "kind", "number"}: a lesson filed under the wrong number
+                s.table("lessons").update({"kind": op["kind"], "number": op["number"]}).eq("id", op["renumber"]).execute()
+                print(f"::notice title=Unmerge::{op['renumber'][:8]} -> {op['kind']} {op['number']}", flush=True)
+                continue
+            into = s.table("lessons").select("id, user_id, chapter_md").eq("id", op["into"]).execute().data[0]
+            md = into["chapter_md"] or ""
+            k = 1 if op.get("first") and op["cut"] in md else md.count(op["cut"])
+            if k != 1:
+                print(f"::error title=Unmerge::{op['into'][:8]}: cut marker found {k} times - skipped", flush=True)
+                continue
+            s.storage.from_("study").upload(f"{into['user_id']}/lessons/{into['id']}/chapter_before_unmerge.md", md.encode("utf-8"),
+                                            {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+            s.table("lessons").update({"chapter_md": md.split(op["cut"])[0].rstrip().rstrip("-").rstrip()}).eq("id", into["id"]).execute()
+            if op.get("src"):
+                s.table("lessons").update({"kind": op["src_kind"], "number": op["src_number"], "title": op["src_title"]}).eq("id", op["src"]).execute()
+            if op.get("src") and op.get("move_new_ex"):  # exercises the merge moved over: made after the part arrived
+                since = op.get("since") or s.table("lessons").select("created_at").eq("id", op["src"]).execute().data[0]["created_at"]
+                n = s.table("exercises").update({"lesson_id": op["src"]}).eq("lesson_id", into["id"]).gte("created_at", since).execute().data
+                print(f"::notice title=Unmerge::{len(n)} exercises back to {op['src'][:8]}", flush=True)
+            for lid in op.get("move_ex_from") or []:
+                n = s.table("exercises").update({"lesson_id": op["src"]}).eq("lesson_id", lid).execute().data
+                print(f"::notice title=Unmerge::{len(n)} exercises {lid[:8]} -> {op['src'][:8]}", flush=True)
+            for h in op.get("hide") or []:
+                s.table("lessons").update({"kind": "other", "number": None, "title": h["title"]}).eq("id", h["id"]).execute()
+            print(f"::notice title=Unmerge::{op['into'][:8]} cut ({len(md)} -> {len(md.split(op['cut'])[0])}), "
+                  f"{(op.get('src') or '-')[:8]} restored as {op.get('src_kind')} {op.get('src_number')}", flush=True)
     elif "--replace" in sys.argv:  # exact text replacements Claude checked: JSON [{"id": lesson, "find": ..., "repl": ...}]
         import json as _j
         for f in _j.loads(Path(sys.argv[sys.argv.index("--replace") + 1]).read_text(encoding="utf-8")):
