@@ -1616,6 +1616,15 @@ def is_extra(l):
             and l.get("status") == "ready")
 
 
+MARK_RX = re.compile(r"(?:^> 📎 מחומר הקורס \(לא נאמר בהרצאה\)[ \t]*\n(?:[ \t]*\n)*){2,}", re.M)
+
+
+def clean_marks(md):
+    """The placing split one piece into parts, each with its own "📎" line: one line per piece, none left dangling."""
+    md = MARK_RX.sub("> 📎 מחומר הקורס (לא נאמר בהרצאה)\n\n", md)
+    return re.sub(r"(?m)^> 📎 מחומר הקורס \(לא נאמר בהרצאה\)[ \t]*\n(?:[ \t]*\n)*(?=#{2,4} |\Z)(?!#{2,4} )", "", md)
+
+
 def merge_extra(sb, c, dry=False):
     """His rule 27/11/2026: "חומר נוסף" is never studied on its own. Each extra lesson of week N gives lecture N of this
     year whatever it has that the lecture's chapter lacks (each piece at the end of its own topic), and is then hidden
@@ -1652,7 +1661,7 @@ def merge_extra(sb, c, dry=False):
             sb.storage.from_("study").upload(f"{t['user_id']}/lessons/{t['id']}/chapter_before_extra.md",
                                              t["chapter_md"].encode("utf-8"),
                                              {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
-            t["chapter_md"] = integrate(t["chapter_md"], items)
+            t["chapter_md"] = clean_marks(integrate(t["chapter_md"], items))
             sb.table("lessons").update({"chapter_md": t["chapter_md"]}).eq("id", t["id"]).execute()
         sb.table("lessons").update({"title": f"📦 (שולב בהרצאה {t['number']}) {x.get('title') or ''}"}).eq("id", x["id"]).execute()
         print(f"::notice title=Extra::{c['name']}: lecture {t['number']} +{len(md) if len(md) >= 80 else 0} chars from "
@@ -1857,6 +1866,12 @@ if __name__ == "__main__":
                     t = l.pop("transcript") or ""
                     l["transcript_len"], l["transcript_head"] = len(t), t[:400]
                     print("@@L " + _j.dumps({"course": x["name"], **l}, ensure_ascii=False), flush=True)
+    elif "--extra-clean" in sys.argv:  # one pass over chapters that got extra material before clean_marks existed
+        for l in s.table("lessons").select("id, chapter_md").like("chapter_md", "%📎 מחומר הקורס%").execute().data:
+            new = clean_marks(l["chapter_md"])
+            if new != l["chapter_md"]:
+                s.table("lessons").update({"chapter_md": new}).eq("id", l["id"]).execute()
+                print(f"::notice title=Extra::{l['id'][:8]}: marks cleaned ({l['chapter_md'].count('📎')} -> {new.count('📎')})", flush=True)
     elif "--extra" in sys.argv:  # 27/11: extra material into its lecture ("--extra dry" = only the plan)
         merge_extra_all(s, dry=sys.argv[-1] == "dry")
     elif "--toopen" in sys.argv:  # 27/11: open-exam course -> its multiple-choice exercises become open ones
