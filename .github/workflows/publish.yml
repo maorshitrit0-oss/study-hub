@@ -94,6 +94,7 @@ jobs:
           if [ "$INSPECT" = "merge-repair" ]; then python hub.py merge-repair; exit $?; fi
           if [ "$INSPECT" = "coverage-thin" ]; then python coverage.py --thin $TITLE; exit $?; fi
           if [ "$INSPECT" = "coverage-hollow" ]; then python coverage.py --hollow $TITLE; exit $?; fi
+          if [ "$INSPECT" = "coverage-unescape" ]; then python coverage.py --unescape $TITLE; exit $?; fi
           if [ "$INSPECT" = "coverage-codefix" ]; then python coverage.py --codefix; exit $?; fi
           if [ "$INSPECT" = "coverage-completions" ]; then python coverage.py --completions $TITLE; exit $?; fi
           if [ "$INSPECT" = "coverage-quizfix" ]; then python coverage.py --quizfix; exit $?; fi

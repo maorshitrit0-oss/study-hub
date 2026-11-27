@@ -1,0 +1,90 @@
+[
+ {
+  "id": "538b73cd-166e-42fe-abd4-b922727db03b",
+  "find": "\\begin{aligned} 10\\log_{10}(100\\text{m})&=-10\\,\\text{dB} \\\\ 10\\log_{10}\\left(\\frac{100\\text{m}}{1\\text{m}}\\right)&=20\\,\\text{dBm} \\end{aligned}$$ $$FSPL_{(\\text{dB})}=P_t+G_t+G_r-P_r$$ $$-80\\,\\text{dBm}=\\underbrace{-10\\,\\text{dB}}_{P_t}+\\underbrace{2}_{G_t}+\\underbrace{2}_{G_r}-FSPL\n$$\n$$\n$$",
+  "repl": "10\\log_{10}(100\\,\\text{m})=-10\\,\\text{dB}\n$$\n\n$$\n10\\log_{10}\\left(\\frac{100\\,\\text{m}}{1\\,\\text{m}}\\right)=20\\,\\text{dBm}\n$$\n\n$$\nFSPL_{(\\text{dB})}=P_t+G_t+G_r-P_r\n$$\n\n$$\n-80\\,\\text{dBm}=\\underbrace{-10\\,\\text{dB}}_{P_t}+\\underbrace{2}_{G_t}+\\underbrace{2}_{G_r}-FSPL\n$$"
+ },
+ {
+  "id": "538b73cd-166e-42fe-abd4-b922727db03b",
+  "find": "$FSPL_{(\\text{dB})}=P_t+G_t+G_r-P_r$ $-80\\,\\text{dBm}=\\frac{-10\\,\\text{dB}}{P_t}+\\frac{2}{G_t}+\\frac{2}{G_r}-FSPL$ $-110\\,\\text{dB}=\\dots-\\text{dB}+\\dots-FSPL$ $104\\,\\text{dB}=FSPL$ $P_r=P_t+G_t+G_r-FSPL_{\\text{dB}}$ $\\boxed{\\text{dB}+30\\Leftrightarrow\\text{dBm}}$",
+  "repl": "$$\nFSPL_{(\\text{dB})}=P_t+G_t+G_r-P_r\n$$\n\n$$\n-80\\,\\text{dBm}=\\underbrace{-10\\,\\text{dB}}_{P_t}+\\underbrace{2}_{G_t}+\\underbrace{2}_{G_r}-FSPL\n$$\n\n$$\n-110\\,\\text{dB}=\\dots-\\text{dB}+\\dots-FSPL\n$$\n\n$$\n104\\,\\text{dB}=FSPL\n$$\n\n$$\nP_r=P_t+G_t+G_r-FSPL_{\\text{dB}}\n$$\n\n$$\n\\boxed{\\text{dB}+30\\Leftrightarrow\\text{dBm}}\n$$\n\n(בדיקה: $-80\\,\\text{dBm}=-110\\,\\text{dBW}$, ולכן $-110=-10+2+2-FSPL$ ומכאן $FSPL=104\\,\\text{dB}$ – אותה תוצאה כמו עם $P_t=20\\,\\text{dBm}$ בתרגיל למטה.)"
+ },
+ {
+  "id": "538b73cd-166e-42fe-abd4-b922727db03b",
+  "find": "בין ערכי $\\text{dB}$ ל-\\$\\text{dBm}.",
+  "repl": "בין ערכי $\\text{dB}$ ל-$\\text{dBm}$."
+ },
+ {
+  "id": "538b73cd-166e-42fe-abd4-b922727db03b",
+  "find": "חיבור של $\\text{dBm}$ ו-\\$\\text{dB}$ כפי שנעשה בטעויות נפוצות (למשל $40 \\text{ dB} + 5 \\text{ dBm} = 45 \\text{ dBm}) אינו נכון משום שאין לחבר יחס מופשט עם הספק יחסי למיליווט בצורה ליניארית ללא הבנת המשמעות.",
+  "repl": "צריך להבין מה מחברים: $\\text{dB}$ הוא יחס, ו-$\\text{dBm}$ הוא הספק ביחס ל-$1\\,\\text{mW}$ (ראו את ההבהרה מיד למטה – מתי מותר לחבר ומתי אסור)."
+ },
+ {
+  "id": "538b73cd-166e-42fe-abd4-b922727db03b",
+  "find": "ב-\\$\\text{dB}$",
+  "repl": "ב-$\\text{dB}$",
+  "all": true
+ },
+ {
+  "id": "538b73cd-166e-42fe-abd4-b922727db03b",
+  "find": "ב-\\$\\text{dBm}$",
+  "repl": "ב-$\\text{dBm}$",
+  "all": true
+ },
+ {
+  "id": "538b73cd-166e-42fe-abd4-b922727db03b",
+  "find": "הקשר הישיר بين",
+  "repl": "הקשר הישיר בין"
+ },
+ {
+  "id": "17694202-72b9-4691-a98b-584bf00ba567",
+  "find": "**📝 מה כתוב בלוח:**\n$$\n#PF\n$$",
+  "repl": "**📝 מה כתוב בלוח:** כתוב שם \"PF#\" – לא ברור מצילום הלוח למה הכוונה."
+ },
+ {
+  "id": "99c07e19-d18f-4c87-8b22-719aa13e506f",
+  "find": "התנאי $0 \\tag{שלילי} \\text{קטן מ-} V_t$ מתקיים תמיד!",
+  "repl": "התנאי $0 \\ge -V_t$ מתקיים תמיד (האגף הימני שלילי)!"
+ },
+ {
+  "id": "a30efa6e-3d7c-4940-9ba0-cba4a74ed9da",
+  "find": "($a = &a[0]$)",
+  "repl": "(`a` שקול ל-`&a[0]`)"
+ },
+ {
+  "id": "8ad61651-a8e8-4397-9e41-9f072981e447",
+  "find": "f_\\underline{X}(",
+  "repl": "f_{\\underline{X}}(",
+  "all": true
+ },
+ {
+  "id": "a9c04bcc-d8dd-43b3-846d-fa512570515e",
+  "find": "$\\text{![חישוב פילוג שולי ל-X](slide:19)}$\n$$\n\\text{📝 **📝 מה כתוב בלוח:**\n- $f_X(x) = \\int_{-\\infty}^{\\infty} f_{X,Y}(x,y) \\, dy\n$$\n- $= \\int_{0}^{x} e^{-x} \\, dy = x e^{-x} = f_X(x)$\n- $f_Y(y) = \\int_{y}^{\\infty} e^{-x} \\, dx = -e^{-x} \\big|_y^\\infty$",
+  "repl": "![חישוב פילוג שולי ל-X](slide:19)\n\n**📝 מה כתוב בלוח:**\n\n$$\nf_X(x) = \\int_{-\\infty}^{\\infty} f_{X,Y}(x,y) \\, dy\n$$\n\n$$\n= \\int_{0}^{x} e^{-x} \\, dy = x e^{-x} = f_X(x)\n$$\n\n$$\nf_Y(y) = \\int_{y}^{\\infty} e^{-x} \\, dx = -e^{-x} \\big|_y^\\infty\n$$"
+ },
+ {
+  "id": "a9c04bcc-d8dd-43b3-846d-fa512570515e",
+  "find": "$\\text{![חישוב פילוג שולי ל-Y](slide:21)}$\n$$\n\\text{📝 **📝 מה כתוב בלוח:**\n- $f_X(x) = \\int_{-\\infty}^{\\infty} f_{X,Y}(x,y) \\, dy\n$$\n- $= \\int_{-\\infty}^{\\infty} f_X(x) f_Y(y) \\, dy = f_X(x) \\int_{-\\infty}^{\\infty} f_Y(y) \\, dy = f_X(x) \\cdot 1$\n- $\\underline{W} = \\begin{pmatrix} X \\\\ Y \\\\ Z \\end{pmatrix}$",
+  "repl": "![חישוב פילוג שולי ל-Y](slide:21)\n\n**📝 מה כתוב בלוח:**\n\n$$\nf_X(x) = \\int_{-\\infty}^{\\infty} f_{X,Y}(x,y) \\, dy\n$$\n\n$$\n= \\int_{-\\infty}^{\\infty} f_X(x) f_Y(y) \\, dy = f_X(x) \\int_{-\\infty}^{\\infty} f_Y(y) \\, dy = f_X(x) \\cdot 1\n$$\n\n$$\n\\underline{W} = \\begin{pmatrix} X \\\\ Y \\\\ Z \\end{pmatrix}\n$$"
+ },
+ {
+  "id": "a9c04bcc-d8dd-43b3-846d-fa512570515e",
+  "find": "$$\n\\n\\underline{W}",
+  "repl": "$$\n\\underline{W}"
+ },
+ {
+  "id": "a9c04bcc-d8dd-43b3-846d-fa512570515e",
+  "find": "סקלרי חדש $\\Y$ באופן הבא:\n$Y = \\underline{a}^T \\underline{X}$|",
+  "repl": "סקלרי חדש $Y$ באופן הבא:\n\n$$\nY = \\underline{a}^T \\underline{X}\n$$"
+ },
+ {
+  "id": "a9c04bcc-d8dd-43b3-846d-fa512570515e",
+  "find": "וקטור של קבועים $\\underline{א}$",
+  "repl": "וקטור של קבועים $\\underline{a}$"
+ },
+ {
+  "id": "6ac3336f-6717-45a4-bbc4-f32ba631a42b",
+  "set": "## מבוא לתכנות מונחה עצמים ומושגי יסוד\n\nבתחילת התרגול עסקנו בעבודה עם מחלקות (Classes) בשפת Java, המהוות את הבסיס לתכנות מונחה עצמים (Object-Oriented Programming - OOP). מחלקה היא למעשה תבנית או מפרט (Blueprint) לבניית אובייקטים (Objects) בעלי מאפיינים פיזיולוגיים או לוגיים דומים ויכולת לבצע פעולות מסוימות.\n\nכל אובייקט במערכת (כמו כלב, מעגל, שולחן, משתמש וכו') מאופיין על ידי:\n1. שדות (Fields) - המשתנים המתארים את מצבו או תכונותיו של האובייקט.\n2. מתודות (Methods) - הפעולות שהאובייקט יכול לבצע.\n\n🏠 בחיי היום-יום: כמו שלרכב (אובייקט) יש מאפיינים כמו צבע, נפח מנוע ומהירות (שדות), ויכולות כמו להאיץ, לבלום ולצפור (מתודות), כך בדיוק עובדת מחלקה בתכנות.\n\n## שדות ומתודות: אינסטנס (Instance) לעומת סטטי (Static)\n\nאחד ההבדלים הקריטיים ביותר ב-OOP הוא ההבחנה בין רמת המופע (Instance) לבין רמת המחלקה (Static):\n- **שדה/מתודה אינסטנטיביים (Instance):** שייכים למופע ספציפי של המחלקה. לכל אובייקט שנצור יהיה עותק משלו עם ערכים משורינים משלו (לדוגמה: שמו של כלב ספציפי).\n- **שדה/מתודה סטטיים (Static):** שייכים למחלקה כולה ולא לאף מופע בודד. הערך או הפעולה משותפים לכל האובייקטים שנוצרו מאותה מחלקה (לדוגמה: מונה סך הכל הכלבים שנוצרו במערכת).\n\n⭐ ⭐ חשוב למבחן: כאשר נעשה שימוש בשדה סטטי או במתודה סטטית, ניגש אליהם דרך שם המחלקה עצמה ולא דרך משתנה המופע.\n\n🏠 בחיי היום-יום: חשבו על בניין דירות. מספר הדירה שלכם הוא אינסטנטיבי (ייחודי לכם), אך כתובת הרחוב של הבניין או מספר הקומות הכולל הוא סטטי (משותף לכל הדיירים בבניין).\n\n## תרגיל 1: מחלקת כלב (Dog)\n\nנכתוב מחלקה בשם `Dog` המתארת אובייקט מסוג כלב. נדרש שלכלב יהיו המאפיינים הבאים:\n1. שם (`name` מסוג `String`)\n2. צבע (`color` מסוג `String`)\n3. גובה (`height` מסוג `int`)\n4. משקל (`weight` מסוג `Double`)\n5. כמות הכלבים שנוצרו (`dogCount` מסוג `static int`)\n\n### מימוש מחלקת Dog\n\nבמחלקת `Dog` נגדיר את השדות כעל גישה `private` (מוסתרים), ניצור בנאי (Constructor) המאפס או מקדם את מונה הכלבים, ומתודות שונות:\n- `setName(String n)`\n- `setColor(String color)`\n- `setSize(int height, Double weight)` - שימוש במילת המפתח `this` הכרחי כאשר שם הפרמטר בחתימת המתודה זהה לשם השדה במחלקה, כדי להבדיל ביניהם.\n- `bark()` - מתודה המדפיסה נביחה.\n- `dogInfo()` - מתודה המדפיסה את פרטי הכלב.\n- `getDogCount()` - מתודה סטטית המציגה את כמות הכלבים הכוללת שנוצרו.\n\n```java\npublic class Dog {\n    private String name;\n    private String color;\n    private int height;\n    private Double weight;\n    private static int dogCount = 0;\n\n    public Dog() {\n        dogCount++;\n    }\n\n    public void setName(String n) {\n        name = n;\n    }\n\n    public void setColor(String color) {\n        this.color = color;\n    }\n\n    public void setSize(int height, Double weight) {\n        this.height = height;\n        this.weight = weight;\n    }\n\n    public void bark() {\n        System.out.println(\"Bark \" + name);\n    }\n\n    public void dogInfo() {\n        System.out.println(\"Dog info: name=\" + name + \", color=\" + color + \", height=\" + height + \", weight=\" + weight);\n    }\n\n    public static void getDogCount() {\n        System.out.println(\"Number of dogs created: \" + dogCount);\n    }\n}\n```\n\n### מחלקת ההרצה Field\n\nניצור מחלקה נפרדת בשם `Field` המכילה פונקציית `main`, שם ניצור מופעים שונים של `Dog` ונפעיל עליהם את המתודות.\n\n```java\npublic class Field {\n    public static void main(String[] args) {\n        Dog dog1 = new Dog();\n        dog1.setName(\"Rex\");\n        dog1.setColor(\"Brown\");\n        dog1.setSize(50, 20.5);\n        dog1.bark();\n        dog1.dogInfo();\n        Dog.getDogCount();\n    }\n}\n```\n\n🏠 בחיי היום-יום: יצירת אובייקט באמצעות `new` היא כמו שכפול טופס ריק ומילוי הפרטים הספציפיים של הכלב שלכם בתוכו.\n\n## תרגיל 2: מחלקת מעגל (Circle)\n\nנכתוב מחלקה בשם `Circle` המאפיינת מעגל. המאפיינים:\n1. רדיוס (`radius` מסוג `double`)\n2. צבע (`color` מסוג `String`)\n3. כמות מעגלים שנוצרו (`circleCount` מסוג `static int`)\n\nכולל בנאי המקבל רדיוס וצבע, מתודות `get` ו-`set`, מתודה לחישוב השטח באמצעות מחלקת העזר `Math.PI`, ומתודה לבדיקת השוואה בין מעגלים.\n\n### חישוב השטח\nהשטח מחושב לפי הנוסחה הקלאסית:\n\n$$\nA = \\pi r^2\n$$\n\nבקוד נעשה זאת כך:\n```java\npublic double getArea() {\n    return Math.PI * radius * radius;\n}\n```\n\n### המרת טיפוסים (Casting)\n\n- **המרת טיפוסים (Casting):** ניתן להמיר משתנה מסוג `double` (לדוגמה `4.9`) לטיפוס שלם `int` על ידי כתיבת `(int)` בסוגריים לפניו. פעולה זו גורמת לאיבוד השברים ולשמירת החלק השלם בלבד ($4$).\n\n🏠 בחיי היום-יום: המרת טיפוס (Casting) דומה למדידת גובה במספר שלם בלבד תוך התעלמות מהמילימטרים.\n\n### השוואת אובייקטים והפניה לזיכרון\n\nכאשר משווים שני אובייקטים באמצעות האופרטור `==`, ההשוואה אינה מתבצעת על הערכים הפנימיים שלהם, אלא על כתובת הזיכרון (ההפניה - Reference) שלהם:\n- שני אובייקטים שנוצרו בנפרד (גם אם יש להם בדיוק אותם ערכים בשדות) יחזירו `false` בהשוואת `==`.\n- התוצאה היא `true` רק אם שניהם מצביעים בדיוק לאותו תא זיכרון, כמו אחרי השמה ישירה ביניהם (למשל `C5 = C2`).\n- לכן, כדי להשוות ערכים כותבים מתודת בדיקה ייעודית: היא מקבלת אובייקט, בודקת אם הוא `null`, ומשווה את השדות (רדיוס וכדומה).\n\n🏠 בחיי היום-יום: השוואת `==` בין אובייקטים דומה לבדיקה אם שתי מכוניות שנבנו על פס ייצור הן בדיוק אותה חתיכת ברזל פיזית (התשובה היא לא, למרות שיש להן אותו צבע ודגם).\n\n### היררכיית המחלקות ומילת המפתח instanceof\n\n📝 מה כתוב בלוח:\n- מחלקת העל `Object`\n- שימוש ב-`instanceof`\n\n![הדגמת קאסטינג ואינסטנס](slide:36)\n\n- כל מחלקה ב-Java היא תת-מחלקה (Subclass) של המחלקה `Object`, שנמצאת בראש היררכיית המחלקות (כמו שכבות של בצל). לכן אפשר להמיר אובייקט מכל מחלקה לטיפוס `Object`.\n- מילת המפתח `instanceof` בודקת בזמן ריצה אם אובייקט הוא מופע של מחלקה מסוימת, ומחזירה `true` או `false`. לדוגמה: עבור אובייקט מסוג `Circle`, הבדיקה `instanceof Circle` מחזירה `true`, והבדיקה `instanceof String` מחזירה `false`.\n\n🏠 בחיי היום-יום: כמו שכל חפץ בעולם שייך לקטגוריה הכללית \"חפץ\", כך כל מחלקה בקוד יורשת מהמחלקה הכללית `Object`.\n\n## פרויקט הסמסטר והנחיות כלליות\n\n⭐ ⭐ חשוב למבחן ולסמסטר: החל משנה זו אין מטלות חובת הגשה שבועיות. התרגילים זמינים לתרגול עצמי בלבד. במקום זאת, כל סטודנט חייב בביצוע מיני-פרויקט המסכם את הסמסטר:\n- הפרויקט משלב תכנות מונחה עצמים, כולל שימוש בירושה (Inheritance) בין מחלקות שונות.\n- יש להציג את הפרויקט במצגת בת כ-10 דקות.\n- ניתן להיעזר בכלי בינה מלאכותית (AI) לצורך סיעור מוחות וחשיבה על רעיונות לפרויקט.\n\n🏠 בחיי היום-יום: פרויקט הגמר הוא כמו בניית מוצר שלם מאפס בתעשייה: מתכננים את הארכיטקטורה, מממשים את המחלקות ומציגים את התוצר.\n",
+  "guard": "## 🧩 פרטים שהבדיקה מול ההקלטה הוסיפה"
+ }
+]

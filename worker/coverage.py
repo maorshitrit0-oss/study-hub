@@ -261,6 +261,28 @@ PLACE_SCHEMA = {"type": "object", "properties": {"items": {"type": "array", "ite
     "heading": {"type": "string"}, "md": {"type": "string"}}, "required": ["heading", "md"]}}}, "required": ["items"]}
 
 
+LATEX_N = re.compile(r"\\n(u|eq|e|abla|ot|i|ewline|olimits|mid|leq|geq|parallel|exists|to|warrow|earrow|less|gtr|sim|cong|"
+                     r"vdash|prec|succ|atural|subseteq|supseteq|leftarrow|rightarrow|Leftarrow|Rightarrow)(?![a-zA-Z])")
+
+
+def unescape_newlines(s):
+    """27/11: some pieces came back from the model with "\\n" written out instead of line breaks (Java practice 3 was
+    one line, random-signals lecture 12 had a block like that). A line with two or more of them gets real breaks;
+    LaTeX commands (\\nu, \\neq ...) and "\\n" inside quotes (code strings) stay."""
+    def line(ln):
+        if ln.count("\\n") < 2:
+            return ln
+        return re.sub(r'(?<!["\'\\])\\n(?!["\'])', lambda m: m.group(0) if LATEX_N.match(ln, m.start()) else "\n", ln)
+    out, fence = [], False
+    for ln in (s or "").split("\n"):
+        if ln.lstrip().startswith("```"):
+            fence = not fence
+            out.append(ln)
+            continue
+        out.append(ln if fence else line(ln))  # inside real code, "\\n" is the program's own
+    return "\n".join(out)
+
+
 def integrate(md, items):
     """Each missing piece goes to the END of its own topic (before the next heading of the same or a higher level),
     not to a separate section at the end of the chapter (his rule 24/11/2026). Pieces with no topic go before the
@@ -268,7 +290,7 @@ def integrate(md, items):
     body, _, ver = md.partition(VERIFY_SPLIT)
     rest = []
     for it in items:
-        h, add = (it.get("heading") or "").strip().lstrip("#").strip(), (it.get("md") or "").strip()
+        h, add = (it.get("heading") or "").strip().lstrip("#").strip(), unescape_newlines(it.get("md") or "").strip()
         if not add:
             continue
         m = re.search(r"(?m)^(#{2,4}) " + re.escape(h) + r"\s*$", body) if h else None
@@ -2221,6 +2243,22 @@ if __name__ == "__main__":
                         break
     elif "--hollow" in sys.argv:  # 27/11: exercises whose solution only names the steps, solved again in full
         fix_hollow(s, sys.argv[sys.argv.index("--hollow") + 1], dry=sys.argv[-1] == "dry")
+    elif "--unescape" in sys.argv:  # 27/11: chapters with "\\n" written out instead of line breaks ("--unescape [dry]")
+        rows, k = [], 0
+        while True:
+            got = s.table("lessons").select("id, title, chapter_md").order("id").range(k, k + 999).execute().data
+            rows += got
+            k += 1000
+            if len(got) < 1000:
+                break
+        for r in rows:
+            md = r.get("chapter_md") or ""
+            new = unescape_newlines(md)
+            if new != md:
+                print(f"::notice title=Unescape::{r['id'][:8]} {(r.get('title') or '')[:40]}: {md.count(chr(10))} -> {new.count(chr(10))} lines", flush=True)
+                print(f"@@U {r['id']} {md.count(chr(10))} {new.count(chr(10))}", flush=True)
+                if sys.argv[-1] != "dry":
+                    s.table("lessons").update({"chapter_md": new}).eq("id", r["id"]).execute()
     elif "--quizfix" in sys.argv:  # 27/11: every lecture's quiz 10-12 questions, no quiz on a practice (every course)
         for c in s.table("courses").select("id, name, kind").eq("archived", False).execute().data:
             if c.get("kind") in ("lab",) or SKIP_COURSES.search(c["name"] or ""):
@@ -2291,7 +2329,16 @@ if __name__ == "__main__":
     elif "--replace" in sys.argv:  # exact text replacements Claude checked: JSON [{"id": lesson, "find": ..., "repl": ...}]
         import json as _j
         for f in _j.loads(Path(sys.argv[sys.argv.index("--replace") + 1]).read_text(encoding="utf-8")):
-            md = (s.table("lessons").select("chapter_md").eq("id", f["id"]).execute().data or [{}])[0].get("chapter_md") or ""
+            row = (s.table("lessons").select("user_id, chapter_md").eq("id", f["id"]).execute().data or [{}])[0]
+            md = row.get("chapter_md") or ""
+            if "set" in f:  # the whole chapter, written by Claude; only when `guard` is in the stored one (backup kept)
+                ok = bool(md) and f.get("guard", "\x00") in md
+                if ok:
+                    s.storage.from_("study").upload(f"{row['user_id']}/lessons/{f['id']}/chapter_before_replace.md", md.encode("utf-8"),
+                                                    {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+                    s.table("lessons").update({"chapter_md": f["set"]}).eq("id", f["id"]).execute()
+                print(f"::notice title=Replace::{f['id'][:8]}: {'chapter set' if ok else 'NOT SET (guard missing)'}", flush=True)
+                continue
             k = md.count(f["find"])
             if f.get("all") and k > 1:
                 k = 1
