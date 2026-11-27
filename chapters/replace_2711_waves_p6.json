@@ -1,0 +1,7 @@
+[
+ {
+  "id": "aa682926-f9e6-48eb-ad77-b66eab6620a1",
+  "find": "($L \\neq \\frac{\\frac{\\frac{\\text{}}}{}}}{}$)",
+  "repl": "($L \\neq n\\frac{\\lambda}{2}$ וגם $L \\neq n\\frac{\\lambda}{4}$)"
+ }
+]

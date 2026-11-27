@@ -505,10 +505,20 @@ def clean_latex(s):
     return "".join(parts)
 
 
+TEXT_SYM = re.compile(r"\\text\{\s*(\\[a-zA-Z]+)\s*\}")
+
+
+def fix_text_symbols(s):
+    """"\\text{\\pi}", "\\text{ \\Omega}": a math symbol inside \\text shows its name in red on the site (waves practice 6,
+    27/11/2026). The symbol itself is what was meant."""
+    return TEXT_SYM.sub(lambda m: m.group(1), s or "")
+
+
 def normalize_math(md):
     r"""Gemini mixes $$x$, $x$$, $$x$$ inside sentences and formulas alone on a line (waves L5 completions, 22/11/2026).
     Line by line: real multi-line blocks ($$ / \begin...\end) are kept as fences; inside a sentence every formula is
     inline $x$; a line that is only one formula becomes a display block on its own lines."""
+    md = fix_text_symbols(md)
     out, fence = [], False
     for line in re.split(r"\n", md):
         s = line.strip()

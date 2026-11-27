@@ -3,7 +3,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import remarkBreaks from "remark-breaks";
 import rehypeKatex from "rehype-katex";
-import { promoteLongMath, wrapBareLatex } from "@/lib/math";
+import { fixTextSymbols, noIndentedCode, promoteLongMath, wrapBareLatex } from "@/lib/math";
 import Wave from "./Wave";
 import CodeLines from "./CodeLines";
 
@@ -44,7 +44,7 @@ export default function Chapter({ md, slideUrls }: { md: string; slideUrls: Reco
           a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" className="text-accent underline">{children}</a>,
         }}
       >
-        {promoteLongMath(wrapBareLatex(md))}
+        {promoteLongMath(wrapBareLatex(fixTextSymbols(noIndentedCode(md))))}
       </ReactMarkdown>
     </div>
   );
@@ -56,7 +56,7 @@ export function Rich({ text }: { text: string }) {
     <span className="rich">
       <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]} rehypePlugins={[rehypeKatex]}
         components={{ p: ({ children }) => <span className="block">{children}</span> }}>
-        {wrapBareLatex(text)}
+        {wrapBareLatex(fixTextSymbols(text))}
       </ReactMarkdown>
     </span>
   );

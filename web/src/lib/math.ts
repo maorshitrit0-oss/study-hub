@@ -153,3 +153,25 @@ export function wrapBareLatex(md: string) {
     });
   }).join("");
 }
+
+
+/**
+ * A line indented by 4+ spaces outside a ``` fence is a markdown "code block": the page showed formulas and sentences
+ * of a waves practice as black code lines with a "what each line does" translation (his screenshot 27/11/2026).
+ * Only fenced ``` blocks are code; an indented list item keeps a 2-space nesting, any other line loses its indent.
+ */
+export function noIndentedCode(md: string) {
+  let fence = false;
+  return md.split("\n").map((line) => {
+    if (/^\s*```/.test(line)) { fence = !fence; return line; }
+    if (fence || !/^( {4,}|\t)/.test(line)) return line;
+    const t = line.replace(/^\s+/, "");
+    return /^([-*+]|\d+[.)])\s/.test(t) ? "  " + t : t;
+  }).join("\n");
+}
+
+/** "\\text{\\pi}" / "\\text{\\Gamma}": a math symbol inside \\text shows its name in red (his screenshot 27/11/2026,
+ *  waves practice 6). The symbol itself is what was meant. */
+export function fixTextSymbols(md: string) {
+  return md.replace(/\\text\{\s*(\\[a-zA-Z]+)\s*\}/g, "$1");
+}

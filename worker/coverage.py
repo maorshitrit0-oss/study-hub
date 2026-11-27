@@ -1866,6 +1866,29 @@ if __name__ == "__main__":
                     t = l.pop("transcript") or ""
                     l["transcript_len"], l["transcript_head"] = len(t), t[:400]
                     print("@@L " + _j.dumps({"course": x["name"], **l}, ensure_ascii=False), flush=True)
+    elif "--replace" in sys.argv:  # exact text replacements Claude checked: JSON [{"id": lesson, "find": ..., "repl": ...}]
+        import json as _j
+        for f in _j.loads(Path(sys.argv[sys.argv.index("--replace") + 1]).read_text(encoding="utf-8")):
+            md = (s.table("lessons").select("chapter_md").eq("id", f["id"]).execute().data or [{}])[0].get("chapter_md") or ""
+            k = md.count(f["find"])
+            if k == 1:
+                s.table("lessons").update({"chapter_md": md.replace(f["find"], f["repl"])}).eq("id", f["id"]).execute()
+            print(f"::notice title=Replace::{f['id'][:8]}: {'done' if k == 1 else f'NOT DONE ({k} matches)'}", flush=True)
+    elif "--textsym" in sys.argv:  # 27/11: every text field of every course without "\\text{\\symbol}" (shown red)
+        n = 0
+        for tb, cols in (("lessons", ["chapter_md", "summary_md"]), ("exercises", ["question_md", "solution_md"]),
+                         ("questions", ["question", "explanation", "options"])):
+            for r in s.table(tb).select("id, " + ", ".join(cols)).execute().data:
+                upd = {}
+                for f in cols:
+                    v = r.get(f)
+                    new = [author.fix_text_symbols(o) for o in v] if isinstance(v, list) else author.fix_text_symbols(v) if v else v
+                    if new != v:
+                        upd[f] = new
+                if upd:
+                    s.table(tb).update(upd).eq("id", r["id"]).execute()
+                    n += 1
+        print(f"::notice title=Text symbols::{n} rows fixed", flush=True)
     elif "--audit" in sys.argv:  # 27/11: per lesson - quiz size, exercises, code blocks, red formulas, Greek spelled out
         import json as _j
         import weekset
