@@ -1128,6 +1128,9 @@ def reextract(sb, course, l):
     checked = exmod.gen(parts + [types.Part.from_text(text="=== התרגילים לבדיקה ===\n" + json.dumps(found, ensure_ascii=False))], exmod.CHECK)
     found = checked if len(checked) >= len(found) else found
     old = sb.table("exercises").select("id").eq("lesson_id", l["id"]).is_("done_at", "null").execute().data
+    if len(found) < len(old):  # 27/11: reading again never leaves a lesson with fewer exercises than it had
+        print(f"::notice title=Exercises::{kind}: {len(found)} found < {len(old)} kept - the old ones stay", flush=True)
+        return
     for x in old:
         sb.table("exercises").delete().eq("id", x["id"]).execute()
     sb.table("exercises").insert([{"user_id": course["user_id"], "course_id": course["id"], "lesson_id": l["id"], "source": "lesson",
@@ -1886,6 +1889,34 @@ if __name__ == "__main__":
                     t = l.pop("transcript") or ""
                     l["transcript_len"], l["transcript_head"] = len(t), t[:400]
                     print("@@L " + _j.dumps({"course": x["name"], **l}, ensure_ascii=False), flush=True)
+    elif "--thinex" in sys.argv:  # 27/11: lessons with a long chapter and < 3 exercises: read the exercises again, then
+        # the course's exam format + formula (convert) and the week sets
+        import weekset
+        for c in s.table("courses").select("*").eq("archived", False).execute().data:
+            if c.get("kind") in ("lab", "self") or SKIP_COURSES.search(c["name"] or ""):
+                continue
+            ls = s.table("lessons").select("id, kind, number, title, status, topics, chapter_md, transcript").eq("course_id", c["id"]) \
+                .in_("kind", ["lecture", "practice"]).eq("status", "ready").execute().data
+            n_ex = {}
+            for e in s.table("exercises").select("lesson_id").eq("course_id", c["id"]).execute().data:
+                n_ex[e["lesson_id"]] = n_ex.get(e["lesson_id"], 0) + 1
+            hit = 0
+            for l in ls:
+                if (l.get("title") or "").startswith("📦") or n_ex.get(l["id"], 0) >= 3 or len(l.get("chapter_md") or "") < 6000:
+                    continue
+                try:
+                    reextract(s, c, l)
+                    hit += 1
+                except Exception as e:  # noqa: BLE001
+                    print(f"::warning title=Exercises::{c['name']} {l['kind']} {l.get('number')}: {str(e)[:150]}", flush=True)
+                    if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota"):
+                        break
+            if hit:
+                try:
+                    convert_exercises(s, c["name"])
+                except Exception as e:  # noqa: BLE001
+                    print(f"::warning title=Convert::{c['name']}: {str(e)[:150]}", flush=True)
+        weekset.fill_missing(s)
     elif "--place" in sys.argv:  # the "🧩" sections into their topics: one course, or every course when empty
         key = sys.argv[sys.argv.index("--place") + 1] if len(sys.argv) > sys.argv.index("--place") + 1 else ""
         for x in s.table("courses").select("id, name").eq("archived", False).execute().data:

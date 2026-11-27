@@ -98,9 +98,9 @@ def run(match, only_missing=False):
         print(f"::notice title=Week sets::{course['name']}: no numbered lectures", flush=True)
         return
     last = max(week.values())
-    ex = sb.table("exercises").select("id, lesson_id, material_id, title, question_md, topic, exam_style, duplicate") \
+    ex = sb.table("exercises").select("id, lesson_id, material_id, title, question_md, topic, exam_style, duplicate, done_at") \
         .eq("course_id", course["id"]).execute().data
-    files = [x for x in ex if not x.get("lesson_id") and not x.get("duplicate")]
+    files = [x for x in ex if not x.get("lesson_id") and not x.get("duplicate") and not x.get("done_at")]  # solved: not again
 
     def topics_of(n):
         out = []
@@ -113,7 +113,11 @@ def run(match, only_missing=False):
 
     sets = dict(old)  # a week whose call fails keeps its earlier set
     for n in range(1, last + 1):
-        if only_missing and str(n) in old:
+        own_n = [x for x in ex if x.get("lesson_id") and week.get(x["lesson_id"]) == n]
+        # 27/11/2026: a week built before its lecture / practice had exercises kept 1 exercise for good (waves, digital,
+        # comm, Java weeks 4-6) - a set with fewer than 2 of the week's own exercises, when it has 2+, is built again
+        thin = str(n) in old and len(old[str(n)].get("practice") or []) < min(2, len(own_n))
+        if only_missing and str(n) in old and not thin:
             continue
         if old.get(str(n), {}).get("manual"):  # built by hand from lecture N + practice N (his request 19/11/2026)
             continue
@@ -275,7 +279,8 @@ def fill_missing(sb):
         nums = [l["number"] for l in sb.table("lessons").select("number, kind, title").eq("course_id", c["id"]).execute().data
                 if l.get("number") and l["kind"] in ("lecture", "practice") and not (l.get("title") or "").startswith("📦")]
         have = load(sb, c).get("weeks", {})
-        if nums and any(str(n) not in have for n in range(1, max(nums) + 1)):
+        thin = any(len(w.get("practice") or []) < 2 and not w.get("manual") for w in have.values())
+        if nums and (thin or any(str(n) not in have for n in range(1, max(nums) + 1))):
             run("^" + re.escape(c["name"]) + "$", only_missing=True)
 
 
