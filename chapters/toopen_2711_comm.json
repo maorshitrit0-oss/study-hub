@@ -1,0 +1,44 @@
+[
+ {
+  "id": "2f343d89-aed5-459b-806e-a277dcd4f502",
+  "question_md": "**סעיף 1:** אות מידע מחזורי $v(t) = A_c(0.4\\cos 2\\pi f_o t + 0.6\\cos 8\\pi f_o t)$, כאשר $f_o = 250\\text{ kHz}$, מאופנן AM עם מקדם אפנון $m = \\frac{2}{3}$. חשבו את נצילות ההספק של האפנון.\n\n**סעיף 2:** האות המאופנן מסעיף 1 נקלט במקלט בהספק של $-85\\text{ dBm}$. ספרת הרחש של המקלט $\\text{NF} = 3\\text{ dB}$. הערכו את יחס האות לרעש במוצא המקלט.",
+  "solution_md": "**הנוסחה:**\n$$\n\\eta = \\frac{m^2\\langle x^2\\rangle}{1 + m^2\\langle x^2\\rangle},\\qquad \\text{SNR}_{out} = \\eta\\cdot\\gamma,\\qquad \\gamma = \\frac{S_R}{N_0 W},\\qquad N_0 = kT_0\\cdot F\n$$\n\n**סעיף 1 – נצילות הספק**\n\n1. האות המנורמל: $x(t) = 0.4\\cos 2\\pi f_o t + 0.6\\cos 8\\pi f_o t$. ב-$t = 0$ שני הקוסינוסים שווים 1 ⇐ $\\max|x| = 1$ (הנרמול נכון).\n2. ההספק של $x$ (סכום הספקי הקוסינוסים):\n$$\n\\langle x^2\\rangle = \\frac{0.4^2}{2} + \\frac{0.6^2}{2} = 0.08 + 0.18 = 0.26\n$$\n3. $m^2\\langle x^2\\rangle = \\frac{4}{9}\\cdot0.26 = 0.1156$.\n4. הנצילות:\n$$\n\\eta = \\frac{0.1156}{1 + 0.1156} \\approx 0.104 \\approx 0.1\n$$\n\n**סעיף 2 – יחס אות לרעש במוצא**\n\n1. רוחב הסרט של המידע: התדר הגבוה באות הוא $4f_o = 1\\text{ MHz}$ ⇐ $W = 1\\text{ MHz}$.\n2. צפיפות הרעש עם ספרת הרחש: $kT_0 = -174\\text{ dBm/Hz}$, ו-$\\text{NF} = 3\\text{ dB}$ ⇐ $N_0 = -171\\text{ dBm/Hz}$.\n3. הספק הרעש ברוחב $W$: $N_0W = -171 + 10\\log_{10}(10^6) = -171 + 60 = -111\\text{ dBm}$.\n4. $\\gamma = -85 - (-111) = 26\\text{ dB}$.\n5. במוצא גלאי המעטפת:\n$$\n\\text{SNR}_{out} = \\eta\\cdot\\gamma \\;\\Rightarrow\\; 26 + 10\\log_{10}(0.104) = 26 - 9.8 \\approx 16\\text{ dB}\n$$\n\n**תוצאה:** $\\eta \\approx 0.1$; $\\text{SNR}_{out} \\approx 16\\text{ dB}$.",
+  "uncertain": false,
+  "lock": true
+ },
+ {
+  "id": "84f2ce80-66f0-43f0-ac21-e704dfa8267d",
+  "question_md": "במערכת קליטה נמדד הספק אות נקלט $P_s = 1\\,\\text{mW}$ והספק רעש $P_n = 10^{-12}\\,\\text{W}$. חשבו את יחס האות לרעש (SNR) של המערכת, ביחס ליניארי וב-$\\text{dB}$.",
+  "solution_md": "**הנוסחה:**\n\n$$\nSNR = \\frac{P_s}{P_n}\n$$\n\n$$\nSNR[\\text{dB}] = 10\\log_{10}\\left(\\frac{P_s}{P_n}\\right) = P_s[\\text{dBm}] - P_n[\\text{dBm}]\n$$\n\n**שלבי הפתרון:**\n1. המרת ההספקים לאותן יחידות: הספק האות הינו $P_s = 1\\,\\text{mW} = 10^{-3}\\,\\text{W}$.\n2. חישוב היחס הליניארי:\n$$\nSNR = \\frac{10^{-3}}{10^{-12}} = 10^9\n$$\n3. המרה ל-$\\text{dB}$:\n$$\nSNR[\\text{dB}] = 10\\log_{10}(10^9) = 10 \\cdot 9 = 90\\,\\text{dB}\n$$\n(או ב-dBm: $P_s = 0\\,\\text{dBm}$, $P_n = -90\\,\\text{dBm}$, ואז $SNR = 0 - (-90) = 90\\,\\text{dB}$).",
+  "uncertain": false,
+  "lock": true
+ },
+ {
+  "id": "035fdbb6-3385-4ddb-89e3-77e8017dbe99",
+  "question_md": "משדר פועל בהספק שידור של $1\\,\\text{W}$, שבח אנטנת השידור ואנטנת הקליטה $G_t = G_r = 3\\,\\text{dB}$, ורגישות המקלט $-90\\,\\text{dBm}$. חשבו את הפסד המסלול המרבי (FSPL) המותר לקליטה תקינה.",
+  "solution_md": "**הנוסחה:**\n\n$$\nP_r = P_t + G_t + G_r - FSPL\n$$\n\n$$\nP_t[\\text{dBm}] = 10\\log_{10}\\left(\\frac{P_t}{1\\,\\text{mW}}\\right)\n$$\n\n**שלבי הפתרון:**\n1. המרת הספק השידור ל-$dBm$:\nהספק של $1\\,\\text{W} = 1000\\,\\text{mW}$, לכן:\n$$\nP_t = 10\\log_{10}(1000) = 30\\,\\text{dBm}\n$$\n2. נציב במשוואת מאזן הערוץ כאשר דורשים שההספק הנקלט יהיה שווה לרגישות המקלט ($P_r \\ge -90\\,\\text{dBm}$):\n$$\n-90 = 30 + 3 + 3 - FSPL_{max}\n$$\n$$\n-90 = 36 - FSPL_{max}\n$$\n$$\nFSPL_{max} = 36 - (-90) = 126\\,\\text{dB}\n$$",
+  "uncertain": false,
+  "lock": true
+ },
+ {
+  "id": "363b9875-a5bc-4a64-ac41-d87031af322f",
+  "question_md": "אות כניסה הרמוני $x(t) = 4\\cos\\left(2\\pi f_0 t + \\frac{\\pi}{3}\\right)$ מעורר מערכת LTI שפונקציית התמסורת שלה בתדר זה $H(f_0) = 0.5e^{-j\\pi/4}$. מצאו את אות המוצא $y(t)$ וחשבו את הספק המוצא $P_y$ ב-$[\\text{W}]$.",
+  "solution_md": "**הנוסחה:**\n\n$$\ny(t) = A|H(f_0)|\\cos(2\\pi f_0 t + \\theta + \\angle H(f_0))\n$$\n\n$$\nP = \\frac{A^2}{2}\n$$\n\n$$\nP_y = |H(f_0)|^2 P_x\n$$\n\n**שלבי הפתרון:**\n0. אות המוצא: $y(t) = 4\\cdot0.5\\cos\\left(2\\pi f_0 t + \\frac{\\pi}{3} - \\frac{\\pi}{4}\\right) = 2\\cos\\left(2\\pi f_0 t + \\frac{\\pi}{12}\\right)$.\n1. אמפליטודת אות הכניסה היא $A_x = 4$, ולכן הספק אות הכניסה הוא:\n$$\nP_x = \\frac{A_x^2}{2} = \\frac{4^2}{2} = \\frac{16}{2} = 8\\,\\text{W}\n$$\n2. גודל תגובת התדר הינו $|H(f_0)| = 0.5$, ולכן הגבר ההספק הוא:\n$$\n|H(f_0)|^2 = 0.5^2 = 0.25\n$$\n3. הספק אות המוצא:\n$$\nP_y = |H(f_0)|^2 \\cdot P_x = 0.25 \\cdot 8 = 2\\,\\text{W}\n$$\n(באופן שקול: אמפליטודת המוצא הינה $A_y = A_x \\cdot |H(f_0)| = 4 \\cdot 0.5 = 2$, וההספק הינו $P_y = \\frac{A_y^2}{2} = \\frac{2^2}{2} = 2\\,\\text{W}$).",
+  "uncertain": false,
+  "lock": true
+ },
+ {
+  "id": "36f5b803-7060-43f1-849e-9533d78ca4dc",
+  "question_md": "אות קול נכנס למערכת תקשורת בהספק $P_{\\text{in}} = -10\\text{ dBm}$, עובר במגבר בהגבר $G = 30\\text{ dB}$ ואחר כך בכבל עם הנחתה $L = 10\\text{ dB}$. חשבו את הספק המוצא $P_{\\text{out}}$ ב-$\\text{dBm}$ וב-$\\text{mW}$.",
+  "solution_md": "**הנוסחה:**\n$$\nP_{\\text{out, dBm}} = P_{\\text{in, dBm}} + G_{\\text{dB}} - L_{\\text{dB}}\n$$\n$$\nP_{\\text{mW}} = 10^{\\frac{P_{\\text{dBm}}}{10}}\n$$\n\n**שלבי הפתרון:**\n1. הגבר והנחתה ביחידות $\\text{dB}$ מותר לחבר ולהפחית ישירות מהספק ב-$\\text{dBm}$:\n$$\nP_{\\text{out, dBm}} = -10\\text{ dBm} + 30\\text{ dB} - 10\\text{ dB} = 10\\text{ dBm}\n$$\n2. נמיר את הספק המוצא מ-$\\text{dBm}$ למיליווטים ($\\text{mW}$):\n$$\nP_{\\text{out, mW}} = 10^{\\frac{10}{10}} = 10^1 = 10\\text{ mW}\n$$",
+  "uncertain": false,
+  "lock": true
+ },
+ {
+  "id": "596e5bcb-a07a-409c-b7d2-2dfc24098ae0",
+  "question_md": "אות דיבור בתחום הטלפוניה תופס תדרים בין $f_{\\text{min}} = 300\\text{ Hz}$ ל-$f_{\\text{max}} = 3400\\text{ Hz}$, ומועבר על גבי מנשא בתדר ISM של $f_c = 2.45\\text{ GHz}$. חשבו את רוחב הסרט $B$ של אות הדיבור ב-$\\text{kHz}$.",
+  "solution_md": "**הנוסחה:**\n$$\nB = f_{\\text{max}} - f_{\\text{min}}\n$$\n\n**שלבי הפתרון:**\n1. נחשב את רוחב הסרט על פי הפרש התדרים של אות הדיבור:\n$$\nB = 3400\\text{ Hz} - 300\\text{ Hz} = 3100\\text{ Hz}\n$$\n2. נמיר לקילו-הרץ ($\\text{kHz}$):\n$$\nB = \\frac{3100}{1000} = 3.1\\text{ kHz}\n$$",
+  "uncertain": false,
+  "lock": true
+ }
+]
