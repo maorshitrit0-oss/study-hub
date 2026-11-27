@@ -1204,3 +1204,6 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
   the queue (coverage.make_missing_videos, 2 a round; a non-quota failure again after 12 h). coverage.no_video() is the
   one rule for "should have a video" (lecture completions + this week's lectures; never practices / labs / a
   practice's completion). "(להשוואה)" lessons (last year, transcript only) no longer count as "in work".
+- 27/11: queue loop 4.75 h (was 5.5) and no new step after that (queue_runner.time_left / STOP_SEC): on 24/11 a step
+  ran past the job's 350-minute limit, the job was killed and the next run was never chained. No quiz is saved for a
+  practice (hub.save_chapter). notify.send drops any push mentioning "מעבדה" (his rule, one place for all senders).

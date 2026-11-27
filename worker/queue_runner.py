@@ -22,6 +22,14 @@ import hub
 BUCKET = "study"
 STATE = "system/queue_state.json"   # {"quota_until": iso, "claude": {day: count}}
 BUDGET_SEC = 100 * 60
+# The job is killed at 350 minutes (queue.yml). 24/11 a long step ran past it: the job was cancelled mid-work and the
+# next run was never started. Nothing new starts within STOP_SEC of the loop's end (27/11/2026).
+LOOP_END = None
+STOP_SEC = 50 * 60
+
+
+def time_left():
+    return float("inf") if LOOP_END is None else LOOP_END - time.time()
 WAITING = "⏳ בתור"
 
 
@@ -305,7 +313,7 @@ def run():
     REPAIRED = 0
     try:
         import coverage
-        while coverage.pending_for_next_day(sb):
+        while time_left() > STOP_SEC and coverage.pending_for_next_day(sb):
             REPAIRED += 1
     except Exception as e:  # noqa: BLE001
         print(f"::warning title=Repairs::{author.friendly_error(e)[:300]}", flush=True)
@@ -333,7 +341,7 @@ def run():
         print(f"::warning title=Week sets::{str(e)[:200]}", flush=True)
     start, done, why = time.time(), [], "empty"
     for r, mode in candidates(sb):
-        if time.time() - start > BUDGET_SEC:
+        if time.time() - start > BUDGET_SEC or time_left() < STOP_SEC:
             why = "budget"
             break
         filling = r["status"] == "ready"
@@ -372,7 +380,7 @@ def run():
         try:
             import coverage
             coverage.thursday_alert(sb)
-            while time.time() - start < BUDGET_SEC and coverage.step(sb):
+            while time.time() - start < BUDGET_SEC and time_left() > STOP_SEC and coverage.step(sb):
                 done.append("coverage")
         except Exception as e:  # noqa: BLE001
             print(f"::warning title=Coverage::{author.friendly_error(e)[:300]}", flush=True)
@@ -417,13 +425,15 @@ def repairs_left(sb):
         return False
 
 
-def loop(hours=5.5):
+def loop(hours=4.75):
     """queue.yml: keep working the line inside one job - GitHub's half-hourly schedule fires only every few hours.
     Gemini busy -> wait 10 minutes and try again; quota gone -> sleep until the reset if it is inside this job;
     nothing he waits for left -> stop (fill-ins are done by the half-hourly runs). Out of time with work left ->
     start the next queue.yml."""
     sb = hub.db()
+    global LOOP_END
     end = time.time() + hours * 3600
+    LOOP_END = end + STOP_SEC  # the last round may start work up to the loop's end; it stops STOP_SEC before the kill
     idle = 0
     while time.time() < end:
         why = run()
