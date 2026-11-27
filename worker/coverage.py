@@ -1917,6 +1917,24 @@ if __name__ == "__main__":
                 except Exception as e:  # noqa: BLE001
                     print(f"::warning title=Convert::{c['name']}: {str(e)[:150]}", flush=True)
         weekset.fill_missing(s)
+    elif "--merged" in sys.argv:  # 27/11: every merged part and the lesson it went into, with the dates (read only)
+        cs = {c["id"]: c["name"] for c in s.table("courses").select("id, name").execute().data}
+        ls = s.table("lessons").select("id, course_id, kind, number, title, created_at, source_url, source_path, chapter_md, transcript") \
+            .execute().data
+        for x in ls:
+            t = x.get("title") or ""
+            if not t.startswith("📦 (שולב ב") or "בהרצאה" in t[:20]:
+                continue
+            head = re.sub(r"^.*?·\s*", "", re.sub(r"^📦 \(שולב ב.*?\) ", "", t))
+            into = [l for l in ls if l["course_id"] == x["course_id"] and l["id"] != x["id"]
+                    and f"\n# {head}\n" in (l.get("chapter_md") or "")]
+            def first_ts(l):
+                m = re.search(r"\[(\d\d:\d\d:\d\d)\]", l.get("transcript") or "")
+                return m.group(1) if m else "-"
+            print(f"::notice title=Merged::{cs.get(x['course_id'])} | part {x['id'][:8]} created {x['created_at'][:16]} "
+                  f"src={'link' if x.get('source_url') else 'file' if x.get('source_path') else '-'} tr={len(x.get('transcript') or '')} | "
+                  + " ; ".join(f"into {l['kind']} {l.get('number')} {l['id'][:8]} created {l['created_at'][:16]} "
+                               f"tr={len(l.get('transcript') or '')}" for l in into) + f" | {t[:70]}", flush=True)
     elif "--place" in sys.argv:  # the "🧩" sections into their topics: one course, or every course when empty
         key = sys.argv[sys.argv.index("--place") + 1] if len(sys.argv) > sys.argv.index("--place") + 1 else ""
         for x in s.table("courses").select("id, name").eq("archived", False).execute().data:
