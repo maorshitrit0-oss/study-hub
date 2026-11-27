@@ -1102,8 +1102,12 @@ def requiz(sb, l):
     if l["kind"] != "lecture":
         print(f"::notice title=Quiz::{l['kind']} {l.get('number')} {(l.get('title') or '')[:20]}: no quiz (practice) - {len(qs) - len(answered)} removed", flush=True)
         return
+    if len(answered) >= 10:  # his rule 27/11/2026: 10-12 questions - what he already answered is the quiz
+        print(f"::notice title=Quiz::lecture {l.get('number')}: {len(qs)} -> {len(answered)} (answered ones)", flush=True)
+        return
     out = author._generate_json([types.Part.from_text(text=body_of(l.get("chapter_md") or ""))], QUIZ, QUIZ_SCHEMA, "MEDIUM")
     new = [q for q in out.get("questions") or [] if len(q.get("options") or []) >= 2 and 0 <= q.get("correct", -1) < len(q["options"])]
+    new = new[:max(0, 12 - len(answered))]
     for q in new:
         q["question"], q["explanation"] = wrap_math(q.get("question") or ""), wrap_math(q.get("explanation") or "")
         q["options"] = [wrap_math(o) for o in q["options"]]
@@ -1940,6 +1944,25 @@ if __name__ == "__main__":
                 print(f"@@TR {l['id'][:8]} " + re.sub(r"\s+", " ", (l.get("transcript") or "")[:600]), flush=True)
                 for h in re.findall(r"(?m)^#{1,2} (.+)$", l.get("chapter_md") or ""):
                     print(f"@@H {l['id'][:8]} {h[:90]}", flush=True)
+    elif "--quizfix" in sys.argv:  # 27/11: every lecture's quiz 10-12 questions, no quiz on a practice (every course)
+        for c in s.table("courses").select("id, name, kind").eq("archived", False).execute().data:
+            if c.get("kind") in ("lab",) or SKIP_COURSES.search(c["name"] or ""):
+                continue
+            ls = s.table("lessons").select("id, course_id, kind, number, title, status, chapter_md").eq("course_id", c["id"]) \
+                .in_("kind", ["lecture", "practice"]).eq("status", "ready").execute().data
+            n = {}
+            for q in s.table("questions").select("lesson_id").eq("course_id", c["id"]).execute().data:
+                n[q["lesson_id"]] = n.get(q["lesson_id"], 0) + 1
+            for l in ls:
+                k = n.get(l["id"], 0)
+                if (l.get("title") or "").startswith("📦") or (l["kind"] == "lecture" and 10 <= k <= 12) or (l["kind"] == "practice" and not k):
+                    continue
+                try:
+                    requiz(s, l)
+                except Exception as e:  # noqa: BLE001
+                    print(f"::warning title=Quiz::{c['name']} {l['kind']} {l.get('number')}: {str(e)[:150]}", flush=True)
+                    if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota"):
+                        sys.exit(0)
     elif "--place" in sys.argv:  # the "🧩" sections into their topics: one course, or every course when empty
         key = sys.argv[sys.argv.index("--place") + 1] if len(sys.argv) > sys.argv.index("--place") + 1 else ""
         for x in s.table("courses").select("id, name").eq("archived", False).execute().data:
