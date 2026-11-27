@@ -1431,7 +1431,7 @@ def verify_exercises(sb, name):
         m = ANS.search(author.fix_arabic(x.get("solution_md") or ""))
         if m:
             stated[x["id"]] = m.group(1) or m.group(2)
-        elif (x.get("solution_md") or "").strip():
+        elif (x.get("solution_md") or "").strip() and "🔎 נבדק מחדש" not in x["solution_md"]:
             unstated.append(x)  # options but no stated letter (exam files): it cannot be clicked
     rows = [x for x in rows if x["id"] in stated and "⚠️ הפתרון לא אומת" not in (x.get("solution_md") or "")
             and "🔎 נבדק מחדש" not in (x.get("solution_md") or "")]  # 27/11: settled by Claude - not re-flagged
