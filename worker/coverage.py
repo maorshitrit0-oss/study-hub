@@ -1866,6 +1866,35 @@ if __name__ == "__main__":
                     t = l.pop("transcript") or ""
                     l["transcript_len"], l["transcript_head"] = len(t), t[:400]
                     print("@@L " + _j.dumps({"course": x["name"], **l}, ensure_ascii=False), flush=True)
+    elif "--audit" in sys.argv:  # 27/11: per lesson - quiz size, exercises, code blocks, red formulas, Greek spelled out
+        import json as _j
+        import weekset
+        GREEK = re.compile(r"(?<![\\a-zA-Z])(gamma|theta|alpha|beta|lambda|omega|delta|sigma|epsilon|varepsilon|eta|mu|phi|psi|rho|tau|"
+                           r"Gamma|Omega|Delta)(?![a-zA-Z])|גמא|תטא|אלפא|למדא|אומגה|דלתא|סיגמא|אפסילון")
+        for c in s.table("courses").select("*").execute().data:
+            if not name_match(sys.argv[sys.argv.index("--audit") + 1], c["name"]):
+                continue
+            ls = s.table("lessons").select("id, kind, number, title, status, chapter_md").eq("course_id", c["id"]).execute().data
+            ls = [l for l in ls if not (l.get("title") or "").startswith("📦")]
+            qn = {}
+            for q in s.table("questions").select("lesson_id").eq("course_id", c["id"]).execute().data:
+                qn[q["lesson_id"]] = qn.get(q["lesson_id"], 0) + 1
+            en = {}
+            for e in s.table("exercises").select("lesson_id").eq("course_id", c["id"]).execute().data:
+                en[e["lesson_id"]] = en.get(e["lesson_id"], 0) + 1
+            errs = render_errors([l.get("chapter_md") or "" for l in ls]) or [[] for _ in ls]
+            for l, e in sorted(zip(ls, errs), key=lambda z: (z[0].get("number") or 99, z[0]["kind"])):
+                md = l.get("chapter_md") or ""
+                langs = re.findall(r"(?m)^```(\w*)", md)[::2]
+                print("@@A " + _j.dumps({"id": l["id"], "kind": l["kind"], "n": l.get("number"), "title": (l.get("title") or "")[:60],
+                      "len": len(md), "quiz": qn.get(l["id"], 0), "ex": en.get(l["id"], 0), "code": langs,
+                      "red": len(e), "red_sample": e[:3], "greek": len(GREEK.findall(md)),
+                      "greek_sample": list({m.group(0) for m in GREEK.finditer(md)})[:8]}, ensure_ascii=False), flush=True)
+            try:
+                ws = weekset.load(s, c) if hasattr(weekset, "load") else None
+            except Exception as ex:  # noqa: BLE001
+                ws = str(ex)[:100]
+            print("@@W " + _j.dumps(ws, ensure_ascii=False)[:6000], flush=True)
     elif "--extra-clean" in sys.argv:  # one pass over chapters that got extra material before clean_marks existed
         for l in s.table("lessons").select("id, chapter_md").like("chapter_md", "%📎 מחומר הקורס%").execute().data:
             new = clean_marks(l["chapter_md"])
