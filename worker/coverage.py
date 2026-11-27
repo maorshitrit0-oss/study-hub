@@ -1866,6 +1866,27 @@ if __name__ == "__main__":
                     t = l.pop("transcript") or ""
                     l["transcript_len"], l["transcript_head"] = len(t), t[:400]
                     print("@@L " + _j.dumps({"course": x["name"], **l}, ensure_ascii=False), flush=True)
+    elif "--unmerge" in sys.argv:  # 27/11: undo a wrong merge. JSON {into, src, cut, src_kind, src_number, src_title,
+        # move_ex_from: [lesson ids whose exercises go to src], hide: [{id, title}]}
+        import json as _j
+        op = _j.loads(Path(sys.argv[sys.argv.index("--unmerge") + 1]).read_text(encoding="utf-8"))
+        into = s.table("lessons").select("id, user_id, chapter_md").eq("id", op["into"]).execute().data[0]
+        md = into["chapter_md"] or ""
+        k = md.count(op["cut"])
+        if k != 1:
+            print(f"::error title=Unmerge::cut marker found {k} times - nothing done", flush=True)
+            sys.exit(1)
+        s.storage.from_("study").upload(f"{into['user_id']}/lessons/{into['id']}/chapter_before_unmerge.md", md.encode("utf-8"),
+                                        {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+        s.table("lessons").update({"chapter_md": md.split(op["cut"])[0].rstrip().rstrip("-").rstrip()}).eq("id", into["id"]).execute()
+        s.table("lessons").update({"kind": op["src_kind"], "number": op["src_number"], "title": op["src_title"]}).eq("id", op["src"]).execute()
+        for lid in op.get("move_ex_from") or []:
+            n = s.table("exercises").update({"lesson_id": op["src"]}).eq("lesson_id", lid).execute().data
+            print(f"::notice title=Unmerge::{len(n)} exercises {lid[:8]} -> {op['src'][:8]}", flush=True)
+        for h in op.get("hide") or []:
+            s.table("lessons").update({"kind": "other", "number": None, "title": h["title"]}).eq("id", h["id"]).execute()
+        print(f"::notice title=Unmerge::{op['into'][:8]} cut ({len(md)} -> {len(md.split(op['cut'])[0])}), "
+              f"{op['src'][:8]} restored as {op['src_kind']} {op['src_number']}", flush=True)
     elif "--replace" in sys.argv:  # exact text replacements Claude checked: JSON [{"id": lesson, "find": ..., "repl": ...}]
         import json as _j
         for f in _j.loads(Path(sys.argv[sys.argv.index("--replace") + 1]).read_text(encoding="utf-8")):
