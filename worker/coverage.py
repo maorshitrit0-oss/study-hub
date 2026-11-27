@@ -1935,6 +1935,11 @@ if __name__ == "__main__":
                   f"src={'link' if x.get('source_url') else 'file' if x.get('source_path') else '-'} tr={len(x.get('transcript') or '')} | "
                   + " ; ".join(f"into {l['kind']} {l.get('number')} {l['id'][:8]} created {l['created_at'][:16]} "
                                f"tr={len(l.get('transcript') or '')}" for l in into) + f" | {t[:70]}", flush=True)
+            print(f"@@PART {x['id']} " + " ".join(l["id"] for l in into), flush=True)
+            for l in [x] + into:
+                print(f"@@TR {l['id'][:8]} " + re.sub(r"\s+", " ", (l.get("transcript") or "")[:600]), flush=True)
+                for h in re.findall(r"(?m)^#{1,2} (.+)$", l.get("chapter_md") or ""):
+                    print(f"@@H {l['id'][:8]} {h[:90]}", flush=True)
     elif "--place" in sys.argv:  # the "🧩" sections into their topics: one course, or every course when empty
         key = sys.argv[sys.argv.index("--place") + 1] if len(sys.argv) > sys.argv.index("--place") + 1 else ""
         for x in s.table("courses").select("id, name").eq("archived", False).execute().data:
