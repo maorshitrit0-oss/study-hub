@@ -1227,3 +1227,9 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
   model (author._backup_json: Groq/Mistral) does not confirm the stated letter either.
 - Tools: publish inspect=coverage-status prints "N answers marked unverified (⚠️)" per course;
   inspect=coverage-unverified (title = optional lesson ids → their chapters) dumps the flagged exercises as "@@EX" JSON.
+- 27/11 13:30: the night run (old checker) re-flagged settled answers until it ended; final sweep
+  (chapters/verify_2711_digital4.json): all its new flags were false except exam Q3 (logical effort – stored answer
+  wrong, no option matches; no letter, marked "לבדוק מול הטופס"). Settled exercises are skipped by verify, also by the
+  "add a missing letter" pass. Final status: all 8 courses ready, 0 pending, 0 not in exam format, 0 unverified;
+  5 digital exam-form questions stay uncertain with a note (R-2R, logical effort Q3/Q5, Schmitt Q1, capacitor Q2).
+  Told him he can start uploading.
