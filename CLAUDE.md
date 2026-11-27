@@ -43,3 +43,21 @@ before it is marked ready.
 
 - Web: `cd web && npx eslint src && npx next build` (needs `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` set to any value to build).
 - Worker: `python -c "import hub"` from `worker/`.
+
+## His rules for every lecture and practice (27/11/2026) – apply to everything built from now on
+
+- Study order is lecture → practice → exercises, nothing else. No separate "extra material" and no "last year": what a
+  lecture lacks from course material goes INTO it (coverage.merge_extra). No more completions (🔁) – chapters are
+  written full from the start.
+- One lesson = one recording. Never merge two recordings (different days / clothes) into one lesson. The same
+  recording uploaded twice (link + file) is ONE lesson; the duplicate is deleted. Every lesson shows its source link.
+- Details the recording check adds go INTO their own topic, never a "🧩" section at the end.
+- Formulas always render as formulas: no red, no symbol inside \text, no indented lines (shown as code), board
+  derivations line by line as written. Code only in programming courses, fenced and unbroken.
+- Quiz after a lecture: 10–12 understanding questions covering the whole lecture. Practices: no quiz, no video.
+- Exercises follow the course exam: waves open (2 double-sided formula pages allowed – build the sheet), comm open
+  (+ his assignments), digital / Java / linear multiple choice, micro half multiple choice half open. Quiz stays
+  multiple choice everywhere.
+- Exercises of a week = the lecture's and practice's own exercises at exam level + matching exam / assignment
+  exercises. Drop trivial ones (the "1+1" of the exam's material). Never 1 exercise, never one already solved.
+- Everything checked for correctness before ready; nothing made up. No podcasts unless he asks. No course chat.

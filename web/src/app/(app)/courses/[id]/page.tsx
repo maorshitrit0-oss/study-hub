@@ -214,7 +214,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
       <Link href={`/courses/${id}/warmup`} className="card block text-center font-semibold bg-accent-soft">🔥 חימום לפני השיעור הבא</Link>
 
       <div className="grid grid-cols-2 gap-3">
-        <Link href={`/courses/${id}/chat`} className="card text-center font-medium">💬 צ&apos;אט על הקורס</Link>
+        {/* the course chat was removed (his request 27/11/2026: he hardly uses it) */}
         <Link href={`/courses/${id}/exercises`} className="card text-center font-medium">✍️ תרגילים</Link>
         <Link href={`/courses/${id}/forecast`} className="card text-center font-medium">🎯 מבחן צפוי</Link>
         {hasAssignments && <Link href={`/courses/${id}/assignments`} className="card text-center font-medium">📝 מטלות ופתרונות</Link>}
