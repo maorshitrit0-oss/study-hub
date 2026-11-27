@@ -1057,7 +1057,7 @@ def cmd_studio_list(drop=""):
     names = {c["id"]: c["name"] for c in sb.table("courses").select("id, name").execute().data}
     nums = {l["id"]: f"{l['kind'][:3]}{l.get('number')}" for l in sb.table("lessons").select("id, kind, number").execute().data}
     for m in sb.table("lesson_media").select("id, course_id, kind, status, duration_sec, storage_path, error, created_at, lesson_ids").order("created_at").execute().data:
-        if drop and m["id"][:8] in drop.split(","):
+        if drop and (m["id"][:8] in drop.split(",") or (drop == "podcasts" and m["kind"] == "podcast")):
             if m.get("storage_path"):
                 sb.storage.from_(BUCKET).remove([m["storage_path"]])
             sb.table("lesson_media").delete().eq("id", m["id"]).execute()
@@ -1094,6 +1094,9 @@ def cmd_studio_backfill(match):
 
 def cmd_studio_new(match, number, kind):
     """One podcast / video for lecture N of the course, now (a test or his request)."""
+    if kind == "podcast" and not os.environ.get("PODCAST_OK"):  # his rule 27/11/2026: no podcasts unless he asks
+        print("::warning title=Studio new::podcasts are off (his rule 27/11/2026) - nothing made", flush=True)
+        return
     sb = db()
     course = find_course(sb, match)
     les = (sb.table("lessons").select("id, user_id").eq("course_id", course["id"]).eq("kind", "lecture")
