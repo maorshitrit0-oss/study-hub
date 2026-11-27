@@ -1216,3 +1216,14 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
 - 27/11: the exam-format step no longer rewrites the solution (the rewrites came out short and were rejected - 176
   of them): Gemini returns only the MCQ question + answer letter, the formula and why-not-the-others; the solution
   becomes answer line + "**הנוסחה:**" block + HIS ORIGINAL SOLUTION unchanged (+ "למה לא האחרות"). 3 per call.
+- 27/11 answer check: Gemini's re-solve flagged 46 multiple-choice answers (linear 11, digital 31, Java 4); Claude
+  re-solved each. 39 were Gemini's mistakes (flag removed). Real fixes: linear – slew-rate (ב, not ד), rectifier (א
+  1152µF, not 23mF), BJT saturation question rebuilt from the practice (PNP, ב), Wien-bridge β formula; digital –
+  t_PHL1 0.52 ns (option fixed), dynamic CMOS (W/L)=5 with 3.7C/(k'·W/L·VDD) and 9 in series (ד, two copies),
+  CMOS noise margins solution rewritten, logical effort Q5 → ה (3.18 is not listed). Left visibly uncertain (exam
+  form not readable here): digital exam Q1 Schmitt wording, Q2 dynamic-capacitor circuit, R-2R DAC (35 vs 35/8 mA),
+  logical effort Q5. Fix files: chapters/verify_2711_*.json (hub.py exercises, by id, lock).
+- Settled exercises carry "🔎 נבדק מחדש" and verify skips them. A Gemini disagreement is flagged only if the second
+  model (author._backup_json: Groq/Mistral) does not confirm the stated letter either.
+- Tools: publish inspect=coverage-status prints "N answers marked unverified (⚠️)" per course;
+  inspect=coverage-unverified (title = optional lesson ids → their chapters) dumps the flagged exercises as "@@EX" JSON.
