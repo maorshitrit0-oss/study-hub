@@ -1233,3 +1233,11 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
   "add a missing letter" pass. Final status: all 8 courses ready, 0 pending, 0 not in exam format, 0 unverified;
   5 digital exam-form questions stay uncertain with a note (R-2R, logical effort Q3/Q5, Schmitt Q1, capacitor Q2).
   Told him he can start uploading.
+- 27/11 HIS CORRECTION: a course whose exam is OPEN has OPEN exercises only (the lecture quiz stays multiple choice).
+  40 multiple-choice exercises in open-exam courses were rewritten as open ones (waves 6, random 4, micro 17, comm 13):
+  coverage.to_open (Gemini, validated: no options left, solution >= 60%) + 7 by Claude (chapters/toopen_2711_*.json).
+  Guards: the drill prompt asks for options only when exam_type is mcq (DRILL_MCQ / DRILL_OPEN); convert_exercises
+  calls to_open for open courses; status prints "N multiple-choice exercises in an OPEN-exam course" (must be 0).
+  coverage.is_mcq = options + a stated answer letter (an open question with parts א/ב/ג is not one).
+  hub.find_course takes a regex: pass "^גלים" for waves ("גלים" also matches "מעגלים").
+  VLSI (no exam) keeps its "what does the code do" multiple-choice exercises.
