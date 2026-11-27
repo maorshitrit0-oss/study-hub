@@ -1433,7 +1433,8 @@ def verify_exercises(sb, name):
             stated[x["id"]] = m.group(1) or m.group(2)
         elif (x.get("solution_md") or "").strip():
             unstated.append(x)  # options but no stated letter (exam files): it cannot be clicked
-    rows = [x for x in rows if x["id"] in stated and "⚠️ הפתרון לא אומת" not in (x.get("solution_md") or "")]
+    rows = [x for x in rows if x["id"] in stated and "⚠️ הפתרון לא אומת" not in (x.get("solution_md") or "")
+            and "🔎 נבדק מחדש" not in (x.get("solution_md") or "")]  # 27/11: settled by Claude - not re-flagged
     for i in range(0, len(unstated), 8):  # the letter the solution leads to, so the question becomes clickable
         chunk = unstated[i:i + 8]
         out = author._generate_json([types.Part.from_text(text="\n\n".join(
