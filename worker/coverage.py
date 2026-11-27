@@ -1928,6 +1928,17 @@ def balance_mixed(sb, c):
     rows = sb.table("exercises").select("id, lesson_id, ord, question_md, solution_md, done_at").eq("course_id", c["id"]) \
         .is_("done_at", "null").execute().data
     mcq = [x for x in rows if is_mcq(x)]
+    if rows and len(mcq) < 0.4 * len(rows):  # too few: every second open exercise of each lesson becomes multiple choice
+        by = {}
+        for x in sorted([x for x in rows if not is_mcq(x)], key=lambda x: (str(x.get("lesson_id")), x.get("ord") or 0)):
+            by.setdefault(x.get("lesson_id"), []).append(x)
+        pick = []
+        for xs in by.values():
+            pick += xs[1::2]
+        pick = {x["id"] for x in pick[:len(rows) // 2 - len(mcq)]}
+        print(f"::notice title=Mixed::{c['name']}: {len(mcq)} of {len(rows)} multiple choice - {len(pick)} open become multiple choice", flush=True)
+        convert_exercises(sb, c["name"], only=pick)
+        return
     if not rows or len(mcq) <= 0.6 * len(rows):
         print(f"::notice title=Mixed::{c['name']}: {len(mcq)} of {len(rows)} multiple choice - balanced", flush=True)
         return
@@ -1943,19 +1954,23 @@ def balance_mixed(sb, c):
     to_open(sb, c, only=pick)
 
 
-def convert_exercises(sb, name):
+def convert_exercises(sb, name, only=None):
     """His rule 24/11/2026, every course: the exercises after a lecture / practice / completion are in the course's exam
     format - multiple choice (clickable) when the exam is, open otherwise - and each solution carries its formula
     ("📐 הנוסחה לשאלה"). Exercises he marked done stay as they are; the original text is kept in a backup field."""
     from google.genai import types
     c = [x for x in sb.table("courses").select("id, name, exam_type").execute().data if name_match(name, x["name"])][0]
     exam = c.get("exam_type") or "open"
-    if exam == "open":
+    if exam == "open" and only is None:
         to_open(sb, c)
-    if exam == "mixed":
+    if exam == "mixed" and only is None:
         balance_mixed(sb, c)
-    rows = [x for x in sb.table("exercises").select("id, question_md, solution_md, done_at, source").eq("course_id", c["id"])
-            .eq("source", "lesson").is_("done_at", "null").execute().data]
+    if only is not None:  # the mixed-exam balance: these open exercises become multiple choice
+        rows = sb.table("exercises").select("id, question_md, solution_md, done_at, source").in_("id", list(only)).execute().data
+        exam = "mcq"
+    else:
+        rows = [x for x in sb.table("exercises").select("id, question_md, solution_md, done_at, source").eq("course_id", c["id"])
+                .eq("source", "lesson").is_("done_at", "null").execute().data]
     want_mcq = exam == "mcq"
     todo = [x for x in rows if (want_mcq and not MCQ_SHAPE.search(x["question_md"] or ""))
             or "הנוסחה" not in (x.get("solution_md") or "")]
