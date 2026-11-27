@@ -1667,6 +1667,12 @@ if __name__ == "__main__":
     elif "--trim" in sys.argv:  # completions without what he already read / solved (23/11/2026)
         arg = sys.argv[sys.argv.index("--trim") + 1]  # "<course>" or "<course>|הרצאה 2,הרצאה 3"
         trim_course(s, *arg.split("|", 1))
+    elif "--unverified" in sys.argv:  # 27/11: the multiple-choice answers re-solving disagreed with, for Claude to settle
+        import json as _j
+        for x in s.table("courses").select("id, name").eq("archived", False).execute().data:
+            for e in s.table("exercises").select("id, title, question_md, solution_md").eq("course_id", x["id"]).execute().data:
+                if "⚠️ הפתרון לא אומת" in (e.get("solution_md") or ""):
+                    print("@@EX " + _j.dumps({"course": x["name"], **e}, ensure_ascii=False), flush=True)
     elif "--status" in sys.argv:  # 25/11: what is still missing per course + the repair jobs left (read only)
         st = load(s)
         cs = s.table("courses").select("id, name").execute().data
