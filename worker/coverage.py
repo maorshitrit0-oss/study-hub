@@ -641,13 +641,14 @@ $$...$$ בשורה נפרדת):
   4 תשובות, correct = אינדקס הנכונה, explanation קצר שמסביר למה. בלי שאלות חישוב; אם בכל זאת צריך מספר - הנוסחה
   כתובה בשאלה עצמה.
 - exercises: 2-3 תרגילים לתרגול בסגנון המבחן של הקורס ({exam}), שונים מהדוגמאות הפתורות בפרק (מספרים אחרים), עם
-  פתרון מלא צעד אחרי צעד, שמתחיל בשורה "**הנוסחה:**" עם הנוסחה (בלוק $$, בלי הצבה). מבחן אמריקאי - התרגיל הוא שאלה אמריקאית ברמת מבחן שנפתרת בלחיצה: בסוף question_md
-  4 אפשרויות, כל אחת בפסקה משלה בדיוק כך: **א.** ... / **ב.** ... / **ג.** ... / **ד.** ...; ה-solution_md מתחיל בשורה
-  "התשובה: **X**" (X = האות הנכונה) ואחריה הפתרון המלא צעד אחרי צעד ולמה כל אחת מהאחרות שגויה; מבחן פתוח - שאלה פתוחה
-  עם סעיפים.
+  פתרון מלא צעד אחרי צעד, שמתחיל בשורה "**הנוסחה:**" עם הנוסחה (בלוק $$, בלי הצבה). {exam_rule}
 אל תמציא חומר שלא בפרק. פתור כל שאלה ותרגיל מחדש לפני שאתה כותב את התשובה."""
 
 EXAM = {"mcq": "אמריקאי", "open": "שאלות פתוחות", "mixed": "משולב: אמריקאי ופתוח"}
+DRILL_MCQ = """המבחן אמריקאי - התרגיל הוא שאלה אמריקאית ברמת מבחן שנפתרת בלחיצה: בסוף question_md
+  4 אפשרויות, כל אחת בפסקה משלה בדיוק כך: **א.** ... / **ב.** ... / **ג.** ... / **ד.** ...; ה-solution_md מתחיל בשורה
+  "התשובה: **X**" (X = האות הנכונה) ואחריה הפתרון המלא צעד אחרי צעד ולמה כל אחת מהאחרות שגויה."""
+DRILL_OPEN = """המבחן פתוח - התרגיל הוא שאלה פתוחה ברמת מבחן (אפשר עם סעיפים א, ב, ג), **בלי אפשרויות בחירה** ובלי "התשובה: X"."""
 
 
 def solved(sb, course_id):
@@ -671,7 +672,8 @@ def drill_prompt(sb, course_id):
         e = sb.table("courses").select("exam_type").eq("id", course_id).execute().data[0].get("exam_type")
     except Exception:  # noqa: BLE001
         e = None
-    return DRILL.replace("{exam}", EXAM.get(e or "", "שאלות פתוחות"))
+    rule = (DRILL_MCQ if e == "mcq" else DRILL_OPEN)  # 27/11: open exam -> open exercises only (his correction)
+    return DRILL.replace("{exam}", EXAM.get(e or "", "שאלות פתוחות")).replace("{exam_rule}", rule)
 
 
 DRILL_SCHEMA = {"type": "object", "properties": {
@@ -1576,6 +1578,67 @@ CONVERT_SCHEMA = {"type": "object", "properties": {"items": {"type": "array", "i
 MCQ_SHAPE = re.compile(r"(?m)^\s*(\*\*)?\(?[א][.)]|אפשרויות\s*:?\s*\(?א[.)]")
 
 
+TOOPEN = """לפניך תרגילים מקורס שהמבחן בו בשאלות פתוחות, אבל הם נכתבו בטעות כשאלות אמריקאיות. הפוך כל אחד לתרגיל פתוח
+כמו במבחן, לכל id:
+- question_md: אותה שאלה, אותם נתונים ואותו נושא, כשאלה פתוחה: "חשב...", "מצא...", "הסבר...", "הראה..." (אפשר סעיפים
+  א/ב/ג). בלי אפשרויות בחירה ובלי רמז לתשובה. שאלה בסגנון "איזו טענה נכונה" - שאלה פתוחה על אותו עניין ("הסבר
+  מדוע...", "מה קורה ל-... כאשר..."). קטע קוד - "מה יודפס? הסבר".
+- solution_md: הפתרון המלא שהיה, צעד אחרי צעד, עם כל המספרים, הנוסחאות וההסברים - בלי שורת "התשובה: X", בלי "למה לא
+  האחרות" ובלי הפניה לאותיות של אפשרויות. מתחיל בשורה "**הנוסחה:**" עם בלוק $$ (אם כבר יש - כמו שהוא), ומסתיים
+  בתוצאה הסופית. אל תקצר: כל שלב ומספר שהיו נשארים. נוסחאות ב-LaTeX ($...$ בשורה, $$ בשורה לבד). עברית.
+החזר פריט לכל id שקיבלת."""
+TOOPEN_SCHEMA = {"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object", "properties": {
+    "id": {"type": "string"}, "question_md": {"type": "string"}, "solution_md": {"type": "string"}},
+    "required": ["id", "question_md", "solution_md"]}}}, "required": ["items"]}
+OTHERS = re.compile(r"\n[#*\s]*(?:❌\s*)?\**למה (?:לא האחרות|האחרות שגויות|התשובות האחרות|האפשרויות האחרות)[^\n]*\n.*?(?=\n\s*💡|\n\s*🔎|\Z)", re.S)
+
+
+def is_mcq(x):
+    """A multiple-choice exercise: options from א and a stated answer letter. An open question with parts א/ב/ג has no
+    "התשובה: **X**" line, so it is not one."""
+    return bool(MCQ_SHAPE.search(x.get("question_md") or "") and ANS.search(author.fix_arabic(x.get("solution_md") or "")))
+
+
+def to_open(sb, c):
+    """His correction 27/11/2026: a course whose exam is open has OPEN exercises - none multiple choice (the quiz after a
+    lecture stays multiple choice). Every exercise of the course in that shape is rewritten as an open one; done marks
+    are kept. Returns (done, total)."""
+    from google.genai import types
+    rows = [x for x in sb.table("exercises").select("id, question_md, solution_md").eq("course_id", c["id"]).execute().data
+            if is_mcq(x)]
+    done = 0
+    for i in range(0, len(rows), 3):
+        chunk = rows[i:i + 3]
+        try:
+            out = author._generate_json([types.Part.from_text(text="\n\n".join(
+                f"=== id: {x['id']} ===\n{x['question_md']}\n--- פתרון ---\n{x.get('solution_md') or ''}" for x in chunk))],
+                TOOPEN, TOOPEN_SCHEMA, "MEDIUM")
+        except Exception as e:  # noqa: BLE001
+            print(f"::warning title=To open::{str(e)[:150]}", flush=True)
+            if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota"):
+                raise
+            continue
+        got = {it["id"]: it for it in out.get("items") or []}
+        for x in chunk:
+            it = got.get(x["id"]) or {}
+            q, sol = (it.get("question_md") or "").strip(), (it.get("solution_md") or "").strip()
+            base = OTHERS.sub("", x.get("solution_md") or "")
+            opts = [ln.strip() for ln in (x["question_md"] or "").splitlines() if re.match(r"\s*(\*\*)?\(?[אבגד][.)]", ln)]
+            sol = re.sub(r"(?m)^[#\s]*התשובה(?:\s+הנכונה)?(?:\s+היא)?\s*:?\s*\*\*\s*\(?[א-ו][^\n]*\n+", "", sol)
+            why = ("no answer" if not it else "still has options" if not q or sum(o in q for o in opts) >= 2
+                   else "solution cut" if len(sol) < 0.6 * len(base) else "")
+            if why:
+                print(f"::notice title=To open::{x['id'][:8]} kept: {why}", flush=True)
+                continue
+            if "הנוסחה" not in sol:
+                m = re.search(r"\*\*הנוסחה:?\*\*:?\s*\$\$.*?\$\$", x.get("solution_md") or "", re.S)
+                sol = (m.group(0) + "\n\n" if m else "") + sol
+            sb.table("exercises").update({"question_md": wrap_math(q), "solution_md": wrap_math(sol)}).eq("id", x["id"]).execute()
+            done += 1
+    print(f"::notice title=To open::{c['name']}: {done} of {len(rows)} multiple-choice exercises are open now", flush=True)
+    return done, len(rows)
+
+
 def convert_exercises(sb, name):
     """His rule 24/11/2026, every course: the exercises after a lecture / practice / completion are in the course's exam
     format - multiple choice (clickable) when the exam is, open otherwise - and each solution carries its formula
@@ -1583,11 +1646,15 @@ def convert_exercises(sb, name):
     from google.genai import types
     c = [x for x in sb.table("courses").select("id, name, exam_type").execute().data if name_match(name, x["name"])][0]
     exam = c.get("exam_type") or "open"
+    if exam == "open":
+        to_open(sb, c)
     rows = [x for x in sb.table("exercises").select("id, question_md, solution_md, done_at, source").eq("course_id", c["id"])
             .eq("source", "lesson").is_("done_at", "null").execute().data]
     want_mcq = exam == "mcq"
     todo = [x for x in rows if (want_mcq and not MCQ_SHAPE.search(x["question_md"] or ""))
             or "הנוסחה" not in (x.get("solution_md") or "")]
+    if exam == "open":  # still multiple choice (kept above) - not for the formula pass, which would keep the options
+        todo = [x for x in todo if not is_mcq(x)]
     label = {"mcq": "אמריקאי", "mixed": "משולב (חצי אמריקאי, חצי פתוח)"}.get(exam, "שאלות פתוחות")
     done = 0
     for i in range(0, len(todo), 3):  # 3 at a time: with 5 the answer left some out (27/11/2026)
@@ -1696,6 +1763,13 @@ if __name__ == "__main__":
         for mid in [a[4:] for a in sys.argv if a.startswith("mat:")]:  # a material's title + path
             print("@@MAT " + _j.dumps(s.table("materials").select("id, title, kind, storage_path").eq("id", mid).execute().data,
                                       ensure_ascii=False), flush=True)
+    elif "--toopen" in sys.argv:  # 27/11: open-exam course -> its multiple-choice exercises become open ones
+        for x in s.table("courses").select("id, name, exam_type").execute().data:
+            if name_match(sys.argv[sys.argv.index("--toopen") + 1], x["name"]) and x.get("exam_type") == "open":
+                for _ in range(3):  # a round that kept some (cut / no answer) is tried again
+                    d, t = to_open(s, x)
+                    if d == t or d == 0:
+                        break
     elif "--status" in sys.argv:  # 25/11: what is still missing per course + the repair jobs left (read only)
         st = load(s)
         cs = s.table("courses").select("id, name").execute().data
@@ -1711,6 +1785,11 @@ if __name__ == "__main__":
                 .is_("done_at", "null").execute().data
             bad = [e for e in ex if (x.get("exam_type") == "mcq" and not MCQ_SHAPE.search(e["question_md"] or ""))
                    or "הנוסחה" not in (e.get("solution_md") or "")]
+            if x.get("exam_type") == "open":
+                allq = s.table("exercises").select("question_md, solution_md, done_at").eq("course_id", x["id"]).execute().data
+                mc = [e for e in allq if is_mcq(e)]
+                print(f"::notice title=Exercises::{x['name']}: {len(mc)} multiple-choice exercises in an OPEN-exam course "
+                      f"({sum(1 for e in mc if e['done_at'])} of them marked done)", flush=True)
             print(f"::notice title=Exercises::{x['name']} ({x.get('exam_type') or 'open'}): {len(bad)} of {len(ex)} open "
                   f"exercises not yet in the exam's format / without the formula", flush=True)
             unv = [e for e in ex if "⚠️ הפתרון לא אומת" in (e.get("solution_md") or "")]
