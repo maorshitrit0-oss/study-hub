@@ -2104,6 +2104,10 @@ if __name__ == "__main__":
         import json as _j
         ops = _j.loads(Path(sys.argv[sys.argv.index("--unmerge") + 1]).read_text(encoding="utf-8"))
         for op in (ops if isinstance(ops, list) else [ops]):
+            if op.get("move_ex"):  # {"move_ex": from_id, "to": id}: a duplicate's exercises join the lesson that stays
+                n = s.table("exercises").update({"lesson_id": op["to"]}).eq("lesson_id", op["move_ex"]).execute().data
+                print(f"::notice title=Unmerge::{len(n)} exercises {op['move_ex'][:8]} -> {op['to'][:8]}", flush=True)
+                continue
             if op.get("renumber"):  # {"renumber": id, "kind", "number"}: a lesson filed under the wrong number
                 s.table("lessons").update({"kind": op["kind"], "number": op["number"]}).eq("id", op["renumber"]).execute()
                 print(f"::notice title=Unmerge::{op['renumber'][:8]} -> {op['kind']} {op['number']}", flush=True)
