@@ -2206,6 +2206,19 @@ if __name__ == "__main__":
                 for e in s.table("exercises").select("id, title, source, lesson_id, done_at, question_md, solution_md") \
                         .eq("course_id", x["id"]).execute().data:
                     print("@@EX " + _j.dumps({"course": x["name"], **e}, ensure_ascii=False), flush=True)
+    elif "--ctx" in sys.argv:  # 28/11 (read only): "--ctx <lesson id prefix> <text>" - the chapter around each occurrence
+        pre, needle = sys.argv[sys.argv.index("--ctx") + 1], " ".join(sys.argv[sys.argv.index("--ctx") + 2:])
+        rows, k = [], 0
+        while True:
+            got = s.table("lessons").select("id, chapter_md").order("id").range(k, k + 999).execute().data
+            rows += [r for r in got if r["id"].startswith(pre)]
+            k += 1000
+            if len(got) < 1000:
+                break
+        for r in rows:
+            md = r.get("chapter_md") or ""
+            for m in re.finditer(re.escape(needle), md):
+                print(f"@@X {r['id']} {m.start()} " + json.dumps(md[max(0, m.start() - 250):m.end() + 250], ensure_ascii=False), flush=True)
     elif "--dupruns" in sys.argv:  # 28/11: "--dupruns <course|all> [dry]" - repeated runs of a chapter dropped (dedupe_runs)
         key = sys.argv[sys.argv.index("--dupruns") + 1]
         dry = sys.argv[-1] == "dry"
