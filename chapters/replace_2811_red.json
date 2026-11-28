@@ -1,0 +1,6 @@
+[
+ {"id": "69cb2403-9159-48d8-a325-1e248f2e5aa5", "find": "(\\text{Hetero} = \\text{שונה}, \\text{Dyne} = \\text{תדר})", "repl": "(Hetero = שונה, Dyne = תדר)"},
+ {"id": "69cb2403-9159-48d8-a325-1e248f2e5aa5", "find": "(\\text{Intermediate Frequency - IF})", "repl": "(Intermediate Frequency - IF)"},
+ {"id": "f5396f43-b54b-4645-9e53-cf12257a6cb6", "find": "- הפרש פאזה: \\Delta\\varphi = \\pm \\frac{\n\t\\pi\n}{2}", "repl": "- הפרש פאזה: $\\Delta\\varphi = \\pm \\frac{\\pi}{2}$"},
+ {"id": "75682d61-09d9-4f46-aa0c-3be7b6dedb6f", "find": "(F - 1) \\cdot T_0$nכאשר", "repl": "(F - 1) \\cdot T_0$\nכאשר"}
+]
