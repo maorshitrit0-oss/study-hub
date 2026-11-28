@@ -1354,3 +1354,12 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
     not stored); waves af6d8cbf / c5ef4b9c / d6580bc6 / 812f92a7.
   - Still to do by hand: digital ~33, comm ~67, linear ~97 (hollow + uncertain); micro L3 rewrite (quota);
     predicted questions / expected exam for the new material; final audit.
+  - Digital done 28/11 (chapters/fixes/digital_hollow_2811*.py): exam PDFs fetched with fetch.sh "drive:<ids>"
+    (full Drive ids from publish inspect=coverage-mats <course>; exdump now prints each exercise's source file).
+    Course convention I=(k/2)(VGS-Vt)^2 (formula sheet; the 23-7-2023 exam offers 384 µW) -> depletion inverter
+    P=384 µW, tPLH=145.6 ns, tPHL=2.23 ns (stored had 768 µW / 72.8 ns). Exam answers reproduced: PTL rise/fall
+    by average current 0.172 ns / 129 ps; sizing (XOR3 g=12, NOR4 g=3) s=1/0.397/0.63; NAND5 G=9.333; DRAM
+    370 fC (closest 360). Control-systems exams (07.08.20, 25.10.22) were uploaded to digital: their 5 exercises
+    set duplicate=true (hidden; hub.py exercises now accepts "duplicate"). Logical effort is not taught yet
+    (only the TA notebook in practice 5; notation there: h = stage effort, f_i = h/g_i).
+  - Remaining by hand: comm ~67, linear ~97; micro L3 rewrite; predicted questions / expected exam; final audit.
