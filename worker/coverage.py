@@ -1301,8 +1301,9 @@ def rewrite_lesson(sb, lid, part_sec=1200):
         return
     sb.storage.from_(BUCKET).upload(f"{l['user_id']}/lessons/{l['id']}/chapter_before_rewrite20.md", (l.get("chapter_md") or "").encode(),
                                     {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
-    md = author.normalize_math(md)
+    md = author.normalize_math(md).replace("\x00", "")  # 28/11: a NUL in a model answer made Postgres refuse the chapter
     new, _ = audit(sb, dict(l, chapter_md=md), course, md)
+    new = new.replace("\x00", "")
     sb.table("lessons").update({"chapter_md": new}).eq("id", l["id"]).execute()
     print(f"::notice title=Rewrite::{(l.get('title') or '')[:30]}: {len(body)} -> {len(new)} chars (20-min parts + audit)", flush=True)
 
