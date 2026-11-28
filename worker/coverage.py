@@ -2502,12 +2502,15 @@ if __name__ == "__main__":
                     s.table("lessons").update({"chapter_md": f["set"]}).eq("id", f["id"]).execute()
                 print(f"::notice title=Replace::{f['id'][:8]}: {'chapter set' if ok else 'NOT SET (guard missing)'}", flush=True)
                 continue
+            col = f.get("col", "chapter_md")  # 28/11: also "summary_md" (the lecture summary shown with the chapter)
+            if col != "chapter_md":
+                md = (s.table("lessons").select(col).eq("id", f["id"]).execute().data or [{}])[0].get(col) or ""
             k = md.count(f["find"])
             if f.get("all") and k > 1:
                 k = 1
             if k == 1:
-                s.table("lessons").update({"chapter_md": md.replace(f["find"], f["repl"])}).eq("id", f["id"]).execute()
-            print(f"::notice title=Replace::{f['id'][:8]}: {'done' if k == 1 else f'NOT DONE ({k} matches)'}", flush=True)
+                s.table("lessons").update({col: md.replace(f["find"], f["repl"])}).eq("id", f["id"]).execute()
+            print(f"::notice title=Replace::{f['id'][:8]} {col}: {'done' if k == 1 else f'NOT DONE ({k} matches)'}", flush=True)
     elif "--textsym" in sys.argv:  # 27/11: every text field of every course without "\\text{\\symbol}" (shown red)
         n = 0
         for tb, cols in (("lessons", ["chapter_md", "summary_md"]), ("exercises", ["question_md", "solution_md"]),

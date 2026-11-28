@@ -3,6 +3,7 @@
   "id": "cf688882-5ecb-4a06-8776-4210ca200148",
   "find": "($\n\\text{בכיוון } \\hat{y}$)",
   "repl": "(בכיוון $\\hat{y}$)",
-  "all": true
+  "all": true,
+  "col": "summary_md"
  }
 ]
