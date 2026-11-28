@@ -1,0 +1,179 @@
+[
+{
+"id": "96d273a3-5ec7-4f32-a348-37d9380a8448",
+"title": "שאלה 1 - מחלקת כלב (Dog)",
+"solution_md": "### 📘 מה צריך לדעת קודם\n- **משתנה מופע** (בלי `static`): לכל כלב עותק משלו – שם, צבע, גובה, משקל.\n- **משתנה `static`**: עותק **אחד** למחלקה כולה – מתאים למונה הכלבים. הבנאי מגדיל אותו בכל `new`.\n- **מתודה `static`** נקראת דרך שם המחלקה: `Dog.printCount()`.\n- בקובץ אחד – רק מחלקה `public` אחת, ושם הקובץ כשמה (`Field.java`).\n\n### ✍️ הדרך המלאה (כמו במחברת)\n1. שדות פרטיים (`private`) + מונה `static`.\n2. בנאי שמקבל שם ומגדיל את המונה.\n3. Setters לשם, לצבע, ולגובה+משקל יחד.\n4. `bark`, `printDetails`, ו-`printCount` הסטטית.\n5. ב-`Field.main` – יוצרים שני כלבים ומפעילים את המתודות.\n\n```java\nclass Dog {\n    private String name;                 // instance attributes: one copy per dog\n    private String color;\n    private int height;\n    private double weight;\n    private static int count = 0;        // static: one copy for the whole class\n\n    public Dog(String name) {\n        this.name = name;\n        count++;                         // every new dog adds 1\n    }\n\n    public void setName(String name) { this.name = name; }\n    public void setColor(String color) { this.color = color; }\n    public void setSize(int height, double weight) {\n        this.height = height;\n        this.weight = weight;\n    }\n    public void bark() { System.out.println(name + \": Bark!\"); }\n    public void printDetails() {\n        System.out.println(\"Name: \" + name + \", color: \" + color + \", height: \" + height + \", weight: \" + weight);\n    }\n    public static void printCount() { System.out.println(\"Dogs created: \" + count); }\n}\n\npublic class Field {\n    public static void main(String[] args) {\n        Dog rex = new Dog(\"Rex\");\n        rex.setColor(\"brown\");\n        rex.setSize(60, 25.5);\n        Dog luna = new Dog(\"Luna\");\n        luna.setColor(\"white\");\n        luna.setSize(45, 18.2);\n        rex.bark();\n        rex.printDetails();\n        luna.printDetails();\n        Dog.printCount();                // called on the class, not on an object\n    }\n}\n```\n\n**פלט (הורץ):**\n```\nRex: Bark!\nName: Rex, color: brown, height: 60, weight: 25.5\nName: Luna, color: white, height: 45, weight: 18.2\nDogs created: 2\n```\n\n💡 **הרעיון:** מה ששייך לכל כלב – משתנה מופע; מה ששייך לכל הכלבים יחד – `static`.\n\n> 🔎 נבדק מחדש (28/11): נכתב מחדש במלואו; הקוד הודר והורץ.",
+"uncertain": false,
+"lock": true
+},
+{
+"id": "95a7a6f2-4445-40d2-ba3a-328385c6ef8b",
+"title": "מטלה 9J - תכנות מונחה עצמים (Object-Oriented Programming) ב-Java",
+"solution_md": "### 📘 מה צריך לדעת קודם\n- `enum` – טיפוס עם רשימה סגורה של ערכים; `Doorside.values()` מחזיר אותם לפי הסדר.\n- מערך של אובייקטים: `new Door[4]` יוצר 4 **הפניות ריקות** (`null`) – צריך `new Door()` לכל תא.\n- שדה `static boolean lock` – אחד לכל הדלתות; `lockOn`/`lockOff` הסטטיות משנות אותו לכולן בבת אחת.\n\n### ✍️ הדרך המלאה (כמו במחברת)\n1. `enum Doorside` עם ארבעת הצדדים.\n2. `Door`: שדות מופע (`name`, `color`), שדות `static` (`lock`, מונה דלתות), `setName`/`getName`, `lockOn`/`lockOff`.\n3. `Car`: שדות מופע (`model`, מערך `doors`), שדה `static` (`wheels`), וב-`main`: בונים 4 דלתות, נותנים לכל אחת צד, מדפיסים, נועלים ופותחים.\n\n```java\nenum Doorside { LeftFront, RightFront, LeftBack, RightBack }\n\nclass Door {\n    private Doorside name;               // instance: each door has its own side\n    private String color = \"black\";      // instance\n    private static boolean lock = false; // static: one lock state for all doors\n    private static int doorsMade = 0;    // static\n\n    public Door() { doorsMade++; }\n    public void setName(Doorside side) { name = side; }\n    public Doorside getName() { return name; }\n    public static void lockOn() { lock = true; }\n    public static void lockOff() { lock = false; }\n    public static boolean isLocked() { return lock; }\n    public static int getDoorsMade() { return doorsMade; }\n}\n\npublic class Car {\n    private String model = \"Corolla\";    // instance\n    private Door[] doors = new Door[4];  // array of Door objects\n    private static int wheels = 4;       // static\n\n    public static void main(String[] args) {\n        Car car = new Car();\n        Doorside[] sides = Doorside.values();       // LeftFront, RightFront, LeftBack, RightBack\n        for (int i = 0; i < car.doors.length; i++) {\n            car.doors[i] = new Door();              // build the 4 doors\n            car.doors[i].setName(sides[i]);\n        }\n        for (Door d : car.doors)\n            System.out.println(\"Door: \" + d.getName());\n        Door.lockOn();                              // locks every door at once\n        System.out.println(\"Locked: \" + Door.isLocked());\n        Door.lockOff();\n        System.out.println(\"Locked: \" + Door.isLocked());\n        System.out.println(car.model + \" has \" + wheels + \" wheels and \" + Door.getDoorsMade() + \" doors\");\n    }\n}\n```\n\n**פלט (הורץ):**\n```\nDoor: LeftFront\nDoor: RightFront\nDoor: LeftBack\nDoor: RightBack\nLocked: true\nLocked: false\nCorolla has 4 wheels and 4 doors\n```\n(בפרויקט אמיתי כל מחלקה בקובץ משלה באותה חבילה – `Car.java`, `Door.java`, `Doorside.java`; כאן הכול בקובץ אחד כדי שאפשר להריץ.)\n\n💡 **הרעיון:** `lock` סטטי ⇐ נעילה של דלת אחת = נעילה של כולן.\n\n> 🔎 נבדק מחדש (28/11): נכתב מחדש במלואו; הקוד הודר והורץ.",
+"uncertain": false,
+"lock": true
+},
+{
+"id": "e2148400-bb99-4354-b883-4bbc07562e85",
+"title": "שאלה 2 - מערכת חישוב ציונים עם תפריט",
+"solution_md": "### 📘 מה צריך לדעת קודם\n- `Scanner` לקלט: `nextInt()`, `nextDouble()`.\n- לולאת `do-while` רצה **לפחות פעם אחת** – מתאים לתפריט שמוצג עד שבוחרים \"יציאה\".\n- ממוצע: סכום חלקי מספר. אם הסכום `double`, החילוק עשרוני.\n\n### ✍️ הדרך המלאה (כמו במחברת)\n1. תפריט: 1 = חישוב ממוצע, 2 = יציאה.\n2. בבחירה 1: קולטים מספר תלמידים, ואז ציון לכל אחד בלולאה, ומחשבים ממוצע.\n3. הלולאה חוזרת עד שבוחרים 2.\n\n```java\nimport java.util.Scanner;\n\npublic class EX2 {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in);\n        int choice;\n        do {\n            System.out.println(\"1. Calculate an average\");\n            System.out.println(\"2. Exit\");\n            System.out.print(\"Choice: \");\n            choice = in.nextInt();\n            if (choice == 1) {\n                System.out.print(\"How many students? \");\n                int n = in.nextInt();\n                double sum = 0;\n                for (int i = 1; i <= n; i++) {\n                    System.out.print(\"Grade of student \" + i + \": \");\n                    sum += in.nextDouble();\n                }\n                if (n > 0)\n                    System.out.println(\"Average: \" + sum / n);   // sum is double -> real division\n                else\n                    System.out.println(\"No students\");\n            } else if (choice != 2) {\n                System.out.println(\"Unknown choice\");\n            }\n        } while (choice != 2);                                 // the menu repeats until Exit\n        System.out.println(\"Bye\");\n    }\n}\n```\n\n**הרצה (הורץ עם 3 ציונים: 90, 80, 75):** `Average: 81.66666666666667`, ואז בחירה 2 ⇐ `Bye`.\n\n💡 **הרעיון:** תפריט = `do-while` עם תנאי יציאה; `sum` מסוג `double` כדי שהחילוק לא יקוצץ.\n\n> 🔎 נבדק מחדש (28/11): נכתב מחדש במלואו; הקוד הודר והורץ.",
+"uncertain": false,
+"lock": true
+},
+{
+"id": "5af1538f-0d46-4c13-9782-c8c826b1f641",
+"title": "שאלה 1 - בדיקת מספר חיובי, שלילי או אפס",
+"solution_md": "### 📘 מה צריך לדעת קודם\n- `Scanner in = new Scanner(System.in); int num = in.nextInt();` – קליטת מספר שלם.\n- שרשרת `if / else if / else` – בודקת תנאים לפי הסדר ומבצעת רק את הראשון שמתקיים.\n\n### ✍️ הדרך המלאה (כמו במחברת)\n1. קולטים מספר.\n2. אם גדול מ-0 – חיובי; אחרת, אם קטן מ-0 – שלילי; אחרת – אפס.\n\n```java\nimport java.util.Scanner;\n\npublic class EX1 {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in);\n        System.out.print(\"Enter an integer: \");\n        int num = in.nextInt();\n        if (num > 0)\n            System.out.println(num + \" is positive\");\n        else if (num < 0)\n            System.out.println(num + \" is negative\");\n        else\n            System.out.println(\"The number is zero\");\n    }\n}\n```\n\n**הרצה (הורץ):** קלט `-5` ⇐ `-5 is negative`.\n\n💡 **הרעיון:** שלושה מקרים זרים ⇐ `if / else if / else`.\n\n> 🔎 נבדק מחדש (28/11): נכתב מחדש במלואו; הקוד הודר והורץ.",
+"uncertain": false,
+"lock": true
+},
+{
+"id": "7ee300bf-7b86-4d21-9fcd-1aa8396770d2",
+"title": "שאלה 4 - השלמת קוד במחלקות אבסטרקטיות בירושה",
+"solution_md": "### 📘 מה צריך לדעת קודם\n- מחלקה `abstract`: אי אפשר ליצור ממנה אובייקט; מתודה `abstract` – בלי גוף, וכל מחלקת בת חייבת לממש אותה.\n- `this.name` – השדה של האובייקט (להבדיל מהפרמטר `name`).\n- `super(name)` – קריאה לבנאי של מחלקת האב; חייבת להיות השורה הראשונה בבנאי.\n- בקובץ אחד – רק מחלקה `public` אחת, ושם הקובץ כשמה. כאן `Company` היא ה-`public`.\n\n### ✍️ הדרך המלאה (כמו במחברת)\n| תיבה | השלמה | למה |\n|---|---|---|\n| [1] | **שום מילה** | המילה `abstract` כבר כתובה, ו-`public` (שגם לא ברשימה) אסור: `Company` כבר `public` באותו קובץ. אם בנוסח המקורי התיבה באה **במקום** `abstract` – התשובה `abstract`. |\n| [2] | `this` | `this.name = name;` – השדה מקבל את הפרמטר. |\n| [3] | `abstract` | מתודה בלי גוף (נגמרת ב-`;`) חייבת להיות `abstract`. |\n| [4] | `super` | `super(name);` – בנאי האב מאתחל את `name`. |\n| [5] | `new` | יצירת אובייקט: `new FullTimeEmployee(\"Yossi\", 12000)`. |\n\nהקוד המלא הודר והורץ ⇐ הפלט: `12000.0`.\n> ⚠️ בפתרון הקודם נכתב `public` בתיבה [1] – זה לא מתקמפל (\"class Employee is public, should be declared in a file named Employee.java\").\n\n💡 **הרעיון:** מחלקה אבסטרקטית מגדירה \"מה\", מחלקת הבת מממשת \"איך\", ו-`super` מעביר לאב את החלק שלו.\n\n> 🔎 נבדק מחדש (28/11): נכתב מחדש במלואו; הקוד הודר והורץ.",
+"uncertain": false,
+"lock": true
+},
+{
+"id": "52cefe98-a1da-4791-bbdc-034d6a105f38",
+"title": "השוואת אובייקטים מותאמים אישית (Book) בהשמה וביצירה חדשה",
+"uncertain": false,
+"lock": true,
+"solution_md": "התשובה: **ב**\n\n**הנוסחה:**\n\n$$\nb1 == b3 \\iff \\text{address}(b1) == \\text{address}(b3)\n$$\n\nננתח את אופן הקצאת האובייקטים וההשוואות שלב אחר שלב:\n1. **שלב 1: ניתוח הקצאת הזיכרון**\n   - `b1 = new Book(...)`: יצירת מופע חדש של ספר בכתובת זיכרון ראשונה, נסמנה $A_1$.\n   - `b2 = b1`: ביצוע השמת הפניה (Reference copy). המשתנה `b2` מקבל את אותה כתובת זיכרון $A_1$. שניהם מצביעים על אותו עצם פיזי בדיוק.\n   - `b3 = new Book(...)`: הפעלת `new` יוצרת מופע חדש לחלוטין בכתובת זיכרון נפרדת, נסמנה $A_2$, על אף שהשדות הפנימיים בעלי ערכים זהים.\n2. **שלב 2: חישוב `b1 == b2`**\n   השוואת הפניות:\n   **נוסחה:** $b1 == b2 \\iff \\text{address}(b1) == \\text{address}(b2)$\n   **הצבה:** $A_1 == A_1$\n   **תוצאה:** ✅ `b1 == b2: true`\n\n3. **שלב 3: חישוב `b1 == b3`**\n   השוואת הפניות:\n   **נוסחה:** $b1 == b3 \\iff \\text{address}(b1) == \\text{address}(b3)$\n   **הצבה:** $A_1 == A_2 \\quad (A_1 \\neq A_2)$\n   **תוצאה:** ✅ `b1 == b3: false`\n\n4. **שלב 4: חישוב `b1.equals(b3)`**\n   - המחלקה `Book` לא דרסה (`Override`) את מתודת `equals(Object obj)` שהיא יורשת ממחלקת העל `Object`.\n   - מימוש ברירת המחדל של מתודת `equals` במחלקת `Object` הוא השוואת זהות הפניות בלבד:\n   **נוסחה (מימוש ב-Object):** $\\text{equals}(x) \\equiv (\\text{this} == x)$\n   **הצבה:** $b1 == b3 \\implies A_1 == A_2$\n   **תוצאה:** ✅ `b1.equals(b3): false`\n\n**ההבדל מול String:**\nבמחלקה `String`, יוצרי השפה דרסו את `equals()` כדי להשוות תווים. במחלקה מותאמת אישית (כגון `Book`), כל עוד לא הגדרנו במפורש מימוש חדש למתודה `equals`, היא מתנהגת בדיוק כמו אופרטור `==`.\n\n💡 **הרעיון:** באובייקטים מותאמים אישית שלא דרסו את `equals`, גם `==` וגם `equals()` בודקים אך ורק שוויון כתובת בזיכרון.\n\n**למה לא האחרות:**\n\nא שגוי כי b1 ו-b3 מצביעים על כתובות זיכרון שונות ולכן שוויון ההפניות מחזיר false. ג שגוי כי המחלקה Book לא דרסה את equals ולכן היא משווה הפניות ולא תוכן. ד שגוי כי b1 ו-b2 מצביעים על אותו עצם בדיוק ולכן b1 == b2 מחזיר true.\n\n> הערה: התשובה נכונה כש-`Book` **לא** דורסת את `equals` – אז `equals` של `Object` משווה הפניות, כמו `==`. אם במחלקה מהשיעור `equals` נדרסה להשוואת שדות, `b1.equals(b3)` היה `true`.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "8cf0d7ab-4ffc-49e2-bbe3-472d3f179434",
+"title": "שימוש במחלקות עוטפות, מערך Object ובדיקת טיפוסים עם instanceof",
+"uncertain": false,
+"lock": true,
+"solution_md": "התשובה: **ג**\n\n**הנוסחה:**\n\n$$\n\\text{obj.getClass().getName()}\n$$\n\nנחלק את הפתרון למימוש המתודה ולאחר מכן למעקב אחר הריצה:\n\n### סעיף א': כתיבת המתודה `describeObject`\n\n```java\npublic static void describeObject(Object obj) {\n    System.out.println(\"Class Name: \" + obj.getClass().getName());\n\n    if (obj instanceof String) {\n        System.out.println(\"This object is a String.\");\n    } else if (obj instanceof Book) {\n        System.out.println(\"This object is a Book.\");\n    } else if (obj instanceof Number) {\n        System.out.println(\"This object is a Number.\");\n    }\n}\n```\n\n**הסבר שורה-אחר-שורה:**\n- `public static void describeObject(Object obj)`: מתודה סטטית (ניתנת להפעלה ישירות ממחלקת `Library` ללא יצירת מופע) המקבלת ארגומנט מטיפוס `Object` – טיפוס העל שממנו יורשות כל המחלקות ב-Java.\n- `obj.getClass().getName()`: המתודה `getClass()` מחזירה את אובייקט ה-`Class` המייצג את המחלקה האמיתית בזמן ריצה, והמתודה `getName()` מחזירה את שמה כמחרוזת מלאה.\n- `instanceof`: אופרטור בוליאני הבודק האם האובייקט הוא מופע של המחלקה המבוקשת או תת-מחלקה שלה.\n\n---\n\n### סעיף ב': מעקב ריצה ופלט עבור מערך `items`\n\n1. **איבר ראשון: `s1` (`String`)**\n   - המחלקה שייכת לספרייה הסטנדרטית תחת החבילה `java.lang`.\n   - תנאי ראשון מתקיים: `s1 instanceof String` מחזיר `true`.\n   - **פלט שלב 1:**\n     ```text\n     Class Name: java.lang.String\n     This object is a String.\n     ```\n\n2. **איבר שני: `b1` (`Book`)**\n   - המחלקה הוגדרה בחבילת הפרויקט `tirgul5`.\n   - תנאי שני מתקיים: `b1 instanceof Book` מחזיר `true`.\n   - **פלט שלב 2:**\n     ```text\n     Class Name: tirgul5.Book\n     This object is a Book.\n     ```\n\n3. **איבר שלישי: `number` (`Integer.valueOf(42)`)**\n   - מדובר במחלקה עוטפת `java.lang.Integer`.\n   - המחלקה `Integer` יורשת ישירות ממחלקת העל המופשטת `java.lang.Number`.\n   - תנאי שלישי מתקיים: `number instanceof Number` מחזיר `true`.\n   - **פלט שלב 3:**\n     ```text\n     Class Name: java.lang.Integer\n     This object is a Number.\n     ```\n\n4. **איבר רביעי: `number2` (`Double.valueOf(\"3.14\")`)**\n   - מדובר במחלקה עוטפת `java.lang.Double`.\n   - גם המחלקה `Double` יורשת ממחלקת העל `java.lang.Number`.\n   - תנאי שלישי מתקיים: `number2 instanceof Number` מחזיר `true`.\n   - **פלט שלב 4:**\n     ```text\n     Class Name: java.lang.Double\n     This object is a Number.\n     ```\n\n**פלט כולל סופי:**\n```text\nClass Name: java.lang.String\nThis object is a String.\nClass Name: tirgul5.Book\nThis object is a Book.\nClass Name: java.lang.Integer\nThis object is a Number.\nClass Name: java.lang.Double\nThis object is a Number.\n```\n\n💡 **הרעיון:** מערך מסוג `Object[]` מאפשר לאחסן אובייקטים הטרוגניים, ובאמצעות `instanceof` ו-`getClass()` ניתן לזהות ולטפל בכל טיפוס ספציפי בזמן ריצה.\n\n**למה לא האחרות:**\n\nא שגוי כי getClass מחזיר את המחלקה המדויקת בזמן ריצה ולא את מחלקת העל Object. ב שגוי כי מערך Object מסוגל להכיל כל אובייקט ב-Java בצורה תקינה. ד שגוי כי אין כאן המרות טיפוסים לא חוקיות אלא בדיקות instanceof תקינות.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "5a63cd96-5c41-4403-b9b4-813cfad68f03",
+"title": "שאלה 2 - השוואת מחרוזות",
+"uncertain": false,
+"lock": true,
+"solution_md": "התשובה: **ג**\n\n1. **שלב ראשון:** השוואת הפניות בזיכרון באמצעות האופרטור `==`.\n\n**למה:** האופרטור `==` משווה אך ורק את כתובת הזיכרון הפיזית של האובייקטים ב-Heap, ולא את התוכן הטקסטואלי שלהם.\n\n**נוסחה:**\n\n📘 נוסחה מההרצאה על אובייקטים:\n\n$$\n\\text{reference1} == \\text{reference2}\n$$\n\n**הצבה:** המשתנה\n\n$$\ns1\n$$\n\nמצביע על אובייקט ב-String Pool, בעוד ש-\n\n$$\ns2\n$$\n\nנוצר בעזרת מילת המפתח\n\n$$\nnew\n$$\n\nולכן מצביע על כתובת שונה לגמרי ב-Heap.\n\n**תוצאה:**\n\n$$\nfalse\n$$\n\n✅\n2. **שלב שני:** השוואת התוכן הפנימי של המחרוזות באמצעות המתודה `equals`.\n\n**למה:** כדי לבדוק האם התווים המרכיבים את שתי המחרוזות זהים, חובה להשתמש במתודה ייעודית המשווה תו-תו.\n\n**נוסחה:**\n\n📘 נוסחה מההרצאה על השוואת מחרוזות:\n\n$$\n\\text{str1.equals(str2)}\n$$\n\n**הצבה:** נציב את המחרוזות:\n\n$$\n\"Hello\".equals(\"Hello\")\n$$\n\n**תוצאה:**\n\n$$\ntrue\n$$\n\n✅\n\n💡 **העיקרון:** השוואת אובייקטים ב-Java באמצעות `==` בודקת זהות פיזית בזיכרון, בעוד ש-`equals` בודקת שוויון תוכן לוגי.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "67319c08-c809-4276-84f9-927815efb4db",
+"title": "מה יודפס? חילוק שלמים",
+"uncertain": false,
+"lock": true,
+"solution_md": "התשובה: **א.**\n**הנוסחה:**\n$$\n\\text{Result} = \\text{type}(a) \\text{ op } \\text{type}(b)\n$$\n1. `a / b` הוא חילוק שלמים (7/2) והתוצאה 3.\n2. `a / b` מחושב קודם כ-3 ורק אז מושם למשתנה double ולכן הופך ל-3.0.\n3. `a / 2.0` כולל double, לכן החילוק הוא עשרוני (3.5).\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "722b2741-8f56-4809-b2ac-f75805b7f282",
+"title": "איתור טווח שלמים בין ממשיים",
+"uncertain": false,
+"lock": true,
+"solution_md": "התשובה: **ב**\n\n**הנוסחה:**\n$$\n\\lceil b \\rceil \\le x \\le \\lfloor a \\rfloor\n$$\n\n1. זיהוי גבולות הטווח בין $b = 2.1$ ל-$a = 5.5$.\n2. המספר השלם הבא אחרי $2.1$ כלפי מעלה הוא $3$.\n3. המספר השלם הקטן או שווה ל-$5.5$ הוא $5$.\n4. לכן המספרים השלמים בטווח הם $3, 4, 5$.\n\n**למה האחרות שגויות:**\n- **א** – כולל את $2$ שקטן מ-$2.1$.\n- **ג** – כולל מספרים שאינם שלמים.\n- **ד** – מפספס את המספר $5$ שנמצא בתוך הטווח.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "262a6118-3c9a-41cd-8f84-ae4796a377ec",
+"title": "אתחול והדפסת מערך מספרים שלמים",
+"uncertain": false,
+"lock": true,
+"solution_md": "התשובה: **ב**\n\n**הנוסחה:**\n$$\n0 \\le index < array.length\n$$\n\nהמערך באורך 22, כלומר האינדקסים החוקיים הם 0 עד 21. הלולאה רצה עם תנאי `<=`, ולכן היא מנסה לגשת ל-`numbers[22]`, אינדקס שאינו קיים, מה שגורם לחריגה.\n\n**למה האחרות שגויות:**\n- **א** – הקוד יקרוס לפני שיגיע לשורת ההדפסה.\n- **ג** – אין גישה לאינדקס 22 במערך בגודל 22.\n- **ד** – שגיאת קומפילציה מתרחשת על תחביר שגוי, כאן מדובר בחריגה לוגית בזמן ריצה.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "9ca48615-7625-4fb3-8159-d9b0726e9542",
+"title": "J2 תרגיל בית: המספר הקטן ביותר",
+"uncertain": false,
+"lock": true,
+"question_md": "בהינתן שלושה מספרים, מה יהיה הפלט המדויק של התוכנית?\n\n```java\nint num1 = 10;\nint num2 = 23;\nint num3 = 5;\nint min = (num1 < num2) ? num1 : num2;\nmin = (min < num3) ? min : num3;\nSystem.out.println(\"The smallest number is = \" + min);\nif (min < 10)\n    System.out.println(\"The smallest number is less than 10!\");\nelse\n    System.out.println(\"The smallest number is greater than or equal to 10!\");\n```\n\n**א.** `The smallest number is = 5` ואז `The smallest number is less than 10!`\n\n**ב.** `The smallest number is = 10` ואז `The smallest number is greater than or equal to 10!`\n\n**ג.** `The smallest number is = 5` ואז `The smallest number is greater than or equal to 10!`\n\n**ד.** `The smallest number is = 23` ואז `The smallest number is less than 10!`",
+"solution_md": "התשובה: **א**\n\n**הנוסחה:**\n$$\n\\text{min} = \\min(num_1, num_2, num_3)\n$$\n\n1. השוואה ראשונה בין `num1` ($10$) ל-`num2` ($23$): התוצאה היא $10$.\n2. השוואה שנייה בין התוצאה הקודמת ($10$) ל-`num3` ($5$): היות ו-$5$ קטן יותר, `min` מקבל את הערך $5$.\n3. בדיקת תנאי ההודעה: האם $5 < 10$? התשובה היא אמת, ולכן מודפסת ההודעה `The smallest number is less than 10!`.\n\n**למה האחרות שגויות:**\n- **ב** – בוחר בטעות במספר 10 ומפספס את המינימום האמיתי.\n- **ג** – מזהה נכון את המינימום אך שגה בהערכת תנאי ההשוואה ל-10.\n- **ד** – בוחר במקסימום במקום במינימום.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "3da55b01-5a08-4553-99c6-75b4ac069a0f",
+"title": "תרגיל 1 · static מול משתנה של אובייקט – מה יודפס?",
+"uncertain": false,
+"lock": true,
+"solution_md": "התשובה: **א**\n\n**הנוסחה:**\n$$\nTotal_{static} = \\sum count\n$$\n$$\nMine_{instance} = count_{per\\_object}\n$$\n\nהמשתנה `total` הוא `static`, ולכן הוא משותף לכל האובייקטים וצובר את כל הקריאות (3). המשתנה `mine` הוא `instance`, לכן הוא נפרד לכל אובייקט (a קיבל 2, b קיבל 1).\n\n**למה האחרות שגויות:**\n- **ב** – `mine` אינו משותף בין אובייקטים.\n- **ג** – `total` גדל בכל קריאה לכל אובייקט.\n- **ד** – `a.add()` נקרא פעמיים, לכן `a.mine` הוא 2 ולא 1.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "bf8dbde1-9d4a-4663-b857-fc0fbf85c705",
+"title": "המרת ארגומנטים משורת הפקודה",
+"uncertain": false,
+"lock": true,
+"solution_md": "התשובה: **ב**\n\n**הנוסחה:**\n$$\n\\text{parsedValue} = \\text{Double.parseDouble}(\\text{args}[i])\n$$\n\n1. ארגומנטים המועברים בשורת הפקודה נקלטת תמיד כמערך מחרוזות (`String[] args`), גם אם המשתמש הקיש מספרים (📘 נוסחה מההרצאה על J6 Command-line Arguments).\n2. אי אפשר לבצע פעולות אריתמטיות ישירות על מחרוזות.\n3. כדי להמיר מחרוזת למספר ממשי מסוג פרימיטיבי `double`, נעזרים במתודה הסטטית `parseDouble` מתוך מחלקת העטיפה `Double` של Java (`java.lang.Double`, שקף 33).\nאפשרות א' שגויה כי הנתונים אינם נקלטת כדאבלים אוטומטית אלא כמחרוזות. אפשרות ג' שגויה כי הקלט הוא מחרוזות ולא אינטים, וחלק מהמספרים הם ממשיים (כמו 2.2). אפשרות ד' שגויה כי לא מדובר בטבלת אובייקטים כללית אלא במערך מחרוזות ספציפי ✅.\n\n💡 הרעיון: ארגומנטים משורת הפקודה תמיד מגיעים כ-`String[]` ויש להמירם באמצעות מחלקות עטיפה (Parsing).\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "308ebd98-f41c-46d1-88ea-ccbe4ecc7eb7",
+"title": "שאלה 2 - השוואת מחרוזות",
+"uncertain": false,
+"lock": true,
+"solution_md": "### התשובה: **ד** ✅ **הדרך המלאה (כמו במחברת):**\n\n`==` משווה **הפניות**: `new` יוצר אובייקט חדש ⇐ `false`. `equals` משווה **תוכן** ⇐ `true`.\n\n**למה לא האחרות:**\n- **א** – היה נכון בלי `new` (שני ליטרלים מאותו מאגר).\n- **ב** – התוכן זהה.\n- **ג** – הפוך.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "9c3787c5-639c-4f45-be31-549c72d0cb14",
+"title": "השוואת אובייקטים באמצעות == מול השוואת ערכים",
+"uncertain": false,
+"lock": true,
+"solution_md": "התשובה: **ב**\n**הנוסחה:**\n$$\n\\text{ReferenceComparison}(obj_1 == obj_2) \\iff \\text{MemoryAddress}(obj_1) == \\text{MemoryAddress}(obj_2)\n$$\n\n**הצבה:**\n$$\n\\text{Address}(c1) \\neq \\text{Address}(c2) \\implies \\text{false}\n$$\n\n**תוצאה:**\n\n✅ false\nשלבי הפתרון:\n1. אופרטור ההשוואה `==` באובייקטים ב-Java אינו בודק את תוכן השדות הפנימיים שלהם, אלא את כתובת הזיכרון (ההפניה - Reference) אליה הם מצביעים.\n2. היות וכל קריאה ל-`new` יוצרת מופע חדש בתא זיכרון נפרד, `c1` ו-`c2` מצביעים לשטחי זיכרון שונים, ולכן ההשוואה מחזירה `false`.\nמדוע האחרות שגויות:\n- אפשרות א שגויה כי `==` אינו משווה ערכים פנימיים בין אובייקטים שונים שנבנו בנפרד.\n- אפשרויות ג ו-ד שגויות לחלוטין מבחינת תחביר ותוצאה.\n\n💡 הרעיון: השוואת אובייקטים ב-`==` בודקת זהות פיזית בזיכרון ולא שוויון תכונות.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "c9d1c55d-048e-440e-bf29-4c37468fdd1d",
+"title": "שאלה 3 - טיפול בחריגות",
+"uncertain": false,
+"lock": true,
+"solution_md": "1. **שלב ראשון:** הבנת מחלקת החריגות.\n\n**למה:** כדי להבין איזו חריגה תופסת את הקוד, ננתח את ההיררכיה של מחלקות החריגות ב-Java.\n\n**נוסחה:** מחלקת\n\n$$\nException\n$$\n\nהיא מחלקת האב הכללית של כל החריגות (שאינן Runtime חמורות) ב-Java.\n\n**הצבה:** הצבת\n\n$$\nException\n$$\n\nבתור ה-catch הראשון בקוד.\n\n**תוצאה:** תפיסת כל חריגה אפשרית מיד ✅\n2. **שלב שני:** ניתוח הבלוק השני.\n\n**למה:** בודקים האם הבלוק השני יכול אי פעם לפעול לאחר שהבלוק הראשון תפס הכל.\n\n**נוסחה:** שגיאת קומפילציה מסוג Unreachable catch block שמשמעותה קוד שלא ניתן להגיע אליו לעולם.\n\n**הצבה:** מיקום\n\n$$\nArithmeticException\n$$\n\nאחרי\n\n$$\nException\n$$\n\n**תוצאה:** תפיסה שגויה והתשובה הנכונה היא ג' ✅\n\n💡 הרעיון: תמיד יש לתפוס חריגות ספציפיות קודם ואז את הכלליות כדי לא לחסום קוד טיפול בשגיאות.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "8daa4cb7-b754-4067-864f-8ea1416d2bf2",
+"title": "איזו שורה לא מתקמפלת?",
+"uncertain": false,
+"lock": true,
+"question_md": "בהינתן המחלקות `Car` ומחלקת הבת `Toyota` היורשת ממנה, איזה משפט מבין הבאים נכון לגבי הקוד?\n```java\nCar car = new Car();          // (1)\nToyota toyo = new Toyota();   // (2)\ncar = toyo;                   // (3)\nCar car2 = new Toyota();      // (4)\ntoyo = car2;                  // (5)\n```\n\n**א.** שורה (5) גורמת לשגיאת קומפילציה\n**ב.** שורה (3) גורמת לשגיאת קומפילציה\n**ג.** שורה (4) גורמת לשגיאת קומפילציה\n**ד.** כל השורות תקינות קומפילטיבית",
+"solution_md": "התשובה: **א**\n\n**הכלל:** משתנה מסוג אב יכול להצביע על אובייקט בן; השמה מאב לבן דורשת המרה מפורשת.\n\nהפתרון המלא:\n1. שורה (5) מנסה להשים אובייקט מסוג `Car` למשתנה מסוג `Toyota` בלי המרה מפורשת (`Cast`).\n2. מכיוון שהקומפיילר בוחן את סוג המשתנה (`Car`) ולא את האובייקט שבתוכו בפועל, זוהי השמה מגבוה לנמוך הדורשת cast מפורש `(Toyota)`. לכן תופיע שגיאת קומפילציה.\n\nלמה האחרות שגויות:\n- **ב** – שורה (3) תקינה כי זו המרה אוטומטית מנמוך (`Toyota`) לגבוה (`Car`).\n- **ג** – שורה (4) תקינה לחלוטין, משתנה מסוג אב יכול להצביע על אובייקט בן.\n- **ד** – שורה (5) אינה תקינה ולכן לא כל השורות עוברות קומפילציה.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "d52984f9-2732-4514-82ce-da5bf64c0ef2",
+"title": "תרגיל 3 · החלפה בתוך מערך מול מערך חדש",
+"uncertain": false,
+"lock": true,
+"solution_md": "התשובה: **ב**\n\n**הנוסחה:**\n$$\nPass\\_By\\_Value\\_of\\_Reference\n$$\n\nפונקציית `swap` משנה את התוכן של כתובת הזיכרון שהיא קיבלה (המערך). פונקציית `swapNew` מקבלת עותק של המצביע, ולכן השמה של מערך חדש ל-`a` בתוך הפונקציה לא משנה את המצביע המקורי מחוץ לה.\n\n**למה האחרות שגויות:**\n- **א** – `swap` הצליחה להחליף את ערכי המערך.\n- **ג** – שינוי הפנייה בתוך פונקציה לא משפיע על המשתנה החיצוני.\n- **ד** – אין פעולה שמובילה לתוצאה זו.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "de9a6abc-f8f1-4d5e-af60-5d9b9d547127",
+"title": "== על מחרוזות",
+"uncertain": false,
+"lock": true,
+"solution_md": "התשובה: **ד**\n\n**הנוסחה:**\n$$\ns1 == s2 \\implies \\text{true (same reference)}, \\quad s1 == s3 \\implies \\text{false (new object)}, \\quad s1.equals(s3) \\implies \\text{true (same content)}\n$$\n\n1. `s2 = s1` – מעתיקים את הכתובת ⇐ שניהם מצביעים לאותו אובייקט ⇐ `s1 == s2` הוא `true`.\n2. `s3 = new String(s1)` – אובייקט חדש עם אותו תוכן ⇐ כתובת אחרת ⇐ `s1 == s3` הוא `false`.\n3. `s1.equals(s3)` – התוכן זהה (\"Hello\") ⇐ `true`.\n\nלמה האחרות שגויות:\n- **א** – s3 נבנה ב-new ולכן כתובת שונה, מה שגורם ל-== לתת false.\n- **ב** – s2 מקבל את אותה כתובת כמו s1 ולכן == נותן true.\n- **ג** – equals משווה תוכן, והתוכן ב-s1 וב-s3 זהה, ולכן נותן true.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "e413fa9e-cc60-4adc-a270-28195ecc3068",
+"title": "משתנה סטטי משותף",
+"uncertain": false,
+"lock": true,
+"solution_md": "התשובה: **ב**\n\n**הנוסחה:**\n$$\n\\text{static fields are shared across all instances of a class.}\n$$\n\n1. `c1.lic = \"A\"`, `c2.lic = \"B\"` – שדות מופע נפרדים לכל אובייקט.\n2. `Car.send(\"go\")` ⇐ המשתנה המשותף `msg` מקבל את הערך `\"go\"`.\n3. `c2.msg = \"stop\"` – משנה את השדה הסטטי המשותף לכולם ⇐ `msg = \"stop\"`.\n4. `c1.get()` מחזיר `\"A:stop\"` ו-`c2.get()` מחזיר `\"B:stop\"`.\n\nלמה האחרות שגויות:\n- **א** – c2.msg אינו יוצר עותק פרטי אלא דורס את הערך המשותף, כך שגם c1 מושפע.\n- **ג** – השינוי האחרון ל-msg היה \"stop\" ולא \"go\".\n- **ד** – msg אותחל ל-\"go\" ואז עודכן ל-\"stop\" לפני ההדפסה, ולכן אינו null.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "c1a83618-6b27-4d4e-af5f-c6906f6d62a9",
+"title": "השוואת מחרוזות: אופרטור == מול מתודת equals",
+"uncertain": false,
+"lock": true,
+"solution_md": "התשובה: **ג**\n\n**הנוסחה:**\n$$\n\\text{s1} == \\text{s2} \\iff \\text{address}(\\text{s1}) == \\text{address}(\\text{s2})\n$$\n$$\n\\text{s1.equals(s3)} \\iff \\text{value}(\\text{s1}) == \\text{value}(\\text{s3})\n$$\n\nהפתרון המלא צעד אחרי צעד:\n1. **`s1 == s2`:** שני המחרוזות נוצרות כליטרל ומאוחסנות באותו מיקום ב-String Pool, לכן השוואת ההפניות בעזרת `==` מחזירה `true`.\n2. **`s1 == s3`:** השימוש באופרטור `new` יוצר אובייקט חדש ב-Heap בכתובת שונה מזו שפרוכת ב-String Pool, לכן השוואת `==` מחזירה `false`.\n3. **`s1.equals(s3)`:** מתודת `equals` במחלקה `String` משווה את תוכן המחרוזת עצמה ולא את כתובת הזיכרון, ושתי המחרוזות מכילות את הרצף \"JAVA\", לכן מוחזר `true`.\n\nלמה האחרות שגויות:\n- אפשרות א' שגויה משום ש-`s1 == s3` אינו יכול להיות `true` (כתובות שונות).\n- אפשרות ב' שגויה משום ש-`s1 == s2` מחזיר `true` בשל שמירת ליטרלים ב-String Pool.\n- אפשרות ד' שגויה לחלוטין בכל הערכים.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "cba4421e-f62a-47c3-b973-663ffeec8cc6",
+"title": "עיבוד ארגומנטים משורת הפקודה וחישוב ממוצעים",
+"uncertain": false,
+"lock": true,
+"solution_md": "התשובה: **א**\n\n**הנוסחה:**\n$$\n\\text{averages}[i] = \\frac{\\text{numbers}[i] + \\text{numbers}[i+1]}{2.0}\n$$\n\nהפתרון המלא צעד אחרי צעד:\n1. **שלב האימות:** ודא שקיימים לפחות שני ארגומנטים ושהמחרוזות מייצגות מספרים תקינים (סימן מינוס רק בהתחלה, נקודה עשרונית אחת לכל היותר, ושאר התווים ספרות).\n2. **שלב ההמרה:** המר כל מחרוזת מאומתת לטיפוס `double` באמצעות `Double.valueOf(args[i])`.\n3. **שלב החישוב:** עבור כל זוג איברים צמודים במערך בגודל `numbers.length - 1`, מחשבים את הממוצע האריתמטי על ידי חיבור שני הערכים וחלוקתם ב-`2.0`.\n\nלמה האחרות שגויות:\n- אפשרות ב' מחשבת סכום ולא ממוצע.\n- אפשרות ג' מחשבת מכפלה חצויה ב-2 ולא ממוצע חיבורי.\n- אפשרות ד' מחשבת הפרש (חיסור) ולא ממוצע.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "191c7c9e-8dd2-4d6d-9bb7-ad2c9d9556f0",
+"title": "תרגיל 1 - הבנת מבנה פרויקט",
+"uncertain": false,
+"lock": true,
+"solution_md": "צעד 1: פותחים את תפריט היצירה על ידי File -> New Project. צעד 2: בוחרים בקטגוריה Java. צעד 3: בוחרים בסוג הפרויקט Java Application. לכן התשובה היא קטגוריה Java וסוג Java Application.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+},
+{
+"id": "c5947670-88cd-4d8f-8a30-986f91fdca85",
+"title": "אופרטורים משולבים ומודולו",
+"uncertain": false,
+"lock": true,
+"solution_md": "התשובה: **ב**\n\n**הנוסחה:**\n$$\ni_{\\text{new}} = i_{\\text{old}} + 4\n$$\n$$\ni \\% 2 == 0\n$$\n\n1. חישוב ההשמה המקוצרת: $i += 4$ שקול ל-$i = 3 + 4 = 7$.\n2. בדיקת זוגיות: $7 \\% 2 = 1$, ולכן השארית אינה שווה ל-$0$.\n3. לכן, התנאי לזוגיות מחזיר `false` (לא יתקיים) וערך המשתנה הוא $7$.\n\n**למה האחרות שגויות:**\n- **א** – מניח בטעות ש-7 הוא מספר זוגי.\n- **ג** – מניח בטעות ש-$i += 4$ פירושו כפל או שמציב ערך שגוי.\n- **ד** – מבצע פעולת כפל במקום חיבור.\n\n> 🔎 נבדק מחדש (28/11): הקוד הורץ והתשובה נבדקה."
+}
+]
