@@ -171,6 +171,21 @@ def run(only=None):
                 return
 
 
+def report(sb, course, when):
+    md = current(sb, course)
+    print(f"::notice title=Sheet {when}::{course['name']}: allowed={allows_sheet(sb, course)} pages={pages(sb, course)} "
+          f"chars={len(md)} sections={md.count(chr(10) + '### ')} | {stamp(sb, course)[:120]}", flush=True)
+
+
 if __name__ == "__main__":
     import sys
-    run(sys.argv[1] if len(sys.argv) > 1 else None)
+    if len(sys.argv) > 2 and sys.argv[1] == "--course":  # "--course <regex> [dry]" (publish.yml inspect "sheet", 28/11)
+        import hub
+        sb = db()
+        c = hub.find_course(sb, sys.argv[2])
+        report(sb, c, "before")
+        if sys.argv[-1] != "dry":
+            run(c["id"])
+            report(sb, c, "after")
+    else:
+        run(sys.argv[1] if len(sys.argv) > 1 else None)
