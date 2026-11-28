@@ -2114,6 +2114,33 @@ if __name__ == "__main__":
                 for e in s.table("exercises").select("id, title, source, lesson_id, done_at, question_md, solution_md") \
                         .eq("course_id", x["id"]).execute().data:
                     print("@@EX " + _j.dumps({"course": x["name"], **e}, ensure_ascii=False), flush=True)
+    elif "--formdump" in sys.argv:  # 28/11 (read only): a course's formula sheet + every chapter's headings, display
+        # formulas and the line before each - the material for a formula sheet written by hand
+        import json as _j
+        import docs
+        for x in s.table("courses").select("*").eq("archived", False).execute().data:
+            if not name_match(sys.argv[sys.argv.index("--formdump") + 1], x["name"]):
+                continue
+            for ln in docs.current(s, x).split("\n"):
+                print("@@S " + ln, flush=True)
+            for l in s.table("lessons").select("id, kind, number, title, chapter_md").eq("course_id", x["id"]).eq("status", "ready") \
+                    .in_("kind", ["lecture", "practice"]).order("created_at").execute().data:
+                print(f"@@L {l['kind']} {l.get('number')} {l['id'][:8]} {l.get('title')}", flush=True)
+                lines, prev, inblk = body_of(l.get("chapter_md") or "").split("\n"), "", False
+                for ln in lines:
+                    t = ln.strip()
+                    if t.startswith("$$") and not inblk:
+                        if prev:
+                            print("@@C " + prev[:300], flush=True)
+                        inblk = not (t.endswith("$$") and len(t) > 2)
+                        print("@@M " + t, flush=True)
+                    elif inblk:
+                        print("@@M " + t, flush=True)
+                        inblk = not t.endswith("$$")
+                    elif t.startswith("#") or t.startswith("> ⚠️") or t.startswith("|"):
+                        print("@@H " + t[:300], flush=True)
+                    if t:
+                        prev = t
     elif "--lessons" in sys.argv:  # a course's lessons and where each came from (read only; a link shows its host only)
         import json as _j
         from urllib.parse import urlparse

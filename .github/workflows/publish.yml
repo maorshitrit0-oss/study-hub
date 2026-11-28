@@ -46,7 +46,7 @@ jobs:
         run: npm ci --no-audit --no-fund --ignore-scripts >/dev/null 2>&1 || echo "::warning::npm ci failed - math fix skipped"
       - run: pip install -q -r worker/requirements.txt
       - name: browser for the formula-sheet / expected-exam PDF (only when one is published)
-        if: inputs.sheet != '' || inputs.inspect == 'forecast'
+        if: inputs.sheet != '' || inputs.inspect == 'forecast' || inputs.inspect == 'sheet'
         run: python -m playwright install --with-deps chromium
       - working-directory: worker
         env:
@@ -93,6 +93,7 @@ jobs:
           if [ "$INSPECT" = "sync-undo" ]; then python hub.py sync-undo "${TITLE%%|*}" "${TITLE##*|}"; exit $?; fi
           if [ "$INSPECT" = "merge-repair" ]; then python hub.py merge-repair; exit $?; fi
           if [ "$INSPECT" = "coverage-thin" ]; then python coverage.py --thin $TITLE; exit $?; fi
+          if [ "$INSPECT" = "coverage-formdump" ]; then python coverage.py --formdump "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "sheet" ]; then python docs.py --course "$COURSE" $TITLE; exit $?; fi
           if [ "$INSPECT" = "coverage-hollow" ]; then python coverage.py --hollow $TITLE; exit $?; fi
           if [ "$INSPECT" = "coverage-unescape" ]; then python coverage.py --unescape $TITLE; exit $?; fi
