@@ -1330,3 +1330,13 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
   - Audit numbers 28/11 (exercises / mcq / hollow by the detector): waves 138/0/10, linear 364/93/45,
     digital 147/71/20, comm 372/18/17, micro 99/25/24 (mixed exam, balance not run yet), Java 91/61/23,
     random 147/0/23. Lecture quizzes all 10-12 except waves L1 16 and comm L1 14 (answered ones).
+  - Weekly run (scheduled 28/11 13:41, routine trig_01WjXFp2jNaGGUNdHbYM1XpA - older than his 27/11 rules, which win:
+    no practice quiz / video, quiz 10-12 per lecture): no new recording this week (he uploads after Shabbat).
+    Java "🔁 השלמה לתרגול 1/2" merged into practices 1/2 (merge_completions now also takes practices; +1.4k/+2.8k).
+    Week lists pointed at exercises deleted by the thin rewrites (reextract): weekset clean + fill -> digital weeks
+    4 (4+2) and 5 (2+2), comm week 4 (3+2), random week 13 (3+1) rebuilt; comm week 5 (manual) set by hand:
+    practice 5 DSB-SC / power / PEP, lecture 5 homodyne phase error + Hartley, exam c089d6a4. Open-exam courses: no
+    MCQ in any week (has_options' line-start rule also matches open sub-parts א/ב - use is_mcq to count MCQ).
+    "(להשוואה)" lessons (last year, transcript only) are by design input to this year's chapter - left as they are.
+    NOT done this run: predicted questions / expected exam / MCQ rewrite of new weeks - waiting for his answer on
+    hand-solving (asked 28/11).
