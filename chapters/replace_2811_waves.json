@@ -1,0 +1,58 @@
+[
+ {
+  "id": "cf688882-5ecb-4a06-8776-4210ca200148",
+  "find": "\\boxed{\\frac{R + j\\theta L}{G + j\\theta C}}",
+  "repl": "\\boxed{\\sqrt{\\frac{R + j\\omega L}{G + j\\omega C}}}"
+ },
+ {
+  "id": "cf688882-5ecb-4a06-8776-4210ca200148",
+  "find": "\\frac{\\nu}{R + j\\theta L}",
+  "repl": "\\frac{\\gamma}{R + j\\omega L}",
+  "all": true
+ },
+ {
+  "id": "cf688882-5ecb-4a06-8776-4210ca200148",
+  "find": "\\frac{R + j\\theta L}{\\nu}",
+  "repl": "\\frac{R + j\\omega L}{\\gamma}",
+  "all": true
+ },
+ {
+  "id": "cf688882-5ecb-4a06-8776-4210ca200148",
+  "find": "e^{-\\nu z}",
+  "repl": "e^{-\\gamma z}",
+  "all": true
+ },
+ {
+  "id": "cf688882-5ecb-4a06-8776-4210ca200148",
+  "find": "e^{\\nu z}",
+  "repl": "e^{\\gamma z}",
+  "all": true
+ },
+ {
+  "id": "cf688882-5ecb-4a06-8776-4210ca200148",
+  "find": "R + j\\theta L",
+  "repl": "R + j\\omega L",
+  "all": true
+ },
+ {
+  "id": "cf688882-5ecb-4a06-8776-4210ca200148",
+  "find": "G + j\\theta C",
+  "repl": "G + j\\omega C",
+  "all": true
+ },
+ {
+  "id": "cf688882-5ecb-4a06-8776-4210ca200148",
+  "find": "הזווית החשמלית $E$ של",
+  "repl": "הזווית החשמלית $\\theta$ (בתוכנת ADS הפרמטר נקרא E) של"
+ },
+ {
+  "id": "cf688882-5ecb-4a06-8776-4210ca200148",
+  "find": "E = \\beta l = \\frac{2\\pi}{\\lambda} l",
+  "repl": "\\theta = \\beta l = \\frac{2\\pi}{\\lambda} l"
+ },
+ {
+  "id": "aa682926-f9e6-48eb-ad77-b66eab6620a1",
+  "find": "\\approx -315^{\\circ} \\equiv 45^{\\circ}\n$$",
+  "repl": "\\approx -315^{\\circ} \\equiv 45^{\\circ}\n$$\n\n> ⚠️ **שימו לב:** $\\frac{7\\pi}{4}$ שקול ל-$-45^\\circ$, לא ל-$+45^\\circ$. התשובה $\\theta_\\Gamma=+45^\\circ$ נכונה, מהסיבה הזאת: המקסימום נמצא ב-$z=-\\frac{\\lambda}{16}$ (לפני העומס), ולכן $\\frac{2\\pi m-\\theta_\\Gamma}{2\\beta}=-\\frac{\\lambda}{16}$ עם $m=0$ נותן $\\theta_\\Gamma=\\frac{4\\pi}{16}=\\frac{\\pi}{4}$. בדיקה: $Z_L=80\\cdot\\frac{1+\\frac13e^{j\\pi/4}}{1-\\frac13e^{j\\pi/4}}=111.16+j58.95\\,\\Omega$ ✓"
+ }
+]
