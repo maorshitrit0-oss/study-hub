@@ -2212,7 +2212,7 @@ if __name__ == "__main__":
         rows, k = [], 0
         while True:
             got = s.table("lessons").select("id, chapter_md").order("id").range(k, k + 999).execute().data
-            rows += [r for r in got if r["id"].startswith(pre)]
+            rows += [r for r in got if pre == "all" or r["id"].startswith(pre)]  # "all" = every chapter
             k += 1000
             if len(got) < 1000:
                 break
