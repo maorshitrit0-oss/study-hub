@@ -1293,3 +1293,23 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
     (25 of 99 MCQ -> about half), waves formula sheet, final audit. One job at a time.
   - Linear / digital / Java exam is MCQ but only lesson exercises are converted (linear 56 of 364 MCQ): exam /
     sheet exercises keep their original form - open question to him.
+- 28/11 (resumed after the quota reset):
+  - quizfix again (random "שבוע 1 · מפגש 2" 5 -> 12). thin all, two runs (95-min limit each): rewritten in 20-min
+    parts + audit: digital L1 16k->59k, L2 12k->39k, L3 12k->61k, L5 17k->29k; waves L2 10k->40k, P3 2k->16k;
+    comm L1 5k->15k, L2 5k->11k, L3a 7k->18k, L3b 4k->17k, P3 5k->13k, L4 9k->19k; micro P1 4k->14k.
+    Micro L3 (3h recording, 16k) NOT rewritten: the new one came out shorter (kept) - retry when the quota is full.
+  - BUG: a NUL character in a model answer made Postgres refuse digital L3 ("\u0000 cannot be converted") - stripped
+    in rewrite_lesson.
+  - Waves formula sheet rewritten by Claude for 4 pages (his exam: 2 double-sided sheets): chapters/
+    waves-formula-sheet.md, all 6 lectures + 6 practices (oblique incidence TE/TM + fields, Brewster, critical angle,
+    total reflection / evanescent wave, slab as a line, telegrapher, Z0/gamma, coax from fields, loaded line,
+    SWR + max/min positions, bounce diagram, Smith chart), two "what do they ask" tables (one long table did not fit
+    a column and left page 1 empty). Checked locally: 4 A4 pages (scratchpad render_sheet.py with local KaTeX).
+    Saved with publish.yml sheet= (hub.py sheet) -> stamp "נכתב ע״י Claude" (Gemini only adds later) + PDF.
+  - New tools: publish.yml inspect "sheet" (docs.py --course <regex> [dry]: report + rebuild one course's sheet),
+    "coverage-formdump" (a course's sheet + every chapter's headings / display formulas - material for a sheet),
+    "coverage-dupruns" (coverage --dupruns <course|all> [dry]: a run of blocks repeated word for word later in a
+    chapter is dropped if it has real text and 250+ chars; empty headings left by it go too; backup
+    chapter_before_dedupe.md). Applied: 12 chapters (waves L2/P2/L5/L6, Java L2-5, random L4/L6/L12, digital L6).
+  - Waves chapter fixes (chapters/replace_2811_waves.json): L4 "jθL"/"ν" (were ω / γ) and Z0 boxed without the root;
+    P6 board "7π/4 ≡ 45°" explained (7π/4 is -45°; +45° is right because the max is at z=-λ/16).
