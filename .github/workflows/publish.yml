@@ -93,6 +93,7 @@ jobs:
           if [ "$INSPECT" = "sync-undo" ]; then python hub.py sync-undo "${TITLE%%|*}" "${TITLE##*|}"; exit $?; fi
           if [ "$INSPECT" = "merge-repair" ]; then python hub.py merge-repair; exit $?; fi
           if [ "$INSPECT" = "coverage-thin" ]; then python coverage.py --thin $TITLE; exit $?; fi
+          if [ "$INSPECT" = "coverage-mats" ]; then python coverage.py --mats "$COURSE"; exit $?; fi
           if [ "$INSPECT" = "coverage-ctx" ]; then python coverage.py --ctx $TITLE; exit $?; fi
           if [ "$INSPECT" = "coverage-dupruns" ]; then python coverage.py --dupruns $TITLE; exit $?; fi
           if [ "$INSPECT" = "coverage-formdump" ]; then python coverage.py --formdump "$COURSE"; exit $?; fi

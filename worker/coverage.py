@@ -2209,6 +2209,11 @@ if __name__ == "__main__":
                         .eq("course_id", x["id"]).execute().data:
                     e["material"] = mats.get(e.get("material_id")) or ""  # 28/11: which file it came from
                     print("@@EX " + _j.dumps({"course": x["name"], **e}, ensure_ascii=False), flush=True)
+    elif "--mats" in sys.argv:  # 28/11 (read only): "--mats <course>" - every file of a course with its storage path
+        for x in s.table("courses").select("id, name").execute().data:
+            if name_match(sys.argv[sys.argv.index("--mats") + 1], x["name"]):
+                for m in s.table("materials").select("title, storage_path").eq("course_id", x["id"]).execute().data:
+                    print(f"@@M {m['storage_path']} | {m['title']}", flush=True)
     elif "--ctx" in sys.argv:  # 28/11 (read only): "--ctx <lesson id prefix> <text>" - the chapter around each occurrence
         pre, needle = sys.argv[sys.argv.index("--ctx") + 1], " ".join(sys.argv[sys.argv.index("--ctx") + 2:])
         rows, k = [], 0

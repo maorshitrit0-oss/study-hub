@@ -755,7 +755,7 @@ def cmd_exercises(match, path):
     solved is kept. Nothing else is touched."""
     sb = db()
     course = find_course(sb, match)
-    fields = ("title", "question_md", "solution_md", "topic", "exam_style", "uncertain")
+    fields = ("title", "question_md", "solution_md", "topic", "exam_style", "uncertain", "duplicate")  # duplicate: hidden (28/11)
     week_adds = {}
     for fx in json.loads(Path(path).read_text(encoding="utf-8")):
         for k in ("question_md", "solution_md"):  # clean layout, also for exercises Claude writes (11/11/2026)
