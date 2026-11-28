@@ -1292,7 +1292,7 @@ def resolve_hollow(sb, course, x, materials, work):
 OPTIONS = re.compile(r"\*\*[אבגד]\.\*\*|^\s*[אבגד][.)]\s", re.M)
 
 
-def fix_hollow(sb, key, dry=False, limit_min=95):
+def fix_hollow(sb, key, dry=False, limit_min=95, only=None):
     """--hollow <course|all> [dry]: every hollow exercise of the course solved again (see resolve_hollow)."""
     import tempfile
     import time
@@ -1304,7 +1304,8 @@ def fix_hollow(sb, key, dry=False, limit_min=95):
             continue
         xs = sb.table("exercises").select("id, title, source, lesson_id, material_id, question_md, solution_md") \
             .eq("course_id", c["id"]).execute().data
-        bad = [x for x in xs if hollow(x) and "🔎 נבדק מחדש" not in (x.get("solution_md") or "")]
+        bad = [x for x in xs if hollow(x) and "🔎 נבדק מחדש" not in (x.get("solution_md") or "")] if not only else \
+            [x for x in xs if x["id"][:8] in only]  # 28/11: these ids again, whatever their state
         print(f"::notice title=Hollow::{c['name']}: {len(bad)} of {len(xs)} exercises have a hollow solution", flush=True)
         if dry or not bad:
             for x in bad:
@@ -2375,7 +2376,8 @@ if __name__ == "__main__":
                     if author._is(e, "RESOURCE_EXHAUSTED", "429", "quota"):
                         break
     elif "--hollow" in sys.argv:  # 27/11: exercises whose solution only names the steps, solved again in full
-        fix_hollow(s, sys.argv[sys.argv.index("--hollow") + 1], dry=sys.argv[-1] == "dry")
+        ids = next((a[4:].split(",") for a in sys.argv if a.startswith("ids=")), None)  # "ids=abcd1234,..." (28/11)
+        fix_hollow(s, sys.argv[sys.argv.index("--hollow") + 1], dry=sys.argv[-1] == "dry", only=set(ids) if ids else None)
     elif "--unescape" in sys.argv:  # 27/11: chapters with "\\n" written out instead of line breaks ("--unescape [dry]")
         rows, k = [], 0
         while True:
