@@ -1879,16 +1879,17 @@ def merge_completions(sb, c, dry=False):
     from google.genai import types
     ls = sb.table("lessons").select("id, user_id, kind, number, title, status, chapter_md").eq("course_id", c["id"]).execute().data
     for x in ls:
-        m = re.match(r"🔁 השלמה ל(?:הרצאה|מפגש) (\d+)", x.get("title") or "")
+        m = re.match(r"🔁 השלמה ל(הרצאה|מפגש|תרגול) (\d+)", x.get("title") or "")  # 28/11: practices too (Java)
         if not m or not (x.get("chapter_md") or "").strip():
             continue
-        n = int(m.group(1))
-        tg = [l for l in ls if l["kind"] == "lecture" and l.get("number") == n and l["status"] == "ready"
+        n, kind = int(m.group(2)), "practice" if m.group(1) == "תרגול" else "lecture"
+        word = "בתרגול" if kind == "practice" else "בהרצאה"
+        tg = [l for l in ls if l["kind"] == kind and l.get("number") == n and l["status"] == "ready"
               and not (l.get("title") or "").startswith("📦") and (l.get("chapter_md") or "").strip()]
         if not tg:
             continue
         t = max(tg, key=lambda l: len(l["chapter_md"]))
-        print(f"::notice title=Completion::{c['name']}: {x['id'][:8]} ({len(x['chapter_md'])}) -> lecture {n} {t['id'][:8]} "
+        print(f"::notice title=Completion::{c['name']}: {x['id'][:8]} ({len(x['chapter_md'])}) -> {kind} {n} {t['id'][:8]} "
               f"({len(t['chapter_md'])})", flush=True)
         if dry:
             continue
@@ -1918,8 +1919,8 @@ def merge_completions(sb, c, dry=False):
         for q in qs:
             if q["id"] not in ans:
                 sb.table("questions").delete().eq("id", q["id"]).execute()
-        sb.table("lessons").update({"title": f"📦 (שולב בהרצאה {n}) {x.get('title') or ''}"}).eq("id", x["id"]).execute()
-        print(f"::notice title=Completion::{c['name']}: lecture {n} +{len(md) if len(md) >= 80 else 0} chars (of "
+        sb.table("lessons").update({"title": f"📦 (שולב {word} {n}) {x.get('title') or ''}"}).eq("id", x["id"]).execute()
+        print(f"::notice title=Completion::{c['name']}: {kind} {n} +{len(md) if len(md) >= 80 else 0} chars (of "
               f"{len(body)}), completion hidden", flush=True)
 
 
