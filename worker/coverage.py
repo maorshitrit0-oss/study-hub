@@ -1243,7 +1243,9 @@ SOLVE = """לפניך תרגיל בקורס "{course}" (הנדסת חשמל) ו�
   בהוכחה או בשאלה מילולית: שלבים ממוספרים, כל שלב עם הנימוק שלו. שרטוט - תאר במילים בדיוק מה משרטטים (צירים,
   נקודות, ערכים).
 """ + author.EXPLAIN_RULE.replace("{", "{{").replace("}", "}}") + """
-אם התרגיל רב-ברירה (יש אפשרויות א/ב/ג/ד): השורה הראשונה "התשובה: **<אות>**", אחריה הפתרון, ובסוף "למה לא האחרות".
+אם התרגיל רב-ברירה (יש בנוסח אפשרויות א/ב/ג/ד): השורה הראשונה "התשובה: **<אות>**", אחריה הפתרון, ובסוף "למה לא האחרות".
+אם אין בנוסח אפשרויות - זו שאלה פתוחה: אסור לכתוב "התשובה: <אות>" ואסור להמציא אפשרויות; פתור כל סעיף עד המספר.
+בדוק כל חישוב פעמיים (הצבה, יחידות, חזקות של 10): תוצאה שלא מתאימה להצבה שלה היא טעות שאסור להשאיר.
 אם בנוסח חסר נתון שיש בקובץ - השלם אותו ב-question_md (אחרת החזר את הנוסח כמו שהוא). אל תמציא נתונים: מה שלא
 ידוע - כתוב שאינו ידוע ופתור בסימנים, ו-uncertain=true. כל ביטוי מתמטי בתוך $...$, משוואה בשורה נפרדת $$...$$.
 עברית בלבד. החזר תרגיל אחד ברשימה exercises."""
@@ -1254,7 +1256,8 @@ def resolve_hollow(sb, course, x, materials, work):
     then re-solved from scratch by the checker. Kept only when the new solution is not hollow."""
     import exercises as exmod
     from google.genai import types
-    parts = [types.Part.from_text(text=SOLVE.format(course=course["name"]) + exmod.exam_form(course)),
+    # 28/11: no exam_form here - in a multiple-choice course it made the model invent options for open questions
+    parts = [types.Part.from_text(text=SOLVE.format(course=course["name"])),
              types.Part.from_text(text=f"=== התרגיל ===\n{x.get('question_md')}\n\n=== הפתרון החלול ===\n{x.get('solution_md')}")]
     m = next((y for y in materials if y["id"] == x.get("material_id")), None)
     if m:
@@ -1278,7 +1281,15 @@ def resolve_hollow(sb, course, x, materials, work):
     new = (checked or found)[0]
     if hollow(new) or len(new.get("solution_md") or "") < 300:
         return None
+    q = new.get("question_md") or x.get("question_md") or ""
+    if re.search(r"התשובה:\s*\**[אבגד]", new.get("solution_md") or "") and not OPTIONS.search(q):
+        print(f"::warning title=Hollow::{x['id'][:8]}: answered as multiple choice but the question has no options - dropped", flush=True)
+        return None
+    new["uncertain"] = True  # 28/11: a model's solution is not checked by Claude yet - shown with the warning
     return new
+
+
+OPTIONS = re.compile(r"\*\*[אבגד]\.\*\*|^\s*[אבגד][.)]\s", re.M)
 
 
 def fix_hollow(sb, key, dry=False, limit_min=95):
