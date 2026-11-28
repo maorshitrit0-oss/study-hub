@@ -283,6 +283,79 @@ def unescape_newlines(s):
     return "\n".join(out)
 
 
+def _blocks(body):
+    """The chapter in blocks separated by blank lines; a ``` fence or a $$ ... $$ block is never split."""
+    out, cur, fence, math = [], [], False, False
+    for ln in body.split("\n"):
+        t = ln.strip()
+        if t.startswith("```"):
+            fence = not fence
+        elif not fence and t == "$$":
+            math = not math
+        if not t and not fence and not math:
+            if cur:
+                out.append("\n".join(cur))
+                cur = []
+            continue
+        cur.append(ln)
+    if cur:
+        out.append("\n".join(cur))
+    return out
+
+
+def _prose(b):
+    t = re.sub(r"\$\$.*?\$\$", "", b, flags=re.S).strip()
+    return not t.startswith("#") and len(re.sub(r"\$[^$]*\$", "x", t)) >= 60
+
+
+def dedupe_runs(md):
+    """28/11 (waves lecture 5: the telegrapher derivation three times): a run of blocks that already appeared, in the
+    same order, earlier in the chapter is dropped - only when the run holds real text (a paragraph of 60+ characters)
+    and is 250+ characters, so a formula shown again on purpose (the board copy, an exercise) stays. A "📝" label left
+    with nothing under it goes too. Returns (md, [dropped run heads])."""
+    body, sep, ver = md.partition(VERIFY_SPLIT)
+    bl = _blocks(body)
+    norm = [re.sub(r"\s+", " ", b).strip() for b in bl]
+    first = {}
+    for i, n in enumerate(norm):
+        first.setdefault(n, []).append(i)
+    keep, dropped, i = [True] * len(bl), [], 0
+    while i < len(bl):
+        best = 0
+        for j in first.get(norm[i], []):
+            if j >= i:
+                break
+            k = 0
+            while i + k < len(bl) and j + k < i and norm[j + k] == norm[i + k] and not norm[i + k].startswith("#"):
+                k += 1
+            best = max(best, k)
+        run = range(i, i + best)
+        if best and sum(len(norm[x]) for x in run) >= 250 and any(_prose(bl[x]) for x in run):
+            for x in run:
+                keep[x] = False
+            if i > 0 and keep[i - 1] and norm[i - 1].startswith("**📝") and len(norm[i - 1]) < 40:
+                nxt = i + best
+                if nxt >= len(bl) or norm[nxt].startswith("#") or not norm[nxt].startswith("$$"):
+                    keep[i - 1] = False
+            dropped.append(norm[i][:80])
+            i += best
+        else:
+            i += 1
+    if not dropped:
+        return md, []
+    def level(b):
+        m = re.match(r"(#{1,6})\s", b.strip())
+        return len(m.group(1)) if m else 0
+    # a heading whose whole section was a repeat is left empty: it goes too (what follows it now is a heading of its
+    # level or higher, or the end) - only where something was dropped right under it
+    idx = [x for x in range(len(bl)) if keep[x]]
+    for a, x in enumerate(idx):
+        y = idx[a + 1] if a + 1 < len(idx) else None
+        if level(bl[x]) and (y is None or y > x + 1) and (y is None or 0 < level(bl[y]) <= level(bl[x])):
+            keep[x] = False
+    return "\n\n".join(b for b, k in zip(bl, keep) if k) + "\n" + sep + ver, dropped
+
+
 def integrate(md, items):
     """Each missing piece goes to the END of its own topic (before the next heading of the same or a higher level),
     not to a separate section at the end of the chapter (his rule 24/11/2026). Pieces with no topic go before the
@@ -2114,6 +2187,27 @@ if __name__ == "__main__":
                 for e in s.table("exercises").select("id, title, source, lesson_id, done_at, question_md, solution_md") \
                         .eq("course_id", x["id"]).execute().data:
                     print("@@EX " + _j.dumps({"course": x["name"], **e}, ensure_ascii=False), flush=True)
+    elif "--dupruns" in sys.argv:  # 28/11: "--dupruns <course|all> [dry]" - repeated runs of a chapter dropped (dedupe_runs)
+        key = sys.argv[sys.argv.index("--dupruns") + 1]
+        dry = sys.argv[-1] == "dry"
+        for c in s.table("courses").select("id, name, kind").eq("archived", False).execute().data:
+            if not (key == "all" or name_match(key, c["name"])) or c.get("kind") == "lab":
+                continue
+            tot = 0
+            for l in s.table("lessons").select("id, user_id, kind, number, chapter_md").eq("course_id", c["id"]).execute().data:
+                md = l.get("chapter_md") or ""
+                new, runs = dedupe_runs(md)
+                if not runs:
+                    continue
+                tot += 1
+                print(f"@@D {c['name'][:20]} {l['kind']} {l.get('number')} {l['id'][:8]}: {len(md)} -> {len(new)} ({len(runs)} runs)", flush=True)
+                for r in runs[:8]:
+                    print(f"@@R   {r}", flush=True)
+                if not dry:
+                    s.storage.from_("study").upload(f"{l['user_id']}/lessons/{l['id']}/chapter_before_dedupe.md", md.encode("utf-8"),
+                                                    {"content-type": "text/markdown; charset=utf-8", "upsert": "true"})
+                    s.table("lessons").update({"chapter_md": new}).eq("id", l["id"]).execute()
+            print(f"::notice title=Repeated runs::{c['name']}: {tot} chapters{' (dry)' if dry else ' cleaned'}", flush=True)
     elif "--formdump" in sys.argv:  # 28/11 (read only): a course's formula sheet + every chapter's headings, display
         # formulas and the line before each - the material for a formula sheet written by hand
         import json as _j
