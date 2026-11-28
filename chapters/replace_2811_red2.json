@@ -1,0 +1,4 @@
+[
+ {"id": "75682d61-09d9-4f46-aa0c-3be7b6dedb6f", "find": "\\fbox{$G_1, F_1$}", "repl": "\\boxed{G_1, F_1}"},
+ {"id": "75682d61-09d9-4f46-aa0c-3be7b6dedb6f", "find": "\\fbox{$G_2, F_2$}", "repl": "\\boxed{G_2, F_2}"}
+]
