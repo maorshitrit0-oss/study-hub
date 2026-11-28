@@ -2204,8 +2204,10 @@ if __name__ == "__main__":
         import json as _j
         for x in s.table("courses").select("id, name").execute().data:
             if name_match(sys.argv[sys.argv.index("--exdump") + 1], x["name"]):
-                for e in s.table("exercises").select("id, title, source, lesson_id, done_at, uncertain, question_md, solution_md") \
+                mats = {m["id"]: m["title"] for m in s.table("materials").select("id, title").eq("course_id", x["id"]).execute().data}
+                for e in s.table("exercises").select("id, title, source, lesson_id, material_id, done_at, uncertain, question_md, solution_md") \
                         .eq("course_id", x["id"]).execute().data:
+                    e["material"] = mats.get(e.get("material_id")) or ""  # 28/11: which file it came from
                     print("@@EX " + _j.dumps({"course": x["name"], **e}, ensure_ascii=False), flush=True)
     elif "--ctx" in sys.argv:  # 28/11 (read only): "--ctx <lesson id prefix> <text>" - the chapter around each occurrence
         pre, needle = sys.argv[sys.argv.index("--ctx") + 1], " ".join(sys.argv[sys.argv.index("--ctx") + 2:])
