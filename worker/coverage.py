@@ -1282,7 +1282,7 @@ def resolve_hollow(sb, course, x, materials, work):
     if hollow(new) or len(new.get("solution_md") or "") < 300:
         return None
     q = new.get("question_md") or x.get("question_md") or ""
-    if re.search(r"התשובה:\s*\**[אבגד]", new.get("solution_md") or "") and not OPTIONS.search(q):
+    if re.search(r"התשובה:\s*\**[אבגד]", new.get("solution_md") or "") and not has_options(q):
         print(f"::warning title=Hollow::{x['id'][:8]}: answered as multiple choice but the question has no options - dropped", flush=True)
         return None
     new["uncertain"] = True  # 28/11: a model's solution is not checked by Claude yet - shown with the warning
@@ -1290,6 +1290,13 @@ def resolve_hollow(sb, course, x, materials, work):
 
 
 OPTIONS = re.compile(r"\*\*[אבגד]\.\*\*|^\s*[אבגד][.)]\s", re.M)
+# options written in one line ("א. ... ב. ...") count only when the question asks to choose - otherwise they are sub-questions
+INLINE_OPTIONS = re.compile(r"(?:^|\s)א[.)]\s[^\n]*?\sב[.)]\s", re.M)
+CHOOSE = re.compile(r"סמנו|סמן|הקיפו|הקף|בחרו|בחר|איזו מה|איזה מה|מה מה(?:באים|תשובות)|התשובה הנכונה|הטענה הנכונה|הטענות הנכונות")
+
+
+def has_options(q):
+    return bool(OPTIONS.search(q or "") or (INLINE_OPTIONS.search(q or "") and CHOOSE.search(q or "")))
 
 
 def fix_hollow(sb, key, dry=False, limit_min=95, only=None):
