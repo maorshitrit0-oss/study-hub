@@ -1313,3 +1313,20 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
     chapter_before_dedupe.md). Applied: 12 chapters (waves L2/P2/L5/L6, Java L2-5, random L4/L6/L12, digital L6).
   - Waves chapter fixes (chapters/replace_2811_waves.json): L4 "jθL"/"ν" (were ω / γ) and Z0 boxed without the root;
     P6 board "7π/4 ≡ 45°" explained (7π/4 is -45°; +45° is right because the max is at z=-λ/16).
+  - Hollow re-solve (coverage --hollow) is NOT reliable: linear 71/92 "solved", but 24 open questions got invented
+    MCQ options ("התשובה: ב" + "למה האחרות") because SOLVE was given exam_form (MCQ course), and checked ones had
+    arithmetic slips (65102f6c: 37.6µF written "≈53.2µF"; 99dc79ed r_e 41.25 for 25/0.6). Done: the 24 restored from
+    the 27/11 dump (scratchpad ex_2.log; chapters/fix_2811_linear_hollow_revert.json), the other 47 flagged
+    uncertain=true (app shows "⚠️ לא בטוח בפתרון"). Comm: 37/53 solved; 25 flagged uncertain
+    (fix_2811_comm_uncertain.json), 12 re-run with the fixed tool (all flagged uncertain). Fix in the tool: no
+    exam_form in SOLVE, "no options in the question = open, never invent options", every auto solution
+    uncertain=true, a letter answer without options is refused (has_options: line-start options, or one-line
+    "א. ... ב. ..." only with a choose-verb - else they are sub-questions). New: --hollow <course> ids=<id8,...>.
+    NOT run yet on digital / waves / micro / Java / random (paused - asked him whether Claude should solve them by
+    hand instead). A cancel of a running job was refused by the session's permission check.
+  - Red formulas after the rewrites fixed (chapters/replace_2811_red*.json + --unescape): comm L3b literal "\n",
+    "$n", \fbox{$..$} nested $; comm L4 \text{Hetero}... outside math; waves P3 \frac split over lines. Audit
+    28/11: red 0 in every course, 🧩 0, 🔁 0. New read-only tool coverage --ctx <id8> <text> (inspect coverage-ctx).
+  - Audit numbers 28/11 (exercises / mcq / hollow by the detector): waves 138/0/10, linear 364/93/45,
+    digital 147/71/20, comm 372/18/17, micro 99/25/24 (mixed exam, balance not run yet), Java 91/61/23,
+    random 147/0/23. Lecture quizzes all 10-12 except waves L1 16 and comm L1 14 (answered ones).
