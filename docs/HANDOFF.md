@@ -1340,3 +1340,17 @@ Also 25/11: missing_for() counted completions with an empty state (no v2 / audit
     "(להשוואה)" lessons (last year, transcript only) are by design input to this year's chapter - left as they are.
     NOT done this run: predicted questions / expected exam / MCQ rewrite of new weeks - waiting for his answer on
     hand-solving (asked 28/11).
+- 28/11 evening - his instruction "fix everything, talk when ready": exercises solved / checked BY HAND (Claude),
+  marker "🔎 נבדק מחדש (28/11)" at the end of each (the hollow detector skips it), uncertain cleared only when
+  checked. Files: chapters/fixes/{rnd,micro,java,waves}_hollow_2811.py -> chapters/fix_2811_*_hollow.json
+  (publish inspect=exercises). Every number checked in python / simulation; C compiled with gcc, Java with javac.
+  - random 23 (14 rewritten: e.g. P(X1=k)=λ/(1+λ)^(k+1) - the stored λ^k/... was wrong; compound Poisson; binary
+    estimators table; 9 were already right). micro 28 (18 rewritten: EXT0/EXT1/timer deep sleep, I2C read, bit
+    fields, sine series, 2^20+3^15+5^17=762954850608). Java 25 (Dog/MyCar/EX1/EX2 programs; abstract blank [1]
+    was "public" - does not compile with public Company in the same file). waves 17 (14e6fc12 ellipse 21.6° ->
+    68.3°, cfcba41c 67.5° -> 22.5°, 812f92a7 E_i0 typo -3z -> -2z and 7.6 0.229 -> 0.116 W/m², b751881a rad).
+  - Left flagged uncertain on purpose (source wording missing or the sheet's key in doubt): random 8fff574f /
+    b67459a1 (practice-6 estimators not in the material) and 7bc24bca (N_AT typo); micro b4931529 (code options
+    not stored); waves af6d8cbf / c5ef4b9c / d6580bc6 / 812f92a7.
+  - Still to do by hand: digital ~33, comm ~67, linear ~97 (hollow + uncertain); micro L3 rewrite (quota);
+    predicted questions / expected exam for the new material; final audit.
